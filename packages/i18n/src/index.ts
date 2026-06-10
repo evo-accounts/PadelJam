@@ -1,1 +1,2 @@
-export const PLACEHOLDER = '@padel/i18n' as const;
+export * from './config';
+export * from './useT';

@@ -184,9 +184,16 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.47.0
         version: 2.108.1
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.17
       react:
-        specifier: '*'
-        version: 19.2.7
+        specifier: ^19.0.0
+        version: 19.2.4
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.19.20)(lightningcss@1.32.0)(terser@5.48.0)
 
   packages/chat: {}
 
@@ -219,6 +226,10 @@ importers:
       react-i18next:
         specifier: ^15.4.0
         version: 15.7.4(i18next@24.2.3(typescript@5.9.3))(react@19.2.7)(typescript@5.9.3)
+    devDependencies:
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.19.20)(lightningcss@1.32.0)(terser@5.48.0)
 
   packages/permissions: {}
 

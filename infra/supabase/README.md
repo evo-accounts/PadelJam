@@ -16,15 +16,26 @@ Docker must be running.
 - This CLI emits the **new key format**: `sb_publishable_*` (client/anon) and `sb_secret_*`
   (server/service_role). They are written to the git-ignored root `.env`.
 
-## Commands (run from `infra/`)
+## Auth (local)
+
+- Email OTP: fully functional. Sent emails are captured by Inbucket at http://127.0.0.1:55324.
+- Phone OTP: Twilio is enabled with **placeholder** creds + `[auth.sms.test_otp]`, so GoTrue returns
+  the test code (`123456`) for the listed numbers (`351912345678`, `5511987654321`) without sending
+  real SMS. Real Twilio creds are required for staging/prod.
+- Before starting, export the dummy Twilio token so the `env()` ref in `config.toml` resolves:
+  `export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token` (value also in the root `.env`).
+- OAuth (Apple/Google) is left **disabled** locally (needs real client IDs/secrets); enable in
+  `[auth.external.*]` for staging/prod.
+
+## Commands (run with explicit `--workdir` to avoid CWD ambiguity)
 
 ```bash
-cd infra
+WD=/path/to/repo/infra   # the folder that contains supabase/
 
-# Start / stop the local stack
-pnpm dlx supabase@latest start
-pnpm dlx supabase@latest stop
-pnpm dlx supabase@latest status      # prints URLs + keys
+# Start / stop the local stack (export the dummy twilio token first; see Auth above)
+pnpm dlx supabase@latest --workdir "$WD" start
+pnpm dlx supabase@latest --workdir "$WD" stop
+pnpm dlx supabase@latest --workdir "$WD" status      # prints URLs + keys
 
 # Create a new migration
 pnpm dlx supabase@latest migration new <name>
