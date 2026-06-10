@@ -1,0 +1,13 @@
+node_modules/
+.next/
+dist/
+.turbo/
+.expo/
+coverage/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+infra/supabase/.branches/
+infra/supabase/.temp/

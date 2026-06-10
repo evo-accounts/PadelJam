@@ -1,0 +1,5 @@
+**/dist
+**/.next
+**/.expo
+pnpm-lock.yaml
+packages/db/src/database.types.ts
