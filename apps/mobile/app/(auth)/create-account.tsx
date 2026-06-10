@@ -21,7 +21,7 @@ export default function CreateAccountScreen() {
   const { t } = useT('auth');
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { identifier, kind } = getAuthTarget();
+  const { kind } = getAuthTarget();
 
   // The primary identifier is already verified; ask for the missing one.
   const secondaryKind = kind === 'phone' ? 'email' : 'phone';
@@ -53,35 +53,20 @@ export default function CreateAccountScreen() {
       const secondaryBody =
         secKind === 'phone' ? { phone: secondaryValue } : { email: secondaryValue };
 
+      // The Edge Function attaches the secondary identifier + password AND creates the profiles row
+      // server-side from the identifiers it persists on auth.users — the client never writes its own
+      // identity into the globally-readable profiles table.
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/complete-account`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ ...secondaryBody, password }),
+        body: JSON.stringify({ ...secondaryBody, password, full_name: formatDisplayName(name) }),
       });
 
       if (!resp.ok) {
         setError(`complete-account-failed:${resp.status}`);
-        return;
-      }
-
-      const primary = kind === 'phone' ? { phone: identifier } : { email: identifier };
-      const email = (('email' in primary && primary.email) ||
-        ('email' in secondaryBody && secondaryBody.email)) as string;
-      const phone = (('phone' in primary && primary.phone) ||
-        ('phone' in secondaryBody && secondaryBody.phone)) as string;
-
-      const { error: insertError } = await supabase.from('profiles').insert({
-        id: session.user.id,
-        email,
-        phone,
-        full_name: formatDisplayName(name),
-      });
-
-      if (insertError) {
-        setError(insertError.message);
         return;
       }
 

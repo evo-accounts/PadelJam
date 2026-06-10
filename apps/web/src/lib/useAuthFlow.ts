@@ -140,33 +140,20 @@ export function useAuthFlow() {
             : { email: secondaryIdentifier.trim() };
 
         const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        // The Edge Function attaches the secondary identifier + password AND creates the profiles
+        // row server-side from the identifiers it persists on auth.users — never trust the client
+        // to write its own identity into the globally-readable profiles table.
         const resp = await fetch(`${baseUrl}/functions/v1/complete-account`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ ...secondary, password }),
+          body: JSON.stringify({ ...secondary, password, full_name: formatDisplayName(fullName) }),
         });
 
         if (!resp.ok) {
           setError(`complete-account-failed:${resp.status}`);
-          return;
-        }
-
-        const primary = kind === 'phone' ? { phone: identifier.trim() } : { email: identifier.trim() };
-        const email = (primary.email ?? secondary.email) as string;
-        const phone = (primary.phone ?? secondary.phone) as string;
-
-        const { error: insertError } = await client.from('profiles').insert({
-          id: session.user.id,
-          email,
-          phone,
-          full_name: formatDisplayName(fullName),
-        });
-
-        if (insertError) {
-          setError(insertError.message);
           return;
         }
 
@@ -176,7 +163,7 @@ export function useAuthFlow() {
         setBusy(false);
       }
     },
-    [identifier, kind, router],
+    [router],
   );
 
   const backToIdentifier = useCallback(() => {
