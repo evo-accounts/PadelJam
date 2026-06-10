@@ -1,56 +1,198 @@
-import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SessionProvider } from '@padel/auth';
+import { createI18n } from '@padel/i18n';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from 'expo-router';
+import type { i18n as I18n } from 'i18next';
+import { useEffect, useState, type ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
+import { useT } from '@padel/i18n';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { registerMobileCopy } from '@/lib/i18n-mobile';
+import { supabase } from '@/lib/supabase';
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
+// We drive the splash + routing ourselves; prevent the native splash from
+// auto-hiding so there is no flash before the JS splash takes over.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* no-op: already hidden */
+});
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+const SPLASH_MIN_MS = 600;
+const SPLASH_MAX_MS = 4000;
+const HAS_SEEN_WELCOME = 'hasSeenWelcome';
+
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+  const [i18n, setI18n] = useState<I18n | null>(null);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    let cancelled = false;
+    createI18n('pt-PT')
+      .then((instance) => {
+        registerMobileCopy(instance);
+        if (!cancelled) setI18n(instance);
+      })
+      .catch(() => {
+        // Even on failure, fall back to a bare instance so the tree can render.
+        createI18n('en').then((fallback) => {
+          if (!cancelled) {
+            registerMobileCopy(fallback);
+            setI18n(fallback);
+          }
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  if (!loaded) {
+  if (!i18n) {
+    // i18n not ready yet; keep the native splash visible (return null).
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <I18nextProvider i18n={i18n}>
+      <SessionProvider client={supabase}>
+        <Boot />
+      </SessionProvider>
+    </I18nextProvider>
+  );
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+type Target = '(tabs)' | '(onboarding)' | 'welcome' | 'sign-in';
+
+/**
+ * Splash boot routing (Requirements §03):
+ * - waits at least SPLASH_MIN_MS, at most SPLASH_MAX_MS
+ * - reads the session; if a user exists, checks profiles.onboarded_at
+ * - routes: authed+onboarded -> (tabs); authed+not-onboarded -> (onboarding);
+ *   unauthenticated+first-install -> (auth)/welcome; returning -> (auth)/sign-in
+ */
+function Boot() {
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolve = async (): Promise<Target> => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarded_at')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (profile?.onboarded_at) return '(tabs)';
+        // Authed but no profile row yet OR not onboarded -> onboarding skeleton.
+        return '(onboarding)';
+      }
+
+      const seen = await AsyncStorage.getItem(HAS_SEEN_WELCOME);
+      return seen ? 'sign-in' : 'welcome';
+    };
+
+    const run = async () => {
+      // Race the resolution against a hard cap; on timeout, treat as unauthenticated.
+      let target: Target = 'sign-in';
+      try {
+        const resolved = await Promise.race<Target>([
+          resolve(),
+          delay(SPLASH_MAX_MS).then<Target>(async () => {
+            const seen = await AsyncStorage.getItem(HAS_SEEN_WELCOME);
+            return seen ? 'sign-in' : 'welcome';
+          }),
+        ]);
+        target = resolved;
+      } catch {
+        const seen = await AsyncStorage.getItem(HAS_SEEN_WELCOME);
+        target = seen ? 'sign-in' : 'welcome';
+      }
+
+      await delay(SPLASH_MIN_MS);
+      if (cancelled) return;
+
+      if (target === '(tabs)') router.replace('/(tabs)');
+      else if (target === '(onboarding)') router.replace('/(onboarding)/location');
+      else if (target === 'welcome') router.replace('/(auth)/welcome');
+      else router.replace('/(auth)/sign-in');
+
+      setReady(true);
+      SplashScreen.hideAsync().catch(() => {
+        /* no-op */
+      });
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   return (
+    <RootNav>
+      {!ready ? <SplashView /> : null}
+    </RootNav>
+  );
+}
+
+function RootNav({ children }: { children: ReactNode }) {
+  const colorScheme = useColorScheme();
+  return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
+      {children}
     </ThemeProvider>
   );
 }
+
+function SplashView() {
+  const { t } = useT('common');
+  return (
+    <View style={styles.splash} pointerEvents="none">
+      <Text style={styles.brand}>{t('appName')}</Text>
+      <ActivityIndicator color="#fff" style={styles.spinner} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  splash: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0B1F3A',
+  },
+  brand: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  spinner: {
+    marginTop: 24,
+  },
+});

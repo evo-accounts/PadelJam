@@ -1,0 +1,71 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useT } from '@padel/i18n';
+import type { useAuthFlow } from '@/lib/useAuthFlow';
+
+type Flow = ReturnType<typeof useAuthFlow>;
+
+export function OtpStep({ flow }: { flow: Flow }) {
+  const { t } = useT('auth');
+  const [code, setCode] = useState('');
+  const [tick, setTick] = useState(0);
+
+  // Re-render once per second so the resend cooldown countdown stays current.
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  void tick;
+
+  const cooldownSeconds = Math.ceil(flow.cooldownRemainingMs / 1000);
+  const onCooldown = cooldownSeconds > 0;
+
+  return (
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void flow.verify(code);
+      }}
+    >
+      <h1 className="text-2xl font-semibold">{t('otpTitle')}</h1>
+      <p className="text-sm text-gray-600">{t('otpHelp', { identifier: flow.identifier })}</p>
+      <label className="flex flex-col gap-1 text-sm">
+        <span>{t('otpLabel')}</span>
+        <input
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          autoFocus
+          className="rounded-md border border-gray-300 px-3 py-2 tracking-[0.5em]"
+          placeholder={t('otpPlaceholder')}
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+        />
+      </label>
+      {flow.locked ? <p className="text-sm text-red-600">{t('locked')}</p> : null}
+      {flow.error && !flow.locked ? <p className="text-sm text-red-600">{flow.error}</p> : null}
+      <button
+        type="submit"
+        disabled={flow.busy || flow.locked || code.length < 6}
+        className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
+      >
+        {t('verify')}
+      </button>
+      <div className="flex items-center justify-between text-sm">
+        <button
+          type="button"
+          onClick={() => void flow.resendOtp()}
+          disabled={flow.busy || onCooldown}
+          className="text-blue-600 disabled:text-gray-400"
+        >
+          {onCooldown ? t('cooldown', { seconds: cooldownSeconds }) : t('resend')}
+        </button>
+        <button type="button" onClick={flow.backToIdentifier} className="text-blue-600">
+          {t('tryAnotherWay')}
+        </button>
+      </div>
+    </form>
+  );
+}

@@ -1,0 +1,180 @@
+import {
+  initialOtpState,
+  otpReducer,
+  startEmailOtp,
+  startPhoneOtp,
+  verifyEmailOtp,
+  verifyPhoneOtp,
+} from '@padel/auth';
+import { useT } from '@padel/i18n';
+import { useRouter } from 'expo-router';
+import { useEffect, useReducer, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { getAuthTarget } from '@/lib/auth-flow';
+import { supabase } from '@/lib/supabase';
+
+export default function OtpScreen() {
+  const { t } = useT('auth');
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { identifier, kind } = getAuthTarget();
+
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
+  const [now, setNow] = useState(Date.now());
+
+  // Mark the initial send (sign-in already triggered the first OTP) so the
+  // resend cooldown starts ticking on mount.
+  useEffect(() => {
+    dispatch({ type: 'sent', at: Date.now() });
+  }, []);
+
+  // Tick once a second while a cooldown is active, to refresh the countdown.
+  useEffect(() => {
+    if (otpState.cooldownUntil <= now) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [otpState.cooldownUntil, now]);
+
+  const cooldownRemaining = Math.max(0, Math.ceil((otpState.cooldownUntil - now) / 1000));
+
+  const verify = async () => {
+    if (busy || otpState.locked || code.length < 6) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { data, error: verifyError } =
+        kind === 'phone'
+          ? await verifyPhoneOtp(supabase, identifier, code)
+          : await verifyEmailOtp(supabase, identifier, code);
+
+      if (verifyError || !data.user) {
+        dispatch({ type: 'fail' });
+        setError(verifyError?.message ?? t('locked'));
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (profile) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/(auth)/create-account');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    if (busy || cooldownRemaining > 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { error: otpError } =
+        kind === 'phone'
+          ? await startPhoneOtp(supabase, identifier)
+          : await startEmailOtp(supabase, identifier);
+      if (otpError) {
+        setError(otpError.message);
+        return;
+      }
+      dispatch({ type: 'sent', at: Date.now() });
+      setNow(Date.now());
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const tryAnotherWay = () => {
+    dispatch({ type: 'reset' });
+    router.replace('/(auth)/sign-in');
+  };
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
+      <Text style={styles.title}>{t('otpTitle')}</Text>
+      <Text style={styles.help}>{t('otpHelp', { identifier })}</Text>
+
+      <Text style={styles.label}>{t('otpLabel')}</Text>
+      <TextInput
+        style={styles.input}
+        value={code}
+        onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+        placeholder={t('otpPlaceholder')}
+        keyboardType="number-pad"
+        inputMode="numeric"
+        maxLength={6}
+        editable={!busy && !otpState.locked}
+        autoFocus
+      />
+
+      {otpState.locked ? <Text style={styles.error}>{t('locked')}</Text> : null}
+      {error && !otpState.locked ? <Text style={styles.error}>{error}</Text> : null}
+
+      <Pressable
+        style={[styles.button, (busy || otpState.locked || code.length < 6) && styles.buttonDisabled]}
+        onPress={verify}
+        disabled={busy || otpState.locked || code.length < 6}
+        accessibilityRole="button"
+      >
+        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('verify')}</Text>}
+      </Pressable>
+
+      <Pressable
+        style={styles.linkButton}
+        onPress={resend}
+        disabled={busy || cooldownRemaining > 0}
+        accessibilityRole="button"
+      >
+        <Text style={[styles.link, cooldownRemaining > 0 && styles.linkMuted]}>
+          {cooldownRemaining > 0 ? t('cooldown', { seconds: cooldownRemaining }) : t('resend')}
+        </Text>
+      </Pressable>
+
+      <Pressable style={styles.linkButton} onPress={tryAnotherWay} accessibilityRole="button">
+        <Text style={styles.link}>{t('tryAnotherWay')}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 24 },
+  title: { fontSize: 26, fontWeight: '700', marginBottom: 12 },
+  help: { fontSize: 14, color: '#444', marginBottom: 32 },
+  label: { fontSize: 14, color: '#444', marginBottom: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 24,
+    letterSpacing: 8,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  error: { color: '#c0392b', marginBottom: 16 },
+  button: { backgroundColor: '#0B1F3A', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  linkButton: { paddingVertical: 14, alignItems: 'center' },
+  link: { color: '#0B1F3A', fontSize: 15, fontWeight: '600' },
+  linkMuted: { color: '#999' },
+});
