@@ -1,3 +1,9 @@
-// Placeholder until `supabase gen types` overwrites this in a later task.
-export type Database = Record<string, never>;
-export const PLACEHOLDER = '@padel/db' as const;
+export type { Database } from './database.types';
+export * from './client';
+
+import type { Database } from './database.types';
+
+export type Tables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Row'];
+export type Inserts<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Insert'];
