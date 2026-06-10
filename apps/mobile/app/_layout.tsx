@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionProvider } from '@padel/auth';
 import { createI18n } from '@padel/i18n';
+import * as Localization from 'expo-localization';
 import * as SplashScreen from 'expo-splash-screen';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from 'expo-router';
 import type { i18n as I18n } from 'i18next';
@@ -12,7 +13,12 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { registerMobileCopy } from '@/lib/i18n-mobile';
+import { resolveLocale } from '@/lib/locale';
+import { initSentry } from '@/lib/sentry';
 import { supabase } from '@/lib/supabase';
+
+// DSN-guarded; no-op locally / without a DSN. Safe at module scope.
+initSentry();
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -36,7 +42,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     let cancelled = false;
-    createI18n('pt-PT')
+    // Resolve the locale from the device. TODO: prefer profiles.locale once
+    // authenticated (left to a later task; do not fetch the profile here).
+    const deviceLocale = Localization.getLocales()[0];
+    const locale = resolveLocale(deviceLocale?.languageTag ?? deviceLocale?.languageCode ?? undefined);
+    createI18n(locale)
       .then((instance) => {
         registerMobileCopy(instance);
         if (!cancelled) setI18n(instance);

@@ -8,16 +8,27 @@ import { SessionProvider } from '@padel/auth';
 import type { TypedClient } from '@padel/db';
 import { supabase } from '@/lib/supabase/client';
 import { registerWebAuthCopy } from '@/lib/i18n-web';
+import { initSentry } from '@/lib/sentry';
+import { resolveLocale } from '@/lib/locale';
 
-const DEFAULT_LOCALE = 'pt-PT' as const;
 const client = supabase as unknown as TypedClient;
 
 export function Providers({ children }: { children: ReactNode }) {
   const [i18n, setI18n] = useState<I18n | null>(null);
 
   useEffect(() => {
+    // DSN-guarded; no-op locally / without a DSN.
+    initSentry();
+  }, []);
+
+  useEffect(() => {
     let active = true;
-    createI18n(DEFAULT_LOCALE).then((instance) => {
+    // Resolve the locale from the device. TODO: prefer profiles.locale once
+    // authenticated (left to a later task; do not fetch the profile here).
+    const locale = resolveLocale(
+      typeof navigator !== 'undefined' ? navigator.language : undefined,
+    );
+    createI18n(locale).then((instance) => {
       registerWebAuthCopy(instance);
       if (active) setI18n(instance);
     });
