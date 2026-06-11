@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionProvider } from '@padel/auth';
 import { createI18n } from '@padel/i18n';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Localization from 'expo-localization';
 import * as SplashScreen from 'expo-splash-screen';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from 'expo-router';
@@ -36,6 +37,8 @@ const SPLASH_MAX_MS = 4000;
 const HAS_SEEN_WELCOME = 'hasSeenWelcome';
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const [i18n, setI18n] = useState<I18n | null>(null);
@@ -73,7 +76,9 @@ export default function RootLayout() {
   return (
     <I18nextProvider i18n={i18n}>
       <SessionProvider client={supabase}>
-        <Boot />
+        <QueryClientProvider client={queryClient}>
+          <Boot />
+        </QueryClientProvider>
       </SessionProvider>
     </I18nextProvider>
   );

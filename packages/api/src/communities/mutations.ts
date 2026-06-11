@@ -1,0 +1,414 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from '@padel/auth';
+import { useDb, mapPgError } from '../client';
+import { qk } from '../query-keys';
+import type { CreateCommunityInput } from '../schemas';
+
+// ---------------------------------------------------------------------------
+// RPC mutations
+// ---------------------------------------------------------------------------
+
+// The create RPC also requires a country; the validation schema omits it, so it
+// is threaded through alongside the validated input.
+export const useCreateCommunity = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateCommunityInput & { country: string }) => {
+      const { data, error } = await db.rpc('create_community_with_personal_tenant', {
+        p_name: input.name,
+        p_type: input.type,
+        p_country: input.country,
+        p_privacy: input.privacy,
+        p_description: input.description,
+        p_location: input.location,
+        p_thumbnail_path: input.thumbnailPath,
+        p_cover_image_path: input.coverImagePath,
+        p_cancellation_rules_enabled: input.rules.enabled,
+        p_cancellation_rules_text: input.rules.text,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.communities });
+      qc.invalidateQueries({ queryKey: qk.canCreate });
+    },
+  });
+};
+
+export const useJoinCommunity = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ack: boolean) => {
+      const { data, error } = await db.rpc('join_community', {
+        p_community_id: communityId,
+        p_ack: ack,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as 'joined' | 'requested';
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.communities });
+      qc.invalidateQueries({ queryKey: qk.community(communityId) });
+    },
+  });
+};
+
+export const useAcceptJoinRequest = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { error } = await db.rpc('accept_join_request', { p_request_id: requestId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.requests(communityId) });
+      qc.invalidateQueries({ queryKey: qk.members(communityId) });
+    },
+  });
+};
+
+export const useDeclineJoinRequest = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { error } = await db.rpc('decline_join_request', { p_request_id: requestId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.requests(communityId) });
+      qc.invalidateQueries({ queryKey: qk.members(communityId) });
+    },
+  });
+};
+
+export const useInviteMembers = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { inviteeIds?: string[]; groupIds?: string[] }) => {
+      const { error } = await db.rpc('invite_to_community', {
+        p_community_id: communityId,
+        p_invitee_ids: input.inviteeIds ?? [],
+        p_group_ids: input.groupIds ?? [],
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.members(communityId) });
+    },
+  });
+};
+
+export const useAcceptInvitation = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (invitationId: string) => {
+      const { error } = await db.rpc('accept_invitation', { p_invitation_id: invitationId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.communities });
+    },
+  });
+};
+
+export const useLeaveCommunity = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (communityId: string) => {
+      const { error } = await db.rpc('leave_community', { p_community_id: communityId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: (_data, communityId) => {
+      qc.invalidateQueries({ queryKey: qk.communities });
+      qc.invalidateQueries({ queryKey: qk.community(communityId) });
+      qc.invalidateQueries({ queryKey: qk.members(communityId) });
+    },
+  });
+};
+
+export const useArchiveCommunity = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (archive: boolean) => {
+      const { data, error } = await db.rpc('archive_community', {
+        p_community_id: communityId,
+        p_archive: archive,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.communities });
+      qc.invalidateQueries({ queryKey: qk.community(communityId) });
+    },
+  });
+};
+
+export const useTransferOwnership = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (newOwner: string) => {
+      const { error } = await db.rpc('transfer_ownership', {
+        p_community_id: communityId,
+        p_new_owner: newOwner,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.members(communityId) });
+      qc.invalidateQueries({ queryKey: qk.community(communityId) });
+    },
+  });
+};
+
+export const useRemoveMember = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await db.rpc('remove_member', {
+        p_community_id: communityId,
+        p_user_id: userId,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.members(communityId) });
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Direct (RLS-gated) writes
+// ---------------------------------------------------------------------------
+
+export const useMakeAdmin = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      // co-organizer cap trigger can fire (P0001) -> mapPgError surfaces a code.
+      const { error } = await db
+        .from('community_members')
+        .update({ role: 'admin' })
+        .eq('community_id', communityId)
+        .eq('user_id', userId);
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.members(communityId) });
+    },
+  });
+};
+
+export const useRemoveAdmin = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await db
+        .from('community_members')
+        .update({ role: 'member' })
+        .eq('community_id', communityId)
+        .eq('user_id', userId);
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.members(communityId) });
+    },
+  });
+};
+
+export const useUpsertReview = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (input: { rating: number; body?: string }) => {
+      const { error } = await db
+        .from('community_reviews')
+        .upsert(
+          {
+            community_id: communityId,
+            user_id: uid!,
+            rating: input.rating,
+            body: input.body ?? null,
+          },
+          { onConflict: 'community_id,user_id' },
+        );
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.reviews(communityId) });
+    },
+  });
+};
+
+export const useCreatePost = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (input: { body: string; imagePath?: string }) => {
+      const { error } = await db.from('community_posts').insert({
+        community_id: communityId,
+        author_id: uid!,
+        kind: 'user',
+        body: input.body,
+        image_path: input.imagePath ?? null,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.posts(communityId) });
+    },
+  });
+};
+
+type PostRow = {
+  id: string;
+  likes?: { count: number }[];
+  mine?: { user_id: string }[];
+};
+
+export const useToggleLike = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (input: { postId: string; liked: boolean }) => {
+      if (input.liked) {
+        // currently liked -> unlike
+        const { error } = await db
+          .from('post_likes')
+          .delete()
+          .eq('post_id', input.postId)
+          .eq('user_id', uid!);
+        if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      } else {
+        const { error } = await db
+          .from('post_likes')
+          .insert({ post_id: input.postId, user_id: uid! });
+        if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      }
+    },
+    onMutate: async (input) => {
+      const key = qk.posts(communityId);
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<PostRow[]>(key);
+      qc.setQueryData<PostRow[]>(key, (old) =>
+        (old ?? []).map((p) => {
+          if (p.id !== input.postId) return p;
+          const likeCount = p.likes?.[0]?.count ?? 0;
+          return {
+            ...p,
+            likes: [{ count: input.liked ? Math.max(0, likeCount - 1) : likeCount + 1 }],
+            mine: input.liked ? [] : [{ user_id: uid ?? '' }],
+          };
+        }),
+      );
+      return { previous };
+    },
+    onError: (_err, _input, ctx) => {
+      if (ctx?.previous) qc.setQueryData(qk.posts(communityId), ctx.previous);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.posts(communityId) });
+    },
+  });
+};
+
+export const useAddComment = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (input: { postId: string; communityId: string; body: string }) => {
+      const { error } = await db.from('post_comments').insert({
+        post_id: input.postId,
+        author_id: uid!,
+        body: input.body,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: (_data, input) => {
+      qc.invalidateQueries({ queryKey: qk.post(input.postId) });
+      qc.invalidateQueries({ queryKey: qk.posts(input.communityId) });
+    },
+  });
+};
+
+export const useSetDefaultCommunity = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (communityId: string) => {
+      const { error } = await db
+        .from('user_default_community')
+        .upsert({ user_id: uid!, community_id: communityId }, { onConflict: 'user_id' });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.defaultCommunity });
+    },
+  });
+};
+
+export const useUpdateCommunity = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      patch: Partial<{
+        name: string;
+        description: string | null;
+        location: string | null;
+        privacy: string;
+        thumbnail_path: string | null;
+        cover_image_path: string | null;
+        cancellation_rules_enabled: boolean;
+        cancellation_rules_text: string | null;
+      }>,
+    ) => {
+      const { error } = await db.from('communities').update(patch).eq('id', communityId);
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.community(communityId) });
+    },
+  });
+};
+
+export const useUpdatePermissions = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      patch: Partial<{
+        invite_members: boolean;
+        approve_join_requests: boolean;
+        create_posts: boolean;
+      }>,
+    ) => {
+      const { error } = await db
+        .from('community_permissions')
+        .update(patch)
+        .eq('community_id', communityId);
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.permissions(communityId) });
+    },
+  });
+};

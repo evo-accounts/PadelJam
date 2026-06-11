@@ -146,15 +146,15 @@ export type Database = {
             foreignKeyName: "community_invitations_invitee_id_fkey"
             columns: ["invitee_id"]
             isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "community_invitations_inviter_id_fkey"
             columns: ["inviter_id"]
             isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -208,8 +208,8 @@ export type Database = {
             foreignKeyName: "community_join_requests_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -247,8 +247,8 @@ export type Database = {
             foreignKeyName: "community_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -323,8 +323,8 @@ export type Database = {
             foreignKeyName: "community_posts_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "community_posts_community_id_fkey"
@@ -375,8 +375,8 @@ export type Database = {
             foreignKeyName: "community_reviews_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -645,8 +645,8 @@ export type Database = {
             foreignKeyName: "post_comments_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "post_comments_post_id_fkey"
@@ -1315,6 +1315,7 @@ export type Database = {
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       gettransactionid: { Args: never; Returns: unknown }
+      group_community_id: { Args: { g: string }; Returns: string }
       invite_to_community: {
         Args: {
           p_community_id: string
@@ -1325,6 +1326,7 @@ export type Database = {
       }
       is_community_admin: { Args: { c: string }; Returns: boolean }
       is_community_member: { Args: { c: string }; Returns: boolean }
+      is_group_member: { Args: { g: string }; Returns: boolean }
       join_community: {
         Args: { p_ack?: boolean; p_community_id: string }
         Returns: string

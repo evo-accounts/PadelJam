@@ -43,4 +43,15 @@ describe('abilityFor', () => {
     expect(a.can('create', 'Group')).toBe(false);
     expect(a.can('create', 'Event')).toBe(false);
   });
+
+  it('member can create Post/Comment/Like and own Review; admin manages all social', () => {
+    const m = abilityFor(base({ communityRole: { communityId: C, role: 'member' },
+      communityPermissions: { invite_members: false, approve_join_requests: false, create_posts: true } }));
+    expect(m.can('create', 'Comment')).toBe(true);
+    expect(m.can('create', 'Like')).toBe(true);
+    expect(m.can('create', 'Review')).toBe(true);
+    const a = abilityFor(base({ communityRole: { communityId: C, role: 'admin' } }));
+    expect(a.can('manage', 'Review')).toBe(true);
+    expect(a.can('manage', 'Invitation')).toBe(true);
+  });
 });

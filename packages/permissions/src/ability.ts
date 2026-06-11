@@ -20,7 +20,7 @@ export function abilityFor(ctx: AuthContext): AppAbility {
     if (cr.role === 'owner') {
       can('manage', 'all', scope);
     } else if (cr.role === 'admin') {
-      for (const s of ['Group', 'Event', 'Post', 'Member', 'JoinRequest', 'Broadcast'] as Subject[]) {
+      for (const s of ['Group', 'Event', 'Post', 'Member', 'JoinRequest', 'Broadcast', 'Review', 'Comment', 'Like', 'Invitation'] as Subject[]) {
         can('manage', s, scope);
       }
       can('read', 'Analytics', scope);
@@ -31,6 +31,10 @@ export function abilityFor(ctx: AuthContext): AppAbility {
       for (const s of ['Community', 'Group', 'Event', 'Post', 'Member'] as Subject[]) {
         can('read', s, scope);
       }
+      for (const s of ['Review', 'Comment', 'Like'] as Subject[]) can('read', s, scope);
+      can('create', 'Comment', scope);
+      can('create', 'Like', scope);
+      can(['create', 'update'], 'Review', scope);
       const p = ctx.communityPermissions;
       if (p?.invite_members) can('create', 'Member', scope);
       if (p?.approve_join_requests) can('update', 'JoinRequest', scope);
