@@ -11,3 +11,6 @@ coverage/
 !.env.example
 infra/supabase/.branches/
 infra/supabase/.temp/
+
+# Local editor/tooling state
+shadcn-extension.json
