@@ -114,6 +114,92 @@ export type Database = {
           },
         ]
       }
+      community_permissions: {
+        Row: {
+          approve_join_requests: boolean
+          community_id: string
+          create_posts: boolean
+          invite_members: boolean
+          updated_at: string
+        }
+        Insert: {
+          approve_join_requests?: boolean
+          community_id: string
+          create_posts?: boolean
+          invite_members?: boolean
+          updated_at?: string
+        }
+        Update: {
+          approve_join_requests?: boolean
+          community_id?: string
+          create_posts?: boolean
+          invite_members?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_permissions_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: true
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_subscriptions: {
+        Row: {
+          community_id: string
+          created_at: string
+          current_period_end: string | null
+          dimension: Database["public"]["Enums"]["plan_dimension"]
+          id: string
+          plan_id: string
+          provider: Database["public"]["Enums"]["subscription_provider"]
+          provider_ref: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          current_period_end?: string | null
+          dimension?: Database["public"]["Enums"]["plan_dimension"]
+          id?: string
+          plan_id: string
+          provider?: Database["public"]["Enums"]["subscription_provider"]
+          provider_ref?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          current_period_end?: string | null
+          dimension?: Database["public"]["Enums"]["plan_dimension"]
+          id?: string
+          plan_id?: string
+          provider?: Database["public"]["Enums"]["subscription_provider"]
+          provider_ref?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_subscriptions_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: true
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_subscriptions_dimension_plan_id_fkey"
+            columns: ["dimension", "plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["dimension", "plan_id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           created_at: string
@@ -187,6 +273,100 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plan_features: {
+        Row: {
+          dimension: Database["public"]["Enums"]["plan_dimension"]
+          feature_key: string
+          mvp: boolean
+          plan_id: string
+        }
+        Insert: {
+          dimension: Database["public"]["Enums"]["plan_dimension"]
+          feature_key: string
+          mvp?: boolean
+          plan_id: string
+        }
+        Update: {
+          dimension?: Database["public"]["Enums"]["plan_dimension"]
+          feature_key?: string
+          mvp?: boolean
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_features_dimension_plan_id_fkey"
+            columns: ["dimension", "plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["dimension", "plan_id"]
+          },
+        ]
+      }
+      plan_limits: {
+        Row: {
+          dimension: Database["public"]["Enums"]["plan_dimension"]
+          limit_key: string
+          mvp: boolean
+          plan_id: string
+          value: number | null
+        }
+        Insert: {
+          dimension?: Database["public"]["Enums"]["plan_dimension"]
+          limit_key: string
+          mvp?: boolean
+          plan_id: string
+          value?: number | null
+        }
+        Update: {
+          dimension?: Database["public"]["Enums"]["plan_dimension"]
+          limit_key?: string
+          mvp?: boolean
+          plan_id?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_limits_dimension_plan_id_fkey"
+            columns: ["dimension", "plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["dimension", "plan_id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          currency: string
+          dimension: Database["public"]["Enums"]["plan_dimension"]
+          is_default: boolean
+          mvp: boolean
+          name: string
+          plan_id: string
+          price_cents: number
+          sort_order: number
+        }
+        Insert: {
+          currency?: string
+          dimension: Database["public"]["Enums"]["plan_dimension"]
+          is_default?: boolean
+          mvp?: boolean
+          name: string
+          plan_id: string
+          price_cents?: number
+          sort_order?: number
+        }
+        Update: {
+          currency?: string
+          dimension?: Database["public"]["Enums"]["plan_dimension"]
+          is_default?: boolean
+          mvp?: boolean
+          name?: string
+          plan_id?: string
+          price_cents?: number
+          sort_order?: number
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -264,6 +444,63 @@ export type Database = {
           srtext?: string | null
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          dimension: Database["public"]["Enums"]["plan_dimension"]
+          id: string
+          plan_id: string
+          provider: Database["public"]["Enums"]["subscription_provider"]
+          provider_ref: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          dimension?: Database["public"]["Enums"]["plan_dimension"]
+          id?: string
+          plan_id: string
+          provider?: Database["public"]["Enums"]["subscription_provider"]
+          provider_ref?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          dimension?: Database["public"]["Enums"]["plan_dimension"]
+          id?: string
+          plan_id?: string
+          provider?: Database["public"]["Enums"]["subscription_provider"]
+          provider_ref?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_dimension_plan_id_fkey"
+            columns: ["dimension", "plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["dimension", "plan_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       tenant_memberships: {
         Row: {
@@ -504,6 +741,11 @@ export type Database = {
         Returns: unknown
       }
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      account_has_feature: {
+        Args: { key: string; u: string }
+        Returns: boolean
+      }
+      account_plan: { Args: { u: string }; Returns: string }
       addauth: { Args: { "": string }; Returns: boolean }
       addgeometrycolumn:
         | {
@@ -543,6 +785,12 @@ export type Database = {
             Returns: string
           }
       auth_tenant_ids: { Args: never; Returns: string[] }
+      community_has_feature: {
+        Args: { c: string; key: string }
+        Returns: boolean
+      }
+      community_limit: { Args: { c: string; key: string }; Returns: number }
+      community_plan: { Args: { c: string }; Returns: string }
       create_community_with_personal_tenant: {
         Args: {
           p_country: string
@@ -1321,6 +1569,14 @@ export type Database = {
       }
     }
     Enums: {
+      plan_dimension: "account" | "community"
+      subscription_provider: "stripe" | "revenuecat" | "manual"
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "canceled"
+        | "incomplete"
       tenant_role:
         | "member"
         | "coach"
@@ -1466,6 +1722,15 @@ export const Constants = {
   },
   public: {
     Enums: {
+      plan_dimension: ["account", "community"],
+      subscription_provider: ["stripe", "revenuecat", "manual"],
+      subscription_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "canceled",
+        "incomplete",
+      ],
       tenant_role: [
         "member",
         "coach",
