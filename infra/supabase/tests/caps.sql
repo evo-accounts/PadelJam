@@ -41,4 +41,16 @@ begin
   end;
 end $$;
 
+-- GROUPS CAP excludes archived groups (regression for 0017): archiving the general group frees the
+-- starter slot so a replacement group can be created.
+do $$
+declare cid uuid := (select id from communities where name='Caps' order by created_at desc limit 1);
+begin
+  update groups set archived_at = now() where community_id = cid and is_general;
+  insert into groups (community_id, name) values (cid, 'Replacement'); -- 0 active < 1 → allowed
+  raise notice 'OK archived general group frees the starter group slot';
+exception when sqlstate 'P0001' then
+  raise exception using errcode='PT001', message='EXPECTED replacement group allowed after archiving general';
+end $$;
+
 rollback;

@@ -21,7 +21,9 @@ export type AuthorizeResult =
   | { ok: false; reason: 'forbidden' | 'entitlement'; detail?: string };
 
 export async function authorize(input: AuthorizeInput): Promise<AuthorizeResult> {
-  // 1) Entitlement check (only MVP-scoped features are enforced now).
+  // 1) Entitlement check. Only MVP feature keys are enforced (isMvpFeature). A non-MVP key is
+  // intentionally NOT an entitlement gate yet — it falls through to the permission check until its
+  // plan ships (spec 09+). Do NOT rely on authorize() to gate a post-MVP feature.
   if (input.feature && isMvpFeature(input.feature)) {
     const ok =
       input.featureScope === 'account'
@@ -30,7 +32,11 @@ export async function authorize(input: AuthorizeInput): Promise<AuthorizeResult>
     if (!ok) return { ok: false, reason: 'entitlement', detail: input.feature };
   }
 
-  // 2) Permission check (CASL).
+  // 2) Permission check (CASL). IMPORTANT: pass `resource` (e.g. { community_id }) for any
+  // community-scoped subject. The resource-less `can(action, subject)` form is SCOPE-BLIND — CASL
+  // ignores the `{ community_id }` conditions when checking a bare subject type, so it answers
+  // "could this user ever do this in ANY community", not "in THIS one". Callers acting on a specific
+  // community MUST supply the resource to get cross-community isolation.
   const ability = abilityFor(input.ctx);
   const ok = input.resource
     ? ability.can(input.action, { __caslSubjectType__: input.subject, ...input.resource } as never)
