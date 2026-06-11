@@ -1096,11 +1096,23 @@ export type Database = {
         Returns: unknown
       }
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      accept_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
+      accept_join_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
       account_has_feature: {
         Args: { key: string; u: string }
         Returns: boolean
       }
       account_plan: { Args: { u: string }; Returns: string }
+      add_member_to_community: {
+        Args: { p_community: string; p_user: string }
+        Returns: undefined
+      }
       addauth: { Args: { "": string }; Returns: boolean }
       addgeometrycolumn:
         | {
@@ -1139,7 +1151,13 @@ export type Database = {
             }
             Returns: string
           }
+      archive_community: {
+        Args: { p_archive: boolean; p_community_id: string }
+        Returns: number
+      }
       auth_tenant_ids: { Args: never; Returns: string[] }
+      can_create_community: { Args: never; Returns: boolean }
+      can_create_post: { Args: { c: string }; Returns: boolean }
       community_has_feature: {
         Args: { c: string; key: string }
         Returns: boolean
@@ -1148,13 +1166,22 @@ export type Database = {
       community_plan: { Args: { c: string }; Returns: string }
       create_community_with_personal_tenant: {
         Args: {
+          p_cancellation_rules_enabled?: boolean
+          p_cancellation_rules_text?: string
           p_country: string
+          p_cover_image_path?: string
           p_description?: string
+          p_location?: string
           p_name: string
           p_privacy?: string
+          p_thumbnail_path?: string
           p_type: string
         }
         Returns: string
+      }
+      decline_join_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
       }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
@@ -1288,8 +1315,21 @@ export type Database = {
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       gettransactionid: { Args: never; Returns: unknown }
+      invite_to_community: {
+        Args: {
+          p_community_id: string
+          p_group_ids?: string[]
+          p_invitee_ids: string[]
+        }
+        Returns: undefined
+      }
       is_community_admin: { Args: { c: string }; Returns: boolean }
       is_community_member: { Args: { c: string }; Returns: boolean }
+      join_community: {
+        Args: { p_ack?: boolean; p_community_id: string }
+        Returns: string
+      }
+      leave_community: { Args: { p_community_id: string }; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -1331,6 +1371,10 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      remove_member: {
+        Args: { p_community_id: string; p_user_id: string }
+        Returns: undefined
+      }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
@@ -1911,6 +1955,10 @@ export type Database = {
       st_wrapx: {
         Args: { geom: unknown; move: number; wrap: number }
         Returns: unknown
+      }
+      transfer_ownership: {
+        Args: { p_community_id: string; p_new_owner: string }
+        Returns: undefined
       }
       unlockrows: { Args: { "": string }; Returns: number }
       updategeometrysrid: {

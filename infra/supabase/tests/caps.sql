@@ -5,6 +5,9 @@ begin;
 insert into auth.users (id, instance_id, aud, role, email)
   values ('88888888-8888-8888-8888-888888888888','00000000-0000-0000-0000-000000000000','authenticated','authenticated','capx@example.com')
   on conflict do nothing;
+-- profiles row required: create_community_with_personal_tenant sets communities.created_by -> profiles.
+insert into profiles (id, email, phone, full_name)
+  values ('88888888-8888-8888-8888-888888888888','capx@example.com','+351188888888','Capx') on conflict do nothing;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"88888888-8888-8888-8888-888888888888","role":"authenticated"}';
 
