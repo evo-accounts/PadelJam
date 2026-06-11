@@ -1,10 +1,14 @@
+import { useToggleLike } from '@padel/api';
+import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { avatarUrl, coverUrl } from '@/lib/community-images';
+import { PostImage } from '@/components/community/PostImage';
+import { avatarUrl } from '@/lib/community-images';
 
 export type CommunityPost = {
   id: string;
+  community_id: string;
   author_id: string;
   body: string | null;
   image_path: string | null;
@@ -12,22 +16,34 @@ export type CommunityPost = {
   likes: { count: number }[];
   comments: { count: number }[];
   mine: { user_id: string }[];
-  author?: { full_name: string | null; avatar_url: string | null } | null;
+  author?: { id: string; full_name: string | null; avatar_url: string | null } | null;
 };
 
 /**
- * Read-only post card: author, body, optional image and like/comment counts.
- * Like/comment interactions and post detail land in Task 18.
+ * Interactive post card: author, body, optional (private/signed) image, an
+ * optimistic like toggle and a comment affordance. Tapping the card opens the
+ * post detail.
  */
-export function PostCard({ post }: { post: CommunityPost }) {
+export function PostCard({
+  post,
+  communityId,
+  onPress,
+}: {
+  post: CommunityPost;
+  communityId: string;
+  onPress?: () => void;
+}) {
+  const { t } = useT('community');
+  const toggleLike = useToggleLike(communityId);
+
   const name = post.author?.full_name ?? '—';
   const avatar = avatarUrl(post.author?.avatar_url);
-  const image = coverUrl(post.image_path);
   const likeCount = post.likes?.[0]?.count ?? 0;
   const commentCount = post.comments?.[0]?.count ?? 0;
+  const likedByMe = (post.mine?.length ?? 0) > 0;
 
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
       <View style={styles.header}>
         {avatar ? (
           <Image source={{ uri: avatar }} style={styles.avatar} contentFit="cover" transition={120} />
@@ -41,14 +57,29 @@ export function PostCard({ post }: { post: CommunityPost }) {
         </Text>
       </View>
       {post.body ? <Text style={styles.body}>{post.body}</Text> : null}
-      {image ? (
-        <Image source={{ uri: image }} style={styles.image} contentFit="cover" transition={150} />
-      ) : null}
-      <View style={styles.counts}>
-        <Text style={styles.count}>♥ {likeCount}</Text>
-        <Text style={styles.count}>💬 {commentCount}</Text>
+      {post.image_path ? <PostImage path={post.image_path} style={styles.image} /> : null}
+      <View style={styles.actions}>
+        <Pressable
+          style={styles.action}
+          accessibilityRole="button"
+          accessibilityLabel={t('like')}
+          disabled={toggleLike.isPending}
+          onPress={() => toggleLike.mutate({ postId: post.id, liked: likedByMe })}
+        >
+          <Text style={[styles.actionIcon, likedByMe && styles.liked]}>{likedByMe ? '♥' : '♡'}</Text>
+          <Text style={styles.actionText}>{likeCount}</Text>
+        </Pressable>
+        <Pressable
+          style={styles.action}
+          accessibilityRole="button"
+          accessibilityLabel={t('comment')}
+          onPress={onPress}
+        >
+          <Text style={styles.actionIcon}>💬</Text>
+          <Text style={styles.actionText}>{commentCount}</Text>
+        </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -68,7 +99,10 @@ const styles = StyleSheet.create({
   avatarInitial: { color: '#fff', fontSize: 15, fontWeight: '700' },
   author: { flex: 1, fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
   body: { fontSize: 15, color: '#222', lineHeight: 21 },
-  image: { width: '100%', height: 200, borderRadius: 10, marginTop: 10, backgroundColor: '#E6EAF0' },
-  counts: { flexDirection: 'row', gap: 16, marginTop: 12 },
-  count: { fontSize: 14, color: '#3A4A60', fontWeight: '600' },
+  image: { marginTop: 10 },
+  actions: { flexDirection: 'row', gap: 20, marginTop: 12 },
+  action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  actionIcon: { fontSize: 18, color: '#3A4A60' },
+  liked: { color: '#E0245E' },
+  actionText: { fontSize: 14, color: '#3A4A60', fontWeight: '600' },
 });

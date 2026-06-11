@@ -3,6 +3,21 @@ import { supabase } from './supabase';
 const COVER_BUCKET = 'community-covers';
 const THUMBNAIL_BUCKET = 'community-thumbnails';
 const AVATAR_BUCKET = 'avatars';
+const POST_IMAGE_BUCKET = 'community-post-images';
+
+/**
+ * Signed URL (1h) for a private post image, or null when no path is set. The
+ * post-images bucket is member-gated, so getPublicUrl would not authorize; a
+ * short-lived signed URL is created per render via `<PostImage>`.
+ */
+export async function postImageUrl(path: string | null | undefined): Promise<string | null> {
+  if (!path) return null;
+  const { data, error } = await supabase.storage
+    .from(POST_IMAGE_BUCKET)
+    .createSignedUrl(path, 3600);
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
 
 /** Public URL for a community cover image, or null when no path is set. */
 export function coverUrl(path: string | null | undefined): string | null {

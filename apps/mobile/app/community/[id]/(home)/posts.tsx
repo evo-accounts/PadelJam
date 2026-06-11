@@ -1,7 +1,7 @@
-import { useAbility, useCommunityPosts } from '@padel/api';
+import { useAbility, useCommunityFeedRealtime, useCommunityPosts } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PostCard, type CommunityPost } from '@/components/community/PostCard';
@@ -11,6 +11,7 @@ export default function CommunityPostsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
+  useCommunityFeedRealtime(id);
   const { data: posts, isLoading } = useCommunityPosts(id);
   const { data: ability } = useAbility(id);
   // The ability is already scoped to this community (built from the member's role
@@ -38,7 +39,13 @@ export default function CommunityPostsScreen() {
         <FlashList
           data={rows}
           keyExtractor={(p) => p.id}
-          renderItem={({ item }) => <PostCard post={item} />}
+          renderItem={({ item }) => (
+            <PostCard
+              post={item}
+              communityId={id}
+              onPress={() => router.push(`/community/${id}/post/${item.id}`)}
+            />
+          )}
           contentContainerStyle={styles.list}
         />
       )}
@@ -47,8 +54,7 @@ export default function CommunityPostsScreen() {
           style={styles.fab}
           accessibilityRole="button"
           accessibilityLabel={t('composePost')}
-          // Task 18 compose route; cast forward until that screen lands.
-          onPress={() => router.push(`/community/${id}/compose` as Href)}
+          onPress={() => router.push(`/community/${id}/compose`)}
         >
           <Text style={styles.fabText}>＋</Text>
         </Pressable>

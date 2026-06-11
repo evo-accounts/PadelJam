@@ -192,7 +192,7 @@ export const useCommunityPosts = (id: string) => {
       const { data, error } = await db
         .from('community_posts')
         .select(
-          '*, likes:post_likes(count), comments:post_comments(count), mine:post_likes!left(user_id)',
+          '*, author:profiles(id, full_name, avatar_url), likes:post_likes(count), comments:post_comments(count), mine:post_likes!left(user_id)',
         )
         .eq('community_id', id)
         .order('created_at', { ascending: false })
@@ -205,6 +205,7 @@ export const useCommunityPosts = (id: string) => {
             body: string | null;
             image_path: string | null;
             created_at: string;
+            author: { id: string; full_name: string | null; avatar_url: string | null } | null;
             likes: { count: number }[];
             comments: { count: number }[];
             mine: { user_id: string }[];
@@ -214,6 +215,66 @@ export const useCommunityPosts = (id: string) => {
       const rows = data ?? [];
       void uid; // mine embed already scoped by RLS-safe select; uid kept for UI parity
       return rows;
+    },
+  });
+};
+
+export const usePost = (postId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.post(postId),
+    enabled: !!postId,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('community_posts')
+        .select(
+          '*, author:profiles(id, full_name, avatar_url), likes:post_likes(count), comments:post_comments(count), mine:post_likes!left(user_id)',
+        )
+        .eq('id', postId)
+        .single()
+        .returns<{
+          id: string;
+          community_id: string;
+          author_id: string;
+          kind: string;
+          body: string | null;
+          image_path: string | null;
+          created_at: string;
+          author: { id: string; full_name: string | null; avatar_url: string | null } | null;
+          likes: { count: number }[];
+          comments: { count: number }[];
+          mine: { user_id: string }[];
+        }>();
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+export const useComments = (postId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: ['post', postId, 'comments'] as const,
+    enabled: !!postId,
+    queryFn: async () => {
+      // post_comments.author_id FKs profiles (migration 0031), so the embed resolves.
+      const { data, error } = await db
+        .from('post_comments')
+        .select('id, post_id, author_id, body, created_at, author:profiles(full_name, avatar_url)')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true })
+        .returns<
+          {
+            id: string;
+            post_id: string;
+            author_id: string;
+            body: string;
+            created_at: string;
+            author: { full_name: string | null; avatar_url: string | null } | null;
+          }[]
+        >();
+      if (error) throw error;
+      return data ?? [];
     },
   });
 };

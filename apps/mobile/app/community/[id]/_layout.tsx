@@ -10,6 +10,8 @@ export default function CommunityIdLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(home)" />
       <Stack.Screen name="join" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="post/[postId]" />
     </Stack>
   );
 }
