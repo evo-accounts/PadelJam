@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import { createPublicEnv } from '@padel/config';
 
 /**
@@ -21,6 +20,9 @@ export function initSentry(): void {
     SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN,
   });
   if (!env.SENTRY_DSN) return; // no-op locally / without a DSN
+  // Lazy require so @sentry/react-native's native module is never loaded without a DSN —
+  // this keeps the app bootable in Expo Go (which doesn't bundle Sentry's native code).
+  const Sentry = require('@sentry/react-native') as typeof import('@sentry/react-native');
   Sentry.init({ dsn: env.SENTRY_DSN, environment: env.APP_ENV, tracesSampleRate: 0.1 });
   initialized = true;
 }

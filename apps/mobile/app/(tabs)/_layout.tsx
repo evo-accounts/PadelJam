@@ -1,3 +1,4 @@
+import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
 import { Link, Tabs } from 'expo-router';
 import { Pressable } from 'react-native';
@@ -8,6 +9,7 @@ import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { t } = useT('community');
 
   return (
     <Tabs
@@ -65,9 +67,24 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Create Community flow (Task 15). Reachable by direct route; Task 16
-          wires the real Community tab + useCanCreateCommunity-gated entry. */}
-      <Tabs.Screen name="community" options={{ href: null }} />
+      <Tabs.Screen
+        name="community"
+        options={{
+          title: t('tab'),
+          headerShown: false,
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{
+                ios: 'person.2.fill',
+                android: 'group',
+                web: 'group',
+              }}
+              tintColor={color}
+              size={28}
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

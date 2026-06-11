@@ -1,0 +1,60 @@
+import { useCommunity } from '@padel/api';
+import { useT } from '@padel/i18n';
+import { useLocalSearchParams } from 'expo-router';
+import { TopTabs } from 'expo-router/js-top-tabs';
+import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { CommunityHero } from '@/components/community/CommunityHero';
+
+/**
+ * Persistent community hero above Expo Router's SDK-56 Material Top Tabs
+ * (`expo-router/js-top-tabs`). This replaces the standalone
+ * `@react-navigation/material-top-tabs` navigator, which SDK 56 blocks from being
+ * imported directly; the vendored TopTabs is Expo-Go-safe and needs no extra deps.
+ */
+export default function CommunityHomeLayout() {
+  const { t } = useT('community');
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { isError } = useCommunity(id);
+
+  if (isError) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.notFound}>
+          <Text style={styles.notFoundTitle}>{t('notFoundTitle')}</Text>
+          <Text style={styles.notFoundBody}>{t('notFoundBody')}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <CommunityHero communityId={id} />
+      <TopTabs
+        screenOptions={{
+          tabBarScrollEnabled: true,
+          tabBarActiveTintColor: '#0B1F3A',
+          tabBarInactiveTintColor: '#8A95A5',
+          tabBarIndicatorStyle: { backgroundColor: '#0B7BFF' },
+          tabBarLabelStyle: { fontSize: 13, fontWeight: '700', textTransform: 'none' },
+          tabBarItemStyle: { width: 'auto', paddingHorizontal: 16 },
+        }}
+      >
+        <TopTabs.Screen name="posts" options={{ title: t('tabPosts') }} />
+        <TopTabs.Screen name="events" options={{ title: t('tabEvents') }} />
+        <TopTabs.Screen name="groups" options={{ title: t('tabGroups') }} />
+        <TopTabs.Screen name="members" options={{ title: t('tabMembers') }} />
+        <TopTabs.Screen name="about" options={{ title: t('tabAbout') }} />
+      </TopTabs>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
+  notFoundTitle: { fontSize: 18, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
+  notFoundBody: { fontSize: 15, color: '#3A4A60', textAlign: 'center', lineHeight: 21 },
+});
