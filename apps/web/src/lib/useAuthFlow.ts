@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isE164, formatDisplayName } from '@padel/utils';
 import {
@@ -38,11 +38,16 @@ export function useAuthFlow() {
   const [busy, setBusy] = useState(false);
   const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
 
-  // The reducer stays pure; the hook supplies the clock.
-  const cooldownRemainingMs = useMemo(
-    () => Math.max(0, otpState.cooldownUntil - Date.now()),
-    [otpState.cooldownUntil],
-  );
+  // The reducer stays pure; the hook supplies the clock via a ticking state (Date.now() lives in
+  // an effect, never in render — keeps the component render pure for React 19).
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    // Date.now() lives in the interval callback (never in render). cooldownUntil starts at 0 on
+    // mount, so the initial now=0 window is harmless; the tick begins updating immediately.
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const cooldownRemainingMs = Math.max(0, otpState.cooldownUntil - now);
 
   const sendOtp = useCallback(async () => {
     const value = identifier.trim();

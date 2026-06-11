@@ -1,1 +1,2 @@
-export const PLACEHOLDER = '@padel/features' as const;
+export * from './registry';
+export * from './entitlements';
