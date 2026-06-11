@@ -35,6 +35,9 @@ begin
   insert into auth.users (id, instance_id, aud, role)
     values (muid, '00000000-0000-0000-0000-000000000000','authenticated','authenticated')
     on conflict do nothing;
+  -- profiles row required: community_members.user_id FK -> profiles (migration 0031).
+  insert into profiles (id, email, phone, full_name)
+    values (muid, 'capmember@example.com', '+351188888889', 'CapMember') on conflict do nothing;
   insert into community_members (community_id, user_id, role) values (cid, muid, 'member'); -- member cap: 1<10 ok
   begin
     update community_members set role='admin' where community_id=cid and user_id=muid;
