@@ -185,16 +185,19 @@ export const useCommunityPosts = (id: string) => {
   const uid = useSession().session?.user.id;
   return useQuery({
     queryKey: qk.posts(id),
+    enabled: !!uid,
     queryFn: async () => {
       // Embeds: aggregate counts for likes/comments + the current user's like row
-      // (mine) so the UI can derive likedByMe. The embed shape is cast because the
-      // generated types don't express the post_likes!left filtered relationship.
+      // (mine) so the UI can derive likedByMe. The `mine` embed MUST be filtered to the
+      // current user — post_likes RLS lets a member read ALL likes, so without this filter
+      // `mine` would be everyone's likes and likedByMe would be true for everyone.
       const { data, error } = await db
         .from('community_posts')
         .select(
           '*, author:profiles(id, full_name, avatar_url), likes:post_likes(count), comments:post_comments(count), mine:post_likes!left(user_id)',
         )
         .eq('community_id', id)
+        .eq('mine.user_id', uid!)
         .order('created_at', { ascending: false })
         .returns<
           {
@@ -212,18 +215,17 @@ export const useCommunityPosts = (id: string) => {
           }[]
         >();
       if (error) throw error;
-      const rows = data ?? [];
-      void uid; // mine embed already scoped by RLS-safe select; uid kept for UI parity
-      return rows;
+      return data ?? [];
     },
   });
 };
 
 export const usePost = (postId: string) => {
   const db = useDb();
+  const uid = useSession().session?.user.id;
   return useQuery({
     queryKey: qk.post(postId),
-    enabled: !!postId,
+    enabled: !!postId && !!uid,
     queryFn: async () => {
       const { data, error } = await db
         .from('community_posts')
@@ -231,6 +233,7 @@ export const usePost = (postId: string) => {
           '*, author:profiles(id, full_name, avatar_url), likes:post_likes(count), comments:post_comments(count), mine:post_likes!left(user_id)',
         )
         .eq('id', postId)
+        .eq('mine.user_id', uid!)
         .single()
         .returns<{
           id: string;
@@ -254,7 +257,7 @@ export const usePost = (postId: string) => {
 export const useComments = (postId: string) => {
   const db = useDb();
   return useQuery({
-    queryKey: ['post', postId, 'comments'] as const,
+    queryKey: qk.comments(postId),
     enabled: !!postId,
     queryFn: async () => {
       // post_comments.author_id FKs profiles (migration 0031), so the embed resolves.

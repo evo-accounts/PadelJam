@@ -49,8 +49,8 @@ export default function WriteReviewModal() {
       router.back();
     } catch (err) {
       const code = err instanceof Error ? err.message : 'unknown_error';
-      const key = code in { unknown_error: true, forbidden: true } ? code : 'unknown_error';
-      setError(t(key as 'unknown_error' | 'forbidden'));
+      const key = code === 'forbidden' ? 'forbidden' : 'unknown_error';
+      setError(t(key));
     }
   }
 

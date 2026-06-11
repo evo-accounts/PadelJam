@@ -131,12 +131,13 @@ export default function ManageSettingsScreen() {
         name: parsed.data.name,
         description: parsed.data.description ?? null,
         location: parsed.data.location ?? null,
+        type: parsed.data.type,
         privacy: parsed.data.privacy,
         thumbnail_path: thumbnailPath,
         cover_image_path: coverPath,
         cancellation_rules_enabled: rulesEnabled,
-        // Toggling rules OFF keeps the existing text rather than nulling it.
-        cancellation_rules_text: rulesText.trim() || community?.cancellation_rules_text || null,
+        // When rules are disabled, force the text to null; otherwise persist the entered text.
+        cancellation_rules_text: rulesEnabled ? rulesText.trim() : null,
       });
       router.back();
     } catch (e) {
@@ -183,8 +184,7 @@ export default function ManageSettingsScreen() {
         />
 
         <Text style={styles.label}>{t('typeLabel')}</Text>
-        <SegmentedType value={type} onChange={setType} disabled />
-        <Text style={styles.hint}>{t('typeLockedHint')}</Text>
+        <SegmentedType value={type} onChange={setType} disabled={pending} />
 
         <ImagePickerRow
           label={t('thumbnailLabel')}

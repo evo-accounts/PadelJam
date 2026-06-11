@@ -5,6 +5,7 @@ export const qk = {
   permissions: (id: string) => ['community', id, 'permissions'] as const,
   posts: (id: string) => ['community', id, 'posts'] as const,
   post: (postId: string) => ['post', postId] as const,
+  comments: (postId: string) => ['post', postId, 'comments'] as const,
   reviews: (id: string) => ['community', id, 'reviews'] as const,
   requests: (id: string) => ['community', id, 'requests'] as const,
   suggested: ['communities', 'suggested'] as const,

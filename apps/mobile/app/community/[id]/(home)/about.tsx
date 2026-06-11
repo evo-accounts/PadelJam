@@ -4,7 +4,7 @@ import {
   useCommunityReviews,
 } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -112,7 +112,7 @@ export default function CommunityAboutScreen() {
       <Pressable
         style={styles.reviews}
         accessibilityRole="button"
-        onPress={() => router.push(`/community/${id}/reviews`)}
+        onPress={() => router.push(`/community/${id}/reviews` as Href)}
       >
         <Text style={styles.reviewsText}>
           {hasReviews

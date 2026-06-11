@@ -322,8 +322,9 @@ export const useToggleLike = (communityId: string) => {
     onError: (_err, _input, ctx) => {
       if (ctx?.previous) qc.setQueryData(qk.posts(communityId), ctx.previous);
     },
-    onSettled: () => {
+    onSettled: (_data, _err, input) => {
       qc.invalidateQueries({ queryKey: qk.posts(communityId) });
+      qc.invalidateQueries({ queryKey: qk.post(input.postId) }); // keep the detail screen's like in sync
     },
   });
 };
@@ -343,6 +344,7 @@ export const useAddComment = () => {
     },
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.post(input.postId) });
+      qc.invalidateQueries({ queryKey: qk.comments(input.postId) }); // refresh the comment list, not just counts
       qc.invalidateQueries({ queryKey: qk.posts(input.communityId) });
     },
   });
@@ -374,6 +376,7 @@ export const useUpdateCommunity = (communityId: string) => {
         name: string;
         description: string | null;
         location: string | null;
+        type: string;
         privacy: string;
         thumbnail_path: string | null;
         cover_image_path: string | null;
