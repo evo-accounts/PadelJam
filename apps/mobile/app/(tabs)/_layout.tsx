@@ -65,6 +65,9 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Create Community flow (Task 15). Reachable by direct route; Task 16
+          wires the real Community tab + useCanCreateCommunity-gated entry. */}
+      <Tabs.Screen name="community" options={{ href: null }} />
     </Tabs>
   );
 }
