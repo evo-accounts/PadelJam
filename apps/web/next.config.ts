@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
     "@padel/db",
     "@padel/utils",
   ],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
