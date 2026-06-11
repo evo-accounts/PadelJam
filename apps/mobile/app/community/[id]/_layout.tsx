@@ -12,6 +12,7 @@ export default function CommunityIdLayout() {
       <Stack.Screen name="join" options={{ presentation: 'modal' }} />
       <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
       <Stack.Screen name="post/[postId]" />
+      <Stack.Screen name="manage" />
     </Stack>
   );
 }

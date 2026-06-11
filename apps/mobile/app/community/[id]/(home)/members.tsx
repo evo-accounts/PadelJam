@@ -1,7 +1,7 @@
 import { useAbility, useCommunityMembers } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
@@ -40,8 +40,7 @@ export default function CommunityMembersScreen() {
             <Pressable
               style={styles.invite}
               accessibilityRole="button"
-              // Task 19 invite route; cast forward until that screen lands.
-              onPress={() => router.push(`/community/${id}/manage/invite` as Href)}
+              onPress={() => router.push(`/community/${id}/manage/invite`)}
             >
               <Text style={styles.inviteText}>＋ {t('inviteMember')}</Text>
             </Pressable>
