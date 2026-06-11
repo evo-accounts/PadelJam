@@ -37,41 +37,179 @@ export type Database = {
       communities: {
         Row: {
           archived_at: string | null
+          cancellation_rules_enabled: boolean
+          cancellation_rules_text: string | null
+          cover_image_path: string | null
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
+          location: string | null
           name: string
           privacy: string
           tenant_id: string
+          thumbnail_path: string | null
           type: string
+          updated_at: string
         }
         Insert: {
           archived_at?: string | null
+          cancellation_rules_enabled?: boolean
+          cancellation_rules_text?: string | null
+          cover_image_path?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
+          location?: string | null
           name: string
           privacy?: string
           tenant_id: string
+          thumbnail_path?: string | null
           type: string
+          updated_at?: string
         }
         Update: {
           archived_at?: string | null
+          cancellation_rules_enabled?: boolean
+          cancellation_rules_text?: string | null
+          cover_image_path?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
+          location?: string | null
           name?: string
           privacy?: string
           tenant_id?: string
+          thumbnail_path?: string | null
           type?: string
+          updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "communities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "communities_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_invitations: {
+        Row: {
+          accepted_at: string | null
+          community_id: string
+          created_at: string
+          group_ids: string[]
+          id: string
+          invitee_id: string
+          inviter_id: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          community_id: string
+          created_at?: string
+          group_ids?: string[]
+          id?: string
+          invitee_id: string
+          inviter_id: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          community_id?: string
+          created_at?: string
+          group_ids?: string[]
+          id?: string
+          invitee_id?: string
+          inviter_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_invitations_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_invitations_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "community_invitations_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      community_join_requests: {
+        Row: {
+          community_id: string
+          created_at: string
+          id: string
+          responded_at: string | null
+          responded_by: string | null
+          rules_acknowledged: boolean
+          status: string
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          id?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          rules_acknowledged?: boolean
+          status?: string
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          id?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          rules_acknowledged?: boolean
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_join_requests_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_join_requests_responded_by_fkey"
+            columns: ["responded_by"]
+            isOneToOne: false
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "community_join_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -143,6 +281,102 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "communities"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          author_id: string
+          body: string | null
+          community_id: string
+          created_at: string
+          id: string
+          image_path: string | null
+          kind: string
+          result_event_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          community_id: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          kind?: string
+          result_event_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          community_id?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          kind?: string
+          result_event_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "community_posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_reviews: {
+        Row: {
+          body: string | null
+          community_id: string
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          community_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          community_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_reviews_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -241,28 +475,37 @@ export type Database = {
           archived_at: string | null
           community_id: string
           created_at: string
+          created_by: string | null
+          description: string | null
           id: string
           is_general: boolean
           is_private: boolean
           name: string
+          thumbnail_path: string | null
         }
         Insert: {
           archived_at?: string | null
           community_id: string
           created_at?: string
+          created_by?: string | null
+          description?: string | null
           id?: string
           is_general?: boolean
           is_private?: boolean
           name: string
+          thumbnail_path?: string | null
         }
         Update: {
           archived_at?: string | null
           community_id?: string
           created_at?: string
+          created_by?: string | null
+          description?: string | null
           id?: string
           is_general?: boolean
           is_private?: boolean
           name?: string
+          thumbnail_path?: string | null
         }
         Relationships: [
           {
@@ -270,6 +513,13 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -367,6 +617,78 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      post_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -574,6 +896,39 @@ export type Database = {
             foreignKeyName: "tenants_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
+            referencedRelation: "auth_providers"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      user_default_community: {
+        Row: {
+          community_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_default_community_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_default_community_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "auth_providers"
             referencedColumns: ["user_id"]
           },
@@ -934,6 +1289,7 @@ export type Database = {
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       gettransactionid: { Args: never; Returns: unknown }
       is_community_admin: { Args: { c: string }; Returns: boolean }
+      is_community_member: { Args: { c: string }; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
