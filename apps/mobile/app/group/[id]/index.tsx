@@ -172,6 +172,18 @@ export default function GroupHomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('eventsTitle')}</Text>
           <Text style={styles.placeholder}>{t('eventsPlaceholder')}</Text>
+          {/* TODO(Phase 6): replace with the events list + a gated CTA; minimal entry for now. */}
+          <Pressable
+            style={styles.inviteRow}
+            accessibilityRole="button"
+            onPress={() =>
+              router.push(
+                `/event/create?groupId=${id}&communityId=${communityId ?? ''}` as Href,
+              )
+            }
+          >
+            <Text style={styles.inviteText}>{t('event:createTitle')}</Text>
+          </Pressable>
         </View>
 
         {/* Ranking */}
