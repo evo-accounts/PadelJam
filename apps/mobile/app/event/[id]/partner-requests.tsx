@@ -213,13 +213,12 @@ function CandidateList({
       !pendingTargetIds.has(m.user_id),
   );
 
-  if (candidates.length === 0) {
-    return null;
-  }
-
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{t('choosePartnerTitle')}</Text>
+      {candidates.length === 0 ? (
+        <Text style={styles.emptyText}>{t('noPartnerRequests')}</Text>
+      ) : null}
       {candidates.map((m) => (
         <View key={m.user_id} style={styles.row}>
           <Text style={styles.rowName}>{m.profiles?.full_name ?? '—'}</Text>

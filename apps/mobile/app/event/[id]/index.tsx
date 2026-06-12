@@ -132,11 +132,9 @@ export default function EventDetailScreen() {
       ? scoringLabel
       : `${scoringLabel} · ${event.scoring_value}`;
   const feeText = event.entrance_fee_enabled
-    ? `${event.entrance_fee_amount ?? 0} · ${
-        event.entrance_fee_method != null
-          ? t(`fee${cap(event.entrance_fee_method)}Label`)
-          : ''
-      }`.trim()
+    ? event.entrance_fee_method != null
+      ? `${event.entrance_fee_amount ?? 0} · ${t(`fee${cap(event.entrance_fee_method)}Label`)}`
+      : `${event.entrance_fee_amount ?? 0}`
     : t('feeFree');
 
   const confirmedList = participants.filter(
