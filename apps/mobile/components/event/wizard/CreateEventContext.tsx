@@ -1,4 +1,12 @@
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { type EventDraft, defaultDraft, type WizardStep } from './draft';
 import { STEPS } from './steps';
@@ -27,17 +35,23 @@ export function CreateEventProvider({
   initialGroupId?: string | null;
   communityId?: string;
 }) {
-  const [draft, setDraft] = useState<EventDraft>(() => ({
+  const makeInitialDraft = (): EventDraft => ({
     ...defaultDraft,
     groupId: initialGroupId ?? null,
     isPrivate: initialGroupId ? false : true,
-  }));
+  });
+  const [draft, setDraft] = useState<EventDraft>(makeInitialDraft);
+  const initialDraftRef = useRef<EventDraft | null>(null);
+  if (initialDraftRef.current === null) {
+    initialDraftRef.current = makeInitialDraft();
+  }
   const [stepIndex, setStepIndex] = useState(0);
 
   const patch = useCallback((partial: Partial<EventDraft>) => {
     setDraft((d) => {
       // Standalone events (no group) must be private — enforced by the schema.
-      const forced: Partial<EventDraft> = partial.groupId === null ? { isPrivate: true } : {};
+      const forced: Partial<EventDraft> =
+        partial.groupId === null ? { isPrivate: true, series: undefined } : {};
       return { ...d, ...partial, ...forced };
     });
   }, []);
@@ -60,7 +74,7 @@ export function CreateEventProvider({
       steps: STEPS,
       isFirst: stepIndex === 0,
       isLast: stepIndex === STEPS.length - 1,
-      isDirty: JSON.stringify(draft) !== JSON.stringify(defaultDraft),
+      isDirty: JSON.stringify(draft) !== JSON.stringify(initialDraftRef.current),
       communityId,
     }),
     [draft, patch, stepIndex, goNext, goBack, communityId],

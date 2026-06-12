@@ -1,5 +1,6 @@
 import { ENTRANCE_FEE_METHODS, ORGANIZER_ROLES } from '@padel/api';
 import { useT } from '@padel/i18n';
+import { useState } from 'react';
 import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import type { WizardStepProps } from '../draft';
@@ -21,6 +22,10 @@ export function Step8Preferences({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
 
   const standaloneLocked = draft.groupId === null;
+
+  const [amountText, setAmountText] = useState(
+    draft.entranceFee.amount != null ? String(draft.entranceFee.amount) : '',
+  );
 
   return (
     <View style={styles.container}>
@@ -78,13 +83,14 @@ export function Step8Preferences({ draft, patch }: WizardStepProps) {
               <Text style={styles.fieldLabel}>{t('feeAmountLabel')}</Text>
               <TextInput
                 style={styles.input}
-                value={draft.entranceFee.amount != null ? String(draft.entranceFee.amount) : ''}
+                value={amountText}
                 onChangeText={(text) => {
-                  const parsed = parseFloat(text);
+                  setAmountText(text);
+                  const parsed = Number(text);
                   patch({
                     entranceFee: {
                       ...draft.entranceFee,
-                      amount: Number.isNaN(parsed) ? undefined : parsed,
+                      amount: text.trim() === '' || Number.isNaN(parsed) ? undefined : parsed,
                     },
                   });
                 }}

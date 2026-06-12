@@ -16,7 +16,11 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
           style={styles.input}
           value={draft.manualLocationName ?? ''}
           onChangeText={(text) =>
-            patch({ manualLocationName: text, hasLocation: text.trim().length > 0 })
+            patch({
+              manualLocationName: text,
+              hasLocation:
+                text.trim().length > 0 || (draft.manualLocationAddress ?? '').trim().length > 0,
+            })
           }
           placeholder={t('locationNamePlaceholder')}
           placeholderTextColor="#9AA4B2"
@@ -29,7 +33,13 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         <TextInput
           style={styles.input}
           value={draft.manualLocationAddress ?? ''}
-          onChangeText={(text) => patch({ manualLocationAddress: text })}
+          onChangeText={(text) =>
+            patch({
+              manualLocationAddress: text,
+              hasLocation:
+                (draft.manualLocationName ?? '').trim().length > 0 || text.trim().length > 0,
+            })
+          }
           placeholder={t('locationAddressPlaceholder')}
           placeholderTextColor="#9AA4B2"
           accessibilityLabel={t('locationAddressLabel')}

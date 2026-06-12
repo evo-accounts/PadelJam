@@ -53,7 +53,10 @@ export const STEPS: WizardStep[] = [
     key: 'step7',
     titleKey: 'step7Title',
     Component: Step7Schedule,
-    isValid: (d: EventDraft) => Boolean(d.startsAt) && d.durationMinutes > 0,
+    isValid: (d: EventDraft) =>
+      Boolean(d.startsAt) &&
+      d.durationMinutes > 0 &&
+      new Date(d.startsAt as string).getTime() > Date.now(),
   },
   {
     key: 'step8',
