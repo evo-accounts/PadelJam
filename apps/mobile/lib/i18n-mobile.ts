@@ -856,6 +856,159 @@ const mobileGroup = {
   },
 } as const;
 
+/**
+ * Event namespace copy (Tasks 5.x – create-wizard UI). Only English is authored
+ * for now; other locales fall back to English via i18next's fallbackLng until
+ * translated. Later phases (6, 7) will extend the `en` object with detail/roster
+ * keys alongside the screens that use them.
+ */
+const mobileEvent = {
+  en: {
+    // --- Wizard chrome ---
+    createTitle: 'Create event',
+    close: 'Close',
+    next: 'Next',
+    back: 'Back',
+    finish: 'Create event',
+    step: 'Step {{current}} of {{total}}',
+    discardTitle: 'Discard event?',
+    discardBody: 'All your choices will be lost and you\'ll return to the previous screen.',
+    discardConfirm: 'Discard',
+    discardCancel: 'Keep editing',
+    required: 'Required',
+
+    // --- Step 1: group ---
+    step1Title: 'Where?',
+    step1Subtitle: 'Choose a group to associate this event with, or run it standalone.',
+    groupPickerLabel: 'Group',
+    noGroupOption: 'Continue without a group',
+    noGroupHint: 'Standalone events are private and won\'t feed any group ranking.',
+    noGroupsYet: 'You don\'t manage any groups yet. Create a group first, or run a standalone event.',
+
+    // --- Step 2: type ---
+    step2Title: 'Format',
+    typeAmericanoLabel: 'Americano',
+    typeAmericanoDesc: 'All players rotate partners and opponents each round. Great for mixing players.',
+    typeMexicanoLabel: 'Mexicano',
+    typeMexicanoDesc: 'Pairings are decided by the score — leaders play leaders, last place plays last place.',
+    typeUp_and_downLabel: 'Up & Down',
+    typeUp_and_downDesc: 'Players move up or down courts based on results. A ladder-style tournament.',
+
+    // --- Step 3: specification ---
+    step3Title: 'Players',
+    specClassicLabel: 'Classic',
+    specClassicDesc: 'Open to all genders. Standard padel pairing rules apply.',
+    specMixedLabel: 'Mixed',
+    specMixedDesc: 'Each pair must include one man and one woman.',
+    specTeamLabel: 'Team',
+    specTeamDesc: 'Players are organised into fixed teams that compete together throughout the event.',
+
+    // --- Step 4: scoring ---
+    step4Title: 'Scoring',
+    scoringPointsLabel: 'Points',
+    scoringPointsDesc: 'Each match plays to a set number of points.',
+    scoringTimeLabel: 'Time',
+    scoringTimeDesc: 'Each match lasts a fixed number of minutes. Most points wins.',
+    scoringClassicLabel: 'Classic sets',
+    scoringClassicDesc: 'Matches are played as regular padel sets.',
+    pointsValueLabel: 'Points per match',
+    timeValueLabel: 'Minutes per match',
+
+    // --- Step 5: location ---
+    step5Title: 'Location',
+    locationNameLabel: 'Venue name',
+    locationNamePlaceholder: 'e.g. City Padel Club',
+    locationAddressLabel: 'Address',
+    locationAddressPlaceholder: 'Street address or area',
+    skipLocation: 'Skip for now',
+
+    // --- Step 6: courts ---
+    step6Title: 'Courts',
+    courtsLabel: 'Number of courts',
+    capacityHint: 'Capacity: {{count}} players',
+    capacityWithStandbyHint: 'Capacity: {{count}} players (+{{standby}} standby)',
+
+    // --- Step 7: date / time ---
+    step7Title: 'When?',
+    dateLabel: 'Date',
+    timeLabel: 'Start time',
+    durationLabel: 'Duration (minutes)',
+    repeatLabel: 'Repeat weekly',
+    repeatHint: 'Invites go out automatically ahead of each session.',
+    inviteLeadLabel: 'Send invites this many days ahead',
+    dayOfWeekLabel: 'Day of week',
+
+    // --- Step 8: preferences ---
+    step8Title: 'Preferences',
+    standbyLabel: 'Allow standby players',
+    standbySpotsLabel: 'Standby spots',
+    privateLabel: 'Private event',
+    privateRankingWarning: 'Private events don\'t count toward any group ranking.',
+    feeLabel: 'Entrance fee',
+    feeAmountLabel: 'Amount',
+    feeMethodLabel: 'Payment method',
+    feeCashLabel: 'Cash',
+    feeAt_clubLabel: 'Pay at club',
+    feeMbaLabel: 'MB WAY',
+    feeMbaNumberLabel: 'MB WAY number',
+    playersSubmitLabel: 'Players can submit their own results',
+    organizerRoleLabel: 'Your role',
+    roleOrganizing_onlyLabel: 'Organizing only',
+    roleOrganizing_and_playingLabel: 'Organizing and playing',
+
+    // --- Step 9: general info ---
+    step9Title: 'Details',
+    nameLabel: 'Event name',
+    namePlaceholder: 'e.g. Saturday Americano',
+    descriptionLabel: 'Description',
+    descriptionPlaceholder: 'Any extra info players should know…',
+    thumbnailLabel: 'Cover photo',
+    addThumbnail: 'Add photo',
+    changeThumbnail: 'Change photo',
+
+    // --- Step 10: invite ---
+    step10Title: 'Invite players',
+    inviteSubtitle: 'Add players to this event. You can always invite more later.',
+    inviteFromGroup: 'From this group',
+    addManual: 'Add by name',
+    manualNameLabel: 'Name',
+    manualEmailLabel: 'Email',
+    manualPhoneLabel: 'Phone',
+    teamPairLabel: 'Pair players into teams',
+    noInvitesHint: 'Skip this step to invite players after the event is created.',
+
+    // --- Error codes (mapPgError + schema validation) ---
+    invalid_event_config: 'The event configuration is invalid. Please review your choices.',
+    series_requires_group: 'Recurring events must be linked to a group.',
+    event_not_found: 'This event no longer exists.',
+    event_closed: 'This event is closed and no longer accepting changes.',
+    event_full: 'This event is full.',
+    leave_deadline_passed: 'The deadline to leave this event has passed.',
+    already_joined: 'You have already joined this event.',
+    not_invited: 'You are not on the invite list for this event.',
+    not_participant: 'You are not a participant in this event.',
+    use_team_join: 'This is a team event. Join via your team instead.',
+    not_a_team_event: 'This event does not use team format.',
+    partner_unavailable: 'Your selected partner is unavailable for this event.',
+    gender_required: 'Your gender profile is required to join this event.',
+    setup_incomplete: 'The event setup is not complete yet.',
+    round_not_scored: 'Please score all matches before advancing to the next round.',
+    round_exists: 'A round already exists for this stage.',
+    event_not_scheduled: 'This event has not been scheduled yet.',
+    match_not_found: 'This match could not be found.',
+    score_locked: 'Scores for this match are locked and can no longer be changed.',
+    invalid_participant: 'One or more participants are invalid for this event.',
+    invalid_mode: 'This action is not supported for the current event format.',
+    recurring_events: 'This action cannot be applied to a recurring event series.',
+    name_required: 'Please enter an event name.',
+    group_not_found: 'The selected group could not be found.',
+    forbidden: 'You do not have permission to perform this action.',
+    standalone_must_be_private: 'Events without a group must be set to private.',
+    fee_requires_amount_and_method: 'Please enter a fee amount and select a payment method.',
+    unknown_error: 'Something went wrong. Please try again.',
+  },
+} as const;
+
 export type MobileLocale = keyof typeof mobileAuth;
 
 /**
@@ -871,4 +1024,5 @@ export function registerMobileCopy(instance: I18n): void {
     instance.addResourceBundle(locale, 'community', mobileCommunity[locale], true, false);
   });
   instance.addResourceBundle('en', 'group', mobileGroup.en, true, false);
+  instance.addResourceBundle('en', 'event', mobileEvent.en, true, false);
 }
