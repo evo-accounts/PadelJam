@@ -7,6 +7,8 @@ import {
   useJoinEvent,
   useLeaveEvent,
   useLeaveWaitingList,
+  useStartEvent,
+  type EventType,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
@@ -71,6 +73,7 @@ export default function EventDetailScreen() {
   const leaveWaitingList = useLeaveWaitingList(id);
   const acceptInvitation = useAcceptEventInvitation();
   const declineInvitation = useDeclineEventInvitation(id);
+  const startEvent = useStartEvent(id);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +120,10 @@ export default function EventDetailScreen() {
   const totalIn = confirmedRegular + standbyUsed;
   const confirmedCount = confirmedRegular;
   const spotsLeft = Math.max(0, regularCapacity - confirmedRegular);
+
+  // --- Start gate: server counts status='confirmed' regardless of is_standby ---
+  const startConfirmedCount = participants.filter((p) => p.status === 'confirmed').length;
+  const setupComplete = startConfirmedCount >= event.num_courts * 4;
 
   // --- My relationship to this event ---
   const isOrganizer = uid != null && uid === event.organizer_id;
@@ -168,12 +175,51 @@ export default function EventDetailScreen() {
   const onAccept = () =>
     run(() => acceptInvitation.mutateAsync({ eventId: id, groupId: event.group_id }));
   const onDecline = () => run(() => declineInvitation.mutateAsync());
+  const onStart = () =>
+    run(async () => {
+      await startEvent.mutateAsync({
+        eventType: event.event_type as EventType,
+        confirmedParticipantIds: participants
+          .filter((p) => p.status === 'confirmed')
+          .sort((a, b) => a.joined_at.localeCompare(b.joined_at))
+          .map((p) => p.id),
+        numCourts: event.num_courts,
+      });
+      router.push(`/event/${id}/live` as Href);
+    });
 
   // --- Adaptive CTA content ---
   const showJoinLeave = status === 'scheduled';
 
+  // Badge shown above live/results CTAs so the viewer's role stays visible.
+  const roleBadge = isOrganizer
+    ? t('organizerBadge')
+    : me
+      ? me.status === 'waiting_list'
+        ? t('waitlistBadge', { pos: me.waiting_list_position ?? 0 })
+        : me.is_standby
+          ? t('standbyBadge')
+          : t('goingBadge')
+      : null;
+
   let cta: React.ReactNode = null;
-  if (isOrganizer) {
+  if (status === 'in_progress' || status === 'completed') {
+    cta = (
+      <View style={styles.ctaCol}>
+        {roleBadge != null ? <Text style={styles.ctaBadge}>{roleBadge}</Text> : null}
+        <Pressable
+          style={[styles.btn, styles.primaryBtn]}
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() => router.push(`/event/${id}/live` as Href)}
+        >
+          <Text style={styles.primaryLabel}>
+            {status === 'completed' ? t('viewResultsCta') : t('viewMatchesCta')}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  } else if (isOrganizer) {
     cta = (
       <View style={styles.ctaCol}>
         <Text style={styles.ctaBadge}>{t('organizerBadge')}</Text>
@@ -185,6 +231,23 @@ export default function EventDetailScreen() {
         >
           <Text style={styles.primaryLabel}>{t('manageCta')}</Text>
         </Pressable>
+        <Pressable
+          style={[styles.btn, styles.startBtn, !setupComplete && styles.btnDisabled]}
+          accessibilityRole="button"
+          disabled={busy || !setupComplete}
+          onPress={onStart}
+        >
+          {busy ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.primaryLabel}>{t('startCta')}</Text>
+          )}
+        </Pressable>
+        {!setupComplete ? (
+          <Text style={styles.startHint}>
+            {t('startSetupIncomplete', { needed: event.num_courts * 4 })}
+          </Text>
+        ) : null}
       </View>
     );
   } else if (me) {
@@ -543,6 +606,9 @@ const styles = StyleSheet.create({
   },
   btnFlex: { flex: 1 },
   primaryBtn: { backgroundColor: '#0B7BFF' },
+  startBtn: { backgroundColor: '#1A7F4B' },
+  btnDisabled: { opacity: 0.5 },
+  startHint: { fontSize: 13, color: '#6B7685', textAlign: 'center' },
   primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
   secondaryBtn: { backgroundColor: '#F0F3F8' },
   secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
