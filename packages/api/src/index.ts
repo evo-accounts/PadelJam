@@ -8,3 +8,7 @@ export * from './communities/realtime';
 export * from './groups/queries';
 export * from './groups/mutations';
 export * from './groups/realtime';
+export * from './events/queries';
+export * from './events/mutations';
+export * from './events/realtime';
+export * from './round-gen';
