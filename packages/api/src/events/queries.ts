@@ -22,6 +22,25 @@ export const useGroupEvents = (groupId: string) => {
   });
 };
 
+export const useCommunityEvents = (communityId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.communityEvents(communityId),
+    enabled: !!communityId,
+    queryFn: async () => {
+      // events.group_id -> groups.community_id; inner join filters to this community.
+      const { data, error } = await db
+        .from('events')
+        .select('*, groups!inner(community_id)')
+        .eq('groups.community_id', communityId)
+        .is('deleted_at', null)
+        .order('starts_at', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
 export const useCanCreateEvent = (groupId: string) => {
   const db = useDb();
   return useQuery({
