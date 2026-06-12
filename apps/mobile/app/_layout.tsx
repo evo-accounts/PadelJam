@@ -174,6 +174,7 @@ function RootNav({ children }: { children: ReactNode }) {
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="community" />
+        <Stack.Screen name="group" />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
       {children}

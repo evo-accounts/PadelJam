@@ -5,3 +5,6 @@ export * from './auth-context';
 export * from './communities/queries';
 export * from './communities/mutations';
 export * from './communities/realtime';
+export * from './groups/queries';
+export * from './groups/mutations';
+export * from './groups/realtime';

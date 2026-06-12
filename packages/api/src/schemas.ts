@@ -20,6 +20,20 @@ export const createCommunitySchema = z
   });
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;
 
+export const GROUP_PRIVACIES = ['public', 'private'] as const;
+
+export const createGroupSchema = z.object({
+  communityId: z.string().uuid(),
+  name: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(2000).optional(),
+  isPrivate: z.boolean().default(false),
+  thumbnailPath: z.string().optional(),
+});
+export type CreateGroupInput = z.infer<typeof createGroupSchema>;
+
+export const updateGroupSchema = createGroupSchema.partial().omit({ communityId: true });
+export type UpdateGroupInput = z.infer<typeof updateGroupSchema>;
+
 export const reviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
   body: z.string().trim().max(2000).optional(),
