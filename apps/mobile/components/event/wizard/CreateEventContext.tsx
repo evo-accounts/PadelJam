@@ -13,12 +13,25 @@ type CreateEventContextValue = {
   isFirst: boolean;
   isLast: boolean;
   isDirty: boolean;
+  communityId: string | undefined;
 };
 
 const CreateEventContext = createContext<CreateEventContextValue | null>(null);
 
-export function CreateEventProvider({ children }: { children: ReactNode }) {
-  const [draft, setDraft] = useState<EventDraft>(defaultDraft);
+export function CreateEventProvider({
+  children,
+  initialGroupId,
+  communityId,
+}: {
+  children: ReactNode;
+  initialGroupId?: string | null;
+  communityId?: string;
+}) {
+  const [draft, setDraft] = useState<EventDraft>(() => ({
+    ...defaultDraft,
+    groupId: initialGroupId ?? null,
+    isPrivate: initialGroupId ? false : true,
+  }));
   const [stepIndex, setStepIndex] = useState(0);
 
   const patch = useCallback((partial: Partial<EventDraft>) => {
@@ -48,8 +61,9 @@ export function CreateEventProvider({ children }: { children: ReactNode }) {
       isFirst: stepIndex === 0,
       isLast: stepIndex === STEPS.length - 1,
       isDirty: JSON.stringify(draft) !== JSON.stringify(defaultDraft),
+      communityId,
     }),
-    [draft, patch, stepIndex, goNext, goBack],
+    [draft, patch, stepIndex, goNext, goBack, communityId],
   );
 
   return <CreateEventContext.Provider value={value}>{children}</CreateEventContext.Provider>;

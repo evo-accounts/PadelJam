@@ -2,6 +2,12 @@ import { useT } from '@padel/i18n';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { EventDraft, WizardStep } from './draft';
+import { Step1Group } from './steps/Step1Group';
+import { Step2Type } from './steps/Step2Type';
+import { Step3Spec } from './steps/Step3Spec';
+import { Step4Scoring } from './steps/Step4Scoring';
+import { Step5Location } from './steps/Step5Location';
+import { Step6Courts } from './steps/Step6Courts';
 
 // Placeholder step bodies — replaced by real steps in Tasks 5.3/5.4. Keep this STEPS array shape.
 
@@ -22,38 +28,40 @@ export const STEPS: WizardStep[] = [
   {
     key: 'step1',
     titleKey: 'step1Title',
-    Component: makePlaceholder('step1Title'),
+    Component: Step1Group,
     isValid: () => true,
   },
   {
     key: 'step2',
     titleKey: 'step2Title',
-    Component: makePlaceholder('step2Title'),
+    Component: Step2Type,
     isValid: (d: EventDraft) => Boolean(d.eventType),
   },
   {
     key: 'step3',
     titleKey: 'step3Title',
-    Component: makePlaceholder('step3Title'),
+    Component: Step3Spec,
     isValid: (d: EventDraft) => Boolean(d.specification),
   },
   {
     key: 'step4',
     titleKey: 'step4Title',
-    Component: makePlaceholder('step4Title'),
-    isValid: (d: EventDraft) => Boolean(d.scoringMode),
+    Component: Step4Scoring,
+    isValid: (d: EventDraft) =>
+      Boolean(d.scoringMode) &&
+      (d.scoringMode === 'classic' || (d.scoringValue != null && d.scoringValue > 0)),
   },
   {
     key: 'step5',
     titleKey: 'step5Title',
-    Component: makePlaceholder('step5Title'),
+    Component: Step5Location,
     isValid: () => true,
   },
   {
     key: 'step6',
     titleKey: 'step6Title',
-    Component: makePlaceholder('step6Title'),
-    isValid: () => true,
+    Component: Step6Courts,
+    isValid: (d: EventDraft) => d.numCourts >= 1,
   },
   {
     key: 'step7',

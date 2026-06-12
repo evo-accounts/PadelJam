@@ -1,5 +1,5 @@
 import { useT } from '@padel/i18n';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -16,8 +16,12 @@ import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/C
 import { StepIndicator } from '@/components/event/wizard/StepIndicator';
 
 export default function CreateEventScreen() {
+  const { groupId, communityId } = useLocalSearchParams<{
+    groupId?: string;
+    communityId?: string;
+  }>();
   return (
-    <CreateEventProvider>
+    <CreateEventProvider initialGroupId={groupId ?? null} communityId={communityId}>
       <CreateEventWizard />
     </CreateEventProvider>
   );
