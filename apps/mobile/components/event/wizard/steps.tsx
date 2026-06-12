@@ -1,6 +1,3 @@
-import { useT } from '@padel/i18n';
-import { StyleSheet, Text, View } from 'react-native';
-
 import type { EventDraft, WizardStep } from './draft';
 import { Step1Group } from './steps/Step1Group';
 import { Step2Type } from './steps/Step2Type';
@@ -8,21 +5,10 @@ import { Step3Spec } from './steps/Step3Spec';
 import { Step4Scoring } from './steps/Step4Scoring';
 import { Step5Location } from './steps/Step5Location';
 import { Step6Courts } from './steps/Step6Courts';
-
-// Placeholder step bodies — replaced by real steps in Tasks 5.3/5.4. Keep this STEPS array shape.
-
-function makePlaceholder(titleKey: string) {
-  return function PlaceholderStep() {
-    const { t } = useT('event');
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>{t(titleKey)}</Text>
-        {/* Cross-namespace ref: 'comingSoon' lives in the community namespace, not event. */}
-        <Text style={styles.hint}>{t('community:comingSoon')}</Text>
-      </View>
-    );
-  };
-}
+import { Step7Schedule } from './steps/Step7Schedule';
+import { Step8Preferences } from './steps/Step8Preferences';
+import { Step9Details } from './steps/Step9Details';
+import { Step10Invite } from './steps/Step10Invite';
 
 export const STEPS: WizardStep[] = [
   {
@@ -66,31 +52,27 @@ export const STEPS: WizardStep[] = [
   {
     key: 'step7',
     titleKey: 'step7Title',
-    Component: makePlaceholder('step7Title'),
-    isValid: () => true,
+    Component: Step7Schedule,
+    isValid: (d: EventDraft) => Boolean(d.startsAt) && d.durationMinutes > 0,
   },
   {
     key: 'step8',
     titleKey: 'step8Title',
-    Component: makePlaceholder('step8Title'),
-    isValid: () => true,
+    Component: Step8Preferences,
+    isValid: (d: EventDraft) =>
+      !d.entranceFee.enabled ||
+      (d.entranceFee.amount != null && d.entranceFee.amount > 0 && Boolean(d.entranceFee.method)),
   },
   {
     key: 'step9',
     titleKey: 'step9Title',
-    Component: makePlaceholder('step9Title'),
+    Component: Step9Details,
     isValid: (d: EventDraft) => d.name.trim().length > 0,
   },
   {
     key: 'step10',
     titleKey: 'step10Title',
-    Component: makePlaceholder('step10Title'),
+    Component: Step10Invite,
     isValid: () => true,
   },
 ];
-
-const styles = StyleSheet.create({
-  container: { paddingVertical: 24 },
-  title: { fontSize: 22, fontWeight: '700', color: '#0B1F3A', marginBottom: 8 },
-  hint: { fontSize: 15, color: '#6B7685' },
-});

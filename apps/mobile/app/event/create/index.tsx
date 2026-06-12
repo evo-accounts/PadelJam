@@ -1,6 +1,9 @@
+import { type CreateEventInput, useCreateEvent } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -33,6 +36,9 @@ function CreateEventWizard() {
   const insets = useSafeAreaInsets();
   const { draft, patch, stepIndex, goNext, goBack, steps, isFirst, isLast, isDirty } =
     useEventWizard();
+  const create = useCreateEvent();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const step = steps[stepIndex];
   const canAdvance = step ? step.isValid(draft) : false;
@@ -48,10 +54,54 @@ function CreateEventWizard() {
     }
   };
 
+  const finalize = async () => {
+    const { eventType, specification, scoringMode, startsAt } = draft;
+    if (!eventType || !specification || !scoringMode || !startsAt) return;
+
+    const input: CreateEventInput = {
+      groupId: draft.groupId,
+      eventType,
+      specification,
+      scoringMode,
+      scoringValue: draft.scoringValue,
+      manualLocationName: draft.manualLocationName,
+      manualLocationAddress: draft.manualLocationAddress,
+      hasLocation: draft.hasLocation,
+      numCourts: draft.numCourts,
+      startsAt,
+      durationMinutes: draft.durationMinutes,
+      allowStandby: draft.allowStandby,
+      standbySpots: draft.standbySpots,
+      isPrivate: draft.isPrivate,
+      entranceFee: draft.entranceFee,
+      playersSubmitResults: draft.playersSubmitResults,
+      organizerRole: draft.organizerRole,
+      name: draft.name,
+      description: draft.description,
+      series: draft.series,
+      invitees: draft.invitees,
+      courtIds: draft.courtIds,
+    };
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      await create.mutateAsync(input);
+      // TODO(Phase 6): route to /event/${id} once the detail screen exists
+      if (input.groupId) {
+        router.replace(`/group/${input.groupId}` as Href);
+      } else {
+        router.back();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'unknown_error');
+      setSubmitting(false);
+    }
+  };
+
   const onPrimary = () => {
     if (isLast) {
-      // TODO(5.4): finalize -> useCreateEvent
-      goNext();
+      void finalize();
       return;
     }
     goNext();
@@ -81,6 +131,8 @@ function CreateEventWizard() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {error ? <Text style={styles.error}>{t(error)}</Text> : null}
+
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         {!isFirst ? (
           <Pressable
@@ -95,12 +147,20 @@ function CreateEventWizard() {
         )}
         <Pressable
           onPress={onPrimary}
-          disabled={!canAdvance}
+          disabled={!canAdvance || submitting}
           accessibilityRole="button"
-          accessibilityState={{ disabled: !canAdvance }}
-          style={[styles.btn, styles.primaryBtn, !canAdvance && styles.primaryBtnDisabled]}
+          accessibilityState={{ disabled: !canAdvance || submitting }}
+          style={[
+            styles.btn,
+            styles.primaryBtn,
+            (!canAdvance || submitting) && styles.primaryBtnDisabled,
+          ]}
         >
-          <Text style={styles.primaryLabel}>{isLast ? t('finish') : t('next')}</Text>
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.primaryLabel}>{isLast ? t('finish') : t('next')}</Text>
+          )}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -144,4 +204,11 @@ const styles = StyleSheet.create({
   primaryBtn: { backgroundColor: '#0B7BFF', marginLeft: 'auto' },
   primaryBtnDisabled: { opacity: 0.4 },
   primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  error: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#D7263D',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
 });
