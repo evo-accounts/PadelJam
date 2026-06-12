@@ -20,6 +20,13 @@ export const useEventRealtime = (eventId: string) => {
       )
       .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'events', filter: 'id=eq.' + eventId },
+        () => {
+          qc.invalidateQueries({ queryKey: qk.event(eventId) });
+        },
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'event_invitations', filter },
         () => {
           qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });

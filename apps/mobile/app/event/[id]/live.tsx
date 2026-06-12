@@ -215,7 +215,7 @@ export default function EventLiveScreen() {
   const canSubmit = (m: MatchRow): boolean => {
     if (!isInProgress) return false;
     if (isOrganizer) return true;
-    return event.players_submit_results && isMyMatch(m) && m.status !== 'played';
+    return event.players_submit_results && isMyMatch(m) && m.status === 'pending';
   };
 
   // Last round fully scored: every match of the highest round_number is non-pending.
@@ -277,7 +277,7 @@ export default function EventLiveScreen() {
       await submitScore.mutateAsync(
         notPlayed
           ? { matchId: m.id, sideA: 0, sideB: 0, notPlayed: true }
-          : { matchId: m.id, sideA: effectiveSideA, sideB: computedSideB },
+          : { matchId: m.id, sideA: Math.max(0, effectiveSideA), sideB: Math.max(0, computedSideB) },
       );
       closeScoreModal();
     });
@@ -285,11 +285,7 @@ export default function EventLiveScreen() {
 
   const onAddRound = (): void => {
     void run(async () => {
-      const newRound = await generateNextRound.mutateAsync();
-      const newId =
-        newRound != null && typeof newRound === 'object' && 'id' in newRound
-          ? (newRound as { id?: unknown }).id
-          : null;
+      const newId = await generateNextRound.mutateAsync();
       if (typeof newId === 'string') setSelectedRoundId(newId);
     });
   };

@@ -4,6 +4,7 @@ import {
   useEvent,
   useEventInvitations,
   useEventParticipants,
+  useEventTeams,
   useJoinEvent,
   useLeaveEvent,
   useLeaveWaitingList,
@@ -67,6 +68,7 @@ export default function EventDetailScreen() {
   const { data: event, isLoading } = useEvent(id);
   const { data: participantsData } = useEventParticipants(id);
   const { data: invitationsData } = useEventInvitations(id);
+  const { data: teamsData } = useEventTeams(id);
 
   const joinEvent = useJoinEvent();
   const leaveEvent = useLeaveEvent();
@@ -123,7 +125,10 @@ export default function EventDetailScreen() {
 
   // --- Start gate: server counts status='confirmed' regardless of is_standby ---
   const startConfirmedCount = participants.filter((p) => p.status === 'confirmed').length;
-  const setupComplete = startConfirmedCount >= event.num_courts * 4;
+  const confirmedTeamCount = (teamsData ?? []).filter((tm) => tm.is_confirmed).length;
+  const setupComplete =
+    startConfirmedCount >= event.num_courts * 4 &&
+    (event.specification !== 'team' || confirmedTeamCount >= event.num_courts * 2);
 
   // --- My relationship to this event ---
   const isOrganizer = uid != null && uid === event.organizer_id;
