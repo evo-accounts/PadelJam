@@ -30,4 +30,5 @@ export const qk = {
   canCreateEvent: (groupId: string) => ['group', groupId, 'can-create-event'] as const,
   eventRanking: (groupId: string, seasonId: string) =>
     ['group', groupId, 'ranking', seasonId] as const,
+  groupRanking: (seasonId: string) => ['group-ranking', seasonId] as const,
 };

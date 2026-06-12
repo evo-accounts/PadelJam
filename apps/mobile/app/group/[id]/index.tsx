@@ -4,6 +4,7 @@ import {
   useGroup,
   useGroupEvents,
   useGroupMembers,
+  useGroupRanking,
   useGroupSeasons,
   useLeaveGroup,
 } from '@padel/api';
@@ -49,6 +50,9 @@ export default function GroupHomeScreen() {
   const communityId = group?.community_id;
   const { data: community } = useCommunity(communityId ?? '');
   const { data: communityMembers } = useCommunityMembers(communityId ?? '');
+
+  const currentSeasonId = (seasons ?? []).find((s) => s.ended_at == null)?.id ?? '';
+  const { data: ranking } = useGroupRanking(currentSeasonId);
 
   const leave = useLeaveGroup();
 
@@ -204,7 +208,7 @@ export default function GroupHomeScreen() {
         {/* Ranking */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('rankingTitle')}</Text>
-          <RankingList rows={[]} />
+          <RankingList rows={ranking ?? []} />
         </View>
 
         {/* Previous seasons */}
