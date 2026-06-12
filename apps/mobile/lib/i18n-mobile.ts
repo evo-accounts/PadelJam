@@ -1096,6 +1096,62 @@ const mobileEvent = {
     noRoster: 'No players yet',
     moreActions: 'More',
     shareCta: 'Share',
+
+    // --- Phase 7: Start / gating ---
+    startCta: 'Start event',
+    waitingToStart: 'Waiting for the organizer to start the event',
+    startSetupIncomplete: 'All {{needed}} spots must be confirmed before starting',
+    viewMatchesCta: 'View matches',
+
+    // --- Phase 7: Live match hub ---
+    liveTitle: 'Live',
+    matchesTab: 'Matches',
+    leaderboardTab: 'Leaderboard',
+    roundLabel: 'Round {{number}}',
+    yourMatchLabel: 'Your match',
+    courtLabel: 'Court {{number}}',
+    restingTitle: 'Resting this round',
+    vsLabel: 'vs',
+    notPlayedBadge: 'Not played',
+    matchPending: 'Not scored yet',
+    addRoundCta: 'Add round',
+    noMatches: 'No matches yet',
+    tapToScore: 'Tap to enter score',
+
+    // --- Phase 7: Score entry ---
+    enterScoreTitle: 'Enter score',
+    notPlayedToggle: 'Mark as not played',
+    saveScoreCta: 'Save score',
+    pointsTotalHint: '{{total}} points total — split between the two sides',
+    sideALabel: 'Side A',
+    sideBLabel: 'Side B',
+
+    // --- Phase 7: Leaderboard ---
+    rankCol: '#',
+    playerCol: 'Player',
+    pointsCol: 'Pts',
+    recordCol: 'W-D-L',
+    standingsEmpty: 'No results yet',
+    teamLabel: 'Team {{number}}',
+
+    // --- Phase 7: Finish flow ---
+    finishCta: 'Finish event',
+    finishConfirmTitle: 'Finish event?',
+    finishConfirmBody: 'This publishes the final results and closes the event.',
+    finishEarlyTitle: 'Finish early?',
+    finishEarlyBody: 'Some rounds may be unscored. Choose whether this event still counts toward the group ranking.',
+    rankingIncludeCta: 'Finish & count for ranking',
+    rankingExcludeCta: 'Finish without ranking',
+    finishMessageLabel: 'Add a message (optional)',
+    finishMessagePlaceholder: 'Thanks for playing!',
+    finishedTitle: 'Event finished!',
+    viewResultsCta: 'View results',
+
+    // --- Phase 7: Completed view ---
+    overviewTab: 'Overview',
+    rankingToggleLabel: 'Counts for group ranking',
+    finishMessageTitle: 'Message from the organizer',
+    completedTitle: 'Final results',
   },
 } as const;
 
