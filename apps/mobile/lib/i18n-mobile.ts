@@ -824,6 +824,15 @@ const mobileGroup = {
     // --- Generic ---
     cancel: 'Cancel',
     confirm: 'Confirm',
+    ok: 'OK',
+    errorTitle: 'Something went wrong',
+    leaveGroupConfirm: 'Leave this group?',
+    manageCta: 'Manage group',
+    inviteEmpty: 'Everyone in the community is already in this group.',
+    membersSearchPlaceholder: 'Search members by name',
+    seasonsTitle: 'Seasons',
+    currentSeasonLabel: 'Current season',
+    inviteSentTitle: 'Invitation sent',
     // --- Ranking layout ---
     rankingRankHeader: '#',
     rankingPlayerHeader: 'Player',
