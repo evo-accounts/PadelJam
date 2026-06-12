@@ -1,0 +1,64 @@
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
+
+import { type EventDraft, defaultDraft, type WizardStep } from './draft';
+import { STEPS } from './steps';
+
+type CreateEventContextValue = {
+  draft: EventDraft;
+  patch: (partial: Partial<EventDraft>) => void;
+  stepIndex: number;
+  goNext: () => void;
+  goBack: () => void;
+  steps: WizardStep[];
+  isFirst: boolean;
+  isLast: boolean;
+  isDirty: boolean;
+};
+
+const CreateEventContext = createContext<CreateEventContextValue | null>(null);
+
+export function CreateEventProvider({ children }: { children: ReactNode }) {
+  const [draft, setDraft] = useState<EventDraft>(defaultDraft);
+  const [stepIndex, setStepIndex] = useState(0);
+
+  const patch = useCallback((partial: Partial<EventDraft>) => {
+    setDraft((d) => {
+      // Standalone events (no group) must be private — enforced by the schema.
+      const forced: Partial<EventDraft> = partial.groupId === null ? { isPrivate: true } : {};
+      return { ...d, ...partial, ...forced };
+    });
+  }, []);
+
+  const goNext = useCallback(() => {
+    setStepIndex((i) => Math.min(STEPS.length - 1, Math.max(0, i + 1)));
+  }, []);
+
+  const goBack = useCallback(() => {
+    setStepIndex((i) => Math.min(STEPS.length - 1, Math.max(0, i - 1)));
+  }, []);
+
+  const value = useMemo<CreateEventContextValue>(
+    () => ({
+      draft,
+      patch,
+      stepIndex,
+      goNext,
+      goBack,
+      steps: STEPS,
+      isFirst: stepIndex === 0,
+      isLast: stepIndex === STEPS.length - 1,
+      isDirty: JSON.stringify(draft) !== JSON.stringify(defaultDraft),
+    }),
+    [draft, patch, stepIndex, goNext, goBack],
+  );
+
+  return <CreateEventContext.Provider value={value}>{children}</CreateEventContext.Provider>;
+}
+
+export function useEventWizard(): CreateEventContextValue {
+  const ctx = useContext(CreateEventContext);
+  if (!ctx) {
+    throw new Error('useEventWizard must be used within a CreateEventProvider');
+  }
+  return ctx;
+}
