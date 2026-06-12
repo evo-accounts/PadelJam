@@ -434,6 +434,58 @@ export type Database = {
           },
         ]
       }
+      group_invitations: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          invitee_id: string
+          inviter_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          invitee_id: string
+          inviter_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          invitee_id?: string
+          inviter_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_invitations_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_invitations_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_invitations_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           created_at: string
@@ -465,8 +517,43 @@ export type Database = {
             foreignKeyName: "group_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_seasons: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          group_id: string
+          id: string
+          season_number: number
+          started_at: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          group_id: string
+          id?: string
+          season_number: number
+          started_at?: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          group_id?: string
+          id?: string
+          season_number?: number
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_seasons_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -482,6 +569,7 @@ export type Database = {
           is_private: boolean
           name: string
           thumbnail_path: string | null
+          updated_at: string
         }
         Insert: {
           archived_at?: string | null
@@ -494,6 +582,7 @@ export type Database = {
           is_private?: boolean
           name: string
           thumbnail_path?: string | null
+          updated_at?: string
         }
         Update: {
           archived_at?: string | null
@@ -506,6 +595,7 @@ export type Database = {
           is_private?: boolean
           name?: string
           thumbnail_path?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1096,6 +1186,10 @@ export type Database = {
         Returns: unknown
       }
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      accept_group_invitation: {
+        Args: { p_group_id: string }
+        Returns: undefined
+      }
       accept_invitation: {
         Args: { p_invitation_id: string }
         Returns: undefined
@@ -1155,8 +1249,10 @@ export type Database = {
         Args: { p_archive: boolean; p_community_id: string }
         Returns: number
       }
+      archive_group: { Args: { p_group_id: string }; Returns: undefined }
       auth_tenant_ids: { Args: never; Returns: string[] }
       can_create_community: { Args: never; Returns: boolean }
+      can_create_group: { Args: { p_community_id: string }; Returns: boolean }
       can_create_post: { Args: { c: string }; Returns: boolean }
       community_has_feature: {
         Args: { c: string; key: string }
@@ -1176,6 +1272,16 @@ export type Database = {
           p_privacy?: string
           p_thumbnail_path?: string
           p_type: string
+        }
+        Returns: string
+      }
+      create_group: {
+        Args: {
+          p_community_id: string
+          p_description?: string
+          p_is_private?: boolean
+          p_name: string
+          p_thumbnail_path?: string
         }
         Returns: string
       }
@@ -1324,14 +1430,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      invite_to_group: {
+        Args: { p_group_id: string; p_invitee_id: string }
+        Returns: undefined
+      }
       is_community_admin: { Args: { c: string }; Returns: boolean }
       is_community_member: { Args: { c: string }; Returns: boolean }
+      is_group_admin: { Args: { g: string; u: string }; Returns: boolean }
       is_group_member: { Args: { g: string }; Returns: boolean }
       join_community: {
         Args: { p_ack?: boolean; p_community_id: string }
         Returns: string
       }
+      join_group: { Args: { p_group_id: string }; Returns: undefined }
       leave_community: { Args: { p_community_id: string }; Returns: undefined }
+      leave_group: { Args: { p_group_id: string }; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -1958,10 +2071,12 @@ export type Database = {
         Args: { geom: unknown; move: number; wrap: number }
         Returns: unknown
       }
+      start_new_season: { Args: { p_group_id: string }; Returns: number }
       transfer_ownership: {
         Args: { p_community_id: string; p_new_owner: string }
         Returns: undefined
       }
+      unarchive_group: { Args: { p_group_id: string }; Returns: undefined }
       unlockrows: { Args: { "": string }; Returns: number }
       updategeometrysrid: {
         Args: {
