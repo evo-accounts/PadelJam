@@ -19,19 +19,38 @@ export default function GroupJoinModal() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data: group, isLoading } = useGroup(id);
+  const { data: group, isLoading, isError } = useGroup(id);
   const join = useJoinGroup();
   const accept = useAcceptGroupInvitation();
 
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [noAccess, setNoAccess] = useState(false);
 
-  if (isLoading || !group) {
+  const noAccessView = (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.noAccess}>
+        <Text style={styles.noAccessTitle}>{t('noAccessTitle')}</Text>
+        <Text style={styles.noAccessBody}>{t('noAccessBody')}</Text>
+        <Pressable style={styles.secondary} onPress={() => router.back()} accessibilityRole="button">
+          <Text style={styles.secondaryText}>{t('cancel')}</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+
+  if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <ActivityIndicator color="#0B1F3A" />
       </SafeAreaView>
     );
+  }
+
+  // useGroup uses .single(), which errors when RLS hides the row — i.e. a private group the user
+  // can't read. The only way to view it is via an invitation, so show the no-access state rather
+  // than spinning forever.
+  if (isError || !group) {
+    return noAccessView;
   }
 
   const pending = join.isPending || accept.isPending;
@@ -68,17 +87,7 @@ export default function GroupJoinModal() {
   };
 
   if (noAccess) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.noAccess}>
-          <Text style={styles.noAccessTitle}>{t('noAccessTitle')}</Text>
-          <Text style={styles.noAccessBody}>{t('noAccessBody')}</Text>
-          <Pressable style={styles.secondary} onPress={() => router.back()} accessibilityRole="button">
-            <Text style={styles.secondaryText}>{t('cancel')}</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
+    return noAccessView;
   }
 
   const isPrivate = group.is_private;

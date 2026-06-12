@@ -51,15 +51,22 @@ export default function GroupCreateModal() {
         })) as string;
         setGroupId(newId);
 
+        // The group already exists at this point; the thumbnail is optional, so a failed upload
+        // must not strand the user on the modal with a "create failed" error. Best-effort it and
+        // proceed to the new group (they can set a thumbnail later in Group settings).
         if (values.thumbnail) {
-          const thumbnail_path = await uploadCommunityImage(
-            supabase,
-            'community-thumbnails',
-            newId,
-            values.thumbnail.uri,
-            values.thumbnail.mimeType,
-          );
-          await update.mutateAsync({ thumbnail_path });
+          try {
+            const thumbnail_path = await uploadCommunityImage(
+              supabase,
+              'community-thumbnails',
+              newId,
+              values.thumbnail.uri,
+              values.thumbnail.mimeType,
+            );
+            await update.mutateAsync({ thumbnail_path });
+          } catch {
+            // ignore — group created, thumbnail can be added later
+          }
         }
 
         router.replace(`/group/${newId}` as Href);
