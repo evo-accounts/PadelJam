@@ -2,6 +2,7 @@ import {
   useCommunity,
   useCommunityMembers,
   useGroup,
+  useGroupEvents,
   useGroupMembers,
   useGroupSeasons,
   useLeaveGroup,
@@ -22,6 +23,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EventCard } from '@/components/event/EventCard';
 import { GroupHeader } from '@/components/group/GroupHeader';
 import { RankingList } from '@/components/group/RankingList';
 import { avatarUrl } from '@/lib/community-images';
@@ -43,6 +45,7 @@ export default function GroupHomeScreen() {
   const { data: group, isLoading } = useGroup(id);
   const { data: members } = useGroupMembers(id);
   const { data: seasons } = useGroupSeasons(id);
+  const { data: events } = useGroupEvents(id);
   const communityId = group?.community_id;
   const { data: community } = useCommunity(communityId ?? '');
   const { data: communityMembers } = useCommunityMembers(communityId ?? '');
@@ -61,6 +64,7 @@ export default function GroupHomeScreen() {
   const currentSeason = (seasons ?? []).find((s) => s.ended_at == null);
   const previousSeasons = (seasons ?? []).filter((s) => s.ended_at != null);
   const previewMembers = memberRows.slice(0, 6);
+  const eventRows = events ?? [];
 
   const myCommunityRole = (communityMembers ?? []).find((m) => m.user_id === uid)?.role;
   const canManage = myCommunityRole === 'owner' || myCommunityRole === 'admin';
@@ -171,8 +175,6 @@ export default function GroupHomeScreen() {
         {/* Events */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('eventsTitle')}</Text>
-          <Text style={styles.placeholder}>{t('eventsPlaceholder')}</Text>
-          {/* TODO(Phase 6): replace with the events list + a gated CTA; minimal entry for now. */}
           <Pressable
             style={styles.inviteRow}
             accessibilityRole="button"
@@ -184,6 +186,19 @@ export default function GroupHomeScreen() {
           >
             <Text style={styles.inviteText}>{t('event:createTitle')}</Text>
           </Pressable>
+          {eventRows.length === 0 ? (
+            <Text style={styles.placeholder}>{t('event:eventsEmpty')}</Text>
+          ) : (
+            <View style={styles.eventList}>
+              {eventRows.map((e) => (
+                <EventCard
+                  key={e.id}
+                  event={e}
+                  onPress={() => router.push(`/event/${e.id}` as Href)}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Ranking */}
@@ -254,6 +269,7 @@ const styles = StyleSheet.create({
   inviteRow: { paddingHorizontal: 16, paddingTop: 16 },
   inviteText: { fontSize: 16, fontWeight: '700', color: '#0B7BFF' },
   placeholder: { fontSize: 14, color: '#8A95A5', marginTop: 12 },
+  eventList: { marginTop: 12, gap: 8 },
   card: { backgroundColor: '#fff', borderRadius: 12, marginTop: 12, overflow: 'hidden' },
   seasonRow: {
     flexDirection: 'row',
