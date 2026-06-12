@@ -747,11 +747,112 @@ const mobileCommunity = {
   },
 } as const;
 
+/**
+ * Groups namespace copy (Tasks C1 + C2). Groups live inside a community; the
+ * screens that consume these keys are built in a later task. Only English is
+ * authored for now; pt-PT / pt-BR fall back to English until translated, which
+ * is acceptable for a not-yet-shipped module and keeps the keys in one place.
+ */
+const mobileGroup = {
+  en: {
+    // --- Create / edit form ---
+    nameLabel: 'Name',
+    namePlaceholder: 'Group name',
+    descriptionLabel: 'Description',
+    descriptionPlaceholder: 'What is this group about?',
+    thumbnailLabel: 'Group image',
+    privacyLabel: 'Privacy',
+    privatePublicLabel: 'Public',
+    privatePrivateLabel: 'Private',
+    privateHelp: 'Only invited players can see the group',
+    createTitle: 'New group',
+    createCta: 'Create group',
+    saveCta: 'Save',
+    editTitle: 'Group settings',
+    // --- List tabs + empties ---
+    tabAll: 'All',
+    tabManaging: 'Managing',
+    tabParticipating: 'Participating',
+    newGroupCta: 'New group',
+    emptyAll: 'No groups yet.',
+    emptyManaging: "You don't manage any groups yet.",
+    emptyParticipating: "You haven't joined any groups yet.",
+    archivedTag: 'Archived',
+    generalGroup: 'General',
+    privateTag: 'Private',
+    // --- Group page ---
+    membersTitle: 'Members',
+    membersPill_one: '{{count}} member',
+    membersPill_other: '{{count}} members',
+    inviteMembersCta: '+ Invite members',
+    eventsTitle: 'Events',
+    eventsPlaceholder: 'Events coming soon',
+    rankingTitle: 'Ranking',
+    rankingPlaceholder: 'Ranking starts once events are played',
+    seasonTag: 'Season {{number}}',
+    previousSeasonsTitle: 'Previous seasons',
+    createdOn: 'Created on {{date}}',
+    shareCta: 'Share',
+    leaveGroupCta: 'Leave group',
+    moreCta: 'More',
+    // --- Join ---
+    joinTitle: 'Join group',
+    joinCta: 'Join Group',
+    invitedTitle: '{{name}} invited you!',
+    acceptCta: 'Accept',
+    noAccessTitle: 'No access',
+    noAccessBody: 'This is a private group. You need an invitation to view it.',
+    // --- Invite ---
+    inviteTitle: 'Invite members',
+    inviteSearchPlaceholder: 'Search members by name',
+    inviteConfirm: 'Members will be added to this group and {{community}}.',
+    inviteSentToast: 'Invitations sent.',
+    // --- Manage ---
+    manageTitle: 'Manage group',
+    settingsRow: 'Group settings',
+    membersRow: 'Members',
+    seasonsRow: 'Seasons',
+    startSeasonCta: 'Start new season',
+    startSeasonConfirm:
+      'This will close Season {{current}} and start Season {{next}}. Continue?',
+    archiveCta: 'Archive group',
+    unarchiveCta: 'Unarchive group',
+    archiveConfirm: 'Archiving will cancel all upcoming events. Archive this group?',
+    removeMemberCta: 'Remove from group',
+    removeMemberConfirm: 'Remove {{name}} from this group?',
+    seeProfile: 'See profile',
+    // --- Generic ---
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    // --- Ranking layout ---
+    rankingRankHeader: '#',
+    rankingPlayerHeader: 'Player',
+    rankingPointsHeader: 'Points',
+    rankingEventsPlayed_one: '{{count}} event',
+    rankingEventsPlayed_other: '{{count}} events',
+    // --- Error codes mapped from the API ---
+    forbidden: 'You do not have permission to perform this action.',
+    groups_per_community:
+      "You've reached your plan's group limit. Archive a group or upgrade to add more.",
+    sole_owner_must_transfer: 'Transfer community ownership before leaving this group.',
+    sole_admin_must_add_another: 'Add another admin to this group before you leave.',
+    group_private_join_forbidden:
+      'This is a private group. You need an invitation to join.',
+    name_required: 'Please enter a group name.',
+    invitation_not_found: 'This invitation is no longer available.',
+    not_a_member: 'You are not a member of this group.',
+    group_not_found: 'This group no longer exists.',
+    unknown_error: 'Something went wrong. Please try again.',
+  },
+} as const;
+
 export type MobileLocale = keyof typeof mobileAuth;
 
 /**
- * Merges the mobile-only auth + onboarding + community keys into the shared
- * namespaces of an already-initialised i18n instance, for every supported locale.
+ * Merges the mobile-only auth + onboarding + community + group keys into the
+ * shared namespaces of an already-initialised i18n instance, for every supported
+ * locale. The `group` namespace only authors English; other locales fall back to
+ * English via i18next's fallbackLng until translated.
  */
 export function registerMobileCopy(instance: I18n): void {
   (Object.keys(mobileAuth) as MobileLocale[]).forEach((locale) => {
@@ -759,4 +860,5 @@ export function registerMobileCopy(instance: I18n): void {
     instance.addResourceBundle(locale, 'onboarding', mobileOnboarding[locale], true, false);
     instance.addResourceBundle(locale, 'community', mobileCommunity[locale], true, false);
   });
+  instance.addResourceBundle('en', 'group', mobileGroup.en, true, false);
 }
