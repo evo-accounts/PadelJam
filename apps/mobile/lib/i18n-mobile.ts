@@ -767,6 +767,7 @@ const mobileGroup = {
     privateHelp: 'Only invited players can see the group',
     createTitle: 'New group',
     createCta: 'Create group',
+    close: 'Close',
     saveCta: 'Save',
     editTitle: 'Group settings',
     // --- List tabs + empties ---

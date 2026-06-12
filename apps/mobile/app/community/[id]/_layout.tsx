@@ -11,6 +11,7 @@ export default function CommunityIdLayout() {
       <Stack.Screen name="(home)" />
       <Stack.Screen name="join" options={{ presentation: 'modal' }} />
       <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="group-create" options={{ presentation: 'modal' }} />
       <Stack.Screen name="post/[postId]" />
       <Stack.Screen name="manage" />
       <Stack.Screen name="reviews" />
