@@ -51,7 +51,11 @@ export default function ExploreScreen() {
           emptyLabel={t('emptyEvents')}
           errorLabel={t('loadError')}
           keyExtractor={(e) => e.id}
-          renderItem={(e) => <EventCard event={e} onPress={() => router.push(`/event/${e.id}`)} />}
+          renderItem={(e) => (
+            <View style={{ width: 280 }}>
+              <EventCard event={e} onPress={() => router.push(`/event/${e.id}`)} />
+            </View>
+          )}
         />
         <SuggestionRail
           title={t('railCommunities')}

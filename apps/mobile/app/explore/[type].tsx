@@ -37,6 +37,13 @@ export default function ExploreSeeAllScreen() {
     groups: 'seeAllTitleGroups',
   }[kind] as 'seeAllTitlePlayers' | 'seeAllTitleEvents' | 'seeAllTitleCommunities' | 'seeAllTitleGroups';
 
+  const emptyKey = {
+    players: 'emptyPlayers',
+    events: 'emptyEvents',
+    communities: 'emptyCommunities',
+    groups: 'emptyGroups',
+  }[kind] as 'emptyPlayers' | 'emptyEvents' | 'emptyCommunities' | 'emptyGroups';
+
   const active = { players, events, communities, groups }[kind];
   const rows = (active.data?.pages.flat() ?? []) as ReadonlyArray<{ id: string }>;
 
@@ -67,7 +74,8 @@ export default function ExploreSeeAllScreen() {
           numColumns={kind === 'players' ? 3 : 1}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-          ListEmptyComponent={<Text style={styles.empty}>{t('loadError')}</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>{active.isError ? t('loadError') : t(emptyKey)}</Text>}
+          ListFooterComponent={active.isFetchingNextPage ? <ActivityIndicator color="#0B1F3A" style={styles.state} /> : null}
           onEndReachedThreshold={0.5}
           onEndReached={() => {
             if (active.hasNextPage && !active.isFetchingNextPage) void active.fetchNextPage();

@@ -17,7 +17,7 @@ export function PlayerCard({ player }: { player: Player }) {
     .join('')
     .toUpperCase();
   return (
-    <View style={styles.card} accessibilityRole="image" accessibilityLabel={player.full_name}>
+    <View style={styles.card} accessibilityLabel={player.full_name}>
       <View style={styles.avatar}>
         <Text style={styles.initials}>{initials}</Text>
       </View>
