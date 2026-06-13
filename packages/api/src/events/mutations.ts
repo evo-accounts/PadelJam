@@ -1,0 +1,441 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDb, mapPgError } from '../client';
+import { qk } from '../query-keys';
+import { buildCreateEventPayload, type CreateEventInput, type EventType } from '../schemas';
+import { americanoSchedule } from '../round-gen';
+
+// Mirrors the generated `Json` scalar from @padel/db (not re-exported there).
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+// ---------------------------------------------------------------------------
+// Create / duplicate
+// ---------------------------------------------------------------------------
+
+export const useCreateEvent = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateEventInput) => {
+      const { data, error } = await db.rpc('create_event', {
+        p_payload: buildCreateEventPayload(input) as Json,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
+    },
+    onSuccess: (_data, input) => {
+      if (input.groupId) {
+        qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+        qc.invalidateQueries({ queryKey: qk.canCreateEvent(input.groupId) });
+      }
+    },
+  });
+};
+
+export const useDuplicateEvent = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      eventId: string;
+      groupId: string | null;
+      overrides?: Record<string, unknown>;
+    }) => {
+      const { data, error } = await db.rpc('duplicate_event', {
+        p_event_id: input.eventId,
+        p_overrides: (input.overrides ?? {}) as Json,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
+    },
+    onSuccess: (_data, input) => {
+      if (input.groupId) {
+        qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+        qc.invalidateQueries({ queryKey: qk.canCreateEvent(input.groupId) });
+      }
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Join / leave
+// ---------------------------------------------------------------------------
+
+export const useJoinEvent = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { eventId: string; groupId: string | null }) => {
+      const { error } = await db.rpc('join_event', { p_event_id: input.eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: (_data, input) => {
+      qc.invalidateQueries({ queryKey: qk.event(input.eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(input.eventId) });
+      if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+    },
+  });
+};
+
+export const useLeaveEvent = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { eventId: string; groupId: string | null }) => {
+      const { error } = await db.rpc('leave_event', { p_event_id: input.eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: (_data, input) => {
+      qc.invalidateQueries({ queryKey: qk.event(input.eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(input.eventId) });
+      if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+    },
+  });
+};
+
+export const useLeaveWaitingList = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await db.rpc('leave_waiting_list', { p_event_id: eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Partner selection (team / mixed events)
+// ---------------------------------------------------------------------------
+
+export const useRequestPartner = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (targets: string[]) => {
+      const { error } = await db.rpc('request_partner', {
+        p_event_id: eventId,
+        p_targets: targets,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+    },
+  });
+};
+
+export const useChoosePartner = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (partnerUser: string) => {
+      const { error } = await db.rpc('choose_partner', {
+        p_event_id: eventId,
+        p_partner_user: partnerUser,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+    },
+  });
+};
+
+export const useAcceptPartnerRequest = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { error } = await db.rpc('accept_partner_request', { p_request_id: requestId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+    },
+  });
+};
+
+export const useDeclinePartnerRequest = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { error } = await db.rpc('decline_partner_request', { p_request_id: requestId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Invitations
+// ---------------------------------------------------------------------------
+
+export const useInviteToEvent = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      invitees: { invitee_id?: string; name?: string; email?: string; phone?: string }[],
+    ) => {
+      const { error } = await db.rpc('invite_to_event', {
+        p_event_id: eventId,
+        p_invitees: invitees,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+    },
+  });
+};
+
+export const useAcceptEventInvitation = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { eventId: string; groupId: string | null }) => {
+      const { error } = await db.rpc('accept_event_invitation', { p_event_id: input.eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: (_data, input) => {
+      qc.invalidateQueries({ queryKey: qk.event(input.eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(input.eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitations(input.eventId) });
+      if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+    },
+  });
+};
+
+export const useDeclineEventInvitation = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await db.rpc('decline_event_invitation', { p_event_id: eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Organizer roster management
+// ---------------------------------------------------------------------------
+
+export const useMarkConfirmed = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (participantId: string) => {
+      const { error } = await db.rpc('organizer_mark_confirmed', {
+        p_participant_id: participantId,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+    },
+  });
+};
+
+export const useRemoveParticipant = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { participantId: string; mode: string }) => {
+      const { error } = await db.rpc('organizer_remove_participant', {
+        p_participant_id: input.participantId,
+        p_mode: input.mode,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+    },
+  });
+};
+
+export const useAddManualParticipant = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { name: string; gender?: string }) => {
+      const { data, error } = await db.rpc('add_manual_participant', {
+        p_event_id: eventId,
+        p_name: input.name,
+        p_gender: input.gender,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+    },
+  });
+};
+
+export const useMarkPaid = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { participantId: string; paid: boolean }) => {
+      const { error } = await db.rpc('mark_paid', {
+        p_participant_id: input.participantId,
+        p_paid: input.paid,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+    },
+  });
+};
+
+export const useMarkAllPaid = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await db.rpc('mark_all_paid', { p_event_id: eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Match engine
+// ---------------------------------------------------------------------------
+
+export const useStartEvent = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      eventType: EventType;
+      confirmedParticipantIds: string[];
+      numCourts: number;
+    }) => {
+      const args: { p_event_id: string; p_rounds?: Json } = { p_event_id: eventId };
+      if (input.eventType === 'americano') {
+        // Americano schedule is computed client-side and persisted as the
+        // full round plan. Mexicano / Up&Down seed round 1 server-side.
+        const plan = americanoSchedule(input.confirmedParticipantIds, input.numCourts);
+        args.p_rounds = plan.map((round) => ({
+          round_number: round.roundNumber,
+          status: 'pending',
+          rests: round.rests,
+          matches: round.matches.map((m) => ({
+            court_number: m.courtNumber,
+            match_number: m.matchNumber,
+            side_a: m.sideA,
+            side_b: m.sideB,
+          })),
+        }));
+      }
+      const { error } = await db.rpc('start_event', args);
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventRounds(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventMatches(eventId) });
+    },
+  });
+};
+
+export const useGenerateNextRound = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await db.rpc('generate_next_round', { p_event_id: eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventRounds(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventMatches(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventStandings(eventId) });
+    },
+  });
+};
+
+export const useSubmitScore = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      matchId: string;
+      sideA: number;
+      sideB: number;
+      notPlayed?: boolean;
+    }) => {
+      const { error } = await db.rpc('submit_score', {
+        p_match_id: input.matchId,
+        p_side_a: input.sideA,
+        p_side_b: input.sideB,
+        p_not_played: input.notPlayed,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventMatches(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventRounds(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventStandings(eventId) });
+    },
+  });
+};
+
+export const useFinishEvent = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input?: { countsOverride?: boolean; finishMessage?: string }) => {
+      const { error } = await db.rpc('finish_event', {
+        p_event_id: eventId,
+        p_counts_override: input?.countsOverride,
+        p_finish_message: input?.finishMessage,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventStandings(eventId) });
+    },
+  });
+};
+
+export const useSetEventRanking = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await db.rpc('set_event_ranking', {
+        p_event_id: eventId,
+        p_enabled: enabled,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+    },
+  });
+};

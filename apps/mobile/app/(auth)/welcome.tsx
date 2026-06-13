@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
-  const { t } = useT('auth');
+  const { t } = useT('onboarding');
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);

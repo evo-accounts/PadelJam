@@ -434,6 +434,609 @@ export type Database = {
           },
         ]
       }
+      courts: {
+        Row: {
+          id: string
+          name: string
+          sort_order: number
+          venue_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          sort_order?: number
+          venue_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          sort_order?: number
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courts_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_courts: {
+        Row: {
+          court_id: string
+          event_id: string
+          id: string
+        }
+        Insert: {
+          court_id: string
+          event_id: string
+          id?: string
+        }
+        Update: {
+          court_id?: string
+          event_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_courts_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_courts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_invitations: {
+        Row: {
+          event_id: string
+          id: string
+          invited_at: string
+          invited_by: string
+          invitee_email: string | null
+          invitee_id: string | null
+          invitee_name: string | null
+          invitee_phone: string | null
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          invited_at?: string
+          invited_by: string
+          invitee_email?: string | null
+          invitee_id?: string | null
+          invitee_name?: string | null
+          invitee_phone?: string | null
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string
+          invitee_email?: string | null
+          invitee_id?: string | null
+          invitee_name?: string | null
+          invitee_phone?: string | null
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_invitations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_invitations_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_matches: {
+        Row: {
+          court_id: string | null
+          court_number: number
+          created_at: string
+          event_id: string
+          id: string
+          match_number: number
+          round_id: string
+          side_a_score: number | null
+          side_b_score: number | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+        }
+        Insert: {
+          court_id?: string | null
+          court_number: number
+          created_at?: string
+          event_id: string
+          id?: string
+          match_number: number
+          round_id: string
+          side_a_score?: number | null
+          side_b_score?: number | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+        }
+        Update: {
+          court_id?: string | null
+          court_number?: number
+          created_at?: string
+          event_id?: string
+          id?: string
+          match_number?: number
+          round_id?: string
+          side_a_score?: number | null
+          side_b_score?: number | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_matches_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_matches_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_matches_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "event_rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_matches_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_participants: {
+        Row: {
+          confirmed_at: string | null
+          event_id: string
+          guest_gender: string | null
+          guest_name: string | null
+          has_paid: boolean
+          id: string
+          invited_by: string | null
+          is_standby: boolean
+          joined_at: string
+          paid_at: string | null
+          status: string
+          user_id: string | null
+          waiting_list_position: number | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          event_id: string
+          guest_gender?: string | null
+          guest_name?: string | null
+          has_paid?: boolean
+          id?: string
+          invited_by?: string | null
+          is_standby?: boolean
+          joined_at?: string
+          paid_at?: string | null
+          status?: string
+          user_id?: string | null
+          waiting_list_position?: number | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          event_id?: string
+          guest_gender?: string | null
+          guest_name?: string | null
+          has_paid?: boolean
+          id?: string
+          invited_by?: string | null
+          is_standby?: boolean
+          joined_at?: string
+          paid_at?: string | null
+          status?: string
+          user_id?: string | null
+          waiting_list_position?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_rounds: {
+        Row: {
+          created_at: string
+          event_id: string
+          generated_at: string | null
+          id: string
+          round_number: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          generated_at?: string | null
+          id?: string
+          round_number: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          generated_at?: string | null
+          id?: string
+          round_number?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rounds_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_series: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          deleted_at: string | null
+          duration_minutes: number
+          group_id: string
+          id: string
+          invite_lead_days: number
+          is_active: boolean
+          organizer_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          deleted_at?: string | null
+          duration_minutes: number
+          group_id: string
+          id?: string
+          invite_lead_days: number
+          is_active?: boolean
+          organizer_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          deleted_at?: string | null
+          duration_minutes?: number
+          group_id?: string
+          id?: string
+          invite_lead_days?: number
+          is_active?: boolean
+          organizer_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_series_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_series_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_teams: {
+        Row: {
+          event_id: string
+          id: string
+          is_confirmed: boolean
+          player_a_id: string | null
+          player_b_id: string | null
+          team_name: string | null
+          team_number: number
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          is_confirmed?: boolean
+          player_a_id?: string | null
+          player_b_id?: string | null
+          team_name?: string | null
+          team_number: number
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          is_confirmed?: boolean
+          player_a_id?: string | null
+          player_b_id?: string | null
+          team_name?: string | null
+          team_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_teams_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_teams_player_a_id_fkey"
+            columns: ["player_a_id"]
+            isOneToOne: false
+            referencedRelation: "event_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_teams_player_b_id_fkey"
+            columns: ["player_b_id"]
+            isOneToOne: false
+            referencedRelation: "event_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          allow_standby: boolean
+          counts_for_ranking: boolean
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          duration_minutes: number
+          entrance_fee_amount: number | null
+          entrance_fee_enabled: boolean
+          entrance_fee_mba_number: string | null
+          entrance_fee_method: string | null
+          event_type: string
+          finish_message: string | null
+          finished_early: boolean
+          group_id: string | null
+          has_location: boolean
+          id: string
+          is_private: boolean
+          manual_location_address: string | null
+          manual_location_name: string | null
+          name: string
+          num_courts: number
+          organizer_id: string
+          organizer_role: string
+          players_submit_results: boolean
+          published_at: string | null
+          scoring_mode: string
+          scoring_value: number | null
+          series_id: string | null
+          specification: string
+          standby_spots: number | null
+          starts_at: string
+          status: string
+          thumbnail_path: string | null
+          updated_at: string
+          venue_id: string | null
+        }
+        Insert: {
+          allow_standby?: boolean
+          counts_for_ranking?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          duration_minutes: number
+          entrance_fee_amount?: number | null
+          entrance_fee_enabled?: boolean
+          entrance_fee_mba_number?: string | null
+          entrance_fee_method?: string | null
+          event_type: string
+          finish_message?: string | null
+          finished_early?: boolean
+          group_id?: string | null
+          has_location?: boolean
+          id?: string
+          is_private?: boolean
+          manual_location_address?: string | null
+          manual_location_name?: string | null
+          name: string
+          num_courts: number
+          organizer_id: string
+          organizer_role: string
+          players_submit_results?: boolean
+          published_at?: string | null
+          scoring_mode: string
+          scoring_value?: number | null
+          series_id?: string | null
+          specification: string
+          standby_spots?: number | null
+          starts_at: string
+          status?: string
+          thumbnail_path?: string | null
+          updated_at?: string
+          venue_id?: string | null
+        }
+        Update: {
+          allow_standby?: boolean
+          counts_for_ranking?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          duration_minutes?: number
+          entrance_fee_amount?: number | null
+          entrance_fee_enabled?: boolean
+          entrance_fee_mba_number?: string | null
+          entrance_fee_method?: string | null
+          event_type?: string
+          finish_message?: string | null
+          finished_early?: boolean
+          group_id?: string | null
+          has_location?: boolean
+          id?: string
+          is_private?: boolean
+          manual_location_address?: string | null
+          manual_location_name?: string | null
+          name?: string
+          num_courts?: number
+          organizer_id?: string
+          organizer_role?: string
+          players_submit_results?: boolean
+          published_at?: string | null
+          scoring_mode?: string
+          scoring_value?: number | null
+          series_id?: string | null
+          specification?: string
+          standby_spots?: number | null
+          starts_at?: string
+          status?: string
+          thumbnail_path?: string | null
+          updated_at?: string
+          venue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "event_series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_event_results: {
+        Row: {
+          created_at: string
+          event_id: string
+          final_placement: number
+          group_season_id: string
+          id: string
+          ranking_points: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          final_placement: number
+          group_season_id: string
+          id?: string
+          ranking_points: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          final_placement?: number
+          group_season_id?: string
+          id?: string
+          ranking_points?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_event_results_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_event_results_group_season_id_fkey"
+            columns: ["group_season_id"]
+            isOneToOne: false
+            referencedRelation: "group_seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_event_results_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_invitations: {
         Row: {
           created_at: string
@@ -608,6 +1211,94 @@ export type Database = {
           {
             foreignKeyName: "groups_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_players: {
+        Row: {
+          id: string
+          match_id: string
+          participant_id: string
+          side: string
+        }
+        Insert: {
+          id?: string
+          match_id: string
+          participant_id: string
+          side: string
+        }
+        Update: {
+          id?: string
+          match_id?: string
+          participant_id?: string
+          side?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_players_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "event_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_players_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "event_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_requests: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+          target_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+          target_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_requests_target_id_fkey"
+            columns: ["target_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -833,6 +1524,39 @@ export type Database = {
           },
         ]
       }
+      round_rest: {
+        Row: {
+          id: string
+          participant_id: string
+          round_id: string
+        }
+        Insert: {
+          id?: string
+          participant_id: string
+          round_id: string
+        }
+        Update: {
+          id?: string
+          participant_id?: string
+          round_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_rest_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "event_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_rest_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "event_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null
@@ -1024,6 +1748,54 @@ export type Database = {
           },
         ]
       }
+      venues: {
+        Row: {
+          address: string | null
+          community_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          name: string
+          rating: number | null
+        }
+        Insert: {
+          address?: string | null
+          community_id?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          rating?: number | null
+        }
+        Update: {
+          address?: string | null
+          community_id?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          rating?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venues_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venues_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       auth_providers: {
@@ -1097,6 +1869,11 @@ export type Database = {
       }
     }
     Functions: {
+      _build_fours_arrangement: { Args: { p_ordered: string[] }; Returns: Json }
+      _persist_round_matches: {
+        Args: { p_arrangement: Json; p_event_id: string; p_round_id: string }
+        Returns: undefined
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined
@@ -1186,6 +1963,7 @@ export type Database = {
         Returns: unknown
       }
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      accept_event_invitation: { Args: { p_event_id: string }; Returns: string }
       accept_group_invitation: {
         Args: { p_group_id: string }
         Returns: undefined
@@ -1198,11 +1976,19 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: undefined
       }
+      accept_partner_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
       account_has_feature: {
         Args: { key: string; u: string }
         Returns: boolean
       }
       account_plan: { Args: { u: string }; Returns: string }
+      add_manual_participant: {
+        Args: { p_event_id: string; p_gender?: string; p_name: string }
+        Returns: string
+      }
       add_member_to_community: {
         Args: { p_community: string; p_user: string }
         Returns: undefined
@@ -1252,8 +2038,13 @@ export type Database = {
       archive_group: { Args: { p_group_id: string }; Returns: undefined }
       auth_tenant_ids: { Args: never; Returns: string[] }
       can_create_community: { Args: never; Returns: boolean }
+      can_create_event: { Args: { p_group_id: string }; Returns: boolean }
       can_create_group: { Args: { p_community_id: string }; Returns: boolean }
       can_create_post: { Args: { c: string }; Returns: boolean }
+      choose_partner: {
+        Args: { p_event_id: string; p_partner_user: string }
+        Returns: undefined
+      }
       community_has_feature: {
         Args: { c: string; key: string }
         Returns: boolean
@@ -1275,6 +2066,7 @@ export type Database = {
         }
         Returns: string
       }
+      create_event: { Args: { p_payload: Json }; Returns: string }
       create_group: {
         Args: {
           p_community_id: string
@@ -1285,7 +2077,15 @@ export type Database = {
         }
         Returns: string
       }
+      decline_event_invitation: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
       decline_join_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
+      decline_partner_request: {
         Args: { p_request_id: string }
         Returns: undefined
       }
@@ -1320,8 +2120,24 @@ export type Database = {
           }
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
+      duplicate_event: {
+        Args: { p_event_id: string; p_overrides: Json }
+        Returns: string
+      }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      event_capacity: { Args: { e: string }; Returns: number }
+      event_group_community: { Args: { e: string }; Returns: string }
+      event_is_visible: { Args: { e: string; u: string }; Returns: boolean }
+      finish_event: {
+        Args: {
+          p_counts_override?: boolean
+          p_event_id: string
+          p_finish_message?: string
+        }
+        Returns: undefined
+      }
+      generate_next_round: { Args: { p_event_id: string }; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -1430,22 +2246,47 @@ export type Database = {
         }
         Returns: undefined
       }
+      invite_to_event: {
+        Args: { p_event_id: string; p_invitees: Json }
+        Returns: undefined
+      }
       invite_to_group: {
         Args: { p_group_id: string; p_invitee_id: string }
         Returns: undefined
       }
       is_community_admin: { Args: { c: string }; Returns: boolean }
       is_community_member: { Args: { c: string }; Returns: boolean }
+      is_event_invitee: { Args: { e: string; u: string }; Returns: boolean }
+      is_event_organizer: { Args: { e: string; u: string }; Returns: boolean }
+      is_event_participant: { Args: { e: string; u: string }; Returns: boolean }
       is_group_admin: { Args: { g: string; u: string }; Returns: boolean }
       is_group_member: { Args: { g: string }; Returns: boolean }
       join_community: {
         Args: { p_ack?: boolean; p_community_id: string }
         Returns: string
       }
+      join_event: { Args: { p_event_id: string }; Returns: string }
       join_group: { Args: { p_group_id: string }; Returns: undefined }
       leave_community: { Args: { p_community_id: string }; Returns: undefined }
+      leave_event: { Args: { p_event_id: string }; Returns: undefined }
       leave_group: { Args: { p_group_id: string }; Returns: undefined }
+      leave_waiting_list: { Args: { p_event_id: string }; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      mark_all_paid: { Args: { p_event_id: string }; Returns: undefined }
+      mark_paid: {
+        Args: { p_paid: boolean; p_participant_id: string }
+        Returns: undefined
+      }
+      organizer_mark_confirmed: {
+        Args: { p_participant_id: string }
+        Returns: undefined
+      }
+      organizer_remove_participant: {
+        Args: { p_mode: string; p_participant_id: string }
+        Returns: undefined
+      }
+      persist_round: { Args: { p_payload: Json }; Returns: string }
+      placement_points: { Args: { p: number }; Returns: number }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }
@@ -1488,6 +2329,14 @@ export type Database = {
       postgis_wagyu_version: { Args: never; Returns: string }
       remove_member: {
         Args: { p_community_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      request_partner: {
+        Args: { p_event_id: string; p_targets: string[] }
+        Returns: undefined
+      }
+      set_event_ranking: {
+        Args: { p_enabled: boolean; p_event_id: string }
         Returns: undefined
       }
       st_3dclosestpoint: {
@@ -2071,7 +2920,32 @@ export type Database = {
         Args: { geom: unknown; move: number; wrap: number }
         Returns: unknown
       }
+      standings: {
+        Args: { p_event_id: string }
+        Returns: {
+          draws: number
+          entity_id: string
+          is_team: boolean
+          losses: number
+          points: number
+          rank: number
+          wins: number
+        }[]
+      }
+      start_event: {
+        Args: { p_event_id: string; p_rounds?: Json }
+        Returns: undefined
+      }
       start_new_season: { Args: { p_group_id: string }; Returns: number }
+      submit_score: {
+        Args: {
+          p_match_id: string
+          p_not_played?: boolean
+          p_side_a: number
+          p_side_b: number
+        }
+        Returns: undefined
+      }
       transfer_ownership: {
         Args: { p_community_id: string; p_new_owner: string }
         Returns: undefined

@@ -10,6 +10,13 @@ const KNOWN = [
   // groups: RPC/validation codes the group screens translate directly
   'name_required', 'group_not_found', 'group_private_join_forbidden',
   'sole_owner_must_transfer', 'sole_admin_must_add_another', 'groups_per_community',
+  // events: RPC/validation codes the event screens translate directly
+  'invalid_event_config', 'series_requires_group', 'event_not_found', 'event_closed',
+  'event_full', 'leave_deadline_passed', 'already_joined', 'not_invited', 'not_participant',
+  'use_team_join', 'not_a_team_event', 'partner_unavailable', 'gender_required',
+  'setup_incomplete', 'round_not_scored', 'round_exists', 'event_not_scheduled',
+  'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
+  'recurring_events',
 ] as const;
 
 /** Map a Supabase/Postgres error to a stable code the UI translates via i18n. */

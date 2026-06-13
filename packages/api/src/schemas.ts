@@ -46,3 +46,127 @@ export const postSchema = z
 export type PostInput = z.infer<typeof postSchema>;
 
 export const commentSchema = z.object({ body: z.string().trim().min(1).max(2000) });
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+export const EVENT_TYPES = ['americano', 'mexicano', 'up_and_down'] as const;
+export const SPECIFICATIONS = ['classic', 'mixed', 'team'] as const;
+export const SCORING_MODES = ['points', 'time', 'classic'] as const;
+export const ORGANIZER_ROLES = ['organizing_only', 'organizing_and_playing'] as const;
+export const ENTRANCE_FEE_METHODS = ['cash', 'at_club', 'mba'] as const;
+
+export type EventType = (typeof EVENT_TYPES)[number];
+export type Specification = (typeof SPECIFICATIONS)[number];
+export type ScoringMode = (typeof SCORING_MODES)[number];
+export type OrganizerRole = (typeof ORGANIZER_ROLES)[number];
+export type EntranceFeeMethod = (typeof ENTRANCE_FEE_METHODS)[number];
+
+const inviteeSchema = z.object({
+  invitee_id: z.string().uuid().optional(),
+  name: z.string().trim().optional(),
+  email: z.string().trim().email().optional(),
+  phone: z.string().trim().optional(),
+});
+
+const seriesSchema = z.object({
+  dayOfWeek: z.number().int().min(1).max(7),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, 'invalid_time'),
+  durationMinutes: z.number().int().positive(),
+  inviteLeadDays: z.union([z.literal(3), z.literal(5), z.literal(7)]),
+});
+
+export const createEventSchema = z
+  .object({
+    groupId: z.string().uuid().nullable(),
+    eventType: z.enum(EVENT_TYPES),
+    specification: z.enum(SPECIFICATIONS),
+    scoringMode: z.enum(SCORING_MODES),
+    scoringValue: z.number().int().nullable(),
+    manualLocationName: z.string().trim().optional(),
+    manualLocationAddress: z.string().trim().optional(),
+    hasLocation: z.boolean(),
+    numCourts: z.number().int().min(1),
+    startsAt: z.string().datetime(),
+    durationMinutes: z.number().int().positive(),
+    allowStandby: z.boolean(),
+    standbySpots: z.number().int().optional(),
+    isPrivate: z.boolean(),
+    entranceFee: z.object({
+      enabled: z.boolean(),
+      amount: z.number().optional(),
+      method: z.enum(ENTRANCE_FEE_METHODS).optional(),
+      mbaNumber: z.string().trim().optional(),
+    }),
+    playersSubmitResults: z.boolean(),
+    organizerRole: z.enum(ORGANIZER_ROLES),
+    name: z.string().trim().min(1, 'name_required').max(80),
+    description: z.string().trim().max(500).optional(),
+    thumbnailPath: z.string().optional(),
+    series: seriesSchema.optional(),
+    invitees: z.array(inviteeSchema).optional(),
+    courtIds: z.array(z.string().uuid()).optional(),
+  })
+  // A standalone event (no group) must be private.
+  .refine((v) => v.groupId !== null || v.isPrivate, {
+    path: ['isPrivate'],
+    message: 'standalone_must_be_private',
+  })
+  // When the fee is enabled, an amount and a method are required.
+  .refine((v) => !v.entranceFee.enabled || (v.entranceFee.amount != null && !!v.entranceFee.method), {
+    path: ['entranceFee'],
+    message: 'fee_requires_amount_and_method',
+  });
+export type CreateEventInput = z.infer<typeof createEventSchema>;
+
+/**
+ * Map the camelCase wizard output to the snake_case jsonb the `create_event`
+ * RPC expects as `p_payload`. Keys are omitted when undefined so the RPC can
+ * apply its own defaults; nullable fields are passed through as-is.
+ */
+export function buildCreateEventPayload(input: CreateEventInput): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    group_id: input.groupId,
+    event_type: input.eventType,
+    specification: input.specification,
+    scoring_mode: input.scoringMode,
+    scoring_value: input.scoringValue,
+    num_courts: input.numCourts,
+    starts_at: input.startsAt,
+    duration_minutes: input.durationMinutes,
+    allow_standby: input.allowStandby,
+    standby_spots: input.standbySpots ?? null,
+    is_private: input.isPrivate,
+    entrance_fee_enabled: input.entranceFee.enabled,
+    entrance_fee_amount: input.entranceFee.amount ?? null,
+    entrance_fee_method: input.entranceFee.method ?? null,
+    entrance_fee_mba_number: input.entranceFee.mbaNumber ?? null,
+    players_submit_results: input.playersSubmitResults,
+    organizer_role: input.organizerRole,
+    name: input.name,
+    description: input.description ?? null,
+    thumbnail_path: input.thumbnailPath ?? null,
+    manual_location_name: input.manualLocationName ?? null,
+    manual_location_address: input.manualLocationAddress ?? null,
+    has_location: input.hasLocation,
+  };
+  if (input.series) {
+    payload.series = {
+      day_of_week: input.series.dayOfWeek,
+      start_time: input.series.startTime,
+      duration_minutes: input.series.durationMinutes,
+      invite_lead_days: input.series.inviteLeadDays,
+    };
+  }
+  if (input.invitees) payload.invitees = input.invitees;
+  if (input.courtIds) payload.court_ids = input.courtIds;
+  return payload;
+}
+
+export const submitScoreSchema = z.object({
+  sideA: z.number().int().min(0),
+  sideB: z.number().int().min(0),
+  notPlayed: z.boolean().default(false),
+});
+export type SubmitScoreInput = z.infer<typeof submitScoreSchema>;

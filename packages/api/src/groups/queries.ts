@@ -118,6 +118,57 @@ export const useGroupSeasons = (id: string) => {
   });
 };
 
+export const useGroupRanking = (seasonId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.groupRanking(seasonId),
+    enabled: !!seasonId,
+    queryFn: async () => {
+      // profiles is reachable via user_id but generated types key it to auth tables, so cast the embed.
+      const { data, error } = await db
+        .from('group_event_results')
+        .select('user_id, ranking_points, event_id, profiles(id, full_name, avatar_url)')
+        .eq('group_season_id', seasonId)
+        .returns<
+          {
+            user_id: string;
+            ranking_points: number;
+            event_id: string;
+            profiles: { id: string; full_name: string | null; avatar_url: string | null } | null;
+          }[]
+        >();
+      if (error) throw error;
+      const rows = data ?? [];
+      // Aggregate per user: sum points, count distinct events.
+      const byUser = new Map<
+        string,
+        { name: string | null; avatarUrl: string | null; points: number; events: Set<string> }
+      >();
+      for (const r of rows) {
+        const cur = byUser.get(r.user_id) ?? {
+          name: r.profiles?.full_name ?? null,
+          avatarUrl: r.profiles?.avatar_url ?? null,
+          points: 0,
+          events: new Set<string>(),
+        };
+        cur.points += r.ranking_points;
+        cur.events.add(r.event_id);
+        byUser.set(r.user_id, cur);
+      }
+      return [...byUser.entries()]
+        .map(([userId, v]) => ({
+          userId,
+          name: v.name,
+          avatarUrl: v.avatarUrl,
+          points: v.points,
+          eventsPlayed: v.events.size,
+        }))
+        .sort((a, b) => b.points - a.points)
+        .map((row, i) => ({ ...row, rank: i + 1 }));
+    },
+  });
+};
+
 export const useGroupInvitations = (id: string) => {
   const db = useDb();
   return useQuery({

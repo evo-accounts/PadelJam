@@ -1,0 +1,68 @@
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+export function Stepper({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+}) {
+  const atMin = value <= min;
+  const atMax = value >= max;
+
+  const set = (n: number) => onChange(Math.min(max, Math.max(min, n)));
+
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.row}>
+        <Pressable
+          style={[styles.button, atMin && styles.buttonDisabled]}
+          onPress={() => set(value - step)}
+          disabled={atMin}
+          accessibilityRole="button"
+          accessibilityLabel="−"
+          accessibilityState={{ disabled: atMin }}
+        >
+          <Text style={styles.buttonLabel}>−</Text>
+        </Pressable>
+        <Text style={styles.value}>{value}</Text>
+        <Pressable
+          style={[styles.button, atMax && styles.buttonDisabled]}
+          onPress={() => set(value + step)}
+          disabled={atMax}
+          accessibilityRole="button"
+          accessibilityLabel="+"
+          accessibilityState={{ disabled: atMax }}
+        >
+          <Text style={styles.buttonLabel}>+</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { gap: 12 },
+  label: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+  button: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#F0F3F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonDisabled: { opacity: 0.4 },
+  buttonLabel: { fontSize: 24, fontWeight: '700', color: '#0B1F3A' },
+  value: { fontSize: 22, fontWeight: '700', color: '#0B1F3A', minWidth: 32, textAlign: 'center' },
+});

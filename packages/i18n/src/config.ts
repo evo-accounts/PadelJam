@@ -1,4 +1,5 @@
 import i18next, { type i18n as I18n } from 'i18next';
+import { initReactI18next } from 'react-i18next';
 import enAuth from './resources/en/auth.json';
 import enCommon from './resources/en/common.json';
 import enOnboarding from './resources/en/onboarding.json';
@@ -17,7 +18,9 @@ const resources = {
 
 export const createI18n = async (locale: 'pt-PT' | 'pt-BR' | 'en'): Promise<I18n> => {
   const instance = i18next.createInstance();
-  await instance.init({
+  // Bind the instance to react-i18next so the useT/useTranslation hooks resolve it
+  // (without this, react-i18next has no instance -> NO_I18NEXT_INSTANCE -> raw keys).
+  await instance.use(initReactI18next).init({
     resources,
     lng: locale,
     fallbackLng: 'en',
