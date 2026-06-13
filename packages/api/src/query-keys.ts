@@ -31,4 +31,12 @@ export const qk = {
   eventRanking: (groupId: string, seasonId: string) =>
     ['group', groupId, 'ranking', seasonId] as const,
   groupRanking: (seasonId: string) => ['group-ranking', seasonId] as const,
+  exploreCommunities: ['explore', 'communities'] as const,
+  exploreGroups: ['explore', 'groups'] as const,
+  exploreEvents: ['explore', 'events'] as const,
+  explorePlayers: ['explore', 'players'] as const,
+  exploreCommunitiesList: ['explore', 'communities', 'list'] as const,
+  exploreGroupsList: ['explore', 'groups', 'list'] as const,
+  exploreEventsList: ['explore', 'events', 'list'] as const,
+  explorePlayersList: ['explore', 'players', 'list'] as const,
 };

@@ -12,3 +12,4 @@ export * from './events/queries';
 export * from './events/mutations';
 export * from './events/realtime';
 export * from './round-gen';
+export * from './discovery/queries';
