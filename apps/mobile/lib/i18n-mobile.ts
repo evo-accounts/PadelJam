@@ -1155,6 +1155,27 @@ const mobileEvent = {
   },
 } as const;
 
+const mobileDiscovery = {
+  en: {
+    tab: 'Explore',
+    railPlayers: 'Players you might know',
+    railEvents: 'Events',
+    railCommunities: 'Communities',
+    railGroups: 'Groups',
+    seeAll: 'See all',
+    requestToJoin: 'Request to join',
+    emptyPlayers: 'No suggestions yet',
+    emptyEvents: 'No upcoming events to discover',
+    emptyCommunities: 'No communities to discover',
+    emptyGroups: 'No groups to discover',
+    loadError: 'Could not load suggestions',
+    seeAllTitlePlayers: 'Players you might know',
+    seeAllTitleEvents: 'Events',
+    seeAllTitleCommunities: 'Communities',
+    seeAllTitleGroups: 'Groups',
+  },
+} as const;
+
 export type MobileLocale = keyof typeof mobileAuth;
 
 /**
@@ -1171,4 +1192,5 @@ export function registerMobileCopy(instance: I18n): void {
   });
   instance.addResourceBundle('en', 'group', mobileGroup.en, true, false);
   instance.addResourceBundle('en', 'event', mobileEvent.en, true, false);
+  instance.addResourceBundle('en', 'discovery', mobileDiscovery.en, true, false);
 }
