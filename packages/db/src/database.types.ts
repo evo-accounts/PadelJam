@@ -2129,6 +2129,111 @@ export type Database = {
       event_capacity: { Args: { e: string }; Returns: number }
       event_group_community: { Args: { e: string }; Returns: string }
       event_is_visible: { Args: { e: string; u: string }; Returns: boolean }
+      explore_communities: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          archived_at: string | null
+          cancellation_rules_enabled: boolean
+          cancellation_rules_text: string | null
+          cover_image_path: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          location: string | null
+          name: string
+          privacy: string
+          tenant_id: string
+          thumbnail_path: string | null
+          type: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "communities"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      explore_events: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          allow_standby: boolean
+          counts_for_ranking: boolean
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          duration_minutes: number
+          entrance_fee_amount: number | null
+          entrance_fee_enabled: boolean
+          entrance_fee_mba_number: string | null
+          entrance_fee_method: string | null
+          event_type: string
+          finish_message: string | null
+          finished_early: boolean
+          group_id: string | null
+          has_location: boolean
+          id: string
+          is_private: boolean
+          manual_location_address: string | null
+          manual_location_name: string | null
+          name: string
+          num_courts: number
+          organizer_id: string
+          organizer_role: string
+          players_submit_results: boolean
+          published_at: string | null
+          scoring_mode: string
+          scoring_value: number | null
+          series_id: string | null
+          specification: string
+          standby_spots: number | null
+          starts_at: string
+          status: string
+          thumbnail_path: string | null
+          updated_at: string
+          venue_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      explore_groups: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          archived_at: string | null
+          community_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_general: boolean
+          is_private: boolean
+          name: string
+          thumbnail_path: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "groups"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      explore_players: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          avatar_url: string
+          court_side: string
+          dominant_hand: string
+          full_name: string
+          id: string
+          shared_count: number
+        }[]
+      }
       finish_event: {
         Args: {
           p_counts_override?: boolean
