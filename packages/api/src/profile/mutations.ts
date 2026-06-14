@@ -76,6 +76,7 @@ export type UpdateProfileInput = {
   preferred_time?: string | null;
   date_of_birth?: string | null;
   avatar_url?: string | null;
+  locale?: string;
 };
 
 export const useUpdateProfile = () => {
