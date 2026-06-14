@@ -1273,6 +1273,16 @@ const mobileProfile = {
     notifPush: 'Push notifications',
     notifWhatsapp: 'WhatsApp',
     notifEmail: 'Email',
+    account: 'Account',
+    changePassword: 'Change password',
+    currentPassword: 'Current password',
+    newPassword: 'New password',
+    repeatPassword: 'Repeat new password',
+    passwordTooShort: 'Password must be at least 8 characters.',
+    passwordsDontMatch: "Passwords don't match.",
+    currentPasswordWrong: 'Current password is incorrect.',
+    updateFailed: "Couldn't update password. Please try again.",
+    passwordChanged: 'Password changed.',
   },
 } as const;
 
