@@ -67,6 +67,35 @@ export const useUnblock = () => {
   });
 };
 
+export type UpdateProfileInput = {
+  full_name?: string;
+  description?: string | null;
+  dominant_hand?: string | null;
+  court_side?: string | null;
+  gender?: string | null;
+  preferred_time?: string | null;
+  date_of_birth?: string | null;
+  avatar_url?: string | null;
+};
+
+export const useUpdateProfile = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (input: UpdateProfileInput) => {
+      const { error } = await db.from('profiles').update(input).eq('id', uid!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      if (uid) {
+        qc.invalidateQueries({ queryKey: qk.profile(uid) });
+        qc.invalidateQueries({ queryKey: qk.myProfile(uid) });
+      }
+    },
+  });
+};
+
 export const useReport = () => {
   const db = useDb();
   const uid = useSession().session?.user.id;

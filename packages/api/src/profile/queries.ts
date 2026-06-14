@@ -51,3 +51,21 @@ export const useFollowing = (userId: string | undefined, search = '') =>
   useFollowList('list_following', userId, search);
 export const useFollowers = (userId: string | undefined, search = '') =>
   useFollowList('list_followers', userId, search);
+
+export const useMyProfile = () => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.myProfile(uid ?? ''),
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('profiles')
+        .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time')
+        .eq('id', uid!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+};

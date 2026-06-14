@@ -7,4 +7,7 @@ describe('profile query keys', () => {
     expect(qk.following('u1')).toEqual(['profile', 'u1', 'following']);
     expect(qk.followers('u1')).toEqual(['profile', 'u1', 'followers']);
   });
+  it('myProfile key shape', () => {
+    expect(qk.myProfile('u1')).toEqual(['profile', 'u1', 'edit']);
+  });
 });
