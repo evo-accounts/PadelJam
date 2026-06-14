@@ -1,7 +1,19 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
+
+// Follow/unfollow/block all change both the target's and the actor's profile counts and
+// follow lists, so invalidate every affected surface (prefix-matches all search variants).
+const invalidateFollow = (qc: QueryClient, uid: string | undefined, targetId: string) => {
+  qc.invalidateQueries({ queryKey: qk.profile(targetId) });
+  qc.invalidateQueries({ queryKey: qk.followers(targetId) });
+  if (uid) {
+    qc.invalidateQueries({ queryKey: qk.profile(uid) });
+    qc.invalidateQueries({ queryKey: qk.following(uid) });
+    qc.invalidateQueries({ queryKey: qk.followers(uid) });
+  }
+};
 
 export const useFollow = () => {
   const db = useDb();
@@ -12,7 +24,7 @@ export const useFollow = () => {
       const { error } = await db.from('follows').insert({ follower_id: uid!, followee_id: targetId });
       if (error) throw error;
     },
-    onSuccess: (_d, targetId) => qc.invalidateQueries({ queryKey: qk.profile(targetId) }),
+    onSuccess: (_d, targetId) => invalidateFollow(qc, uid, targetId),
   });
 };
 
@@ -25,19 +37,21 @@ export const useUnfollow = () => {
       const { error } = await db.from('follows').delete().match({ follower_id: uid!, followee_id: targetId });
       if (error) throw error;
     },
-    onSuccess: (_d, targetId) => qc.invalidateQueries({ queryKey: qk.profile(targetId) }),
+    onSuccess: (_d, targetId) => invalidateFollow(qc, uid, targetId),
   });
 };
 
 export const useBlock = () => {
   const db = useDb();
   const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
   return useMutation({
     mutationFn: async (targetId: string) => {
       const { error } = await db.rpc('block_user', { p_target: targetId });
       if (error) throw error;
     },
-    onSuccess: (_d, targetId) => qc.invalidateQueries({ queryKey: qk.profile(targetId) }),
+    // block_user deletes follow edges both ways, so invalidate the actor's lists too.
+    onSuccess: (_d, targetId) => invalidateFollow(qc, uid, targetId),
   });
 };
 
