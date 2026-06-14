@@ -2347,6 +2347,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_my_location: {
+        Args: { p_lat: number | null; p_lng: number | null; p_text: string | null }
+        Returns: undefined
+      }
       generate_next_round: { Args: { p_event_id: string }; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
