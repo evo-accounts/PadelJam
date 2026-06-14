@@ -15,3 +15,5 @@ export * from './round-gen';
 export * from './discovery/queries';
 export * from './profile/queries';
 export * from './profile/mutations';
+export * from './settings/queries';
+export * from './settings/mutations';

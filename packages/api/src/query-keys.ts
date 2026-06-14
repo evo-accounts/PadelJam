@@ -44,4 +44,5 @@ export const qk = {
   following: (id: string) => ['profile', id, 'following'] as const,
   followers: (id: string) => ['profile', id, 'followers'] as const,
   myProfile: (id: string) => ['profile', id, 'edit'] as const,
+  mySettings: (id: string) => ['user-settings', id] as const,
 };
