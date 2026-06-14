@@ -1241,6 +1241,9 @@ const mobileProfile = {
     dobLabel: 'Date of birth',
     dobInvalid: 'Use format YYYY-MM-DD',
     save: 'Save',
+    image_too_large: 'Image must be under 5 MB.',
+    image_type_unsupported: 'Use a JPEG, PNG, or WebP image.',
+    unknown_error: 'Something went wrong. Please try again.',
   },
 } as const;
 

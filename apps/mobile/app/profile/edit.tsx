@@ -9,7 +9,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { ChoiceRow } from '@/components/OnboardingStep';
 import { avatarUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
-import { pickAndValidateImage, uploadCommunityImage } from '@/lib/storage';
+import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 
 const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -28,7 +28,7 @@ export default function EditProfileScreen() {
   const [time, setTime] = useState<string | null>(null);
   const [dob, setDob] = useState('');
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
-  const [picked, setPicked] = useState<{ uri: string; mimeType: string } | null>(null);
+  const [picked, setPicked] = useState<PickedImage | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,8 +46,13 @@ export default function EditProfileScreen() {
   }, [my.data]);
 
   const onPickAvatar = async () => {
-    const img = await pickAndValidateImage();
-    if (img) setPicked({ uri: img.uri, mimeType: img.mimeType });
+    setError(null);
+    try {
+      const img = await pickAndValidateImage();
+      if (img) setPicked(img);
+    } catch (e) {
+      setError(t(e instanceof Error ? e.message : 'unknown_error'));
+    }
   };
 
   const onSave = async () => {
@@ -74,6 +79,8 @@ export default function EditProfileScreen() {
         avatar_url: nextAvatar,
       });
       router.back();
+    } catch (e) {
+      setError(t(e instanceof Error ? e.message : 'unknown_error'));
     } finally {
       setSaving(false);
     }

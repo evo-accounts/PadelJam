@@ -5,6 +5,12 @@ alter table profiles
   add column gender         text check (gender in ('male','female')),
   add column preferred_time text check (preferred_time in ('any','morning','afternoon','night'));
 
+-- Harden the self-update policy: WITH CHECK prevents re-keying the row to another uid
+-- (the original 0003 policy had USING only). The new editable surface makes this relevant.
+drop policy "profiles: update" on profiles;
+create policy "profiles: update" on profiles for update
+  using (id = auth.uid()) with check (id = auth.uid());
+
 -- Public avatars bucket; each user writes only their own {uid}/ folder (mirrors 0026 pattern).
 insert into storage.buckets (id, name, public) values ('avatars','avatars', true)
   on conflict (id) do nothing;
