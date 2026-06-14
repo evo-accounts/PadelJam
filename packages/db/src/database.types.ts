@@ -2234,6 +2234,52 @@ export type Database = {
           shared_count: number
         }[]
       }
+      my_events: {
+        Args: { p_filter?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          allow_standby: boolean
+          counts_for_ranking: boolean
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          duration_minutes: number
+          entrance_fee_amount: number | null
+          entrance_fee_enabled: boolean
+          entrance_fee_mba_number: string | null
+          entrance_fee_method: string | null
+          event_type: string
+          finish_message: string | null
+          finished_early: boolean
+          group_id: string | null
+          has_location: boolean
+          id: string
+          is_private: boolean
+          manual_location_address: string | null
+          manual_location_name: string | null
+          name: string
+          num_courts: number
+          organizer_id: string
+          organizer_role: string
+          players_submit_results: boolean
+          published_at: string | null
+          scoring_mode: string
+          scoring_value: number | null
+          series_id: string | null
+          specification: string
+          standby_spots: number | null
+          starts_at: string
+          status: string
+          thumbnail_path: string | null
+          updated_at: string
+          venue_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       finish_event: {
         Args: {
           p_counts_override?: boolean
