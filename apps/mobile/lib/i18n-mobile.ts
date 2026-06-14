@@ -1176,6 +1176,31 @@ const mobileDiscovery = {
   },
 } as const;
 
+const mobileHome = {
+  en: {
+    tab: 'Home',
+    placeholder: 'Your home feed is coming soon.',
+  },
+} as const;
+
+const mobileEvents = {
+  en: {
+    tab: 'Events',
+    filterAll: 'All',
+    filterOrganizing: 'Organizing',
+    filterGoing: 'Going',
+    empty: 'No upcoming events',
+    loadError: 'Could not load your events',
+  },
+} as const;
+
+const mobileProfile = {
+  en: {
+    tab: 'Profile',
+    placeholder: 'Your profile is coming soon.',
+  },
+} as const;
+
 export type MobileLocale = keyof typeof mobileAuth;
 
 /**
@@ -1193,4 +1218,7 @@ export function registerMobileCopy(instance: I18n): void {
   instance.addResourceBundle('en', 'group', mobileGroup.en, true, false);
   instance.addResourceBundle('en', 'event', mobileEvent.en, true, false);
   instance.addResourceBundle('en', 'discovery', mobileDiscovery.en, true, false);
+  instance.addResourceBundle('en', 'home', mobileHome.en, true, false);
+  instance.addResourceBundle('en', 'events', mobileEvents.en, true, false);
+  instance.addResourceBundle('en', 'profile', mobileProfile.en, true, false);
 }
