@@ -34,6 +34,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      follows: {
+        Row: { follower_id: string; followee_id: string; created_at: string }
+        Insert: { follower_id: string; followee_id: string; created_at?: string }
+        Update: { follower_id?: string; followee_id?: string; created_at?: string }
+        Relationships: []
+      }
+      blocks: {
+        Row: { id: string; blocker_id: string; blocked_id: string; created_at: string }
+        Insert: { id?: string; blocker_id: string; blocked_id: string; created_at?: string }
+        Update: { id?: string; blocker_id?: string; blocked_id?: string; created_at?: string }
+        Relationships: []
+      }
+      reports: {
+        Row: { id: string; reporter_id: string; reported_user_id: string; reason: string; description: string | null; status: string; created_at: string }
+        Insert: { id?: string; reporter_id: string; reported_user_id: string; reason: string; description?: string | null; status?: string; created_at?: string }
+        Update: { id?: string; reporter_id?: string; reported_user_id?: string; reason?: string; description?: string | null; status?: string; created_at?: string }
+        Relationships: []
+      }
       communities: {
         Row: {
           archived_at: string | null
@@ -2280,6 +2298,33 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_player_profile: {
+        Args: { p_target: string }
+        Returns: {
+          id: string
+          full_name: string
+          avatar_url: string | null
+          dominant_hand: string | null
+          court_side: string | null
+          location_text: string | null
+          played_matches: number
+          best_position: number | null
+          followers_count: number
+          following_count: number
+          is_following: boolean
+          is_followed_by: boolean
+        }[]
+      }
+      list_following: {
+        Args: { p_user: string; p_search?: string | null; p_limit?: number; p_offset?: number }
+        Returns: { id: string; full_name: string; avatar_url: string | null }[]
+      }
+      list_followers: {
+        Args: { p_user: string; p_search?: string | null; p_limit?: number; p_offset?: number }
+        Returns: { id: string; full_name: string; avatar_url: string | null }[]
+      }
+      block_user: { Args: { p_target: string }; Returns: undefined }
+      unblock_user: { Args: { p_target: string }; Returns: undefined }
       finish_event: {
         Args: {
           p_counts_override?: boolean
