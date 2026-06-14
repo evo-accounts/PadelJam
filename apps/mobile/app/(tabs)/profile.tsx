@@ -1,16 +1,14 @@
-import { useT } from '@padel/i18n';
-import { StyleSheet, Text, View } from 'react-native';
+import { useSession } from '@padel/auth';
+import { ScrollView, Text } from 'react-native';
 
-export default function ProfileScreen() {
-  const { t } = useT('profile');
+import { ProfileView } from '@/components/profile/ProfileView';
+
+export default function ProfileTab() {
+  const uid = useSession().session?.user.id;
+  if (!uid) return <Text style={{ textAlign: 'center', marginTop: 48, color: '#6B7685' }}>—</Text>;
   return (
-    <View style={styles.container}>
-      <Text style={styles.placeholder}>{t('placeholder')}</Text>
-    </View>
+    <ScrollView style={{ flex: 1, backgroundColor: '#F7F9FC' }}>
+      <ProfileView userId={uid} isSelf />
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  placeholder: { color: '#6B7685', fontSize: 16, textAlign: 'center' },
-});
