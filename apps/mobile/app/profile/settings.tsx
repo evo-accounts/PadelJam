@@ -54,6 +54,11 @@ export default function SettingsScreen() {
         <Text style={styles.rowLabel}>{t('notifications')}</Text>
       </Pressable>
 
+      <Text style={styles.section}>{t('account')}</Text>
+      <Pressable style={styles.row} onPress={() => router.push('/profile/change-password')} accessibilityRole="button">
+        <Text style={styles.rowLabel}>{t('changePassword')}</Text>
+      </Pressable>
+
       <Text style={styles.section}>{t('legal')}</Text>
       <Pressable style={styles.row} onPress={() => void Linking.openURL(TERMS_URL)} accessibilityRole="button">
         <Text style={styles.rowLabel}>{t('terms')}</Text>
