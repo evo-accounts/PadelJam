@@ -1269,6 +1269,10 @@ const mobileProfile = {
     terms: 'Terms of Service',
     privacy: 'Privacy Policy',
     logout: 'Log out',
+    notifications: 'Notifications',
+    notifPush: 'Push notifications',
+    notifWhatsapp: 'WhatsApp',
+    notifEmail: 'Email',
   },
 } as const;
 
