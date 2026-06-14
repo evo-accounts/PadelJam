@@ -1494,43 +1494,55 @@ export type Database = {
           avatar_url: string | null
           court_side: string | null
           created_at: string
+          date_of_birth: string | null
+          description: string | null
           dominant_hand: string | null
           email: string
           full_name: string
+          gender: string | null
           id: string
           locale: string
           location_point: unknown
           location_text: string | null
           onboarded_at: string | null
           phone: string
+          preferred_time: string | null
         }
         Insert: {
           avatar_url?: string | null
           court_side?: string | null
           created_at?: string
+          date_of_birth?: string | null
+          description?: string | null
           dominant_hand?: string | null
           email: string
           full_name: string
+          gender?: string | null
           id: string
           locale?: string
           location_point?: unknown
           location_text?: string | null
           onboarded_at?: string | null
           phone: string
+          preferred_time?: string | null
         }
         Update: {
           avatar_url?: string | null
           court_side?: string | null
           created_at?: string
+          date_of_birth?: string | null
+          description?: string | null
           dominant_hand?: string | null
           email?: string
           full_name?: string
+          gender?: string | null
           id?: string
           locale?: string
           location_point?: unknown
           location_text?: string | null
           onboarded_at?: string | null
           phone?: string
+          preferred_time?: string | null
         }
         Relationships: [
           {
@@ -2307,6 +2319,8 @@ export type Database = {
           dominant_hand: string | null
           court_side: string | null
           location_text: string | null
+          description: string | null
+          preferred_time: string | null
           played_matches: number
           best_position: number | null
           followers_count: number
