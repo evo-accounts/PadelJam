@@ -2,7 +2,7 @@ import { changePassword, useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
@@ -31,7 +31,7 @@ export default function ChangePasswordScreen() {
     try {
       const r = await changePassword(supabase, email, current, next);
       if (r.ok) {
-        router.back();
+        Alert.alert(t('passwordChanged'), undefined, [{ text: 'OK', onPress: () => router.back() }]);
         return;
       }
       setError(r.reason === 'current_password_wrong' ? t('currentPasswordWrong') : t('updateFailed'));
