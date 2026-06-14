@@ -1,14 +1,11 @@
 import { useT } from '@padel/i18n';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { CreateEventFab } from '@/components/CreateEventFab';
-
-export default function HomeScreen() {
-  const { t } = useT('home');
+export default function ProfileScreen() {
+  const { t } = useT('profile');
   return (
     <View style={styles.container}>
       <Text style={styles.placeholder}>{t('placeholder')}</Text>
-      <CreateEventFab />
     </View>
   );
 }
