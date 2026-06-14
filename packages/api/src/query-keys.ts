@@ -40,4 +40,7 @@ export const qk = {
   exploreGroupsList: ['explore', 'groups', 'list'] as const,
   exploreEventsList: ['explore', 'events', 'list'] as const,
   explorePlayersList: ['explore', 'players', 'list'] as const,
+  profile: (id: string) => ['profile', id] as const,
+  following: (id: string) => ['profile', id, 'following'] as const,
+  followers: (id: string) => ['profile', id, 'followers'] as const,
 };
