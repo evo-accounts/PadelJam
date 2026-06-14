@@ -73,6 +73,11 @@ begin
   if (select count(*) from my_events('all',50,2)) <> 0 then
     raise exception using errcode='PT001', message='offset past the result set returned rows'; end if;
 
+  -- unknown filter normalizes to 'all'.
+  if not exists (select 1 from my_events('bogus',50,0) where id = ev_org)
+     or not exists (select 1 from my_events('bogus',50,0) where id = ev_going) then
+    raise exception using errcode='PT001', message='unknown filter did not behave like all'; end if;
+
   raise notice 'OK my_events';
 end $$;
 rollback;

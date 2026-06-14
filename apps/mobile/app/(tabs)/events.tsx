@@ -17,7 +17,7 @@ export default function EventsScreen() {
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<MyEventsFilter>('all');
   const query = useMyEvents(filter);
-  const rows = (query.data?.pages.flat() ?? []) as ReadonlyArray<{ id: string }>;
+  const rows = query.data?.pages.flat() ?? [];
 
   const label = { all: t('filterAll'), organizing: t('filterOrganizing'), going: t('filterGoing') };
 
@@ -53,7 +53,7 @@ export default function EventsScreen() {
             if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
           }}
           renderItem={({ item }) => (
-            <EventCard event={item as never} onPress={() => router.push(`/event/${item.id}`)} />
+            <EventCard event={item} onPress={() => router.push(`/event/${item.id}`)} />
           )}
         />
       )}
