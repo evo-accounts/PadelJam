@@ -35,6 +35,12 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
           {avatar ? <Image source={{ uri: avatar }} style={styles.avatarImg} /> : <Text style={styles.initials}>{initials}</Text>}
         </View>
         <Text style={styles.name}>{p.full_name}</Text>
+        {p.description ? <Text style={styles.bio}>{p.description}</Text> : null}
+        {isSelf && (
+          <Pressable style={styles.editBtn} onPress={() => router.push('/profile/edit')} accessibilityRole="button">
+            <Text style={styles.editText}>{t('edit')}</Text>
+          </Pressable>
+        )}
         <View style={styles.counts}>
           <Pressable onPress={() => router.push(`/profile/${userId}/followers`)} accessibilityRole="button">
             <Text style={styles.countNum}>{p.followers_count}</Text>
@@ -108,6 +114,9 @@ const styles = StyleSheet.create({
   avatarImg: { width: 96, height: 96 },
   initials: { fontSize: 30, fontWeight: '700', color: '#0B7BFF' },
   name: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
+  bio: { fontSize: 14, color: '#3A4757', textAlign: 'center', paddingHorizontal: 24 },
+  editBtn: { borderWidth: 1, borderColor: '#0B7BFF', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 8 },
+  editText: { color: '#0B7BFF', fontWeight: '700' },
   counts: { flexDirection: 'row', gap: 32 },
   countNum: { fontSize: 18, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
   countLabel: { fontSize: 12, color: '#6B7685', textAlign: 'center' },
