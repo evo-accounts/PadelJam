@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
@@ -257,5 +257,29 @@ export const usePartnerRequests = (id: string) => {
       if (error) throw error;
       return data;
     },
+  });
+};
+
+export type MyEventsFilter = 'all' | 'organizing' | 'going';
+const MY_EVENTS_PAGE_SIZE = 20;
+
+export const useMyEvents = (filter: MyEventsFilter) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useInfiniteQuery({
+    queryKey: qk.myEvents(filter),
+    enabled: !!uid,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam: offset }) => {
+      const { data, error } = await db.rpc('my_events', {
+        p_filter: filter,
+        p_limit: MY_EVENTS_PAGE_SIZE,
+        p_offset: offset as number,
+      });
+      if (error) throw error;
+      return data ?? [];
+    },
+    getNextPageParam: (lastPage: unknown[], allPages: unknown[][]) =>
+      lastPage.length < MY_EVENTS_PAGE_SIZE ? undefined : allPages.length * MY_EVENTS_PAGE_SIZE,
   });
 };

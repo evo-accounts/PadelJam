@@ -19,6 +19,7 @@ export const qk = {
   canCreateGroup: (cid: string) => ['community', cid, 'can-create-group'] as const,
   events: (groupId: string) => ['group', groupId, 'events'] as const,
   communityEvents: (communityId: string) => ['community', communityId, 'events'] as const,
+  myEvents: (filter: 'all' | 'organizing' | 'going') => ['my-events', filter] as const,
   event: (id: string) => ['event', id] as const,
   eventParticipants: (id: string) => ['event', id, 'participants'] as const,
   eventInvitations: (id: string) => ['event', id, 'invitations'] as const,
