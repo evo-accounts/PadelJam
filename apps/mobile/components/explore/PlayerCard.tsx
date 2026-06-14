@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Player = {
   id: string;
@@ -8,8 +8,7 @@ type Player = {
   court_side: string | null;
 };
 
-/** Tap is intentionally a no-op until the Profile module + player-profile screen land. */
-export function PlayerCard({ player }: { player: Player }) {
+export function PlayerCard({ player, onPress }: { player: Player; onPress?: () => void }) {
   const initials = player.full_name
     .split(' ')
     .map((p) => p.charAt(0))
@@ -17,14 +16,14 @@ export function PlayerCard({ player }: { player: Player }) {
     .join('')
     .toUpperCase();
   return (
-    <View style={styles.card} accessibilityLabel={player.full_name}>
+    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={player.full_name}>
       <View style={styles.avatar}>
         <Text style={styles.initials}>{initials}</Text>
       </View>
       <Text style={styles.name} numberOfLines={1}>
         {player.full_name}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 

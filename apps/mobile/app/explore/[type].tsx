@@ -48,7 +48,8 @@ export default function ExploreSeeAllScreen() {
   const rows = (active.data?.pages.flat() ?? []) as ReadonlyArray<{ id: string }>;
 
   const renderItem = (item: { id: string }) => {
-    if (kind === 'players') return <PlayerCard player={item as never} />;
+    if (kind === 'players')
+      return <PlayerCard player={item as never} onPress={() => router.push(`/profile/${item.id}`)} />;
     if (kind === 'events')
       return <EventCard event={item as never} onPress={() => router.push(`/event/${item.id}`)} />;
     if (kind === 'communities')

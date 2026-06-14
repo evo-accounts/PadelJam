@@ -39,7 +39,7 @@ export default function ExploreScreen() {
           emptyLabel={t('emptyPlayers')}
           errorLabel={t('loadError')}
           keyExtractor={(p) => p.id}
-          renderItem={(p) => <PlayerCard player={p} />}
+          renderItem={(p) => <PlayerCard player={p} onPress={() => router.push(`/profile/${p.id}`)} />}
         />
         <SuggestionRail
           title={t('railEvents')}
