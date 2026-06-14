@@ -39,7 +39,13 @@
       "expo-secure-store",
       "expo-localization",
       "expo-image",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PadelJam uses your location to suggest nearby games and communities."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
