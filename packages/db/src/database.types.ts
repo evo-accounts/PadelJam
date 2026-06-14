@@ -34,6 +34,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      user_settings: {
+        Row: { user_id: string; notifications_push: boolean; notifications_whatsapp: boolean; notifications_email: boolean; updated_at: string }
+        Insert: { user_id: string; notifications_push?: boolean; notifications_whatsapp?: boolean; notifications_email?: boolean; updated_at?: string }
+        Update: { user_id?: string; notifications_push?: boolean; notifications_whatsapp?: boolean; notifications_email?: boolean; updated_at?: string }
+        Relationships: []
+      }
       follows: {
         Row: { follower_id: string; followee_id: string; created_at: string }
         Insert: { follower_id: string; followee_id: string; created_at?: string }
