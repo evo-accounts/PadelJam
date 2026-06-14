@@ -2,6 +2,8 @@
 -- never hand-encodes WKT/SRID. Null lat/lng clears the point (a manual address that couldn't
 -- be geocoded is stored as text only). SECURITY DEFINER, but scoped to auth.uid()'s own row.
 -- PostGIS point order is (longitude, latitude).
+-- NOTE: this unconditionally OVERWRITES both location_point and location_text every call
+-- (it is not a merge); a future "update coords, keep label" caller would need a separate path.
 create or replace function set_my_location(
   p_lat  double precision,
   p_lng  double precision,

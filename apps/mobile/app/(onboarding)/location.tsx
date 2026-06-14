@@ -22,7 +22,8 @@ export default function LocationStep() {
 
   const formatAddress = (p: Location.LocationGeocodedAddress | undefined): string => {
     if (!p) return '';
-    return [p.name, p.city ?? p.subregion, p.region].filter(Boolean).join(', ');
+    const parts = [p.name, p.city ?? p.subregion, p.region].filter(Boolean) as string[];
+    return [...new Set(parts)].join(', ');
   };
 
   const useCurrentLocation = async () => {
