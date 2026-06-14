@@ -9,12 +9,12 @@ export const useUpdateSettings = () => {
   const qc = useQueryClient();
   const uid = useSession().session?.user.id;
   return useMutation({
-    mutationFn: async (next: NotificationSettings) => {
+    // Partial upsert: each call writes only the changed column(s), so two quick toggles
+    // can't clobber each other (on-conflict updates only the provided columns).
+    mutationFn: async (patch: Partial<NotificationSettings>) => {
       const { error } = await db.from('user_settings').upsert({
         user_id: uid!,
-        notifications_push: next.notifications_push,
-        notifications_whatsapp: next.notifications_whatsapp,
-        notifications_email: next.notifications_email,
+        ...patch,
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;

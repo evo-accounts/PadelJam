@@ -9,6 +9,8 @@ export type NotificationSettings = {
   notifications_email: boolean;
 };
 
+// In-app defaults for the no-row case; keep in sync with the column defaults in
+// migration 0057_user_settings.sql (push on, whatsapp/email off).
 const DEFAULTS: NotificationSettings = {
   notifications_push: true,
   notifications_whatsapp: false,

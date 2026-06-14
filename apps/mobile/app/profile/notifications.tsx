@@ -14,7 +14,7 @@ export default function NotificationsScreen() {
 
   const value = settings.data;
   const toggle = (key: keyof NotificationSettings) => (next: boolean) =>
-    update.mutate({ ...value, [key]: next });
+    update.mutate({ [key]: next } as Partial<NotificationSettings>);
 
   const ROWS: { key: keyof NotificationSettings; label: string }[] = [
     { key: 'notifications_push', label: t('notifPush') },
