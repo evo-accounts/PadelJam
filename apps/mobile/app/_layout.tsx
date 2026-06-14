@@ -45,24 +45,35 @@ export default function RootLayout() {
 
   useEffect(() => {
     let cancelled = false;
-    // Resolve the locale from the device. TODO: prefer profiles.locale once
-    // authenticated (left to a later task; do not fetch the profile here).
-    const deviceLocale = Localization.getLocales()[0];
-    const locale = resolveLocale(deviceLocale?.languageTag ?? deviceLocale?.languageCode ?? undefined);
-    createI18n(locale)
-      .then((instance) => {
+    (async () => {
+      // Prefer the signed-in user's saved locale; fall back to the device locale.
+      let candidate: string | undefined;
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data } = await supabase.from('profiles').select('locale').eq('id', session.user.id).single();
+          candidate = data?.locale ?? undefined;
+        }
+      } catch {
+        // ignore — fall back to device locale
+      }
+      if (!candidate) {
+        const deviceLocale = Localization.getLocales()[0];
+        candidate = deviceLocale?.languageTag ?? deviceLocale?.languageCode ?? undefined;
+      }
+      const locale = resolveLocale(candidate);
+      try {
+        const instance = await createI18n(locale);
         registerMobileCopy(instance);
         if (!cancelled) setI18n(instance);
-      })
-      .catch(() => {
-        // Even on failure, fall back to a bare instance so the tree can render.
-        createI18n('en').then((fallback) => {
-          if (!cancelled) {
-            registerMobileCopy(fallback);
-            setI18n(fallback);
-          }
-        });
-      });
+      } catch {
+        const fallback = await createI18n('en');
+        registerMobileCopy(fallback);
+        if (!cancelled) setI18n(fallback);
+      }
+    })();
     return () => {
       cancelled = true;
     };
