@@ -37,9 +37,14 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
         <Text style={styles.name}>{p.full_name}</Text>
         {p.description ? <Text style={styles.bio}>{p.description}</Text> : null}
         {isSelf && (
-          <Pressable style={styles.editBtn} onPress={() => router.push('/profile/edit')} accessibilityRole="button">
-            <Text style={styles.editText}>{t('edit')}</Text>
-          </Pressable>
+          <View style={styles.selfActions}>
+            <Pressable style={styles.editBtn} onPress={() => router.push('/profile/edit')} accessibilityRole="button">
+              <Text style={styles.editText}>{t('edit')}</Text>
+            </Pressable>
+            <Pressable style={styles.gear} onPress={() => router.push('/profile/settings')} accessibilityRole="button" accessibilityLabel={t('settings')}>
+              <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor="#0B1F3A" size={22} />
+            </Pressable>
+          </View>
         )}
         <View style={styles.counts}>
           <Pressable onPress={() => router.push(`/profile/${userId}/followers`)} accessibilityRole="button">
@@ -115,6 +120,8 @@ const styles = StyleSheet.create({
   initials: { fontSize: 30, fontWeight: '700', color: '#0B7BFF' },
   name: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
   bio: { fontSize: 14, color: '#3A4757', textAlign: 'center', paddingHorizontal: 24 },
+  selfActions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  gear: { padding: 8 },
   editBtn: { borderWidth: 1, borderColor: '#0B7BFF', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 8 },
   editText: { color: '#0B7BFF', fontWeight: '700' },
   counts: { flexDirection: 'row', gap: 32 },

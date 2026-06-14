@@ -1,0 +1,81 @@
+import { useUpdateProfile } from '@padel/api';
+import { signOut } from '@padel/auth';
+import { useT } from '@padel/i18n';
+import { Stack, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+
+import { supabase } from '@/lib/supabase';
+
+const TERMS_URL = 'https://padeljam.app/terms';
+const PRIVACY_URL = 'https://padeljam.app/privacy';
+const LANGS = [
+  { code: 'en', key: 'languageEnglish' as const },
+  { code: 'pt-PT', key: 'languagePtPt' as const },
+  { code: 'pt-BR', key: 'languagePtBr' as const },
+];
+
+export default function SettingsScreen() {
+  const { t, i18n } = useT('profile');
+  const router = useRouter();
+  const update = useUpdateProfile();
+  const [langOpen, setLangOpen] = useState(false);
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const current = (LANGS.find((l) => l.code === i18n.language) ?? LANGS[0])!;
+
+  const onSelectLang = (code: string) => {
+    void i18n.changeLanguage(code);
+    update.mutate({ locale: code });
+    setLangOpen(false);
+  };
+
+  const onLogout = async () => {
+    await signOut(supabase);
+    router.replace('/(auth)/sign-in');
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Stack.Screen options={{ title: t('settings') }} />
+
+      <Text style={styles.section}>{t('preferences')}</Text>
+      <Pressable style={styles.row} onPress={() => setLangOpen((v) => !v)} accessibilityRole="button">
+        <Text style={styles.rowLabel}>{t('language')}</Text>
+        <Text style={styles.rowValue}>{t(current.key)}</Text>
+      </Pressable>
+      {langOpen &&
+        LANGS.map((l) => (
+          <Pressable key={l.code} style={styles.option} onPress={() => onSelectLang(l.code)} accessibilityRole="button">
+            <Text style={[styles.optionText, l.code === current.code && styles.optionActive]}>{t(l.key)}</Text>
+          </Pressable>
+        ))}
+
+      <Text style={styles.section}>{t('legal')}</Text>
+      <Pressable style={styles.row} onPress={() => void Linking.openURL(TERMS_URL)} accessibilityRole="button">
+        <Text style={styles.rowLabel}>{t('terms')}</Text>
+      </Pressable>
+      <Pressable style={styles.row} onPress={() => void Linking.openURL(PRIVACY_URL)} accessibilityRole="button">
+        <Text style={styles.rowLabel}>{t('privacy')}</Text>
+      </Pressable>
+
+      <Pressable style={styles.logout} onPress={onLogout} accessibilityRole="button">
+        <Text style={styles.logoutText}>{t('logout')}</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  content: { padding: 16, gap: 4 },
+  section: { fontSize: 13, fontWeight: '700', color: '#6B7685', textTransform: 'uppercase', marginTop: 16, marginBottom: 4 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 6 },
+  rowLabel: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
+  rowValue: { fontSize: 14, color: '#6B7685' },
+  option: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12, marginBottom: 4 },
+  optionText: { fontSize: 15, color: '#0B1F3A' },
+  optionActive: { color: '#0B7BFF', fontWeight: '700' },
+  logout: { marginTop: 24, alignItems: 'center', paddingVertical: 14 },
+  logoutText: { color: '#D7263D', fontWeight: '700', fontSize: 16 },
+});
