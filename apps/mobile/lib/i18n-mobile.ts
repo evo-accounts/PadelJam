@@ -1244,6 +1244,16 @@ const mobileProfile = {
     image_too_large: 'Image must be under 5 MB.',
     image_type_unsupported: 'Use a JPEG, PNG, or WebP image.',
     unknown_error: 'Something went wrong. Please try again.',
+    settings: 'Settings',
+    preferences: 'Preferences',
+    language: 'Language',
+    languageEnglish: 'English',
+    languagePtPt: 'Português (Portugal)',
+    languagePtBr: 'Português (Brasil)',
+    legal: 'Legal',
+    terms: 'Terms of Service',
+    privacy: 'Privacy Policy',
+    logout: 'Log out',
   },
 } as const;
 
