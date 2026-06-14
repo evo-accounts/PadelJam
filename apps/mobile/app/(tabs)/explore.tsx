@@ -5,11 +5,11 @@ import {
   useExplorePlayers,
 } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { CommunityCard } from '@/components/explore/CommunityCard';
 import { GroupCard } from '@/components/explore/GroupCard';
@@ -89,15 +89,7 @@ export default function ExploreScreen() {
         />
       </ScrollView>
 
-      {/* Floating Create-Event button. Search icon is deferred (Search plan). */}
-      <Pressable
-        style={[styles.fab, { bottom: insets.bottom + 24 }]}
-        onPress={() => router.push('/event/create')}
-        accessibilityRole="button"
-        accessibilityLabel="Create event"
-      >
-        <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} tintColor="#fff" size={28} />
-      </Pressable>
+      <CreateEventFab />
     </View>
   );
 }
@@ -105,19 +97,4 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F9FC' },
   content: { paddingTop: 8, gap: 8 },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#0B7BFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
 });
