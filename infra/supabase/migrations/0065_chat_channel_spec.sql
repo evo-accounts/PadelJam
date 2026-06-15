@@ -28,10 +28,17 @@ begin
             or exists (select 1 from events where id = p_id and organizer_id = v_uid)) then
       raise exception 'forbidden' using errcode = 'P0001';
     end if;
+    -- Members = everyone on the roster (any participant status) UNION the organizer, so the
+    -- member set matches the authorization rule above (participant OR organizer) — an
+    -- organizing-only organizer is a chat member even though they have no participant row.
     return query
       select e.name,
-             (select coalesce(array_agg(ep.user_id), '{}'::uuid[])
-                from event_participants ep where ep.event_id = p_id and ep.user_id is not null)
+             (select coalesce(array_agg(distinct uid), '{}'::uuid[]) from (
+                select ep.user_id as uid from event_participants ep
+                  where ep.event_id = p_id and ep.user_id is not null
+                union
+                select e2.organizer_id from events e2 where e2.id = p_id
+              ) m)
       from events e where e.id = p_id;
 
   else

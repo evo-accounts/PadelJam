@@ -13,7 +13,7 @@ insert into profiles (id, email, phone, full_name) values
 do $$
 declare a constant uuid := 'f1000001-0000-0000-0000-000000000001';
   b constant uuid := 'f1000002-0000-0000-0000-000000000002';
-  v_tenant uuid; v_comm uuid; v_group uuid; v_event uuid;
+  v_tenant uuid; v_comm uuid; v_group uuid; v_event uuid; v_standalone uuid;
   v_name text; v_members uuid[];
 begin
   insert into tenants (type, name, country) values ('community', 'CC Tenant', 'PT') returning id into v_tenant;
@@ -27,6 +27,13 @@ begin
     values (a, v_group, 'americano', 'mixed', 'points', 24, 'Court CC', true, 2, false, now() + interval '1 day',
             90, 'organizing_and_playing', 'CC Event', 'scheduled')
     returning id into v_event;
+  -- a standalone (group-less) event organized by 'a' as organizing_only (a has NO participant row)
+  insert into events (organizer_id, group_id, event_type, specification, scoring_mode, scoring_value,
+                      manual_location_name, has_location, num_courts, is_private, starts_at,
+                      duration_minutes, organizer_role, name, status)
+    values (a, null, 'americano', 'mixed', 'points', 24, 'Court SA', true, 2, true, now() + interval '1 day',
+            90, 'organizing_only', 'SA Event', 'scheduled')
+    returning id into v_standalone;
 
   -- member 'a' gets the group spec
   perform set_config('role','authenticated',true);
@@ -52,6 +59,12 @@ begin
   exception when others then
     if sqlerrm <> 'no_chat' then raise exception using errcode='PT001', message='wrong err (event): '||sqlerrm; end if;
   end;
+
+  -- standalone event: the organizing-only organizer 'a' is authorized AND is a channel member
+  -- (member set = participants UNION organizer), even with no participant row.
+  select name, member_ids into v_name, v_members from chat_channel_spec('event', v_standalone);
+  if v_name <> 'SA Event' or not (a = any(v_members)) then
+    raise exception using errcode='PT001', message=format('event spec wrong name=%s members=%s', v_name, v_members); end if;
 
   raise notice 'OK chat_channel_spec';
 end $$;

@@ -60,7 +60,9 @@ Deno.serve(async (req) => {
     await channel.create(); // get-or-create
     await channel.update({ name });
 
-    // Full reconcile.
+    // Full reconcile. Note: add + remove are two non-atomic Stream calls — if removeMembers
+    // throws after addMembers succeeds, the channel is left half-reconciled; lazy
+    // reconcile-on-open self-heals on the next open (a trigger→webhook upgrade would fix this).
     const res = await channel.queryMembers({});
     const current = res.members.map((m) => m.user_id).filter((x): x is string => !!x);
     const toAdd = memberIds.filter((x) => !current.includes(x));
@@ -70,6 +72,8 @@ Deno.serve(async (req) => {
 
     return json({ cid: channel.cid });
   } catch (e) {
-    return json({ error: 'stream_failed', detail: String(e) }, 500);
+    // Log the detail server-side; don't echo raw Stream errors back to the client.
+    console.error('ensure-channel stream error:', e);
+    return json({ error: 'stream_failed' }, 500);
   }
 });
