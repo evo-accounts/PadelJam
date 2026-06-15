@@ -2131,6 +2131,10 @@ export type Database = {
       can_create_event: { Args: { p_group_id: string }; Returns: boolean }
       can_create_group: { Args: { p_community_id: string }; Returns: boolean }
       can_create_post: { Args: { c: string }; Returns: boolean }
+      chat_channel_spec: {
+        Args: { p_kind: string; p_id: string }
+        Returns: { name: string; member_ids: string[] }[]
+      }
       choose_partner: {
         Args: { p_event_id: string; p_partner_user: string }
         Returns: undefined
