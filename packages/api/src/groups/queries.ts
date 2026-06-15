@@ -102,6 +102,28 @@ export const useGroupMembers = (id: string) => {
   });
 };
 
+export type MyGroup = {
+  group_id: string;
+  name: string;
+  community_id: string;
+  community_name: string;
+  member_count: number;
+};
+
+export const useMyGroups = () => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.myGroups,
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('my_groups');
+      if (error) throw error;
+      return (data ?? []) as MyGroup[];
+    },
+  });
+};
+
 export const useGroupSeasons = (id: string) => {
   const db = useDb();
   return useQuery({
