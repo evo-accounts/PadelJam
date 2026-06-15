@@ -579,7 +579,9 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import type { Channel as ChannelType } from 'stream-chat';
-import { Channel, MessageInput, MessageList } from 'stream-chat-expo';
+// NOTE (reconciled against stream-chat-expo 9.3.1): the input component is MessageComposer,
+// not MessageInput (MessageInput is not exported in 9.x).
+import { Channel, MessageComposer, MessageList } from 'stream-chat-expo';
 
 import { streamClient } from '@/lib/streamClient';
 
@@ -625,14 +627,14 @@ export default function ConversationScreen() {
       <Stack.Screen options={{ title }} />
       <Channel channel={channel}>
         <MessageList />
-        <MessageInput />
+        <MessageComposer />
       </Channel>
     </View>
   );
 }
 ```
 
-> `Channel`/`MessageList`/`MessageInput` are the stable Stream v5 prebuilt components; `MessageInput` supports text + image attachments out of the box. Adjust per the Task 3 reconciliation if names/props differ. The header title derives the other member's name for direct chats; group/event channels (4B) will carry `channel.data.name`.
+> `Channel`/`MessageList`/`MessageComposer` are the Stream prebuilt components (reconciled against 9.3.1 in Task 3 — the input is `MessageComposer`, not `MessageInput`); `MessageComposer` supports text + image attachments out of the box. The header title derives the other member's name for direct chats; group/event channels (4B) will carry `channel.data.name`.
 
 - [ ] **Step 3: Typecheck**
 
