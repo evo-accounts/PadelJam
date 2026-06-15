@@ -1370,6 +1370,21 @@ const mobileProfile = {
   },
 } as const;
 
+const mobileChat = {
+  en: {
+    title: 'Chat',
+    newChat: 'New Chat',
+    searchPeople: 'Search people you follow',
+    messagePlaceholder: 'Message',
+    noChats: 'No conversations yet.',
+    noFollows: "You're not following anyone yet.",
+    connecting: 'Connecting…',
+    connectError: "Couldn't connect to chat.",
+    retry: 'Retry',
+    startChat: 'Start chat',
+  },
+} as const;
+
 export type MobileLocale = keyof typeof mobileAuth;
 
 /**
@@ -1391,4 +1406,5 @@ export function registerMobileCopy(instance: I18n): void {
   instance.addResourceBundle('en', 'notifications', mobileNotifications.en, true, false);
   instance.addResourceBundle('en', 'events', mobileEvents.en, true, false);
   instance.addResourceBundle('en', 'profile', mobileProfile.en, true, false);
+  instance.addResourceBundle('en', 'chat', mobileChat.en, true, false);
 }

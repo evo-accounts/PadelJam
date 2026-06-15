@@ -12,6 +12,7 @@ import { useT } from '@padel/i18n';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { StreamChatProvider } from '@/components/chat/StreamChatProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import { registerMobileCopy } from '@/lib/i18n-mobile';
 import { resolveLocale } from '@/lib/locale';
@@ -88,7 +89,9 @@ export default function RootLayout() {
     <I18nextProvider i18n={i18n}>
       <SessionProvider client={supabase}>
         <QueryClientProvider client={queryClient}>
-          <Boot />
+          <StreamChatProvider>
+            <Boot />
+          </StreamChatProvider>
         </QueryClientProvider>
       </SessionProvider>
     </I18nextProvider>
