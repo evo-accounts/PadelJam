@@ -24,6 +24,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t('tab', { ns: 'home' }),
+          headerRight: () => <NotificationBell />,
           tabBarIcon: ({ color }) => (
             <SymbolView name={{ ios: 'house.fill', android: 'home', web: 'home' }} tintColor={color} size={28} />
           ),
@@ -61,7 +62,6 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: t('tab', { ns: 'profile' }),
-          headerRight: () => <NotificationBell />,
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'person.crop.circle.fill', android: 'account_circle', web: 'account_circle' }}
