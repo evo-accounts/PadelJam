@@ -83,3 +83,51 @@ begin
   raise notice 'OK partner_request_summary';
 end $$;
 rollback;
+
+-- producer triggers: follow fires + self-suppressed + block-suppressed; participant-join fans out.
+begin;
+insert into auth.users (id, instance_id, aud, role, email) values
+  ('f7000020-0000-0000-0000-000000000020','00000000-0000-0000-0000-000000000000','authenticated','authenticated','tg1@x.com'),
+  ('f7000021-0000-0000-0000-000000000021','00000000-0000-0000-0000-000000000000','authenticated','authenticated','tg2@x.com'),
+  ('f7000022-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000000','authenticated','authenticated','tg3@x.com')
+  on conflict do nothing;
+insert into profiles (id, email, phone, full_name) values
+  ('f7000020-0000-0000-0000-000000000020','tg1@x.com','+351900040020','Follower One'),
+  ('f7000021-0000-0000-0000-000000000021','tg2@x.com','+351900040021','Joiner Two'),
+  ('f7000022-0000-0000-0000-000000000022','tg3@x.com','+351900040022','Blocker Three')
+  on conflict do nothing;
+
+do $$
+declare f1 constant uuid := 'f7000020-0000-0000-0000-000000000020';
+  j2 constant uuid := 'f7000021-0000-0000-0000-000000000021';
+  b3 constant uuid := 'f7000022-0000-0000-0000-000000000022';
+  v_event uuid;
+begin
+  -- follow fires: f1 follows j2 -> j2 gets a 'follow' notification with actor snapshot.
+  insert into follows (follower_id, followee_id) values (f1, j2);
+  if not exists (select 1 from notifications
+                  where user_id = j2 and type = 'follow' and actor_id = f1 and actor_name = 'Follower One') then
+    raise exception using errcode='PT001', message='follow trigger did not fire'; end if;
+
+  -- block-suppressed: b3 blocks j2; b3 follows j2 -> NO notification to j2.
+  insert into blocks (blocker_id, blocked_id) values (b3, j2);
+  insert into follows (follower_id, followee_id) values (b3, j2);
+  if exists (select 1 from notifications where user_id = j2 and actor_id = b3) then
+    raise exception using errcode='PT001', message='block did not suppress follow notification'; end if;
+
+  -- participant-join fan-out: j2 joins an event -> follower f1 gets 'follow_joined_event'.
+  insert into events (organizer_id, event_type, specification, scoring_mode, scoring_value,
+                      manual_location_name, has_location, num_courts, is_private, starts_at,
+                      duration_minutes, organizer_role, name, status)
+    values (b3, 'americano', 'mixed', 'points', 24, 'Court B', true, 2, true, now() + interval '1 day',
+            90, 'organizing_and_playing', 'Join Event', 'scheduled')
+    returning id into v_event;
+  insert into event_participants (event_id, user_id, status) values (v_event, j2, 'confirmed');
+  if not exists (select 1 from notifications
+                  where user_id = f1 and type = 'follow_joined_event' and event_id = v_event
+                        and entity_name = 'Join Event') then
+    raise exception using errcode='PT001', message='participant-join fan-out did not reach follower'; end if;
+
+  raise notice 'OK notifications_triggers';
+end $$;
+rollback;
