@@ -34,6 +34,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      support_tickets: {
+        Row: { id: string; user_id: string; title: string; description: string; status: string; created_at: string }
+        Insert: { id?: string; user_id: string; title: string; description: string; status?: string; created_at?: string }
+        Update: { id?: string; user_id?: string; title?: string; description?: string; status?: string; created_at?: string }
+        Relationships: []
+      }
       user_settings: {
         Row: { user_id: string; notifications_push: boolean; notifications_whatsapp: boolean; notifications_email: boolean; updated_at: string }
         Insert: { user_id: string; notifications_push?: boolean; notifications_whatsapp?: boolean; notifications_email?: boolean; updated_at?: string }
