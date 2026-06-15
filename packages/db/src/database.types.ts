@@ -2512,6 +2512,19 @@ export type Database = {
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       gettransactionid: { Args: never; Returns: unknown }
       group_community_id: { Args: { g: string }; Returns: string }
+      incoming_partner_requests: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          kind: string
+          request_id: string
+          entity_id: string
+          entity_name: string
+          requester_id: string
+          requester_name: string | null
+          requester_avatar: string | null
+          created_at: string
+        }[]
+      }
       invite_to_community: {
         Args: {
           p_community_id: string
