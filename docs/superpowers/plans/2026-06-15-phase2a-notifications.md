@@ -494,10 +494,10 @@ begin
 
   -- participant-join fan-out: j2 joins an event -> follower f1 gets 'follow_joined_event'.
   insert into events (organizer_id, event_type, specification, scoring_mode, scoring_value,
-                      manual_location_name, has_location, starts_at, duration_minutes,
-                      organizer_role, name, status)
-    values (b3, 'americano', 'mixed', 'points', 24, 'Court B', true, now() + interval '1 day',
-            90, 'organizing_and_playing', 'Join Event', 'published')
+                      manual_location_name, has_location, num_courts, is_private, starts_at,
+                      duration_minutes, organizer_role, name, status)
+    values (b3, 'americano', 'mixed', 'points', 24, 'Court B', true, 2, true, now() + interval '1 day',
+            90, 'organizing_and_playing', 'Join Event', 'scheduled')
     returning id into v_event;
   insert into event_participants (event_id, user_id, status) values (v_event, j2, 'confirmed');
   if not exists (select 1 from notifications
