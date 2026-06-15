@@ -21,3 +21,4 @@ export * from './notifications/queries';
 export * from './notifications/mutations';
 export * from './notifications/realtime';
 export * from './chat/queries';
+export * from './chat/mutations';
