@@ -2370,6 +2370,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      my_groups: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          group_id: string
+          name: string
+          community_id: string
+          community_name: string
+          member_count: number
+        }[]
+      }
       get_player_profile: {
         Args: { p_target: string }
         Returns: {
