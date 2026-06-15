@@ -1302,6 +1302,16 @@ const mobileProfile = {
     deleteConfirm: 'Delete my account',
     deleteCancel: 'Cancel',
     deleteFailed: "Couldn't delete your account. Please try again.",
+    support: 'Support',
+    contactSupport: 'Contact support',
+    supportTitle: 'Subject',
+    supportDescription: 'How can we help?',
+    supportSend: 'Send',
+    supportSent: "Thanks — we'll get back to you within 5 days.",
+    helpCenter: 'Help center',
+    shareApp: 'Share the app',
+    shareMessage: 'Check out PadelJam — find padel games, groups, and players near you.',
+    supportFailed: 'Please add a subject and a message.',
   },
 } as const;
 
