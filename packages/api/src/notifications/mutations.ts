@@ -84,3 +84,33 @@ export const useCompleteNotificationCta = () => {
     onSuccess: () => invalidate(qc),
   });
 };
+
+// Accept/decline an aggregate partner/join request, routing to the per-type RPC.
+// Invalidates the aggregate list + the Phase 2A pinned-count + the feed.
+export const useRespondToRequest = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      kind: 'event' | 'community';
+      requestId: string;
+      action: 'accept' | 'decline';
+    }) => {
+      const rpc =
+        input.kind === 'event'
+          ? input.action === 'accept'
+            ? 'accept_partner_request'
+            : 'decline_partner_request'
+          : input.action === 'accept'
+            ? 'accept_join_request'
+            : 'decline_join_request';
+      const { error } = await db.rpc(rpc, { p_request_id: input.requestId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
+      qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
+      qc.invalidateQueries({ queryKey: qk.notifications });
+    },
+  });
+};

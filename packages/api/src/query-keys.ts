@@ -43,6 +43,7 @@ export const qk = {
   notifications: ['notifications'] as const,
   notificationsUnread: ['notifications', 'unread'] as const,
   partnerRequestSummary: ['notifications', 'partner-summary'] as const,
+  incomingPartnerRequests: ['notifications', 'partner-requests', 'incoming'] as const,
   profile: (id: string) => ['profile', id] as const,
   following: (id: string) => ['profile', id, 'following'] as const,
   followers: (id: string) => ['profile', id, 'followers'] as const,

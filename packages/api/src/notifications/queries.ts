@@ -73,3 +73,28 @@ export const usePartnerRequestSummary = () => {
     },
   });
 };
+
+export type IncomingPartnerRequest = {
+  kind: 'event' | 'community';
+  request_id: string;
+  entity_id: string;
+  entity_name: string;
+  requester_id: string;
+  requester_name: string | null;
+  requester_avatar: string | null;
+  created_at: string;
+};
+
+export const useIncomingPartnerRequests = () => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.incomingPartnerRequests,
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('incoming_partner_requests');
+      if (error) throw error;
+      return (data ?? []) as IncomingPartnerRequest[];
+    },
+  });
+};
