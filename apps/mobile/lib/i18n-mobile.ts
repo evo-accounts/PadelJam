@@ -1198,6 +1198,28 @@ const mobileHome = {
   },
 } as const;
 
+const mobileNotifications = {
+  en: {
+    title: 'Notifications',
+    partnerRequests: 'Partner Requests',
+    pendingCount_one: '{{count}} pending',
+    pendingCount_other: '{{count}} pendings',
+    markAllRead: 'Mark all as read',
+    clearAll: 'Clear all',
+    join: 'Join',
+    joined: 'Joined',
+    empty: 'No notifications yet.',
+    loadError: 'Could not load notifications.',
+    // Sentence templates by notification type:
+    follow: '{{actor}} followed you',
+    event_invite: '{{actor}} invited you to {{entity}}',
+    group_invite: '{{actor}} invited you to {{entity}}',
+    community_invite: '{{actor}} invited you to {{entity}}',
+    community_request_accepted: 'Your request to join {{entity}} was accepted',
+    follow_joined_event: '{{actor}} joined {{entity}}',
+  },
+} as const;
+
 const mobileEvents = {
   en: {
     tab: 'Events',
@@ -1341,6 +1363,7 @@ export function registerMobileCopy(instance: I18n): void {
   instance.addResourceBundle('en', 'event', mobileEvent.en, true, false);
   instance.addResourceBundle('en', 'discovery', mobileDiscovery.en, true, false);
   instance.addResourceBundle('en', 'home', mobileHome.en, true, false);
+  instance.addResourceBundle('en', 'notifications', mobileNotifications.en, true, false);
   instance.addResourceBundle('en', 'events', mobileEvents.en, true, false);
   instance.addResourceBundle('en', 'profile', mobileProfile.en, true, false);
 }
