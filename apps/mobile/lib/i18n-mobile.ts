@@ -1194,7 +1194,25 @@ const mobileDiscovery = {
 const mobileHome = {
   en: {
     tab: 'Home',
-    placeholder: 'Your home feed is coming soon.',
+    title: 'Home',
+    quickCreate: 'Create Event',
+    findEvent: 'Find Event',
+    findGroup: 'Find Group',
+    findCommunity: 'Find Community',
+    nextEvents: 'Next Events',
+    myGroups: 'My groups',
+    seeAll: 'See all',
+    suggestedEvents: 'Suggested events',
+    suggestedGroups: 'Suggested groups',
+    addLocationTitle: 'Add your location',
+    addLocationBody: 'Set your location to see games and groups near you.',
+    addLocationCta: 'Add location',
+    yourGroups: 'Your groups',
+    groupsEmpty: "You're not in any groups yet.",
+    eventsEmpty: 'No upcoming events.',
+    loadError: 'Could not load.',
+    memberCount_one: '{{count}} member',
+    memberCount_other: '{{count}} members',
   },
 } as const;
 

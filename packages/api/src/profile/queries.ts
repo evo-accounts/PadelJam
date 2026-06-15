@@ -61,7 +61,7 @@ export const useMyProfile = () => {
     queryFn: async () => {
       const { data, error } = await db
         .from('profiles')
-        .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time')
+        .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time, location_text')
         .eq('id', uid!)
         .single();
       if (error) throw error;
