@@ -1210,6 +1210,12 @@ const mobileNotifications = {
     joined: 'Joined',
     empty: 'No notifications yet.',
     loadError: 'Could not load notifications.',
+    accept: 'Accept',
+    decline: 'Decline',
+    requestsEmpty: 'No pending requests.',
+    requestsError: 'Could not load requests.',
+    partnerRequestLabel: 'Partner request · {{entity}}',
+    joinRequestLabel: 'wants to join {{entity}}',
     // Sentence templates by notification type:
     follow: '{{actor}} followed you',
     event_invite: '{{actor}} invited you to {{entity}}',
