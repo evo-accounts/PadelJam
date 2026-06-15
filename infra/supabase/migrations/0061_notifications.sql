@@ -33,3 +33,20 @@ create policy "notifications: delete own" on notifications for delete
   using (user_id = auth.uid());
 
 alter publication supabase_realtime add table notifications;
+
+-- Pending "partner requests" the caller must act on, across two sources:
+--   (a) partner_requests for events the caller organizes, and
+--   (b) community_join_requests for communities the caller owns.
+create or replace function partner_request_summary() returns integer
+language sql stable security definer set search_path = public as $$
+  select
+    (select count(*) from partner_requests pr
+       join events e on e.id = pr.event_id
+      where e.organizer_id = auth.uid() and pr.status = 'pending')
+  + (select count(*) from community_join_requests jr
+      where jr.status = 'pending'
+        and exists (select 1 from community_members cm
+                     where cm.community_id = jr.community_id
+                       and cm.user_id = auth.uid() and cm.role = 'owner'));
+$$;
+grant execute on function partner_request_summary() to authenticated;

@@ -38,3 +38,48 @@ begin
   raise notice 'OK notifications_rls';
 end $$;
 rollback;
+
+-- partner_request_summary: counts pending event partner-requests for events I organize.
+begin;
+insert into auth.users (id, instance_id, aud, role, email) values
+  ('f7000010-0000-0000-0000-000000000010','00000000-0000-0000-0000-000000000000','authenticated','authenticated','pq1@x.com'),
+  ('f7000011-0000-0000-0000-000000000011','00000000-0000-0000-0000-000000000000','authenticated','authenticated','pq2@x.com'),
+  ('f7000012-0000-0000-0000-000000000012','00000000-0000-0000-0000-000000000000','authenticated','authenticated','pq3@x.com')
+  on conflict do nothing;
+insert into profiles (id, email, phone, full_name) values
+  ('f7000010-0000-0000-0000-000000000010','pq1@x.com','+351900040010','Org PQ'),
+  ('f7000011-0000-0000-0000-000000000011','pq2@x.com','+351900040011','Req PQ'),
+  ('f7000012-0000-0000-0000-000000000012','pq3@x.com','+351900040012','Tgt PQ')
+  on conflict do nothing;
+
+do $$
+declare org constant uuid := 'f7000010-0000-0000-0000-000000000010';
+  req constant uuid := 'f7000011-0000-0000-0000-000000000011';
+  tgt constant uuid := 'f7000012-0000-0000-0000-000000000012';
+  v_event uuid;
+  v_count int;
+begin
+  insert into events (organizer_id, event_type, specification, scoring_mode, scoring_value,
+                      manual_location_name, has_location, starts_at, duration_minutes,
+                      organizer_role, name, status, num_courts, is_private)
+    values (org, 'americano', 'mixed', 'points', 24, 'Court A', true, now() + interval '1 day',
+            90, 'organizing_and_playing', 'PQ Event', 'scheduled', 2, true)
+    returning id into v_event;
+  insert into partner_requests (event_id, requester_id, target_id, status)
+    values (v_event, req, tgt, 'pending');
+
+  perform set_config('role','authenticated',true);
+  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', org), true);
+  select partner_request_summary() into v_count;
+  if v_count <> 1 then
+    raise exception using errcode='PT001', message=format('summary expected 1 got %s', v_count); end if;
+
+  -- A non-organizer sees 0.
+  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', req), true);
+  select partner_request_summary() into v_count;
+  if v_count <> 0 then
+    raise exception using errcode='PT001', message=format('non-organizer summary expected 0 got %s', v_count); end if;
+
+  raise notice 'OK partner_request_summary';
+end $$;
+rollback;

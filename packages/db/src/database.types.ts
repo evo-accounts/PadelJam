@@ -2559,6 +2559,10 @@ export type Database = {
         Args: { p_mode: string; p_participant_id: string }
         Returns: undefined
       }
+      partner_request_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       persist_round: { Args: { p_payload: Json }; Returns: string }
       placement_points: { Args: { p: number }; Returns: number }
       populate_geometry_columns:
