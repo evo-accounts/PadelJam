@@ -17,17 +17,20 @@ export default function NewChatScreen() {
   const uid = useSession().session?.user.id;
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const following = useFollowing(uid, search);
   const rows = (following.data?.pages.flat() ?? []) as Person[];
 
   const openChat = async (other: Person) => {
     if (busy || !uid) return;
     setBusy(true);
+    setError(null);
     try {
       const channel = streamClient.channel('messaging', { members: [uid, other.id] });
       await channel.watch();
       router.replace(('/chat/' + channel.cid) as never);
     } catch {
+      setError(t('startError'));
       setBusy(false);
     }
   };
@@ -42,6 +45,7 @@ export default function NewChatScreen() {
         onChangeText={setSearch}
         autoCapitalize="none"
       />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
       {following.isLoading ? (
         <ActivityIndicator color="#0B1F3A" style={{ marginTop: 32 }} />
       ) : rows.length === 0 ? (
@@ -73,4 +77,5 @@ const styles = StyleSheet.create({
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E2E8F0' },
   name: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
   empty: { textAlign: 'center', marginTop: 48, color: '#6B7685', fontSize: 15 },
+  error: { color: '#D7263D', fontSize: 13, marginHorizontal: 12, marginBottom: 4 },
 });

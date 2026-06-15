@@ -111,6 +111,15 @@ apps/mobile:
 - **Native dev-build verification** of connect/send/photo/realtime.
 - **PT/PT-BR** translations for the `chat` namespace (English-only for now).
 
+## Implementation reconciliation (post-build note)
+The edge function was implemented to **mint a raw HS256 JWT (`djwt`)** rather than use the
+`stream-chat` server SDK's `upsertUser` + `createToken` — this avoids importing the Node SDK into
+Deno and reading `profiles` server-side. **Stream user identity (name/image) is therefore set
+client-side on `connectUser`** (in `StreamChatProvider`), not server-side. Consequence: a user's
+name/avatar in a channel is only as fresh as that user's last connect. For 4B (group/event
+channels) this client-only identity model is fine for the connecting user; if richer server-side
+identity sync is needed, add a Stream server `upsertUser` (via the REST API or the Node SDK) then.
+
 ## Conventions followed
 Edge function under `infra/supabase/functions/` (service-role, JWT-verified, `jsr:@supabase/supabase-js@2`
 pattern from `complete-account`); secrets via env, `.env.example` documents names, real `.env` gitignored;

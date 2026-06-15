@@ -15,19 +15,31 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const data = tokenQ.data;
-    if (!uid || !data) return;
-    streamClient
-      .connectUser(
-        { id: data.userId, name: profile.data?.full_name ?? 'Player', image: profile.data?.avatar_url ?? undefined },
-        data.token,
-      )
-      .catch(() => {
+    // Signed out (or no token yet): ensure the shared client isn't left connected as a prior user.
+    if (!uid || !data) {
+      if (streamClient.userID) void streamClient.disconnectUser();
+      return;
+    }
+    let cancelled = false;
+    // Serialize connect/disconnect on the singleton: skip if already connected as this user
+    // (so a profile name/avatar edit doesn't churn the connection), and switch users cleanly.
+    void (async () => {
+      try {
+        if (streamClient.userID === data.userId) return;
+        if (streamClient.userID) await streamClient.disconnectUser();
+        if (cancelled) return;
+        await streamClient.connectUser(
+          { id: data.userId, name: profile.data?.full_name ?? 'Player', image: profile.data?.avatar_url ?? undefined },
+          data.token,
+        );
+      } catch {
         /* connect failed; Stream's UI handles its own offline/retry state */
-      });
+      }
+    })();
     return () => {
-      void streamClient.disconnectUser();
+      cancelled = true;
     };
-    // profile name/image are best-effort; reconnect only on identity/token change.
+    // name/image are read at connect time only; identity/token changes (incl. user switch) drive reconnect.
   }, [uid, tokenQ.data, profile.data?.full_name, profile.data?.avatar_url]);
 
   // Not authed (e.g. on the auth screens): don't gate the app on chat.

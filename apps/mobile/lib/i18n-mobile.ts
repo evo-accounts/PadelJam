@@ -1382,6 +1382,7 @@ const mobileChat = {
     connectError: "Couldn't connect to chat.",
     retry: 'Retry',
     startChat: 'Start chat',
+    startError: "Couldn't start that chat. Please try again.",
   },
 } as const;
 

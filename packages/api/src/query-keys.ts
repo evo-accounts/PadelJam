@@ -50,5 +50,5 @@ export const qk = {
   followers: (id: string) => ['profile', id, 'followers'] as const,
   myProfile: (id: string) => ['profile', id, 'edit'] as const,
   mySettings: (id: string) => ['user-settings', id] as const,
-  streamToken: ['stream-token'] as const,
+  streamToken: (uid: string) => ['stream-token', uid] as const,
 };
