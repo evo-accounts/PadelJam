@@ -45,6 +45,17 @@
         {
           "locationWhenInUsePermission": "PadelJam uses your location to suggest nearby games and communities."
         }
+      ],
+      [
+        "expo-dynamic-app-icon",
+        {
+          "default": { "image": "./assets/app-icons/default.png", "prerendered": true },
+          "blue": { "image": "./assets/app-icons/blue.png", "prerendered": true },
+          "dark": { "image": "./assets/app-icons/dark.png", "prerendered": true },
+          "light": { "image": "./assets/app-icons/light.png", "prerendered": true },
+          "mono": { "image": "./assets/app-icons/mono.png", "prerendered": true },
+          "classic": { "image": "./assets/app-icons/classic.png", "prerendered": true }
+        }
       ]
     ],
     "experiments": {
