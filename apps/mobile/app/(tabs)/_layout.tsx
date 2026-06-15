@@ -1,14 +1,18 @@
+import { useNotificationsRealtime } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 
 import Colors from '@/constants/Colors';
+import { NotificationBell } from '@/components/NotificationBell';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t } = useT('community');
+
+  useNotificationsRealtime();
 
   return (
     <Tabs
@@ -57,6 +61,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: t('tab', { ns: 'profile' }),
+          headerRight: () => <NotificationBell />,
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{ ios: 'person.crop.circle.fill', android: 'account_circle', web: 'account_circle' }}
