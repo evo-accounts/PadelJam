@@ -61,6 +61,9 @@ export default function SettingsScreen() {
       <Pressable style={styles.row} onPress={() => router.push('/profile/change-email')} accessibilityRole="button">
         <Text style={styles.rowLabel}>{t('changeEmail')}</Text>
       </Pressable>
+      <Pressable style={styles.row} onPress={() => router.push('/profile/delete-account')} accessibilityRole="button">
+        <Text style={[styles.rowLabel, { color: '#D7263D' }]}>{t('deleteAccount')}</Text>
+      </Pressable>
 
       <Text style={styles.section}>{t('legal')}</Text>
       <Pressable style={styles.row} onPress={() => void Linking.openURL(TERMS_URL)} accessibilityRole="button">
