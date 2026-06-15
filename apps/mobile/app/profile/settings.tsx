@@ -51,6 +51,9 @@ export default function SettingsScreen() {
             <Text style={[styles.optionText, l.code === current.code && styles.optionActive]}>{t(l.key)}</Text>
           </Pressable>
         ))}
+      <Pressable style={styles.row} onPress={() => router.push('/profile/app-icon')} accessibilityRole="button">
+        <Text style={styles.rowLabel}>{t('appIcon')}</Text>
+      </Pressable>
       <Pressable style={styles.row} onPress={() => router.push('/profile/notifications')} accessibilityRole="button">
         <Text style={styles.rowLabel}>{t('notifications')}</Text>
       </Pressable>
