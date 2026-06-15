@@ -1283,6 +1283,15 @@ const mobileProfile = {
     currentPasswordWrong: 'Current password is incorrect.',
     updateFailed: "Couldn't update password. Please try again.",
     passwordChanged: 'Password changed.',
+    changeEmail: 'Change email',
+    newEmailLabel: 'New email',
+    sendCode: 'Send code',
+    codeLabel: 'Verification code',
+    verify: 'Verify',
+    codeSentTo: 'Enter the 6-digit code sent to your new email.',
+    emailChanged: 'Email updated.',
+    changeEmailFailed: "Couldn't start the email change. Please try again.",
+    invalidCode: 'Invalid or expired code.',
   },
 } as const;
 
