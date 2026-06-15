@@ -68,17 +68,18 @@ begin
   insert into partner_requests (event_id, requester_id, target_id, status)
     values (v_event, req, tgt, 'pending');
 
+  -- partner_request_summary counts requests addressed to ME (the target), per 0063 scope fix.
   perform set_config('role','authenticated',true);
-  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', org), true);
+  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', tgt), true);
   select partner_request_summary() into v_count;
   if v_count <> 1 then
-    raise exception using errcode='PT001', message=format('summary expected 1 got %s', v_count); end if;
+    raise exception using errcode='PT001', message=format('target summary expected 1 got %s', v_count); end if;
 
-  -- A non-organizer sees 0.
-  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', req), true);
+  -- The organizer (not the target) counts 0 via this summary.
+  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', org), true);
   select partner_request_summary() into v_count;
   if v_count <> 0 then
-    raise exception using errcode='PT001', message=format('non-organizer summary expected 0 got %s', v_count); end if;
+    raise exception using errcode='PT001', message=format('organizer summary expected 0 got %s', v_count); end if;
 
   raise notice 'OK partner_request_summary';
 end $$;

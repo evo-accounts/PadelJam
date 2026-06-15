@@ -1,7 +1,10 @@
 -- 0062_partner_request_queue.sql
 -- Aggregate "incoming partner requests" for the pinned Notifications row: pending
--- event partner_requests for events I organize + pending community join requests for
--- communities I own. (Phase 2B)
+-- partner_requests addressed to me (I am the target — I accept/decline them) +
+-- pending community join requests for communities I own. (Phase 2B)
+-- NOTE: partner_requests are player-to-player; the TARGET is the actor
+-- (accept_partner_request gates on target_id = auth.uid()), so the event branch
+-- scopes to pr.target_id, not the event organizer.
 create or replace function incoming_partner_requests()
 returns table (
   kind             text,
@@ -18,7 +21,7 @@ language sql stable security definer set search_path = public as $$
   from partner_requests pr
   join events e   on e.id = pr.event_id
   join profiles p on p.id = pr.requester_id
-  where e.organizer_id = auth.uid() and pr.status = 'pending'
+  where pr.target_id = auth.uid() and pr.status = 'pending'
   union all
   select 'community'::text, jr.id, c.id, c.name, p.id, p.full_name, p.avatar_url, jr.created_at
   from community_join_requests jr

@@ -1214,6 +1214,7 @@ const mobileNotifications = {
     decline: 'Decline',
     requestsEmpty: 'No pending requests.',
     requestsError: 'Could not load requests.',
+    respondError: 'Could not complete that action. Please try again.',
     partnerRequestLabel: 'Partner request · {{entity}}',
     joinRequestLabel: 'wants to join {{entity}}',
     // Sentence templates by notification type:

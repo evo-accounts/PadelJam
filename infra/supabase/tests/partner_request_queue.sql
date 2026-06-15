@@ -1,4 +1,4 @@
--- incoming_partner_requests: organizer sees the event request; a non-organizer sees nothing.
+-- incoming_partner_requests: the request TARGET sees the event request; others see nothing.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
   ('f8000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','pq1@x.com'),
@@ -29,21 +29,21 @@ begin
   insert into partner_requests (event_id, requester_id, target_id, status)
     values (v_event, req, tgt, 'pending');
 
-  -- Organizer sees exactly one row, kind=event, requester name embedded.
+  -- The TARGET (who can accept/decline) sees exactly one row, kind=event, requester embedded.
   perform set_config('role','authenticated',true);
-  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', org), true);
+  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', tgt), true);
   select count(*) into v_count from incoming_partner_requests();
   if v_count <> 1 then
-    raise exception using errcode='PT001', message=format('organizer expected 1 row got %s', v_count); end if;
+    raise exception using errcode='PT001', message=format('target expected 1 row got %s', v_count); end if;
   select kind, requester_name into v_kind, v_requester from incoming_partner_requests();
   if v_kind <> 'event' or v_requester <> 'Req Q' then
     raise exception using errcode='PT001', message=format('row mismatch kind=%s requester=%s', v_kind, v_requester); end if;
 
-  -- A non-organizer (the requester) sees nothing.
-  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', req), true);
+  -- The organizer (not the target) sees nothing via this aggregate.
+  perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', org), true);
   select count(*) into v_count from incoming_partner_requests();
   if v_count <> 0 then
-    raise exception using errcode='PT001', message=format('non-organizer expected 0 got %s', v_count); end if;
+    raise exception using errcode='PT001', message=format('organizer expected 0 got %s', v_count); end if;
 
   raise notice 'OK incoming_partner_requests';
 end $$;

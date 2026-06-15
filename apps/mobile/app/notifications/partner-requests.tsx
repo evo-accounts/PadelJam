@@ -7,7 +7,7 @@ import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { Stack } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function PartnerRequestsScreen() {
   const { t } = useT('notifications');
@@ -16,7 +16,10 @@ export default function PartnerRequestsScreen() {
   const rows = list.data ?? [];
 
   const act = (item: IncomingPartnerRequest, action: 'accept' | 'decline') =>
-    respond.mutate({ kind: item.kind, requestId: item.request_id, action });
+    respond.mutate(
+      { kind: item.kind, requestId: item.request_id, action },
+      { onError: () => Alert.alert(t('respondError')) },
+    );
 
   return (
     <View style={styles.container}>
