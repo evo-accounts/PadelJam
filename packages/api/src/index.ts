@@ -17,3 +17,4 @@ export * from './profile/queries';
 export * from './profile/mutations';
 export * from './settings/queries';
 export * from './settings/mutations';
+export * from './notifications/queries';
