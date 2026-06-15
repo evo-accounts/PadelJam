@@ -17,6 +17,10 @@ export default function ChangeEmailScreen() {
 
   const onSend = async () => {
     if (busy || !email.trim()) return;
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setError(t('emailInvalid'));
+      return;
+    }
     setError(null);
     setBusy(true);
     try {

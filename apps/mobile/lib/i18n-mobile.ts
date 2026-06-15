@@ -1292,6 +1292,7 @@ const mobileProfile = {
     emailChanged: 'Email updated.',
     changeEmailFailed: "Couldn't start the email change. Please try again.",
     invalidCode: 'Invalid or expired code.',
+    emailInvalid: 'Enter a valid email address.',
   },
 } as const;
 
