@@ -29,7 +29,8 @@ export default function HomeScreen() {
 
   const events = myEvents.data?.pages.flat() ?? [];
   const groups = myGroups.data ?? [];
-  const loading = myEvents.isLoading || myGroups.isLoading;
+  const loading = myEvents.isLoading || myGroups.isLoading || profile.isLoading;
+  const errored = myEvents.isError && myGroups.isError;
   const hasActivity = events.length > 0 || groups.length > 0;
 
   return (
@@ -50,6 +51,8 @@ export default function HomeScreen() {
 
       {loading ? (
         <ActivityIndicator color="#0B1F3A" style={{ marginTop: 40 }} />
+      ) : errored ? (
+        <Text style={styles.empty}>{t('loadError')}</Text>
       ) : hasActivity ? (
         <>
           <SectionHeader title={t('nextEvents')} onSeeAll={() => router.push('/(tabs)/events' as never)} t={t} />
