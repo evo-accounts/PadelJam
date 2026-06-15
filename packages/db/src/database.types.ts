@@ -52,6 +52,54 @@ export type Database = {
         Update: { follower_id?: string; followee_id?: string; created_at?: string }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          actor_id: string | null
+          event_id: string | null
+          group_id: string | null
+          community_id: string | null
+          ref_id: string | null
+          actor_name: string | null
+          entity_name: string | null
+          read_at: string | null
+          cta_done: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          actor_id?: string | null
+          event_id?: string | null
+          group_id?: string | null
+          community_id?: string | null
+          ref_id?: string | null
+          actor_name?: string | null
+          entity_name?: string | null
+          read_at?: string | null
+          cta_done?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          actor_id?: string | null
+          event_id?: string | null
+          group_id?: string | null
+          community_id?: string | null
+          ref_id?: string | null
+          actor_name?: string | null
+          entity_name?: string | null
+          read_at?: string | null
+          cta_done?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       blocks: {
         Row: { id: string; blocker_id: string; blocked_id: string; created_at: string }
         Insert: { id?: string; blocker_id: string; blocked_id: string; created_at?: string }
