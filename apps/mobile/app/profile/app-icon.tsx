@@ -30,8 +30,8 @@ export default function AppIconScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const onSelect = (name: string) => {
-    if (name === active) return;
     setError(null);
+    if (name === active) return;
     try {
       const result = setAppIcon(name);
       if (result === false) {
