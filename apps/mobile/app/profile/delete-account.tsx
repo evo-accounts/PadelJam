@@ -43,7 +43,7 @@ export default function DeleteAccountScreen() {
   const confirm = () => {
     if (busy) return;
     Alert.alert(t('deleteWarningTitle'), t('deleteWarningBody'), [
-      { text: t('deleteAccount'), style: 'cancel' },
+      { text: t('deleteCancel'), style: 'cancel' },
       { text: t('deleteConfirm'), style: 'destructive', onPress: () => void doDelete() },
     ]);
   };

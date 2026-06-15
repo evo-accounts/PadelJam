@@ -1300,6 +1300,7 @@ const mobileProfile = {
     deleteErasedMemberships: '• Your community and group memberships',
     deleteErasedSocial: '• Your follows, blocks, and settings',
     deleteConfirm: 'Delete my account',
+    deleteCancel: 'Cancel',
     deleteFailed: "Couldn't delete your account. Please try again.",
   },
 } as const;

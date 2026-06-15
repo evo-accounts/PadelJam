@@ -28,6 +28,7 @@ begin
          location_point = null,
          dominant_hand = null,
          court_side = null,
+         preferred_time = null,
          gender = null,
          date_of_birth = null,
          deleted_at = now()
