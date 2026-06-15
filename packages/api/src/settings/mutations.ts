@@ -24,3 +24,18 @@ export const useUpdateSettings = () => {
     },
   });
 };
+
+export const useCreateSupportTicket = () => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (input: { title: string; description: string }) => {
+      const { error } = await db.from('support_tickets').insert({
+        user_id: uid!,
+        title: input.title,
+        description: input.description,
+      });
+      if (error) throw error;
+    },
+  });
+};
