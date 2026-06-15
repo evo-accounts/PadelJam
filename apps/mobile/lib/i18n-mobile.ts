@@ -1383,6 +1383,8 @@ const mobileChat = {
     retry: 'Retry',
     startChat: 'Start chat',
     startError: "Couldn't start that chat. Please try again.",
+    openChat: 'Open chat',
+    chatUnavailable: "Chat isn't available for this yet.",
   },
 } as const;
 

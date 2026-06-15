@@ -9,6 +9,7 @@ import {
   useLeaveEvent,
   useLeaveWaitingList,
   useStartEvent,
+  useEnsureChannel,
   type EventType,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
@@ -76,6 +77,7 @@ export default function EventDetailScreen() {
   const acceptInvitation = useAcceptEventInvitation();
   const declineInvitation = useDeclineEventInvitation(id);
   const startEvent = useStartEvent(id);
+  const ensureChannel = useEnsureChannel();
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +160,17 @@ export default function EventDetailScreen() {
 
   const status = event.status;
   const badge = badgeStyles(status);
+
+  const hasOwnChat = !!event && (event.is_private || event.group_id == null);
+  const openEventChat = async () => {
+    if (ensureChannel.isPending) return;
+    try {
+      const { cid } = await ensureChannel.mutateAsync({ kind: 'event', id });
+      router.push(('/chat/' + cid) as never);
+    } catch {
+      /* surfaced via ensureChannel.isError below */
+    }
+  };
 
   // --- CTA action wrapper ---
   const run = async (action: () => Promise<unknown>) => {
@@ -503,6 +516,23 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
         </View>
+
+        {/* Chat */}
+        {hasOwnChat ? (
+          <View style={styles.section}>
+            <Pressable
+              onPress={openEventChat}
+              disabled={ensureChannel.isPending}
+              accessibilityRole="button"
+              style={{ paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#0B7BFF', borderRadius: 12, alignItems: 'center', marginTop: 8 }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{t('openChat', { ns: 'chat' })}</Text>
+            </Pressable>
+            {ensureChannel.isError ? (
+              <Text style={{ color: '#D7263D', fontSize: 13, marginTop: 6 }}>{t('chatUnavailable', { ns: 'chat' })}</Text>
+            ) : null}
+          </View>
+        ) : null}
       </ScrollView>
 
       {/* Pinned CTA bar */}

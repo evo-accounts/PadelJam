@@ -7,6 +7,7 @@ import {
   useGroupRanking,
   useGroupSeasons,
   useLeaveGroup,
+  useEnsureChannel,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
@@ -55,6 +56,16 @@ export default function GroupHomeScreen() {
   const { data: ranking } = useGroupRanking(currentSeasonId);
 
   const leave = useLeaveGroup();
+  const ensureChannel = useEnsureChannel();
+  const openGroupChat = async () => {
+    if (ensureChannel.isPending) return;
+    try {
+      const { cid } = await ensureChannel.mutateAsync({ kind: 'group', id });
+      router.push(('/chat/' + cid) as never);
+    } catch {
+      /* surfaced via ensureChannel.isError below */
+    }
+  };
 
   if (isLoading || !group) {
     return (
@@ -175,6 +186,21 @@ export default function GroupHomeScreen() {
         >
           <Text style={styles.inviteText}>{t('inviteMembersCta')}</Text>
         </Pressable>
+
+        {/* Chat */}
+        <View style={styles.section}>
+          <Pressable
+            onPress={openGroupChat}
+            disabled={ensureChannel.isPending}
+            accessibilityRole="button"
+            style={{ paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#0B7BFF', borderRadius: 12, alignItems: 'center', marginTop: 8 }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{t('openChat', { ns: 'chat' })}</Text>
+          </Pressable>
+          {ensureChannel.isError ? (
+            <Text style={{ color: '#D7263D', fontSize: 13, marginTop: 6 }}>{t('chatUnavailable', { ns: 'chat' })}</Text>
+          ) : null}
+        </View>
 
         {/* Events */}
         <View style={styles.section}>
