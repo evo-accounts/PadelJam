@@ -1293,6 +1293,14 @@ const mobileProfile = {
     changeEmailFailed: "Couldn't start the email change. Please try again.",
     invalidCode: 'Invalid or expired code.',
     emailInvalid: 'Enter a valid email address.',
+    deleteAccount: 'Delete account',
+    deleteWarningTitle: 'Delete your account?',
+    deleteWarningBody: 'This permanently anonymizes your profile and removes your data. This cannot be undone.',
+    deleteErasedProfile: '• Your profile and personal details',
+    deleteErasedMemberships: '• Your community and group memberships',
+    deleteErasedSocial: '• Your follows, blocks, and settings',
+    deleteConfirm: 'Delete my account',
+    deleteFailed: "Couldn't delete your account. Please try again.",
   },
 } as const;
 
