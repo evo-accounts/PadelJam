@@ -3,12 +3,13 @@ import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Linking, Pressable, ScrollView, Share, StyleSheet, Text } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
+const HELP_URL = 'https://padeljam.app/help';
 const LANGS = [
   { code: 'en', key: 'languageEnglish' as const },
   { code: 'pt-PT', key: 'languagePtPt' as const },
@@ -63,6 +64,17 @@ export default function SettingsScreen() {
       </Pressable>
       <Pressable style={styles.row} onPress={() => router.push('/profile/delete-account')} accessibilityRole="button">
         <Text style={[styles.rowLabel, { color: '#D7263D' }]}>{t('deleteAccount')}</Text>
+      </Pressable>
+
+      <Text style={styles.section}>{t('support')}</Text>
+      <Pressable style={styles.row} onPress={() => router.push('/profile/support')} accessibilityRole="button">
+        <Text style={styles.rowLabel}>{t('contactSupport')}</Text>
+      </Pressable>
+      <Pressable style={styles.row} onPress={() => void Linking.openURL(HELP_URL)} accessibilityRole="button">
+        <Text style={styles.rowLabel}>{t('helpCenter')}</Text>
+      </Pressable>
+      <Pressable style={styles.row} onPress={() => void Share.share({ message: t('shareMessage') })} accessibilityRole="button">
+        <Text style={styles.rowLabel}>{t('shareApp')}</Text>
       </Pressable>
 
       <Text style={styles.section}>{t('legal')}</Text>
