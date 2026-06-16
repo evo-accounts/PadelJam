@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Channel as ChannelType } from 'stream-chat';
 
 import { streamClient } from '@/lib/streamClient';
@@ -57,7 +57,7 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
       </Pressable>
 
       {/* action sheet */}
-      {menuOpen ? (
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
           <View style={styles.sheet}>
             {tab === 'archived' ? (
@@ -78,10 +78,10 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
             )}
           </View>
         </Pressable>
-      ) : null}
+      </Modal>
 
       {/* confirmation modals */}
-      {confirm ? (
+      <Modal visible={confirm !== null} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
         <Pressable style={styles.backdrop} onPress={() => setConfirm(null)}>
           <View style={styles.confirm}>
             <Text style={styles.confirmTitle}>{t(confirm === 'archive' ? 'archiveTitle' : 'deleteTitle')}</Text>
@@ -99,7 +99,7 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
             </View>
           </View>
         </Pressable>
-      ) : null}
+      </Modal>
     </View>
   );
 }
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   kebab: { paddingHorizontal: 8, paddingVertical: 8 },
   kebabDots: { fontSize: 16, color: '#6B7685', fontWeight: '700' },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
   sheet: { backgroundColor: '#fff', borderRadius: 12, minWidth: 220, overflow: 'hidden' },
   sheetRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
   sheetText: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
