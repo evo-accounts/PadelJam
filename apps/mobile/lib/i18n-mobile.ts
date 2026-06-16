@@ -1188,6 +1188,8 @@ const mobileDiscovery = {
     seeAllTitleEvents: 'Events',
     seeAllTitleCommunities: 'Communities',
     seeAllTitleGroups: 'Groups',
+    distanceKm: '{{km}} km away',
+    distanceNear: 'Nearby',
   },
 } as const;
 

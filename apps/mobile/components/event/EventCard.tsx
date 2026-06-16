@@ -30,11 +30,25 @@ function statusKey(
  * A tappable card summarising one event: name, format meta, date/time and a
  * status badge. Presentational — the caller supplies the row and an onPress.
  */
-export function EventCard({ event, onPress }: { event: EventRow; onPress: () => void }) {
+export function EventCard({
+  event,
+  onPress,
+}: {
+  event: EventRow & { distance_m?: number | null };
+  onPress: () => void;
+}) {
   const { t } = useT('event');
+  const { t: td } = useT('discovery');
 
   const typeLabel = t(`type${cap(event.event_type)}Label`);
   const specLabel = t(`spec${cap(event.specification)}Label`);
+
+  const distance =
+    event.distance_m == null
+      ? null
+      : event.distance_m < 1000
+        ? td('distanceNear')
+        : td('distanceKm', { km: (event.distance_m / 1000).toFixed(1) });
 
   const badgeStyle =
     event.status === 'in_progress'
@@ -69,6 +83,7 @@ export function EventCard({ event, onPress }: { event: EventRow; onPress: () => 
         <Text style={styled.when} numberOfLines={1}>
           {formatWhen(event.starts_at)}
         </Text>
+        {distance ? <Text style={styled.distance}>{distance}</Text> : null}
       </View>
     </Pressable>
   );
@@ -91,6 +106,7 @@ const styled = StyleSheet.create({
   name: { flex: 1, fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
   meta: { fontSize: 13, color: '#6B7685', fontWeight: '600' },
   when: { fontSize: 13, color: '#0B1F3A', fontWeight: '500' },
+  distance: { fontSize: 12, color: '#6B7685', marginTop: 2 },
   badge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontSize: 11, fontWeight: '700' },
   badgeScheduled: { backgroundColor: '#E6F0FF' },
