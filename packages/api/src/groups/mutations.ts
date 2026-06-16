@@ -167,6 +167,24 @@ export const useUnarchiveGroup = () => {
   });
 };
 
+export const useAddGroupAdmins = (groupId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (userIds: string[]) => {
+      const { error } = await db.rpc('add_group_admins', {
+        p_group_id: groupId,
+        p_user_ids: userIds,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.groupMembers(groupId) });
+      qc.invalidateQueries({ queryKey: qk.myGroups });
+    },
+  });
+};
+
 // ---------------------------------------------------------------------------
 // Direct (RLS-gated) writes
 // ---------------------------------------------------------------------------

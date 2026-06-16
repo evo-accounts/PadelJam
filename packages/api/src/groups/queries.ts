@@ -108,6 +108,7 @@ export type MyGroup = {
   community_id: string;
   community_name: string;
   member_count: number;
+  is_managing: boolean;
 };
 
 export const useMyGroups = () => {
@@ -140,27 +141,31 @@ export const useGroupSeasons = (id: string) => {
   });
 };
 
-export const useGroupRanking = (seasonId: string) => {
+export const useGroupRanking = (seasonId: string, since?: string) => {
   const db = useDb();
   return useQuery({
-    queryKey: qk.groupRanking(seasonId),
+    queryKey: [...qk.groupRanking(seasonId), since ?? 'all'],
     enabled: !!seasonId,
     queryFn: async () => {
       // profiles is reachable via user_id but generated types key it to auth tables, so cast the embed.
       const { data, error } = await db
         .from('group_event_results')
-        .select('user_id, ranking_points, event_id, profiles(id, full_name, avatar_url)')
+        .select('user_id, ranking_points, event_id, events(starts_at), profiles(id, full_name, avatar_url)')
         .eq('group_season_id', seasonId)
         .returns<
           {
             user_id: string;
             ranking_points: number;
             event_id: string;
+            events: { starts_at: string } | null;
             profiles: { id: string; full_name: string | null; avatar_url: string | null } | null;
           }[]
         >();
       if (error) throw error;
-      const rows = data ?? [];
+      const all = data ?? [];
+      const rows = since
+        ? all.filter((r) => r.events?.starts_at != null && r.events.starts_at >= since)
+        : all;
       // Aggregate per user: sum points, count distinct events.
       const byUser = new Map<
         string,
