@@ -19,6 +19,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { StarRating } from '@/components/community/StarRating';
 
+// Maps a thrown mutation error code to an existing community-namespace i18n key.
+const ERROR_KEY_MAP: Record<string, string> = {
+  review_requires_participation: 'review_requires_participation',
+  not_a_member: 'not_a_member',
+  invalid_rating: 'reviewsRatingRequired',
+  forbidden: 'forbidden',
+};
+
 export default function WriteReviewModal() {
   const { t } = useT('community');
   const router = useRouter();
@@ -48,8 +56,9 @@ export default function WriteReviewModal() {
       await mutateAsync({ rating: parsed.data.rating, body: parsed.data.body });
       router.back();
     } catch (err) {
+      // The mutation throws Error(<i18n key>) for gated failures.
       const code = err instanceof Error ? err.message : 'unknown_error';
-      const key = code === 'forbidden' ? 'forbidden' : 'unknown_error';
+      const key = ERROR_KEY_MAP[code] ?? 'unknown_error';
       setError(t(key));
     }
   }

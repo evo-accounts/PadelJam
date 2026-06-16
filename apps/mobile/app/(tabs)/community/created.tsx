@@ -4,7 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@padel/auth';
@@ -79,7 +79,7 @@ export default function CommunityCreatedScreen() {
   };
 
   const onQr = () => {
-    Alert.alert(t('qrCode'), t('comingSoon'));
+    router.push(`/community/${id}/qr` as never);
   };
 
   const onManage = () => {
