@@ -2348,7 +2348,12 @@ export type Database = {
           community_id: string
           community_name: string
           member_count: number
+          is_managing: boolean
         }[]
+      }
+      add_group_admins: {
+        Args: { p_group_id: string; p_user_ids: string[] }
+        Returns: undefined
       }
       get_player_profile: {
         Args: { p_target: string }
