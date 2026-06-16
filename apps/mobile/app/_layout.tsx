@@ -109,7 +109,8 @@ type Target = '(tabs)' | 'welcome' | 'sign-in' | OnboardingRoute;
  * Splash boot routing (Requirements §03):
  * - waits at least SPLASH_MIN_MS, at most SPLASH_MAX_MS
  * - reads the session; if a user exists, checks profiles.onboarded_at
- * - routes: authed+onboarded -> (tabs); authed+not-onboarded -> (onboarding);
+ * - routes: authed+onboarded -> (tabs); authed+not-onboarded -> the first unanswered
+ *   onboarding step (location -> hand -> side -> jammer-plus);
  *   unauthenticated+first-install -> (auth)/welcome; returning -> (auth)/sign-in
  */
 function Boot() {
