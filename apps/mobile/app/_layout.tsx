@@ -98,7 +98,12 @@ export default function RootLayout() {
   );
 }
 
-type Target = '(tabs)' | '(onboarding)' | 'welcome' | 'sign-in';
+type OnboardingRoute =
+  | '/(onboarding)/location'
+  | '/(onboarding)/hand'
+  | '/(onboarding)/side'
+  | '/(onboarding)/jammer-plus';
+type Target = '(tabs)' | 'welcome' | 'sign-in' | OnboardingRoute;
 
 /**
  * Splash boot routing (Requirements §03):
@@ -122,12 +127,15 @@ function Boot() {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('onboarded_at')
+          .select('onboarded_at, location_text, dominant_hand, court_side')
           .eq('id', session.user.id)
           .maybeSingle();
         if (profile?.onboarded_at) return '(tabs)';
-        // Authed but no profile row yet OR not onboarded -> onboarding skeleton.
-        return '(onboarding)';
+        // Not onboarded (or no profile row yet) -> resume at the first unanswered step.
+        if (!profile?.location_text) return '/(onboarding)/location';
+        if (!profile?.dominant_hand) return '/(onboarding)/hand';
+        if (!profile?.court_side) return '/(onboarding)/side';
+        return '/(onboarding)/jammer-plus';
       }
 
       const seen = await AsyncStorage.getItem(HAS_SEEN_WELCOME);
@@ -155,9 +163,9 @@ function Boot() {
       if (cancelled) return;
 
       if (target === '(tabs)') router.replace('/(tabs)');
-      else if (target === '(onboarding)') router.replace('/(onboarding)/location');
       else if (target === 'welcome') router.replace('/(auth)/welcome');
-      else router.replace('/(auth)/sign-in');
+      else if (target === 'sign-in') router.replace('/(auth)/sign-in');
+      else router.replace(target); // target is an OnboardingRoute string
 
       setReady(true);
       SplashScreen.hideAsync().catch(() => {
