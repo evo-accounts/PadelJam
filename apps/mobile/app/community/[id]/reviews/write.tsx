@@ -1,4 +1,3 @@
-// TODO(events): gate writing on >=3 participated events once the Events module exists
 import { reviewSchema, useCommunityReviews, useUpsertReview } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';

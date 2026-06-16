@@ -53,3 +53,12 @@ create policy "reviews: write" on community_reviews for insert
     and is_community_member(community_id)
     and can_review_community(community_id)
   );
+
+-- The pre-existing UPDATE policy only checked ownership, leaving a direct-PostgREST
+-- write surface parallel to the RPC. The >=3 gate lives at INSERT (creating the first
+-- review), so editing only needs to stay scoped to current members of the community
+-- (matches the RPC's is_community_member check; preserves "existing reviewers may edit").
+drop policy "reviews: edit" on community_reviews;
+create policy "reviews: edit" on community_reviews for update
+  using (user_id = auth.uid() and is_community_member(community_id))
+  with check (user_id = auth.uid() and is_community_member(community_id));

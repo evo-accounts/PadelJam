@@ -4,16 +4,19 @@
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
   ('e0000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','rev-u1@x.com'),
-  ('e0000002-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','rev-u2@x.com') on conflict do nothing;
+  ('e0000002-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','rev-u2@x.com'),
+  ('e0000003-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated','rev-u3@x.com') on conflict do nothing;
 insert into profiles (id, email, phone, full_name) values
   ('e0000001-0000-0000-0000-000000000001','rev-u1@x.com','+351900200001','RevReviewer'),
-  ('e0000002-0000-0000-0000-000000000002','rev-u2@x.com','+351900200002','RevNonMember') on conflict do nothing;
+  ('e0000002-0000-0000-0000-000000000002','rev-u2@x.com','+351900200002','RevNonMember'),
+  ('e0000003-0000-0000-0000-000000000003','rev-u3@x.com','+351900200003','RevMemberNoEvents') on conflict do nothing;
 
 do $$
 declare
   cid uuid;
   gid uuid;
   u1  uuid := 'e0000001-0000-0000-0000-000000000001';
+  u3  uuid := 'e0000003-0000-0000-0000-000000000003';
   n   integer;
 begin
   -- U1 creates the community (becomes owner + member).
@@ -116,6 +119,22 @@ begin
       end if;
   end;
   raise notice 'OK non-member: upsert blocked with not_a_member';
+
+  -- ---- Step 7: tightened RLS closes the direct-INSERT path ----
+  -- U3 is a community member with ZERO completed events. A bare PostgREST-style
+  -- insert (no RPC) must be rejected by the "reviews: write" policy (can_review_community false).
+  perform set_config('role','postgres',true);
+  insert into community_members (community_id, user_id, role) values (cid, u3, 'member') on conflict do nothing;
+  perform set_config('role','authenticated',true);
+  perform set_config('request.jwt.claims','{"sub":"e0000003-0000-0000-0000-000000000003","role":"authenticated"}',true);
+  begin
+    insert into community_reviews (community_id, user_id, rating, body) values (cid, u3, 5, 'sneaky');
+    raise exception using errcode='PT001', message='direct insert by an ineligible member should be blocked by RLS';
+  exception
+    when sqlstate 'PT001' then raise;
+    when insufficient_privilege then null;  -- expected: RLS row-level policy violation (42501)
+  end;
+  raise notice 'OK rls: direct review insert blocked for member with <3 completed events';
 
   raise notice 'OK community_review_gate';
 end $$;
