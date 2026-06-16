@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useReducer, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -33,6 +34,7 @@ export default function OtpScreen() {
   const [error, setError] = useState<string | null>(null);
   const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
   const [now, setNow] = useState(Date.now());
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // Mark the initial send (sign-in already triggered the first OTP) so the
   // resend cooldown starts ticking on mount.
@@ -101,11 +103,6 @@ export default function OtpScreen() {
     }
   };
 
-  const tryAnotherWay = () => {
-    dispatch({ type: 'reset' });
-    router.replace('/(auth)/sign-in');
-  };
-
   return (
     <View style={[styles.container, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
       <Text style={styles.title}>{t('otpTitle')}</Text>
@@ -147,9 +144,30 @@ export default function OtpScreen() {
         </Text>
       </Pressable>
 
-      <Pressable style={styles.linkButton} onPress={tryAnotherWay} accessibilityRole="button">
+      <Pressable style={styles.linkButton} onPress={() => setSheetOpen(true)} accessibilityRole="button">
         <Text style={styles.link}>{t('tryAnotherWay')}</Text>
       </Pressable>
+
+      <Modal visible={sheetOpen} transparent animationType="fade" onRequestClose={() => setSheetOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setSheetOpen(false)}>
+          <View style={styles.sheet}>
+            <Pressable
+              style={styles.sheetRow}
+              onPress={() => { setSheetOpen(false); router.push('/(auth)/password' as never); }}
+              accessibilityRole="button"
+            >
+              <Text style={styles.sheetText}>{t('usePassword')}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.sheetRow}
+              onPress={() => { setSheetOpen(false); dispatch({ type: 'reset' }); router.replace('/(auth)/sign-in'); }}
+              accessibilityRole="button"
+            >
+              <Text style={styles.sheetText}>{t('useDifferentId')}</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -177,4 +195,8 @@ const styles = StyleSheet.create({
   linkButton: { paddingVertical: 14, alignItems: 'center' },
   link: { color: '#0B1F3A', fontSize: 15, fontWeight: '600' },
   linkMuted: { color: '#999' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 8 },
+  sheetRow: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
+  sheetText: { fontSize: 16, color: '#0B1F3A', fontWeight: '600' },
 });
