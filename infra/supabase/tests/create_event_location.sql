@@ -8,10 +8,11 @@ insert into profiles (id, email, phone, full_name) values
 
 do $$
 declare o constant uuid := 'fb000001-0000-0000-0000-000000000001';
-  v_tenant uuid; v_comm uuid; v_group uuid; v_event uuid; v_pt geography; v_cnt int;
+  v_tenant uuid; v_comm uuid; v_group uuid; v_event uuid; v_event2 uuid; v_venue uuid;
+  v_pt geography; v_cnt int; v_manual text;
 begin
   -- seed a venue to prove search_venues
-  insert into venues (name, address, created_by) values ('Padel Central Lisboa', 'Av. Test 1', o);
+  insert into venues (name, address, created_by) values ('Padel Central Lisboa', 'Av. Test 1', o) returning id into v_venue;
   insert into tenants (type, name, country) values ('community','CE Tenant','PT') returning id into v_tenant;
   insert into communities (tenant_id, name, type, privacy) values (v_tenant,'CE Community','club','public') returning id into v_comm;
   insert into community_members (community_id, user_id, role) values (v_comm, o, 'owner');
@@ -36,6 +37,18 @@ begin
   ));
   select location_point into v_pt from events where id = v_event;
   if v_pt is null then raise exception using errcode='PT001', message='location_point not set'; end if;
+
+  -- venue-pick path: venue_id set, NO manual_location_name (what the fixed client payload sends).
+  -- Must satisfy events_venue_xor_manual (regression for the venue+manual double-set bug).
+  v_event2 := create_event(jsonb_build_object(
+    'group_id', v_group::text, 'event_type','americano', 'specification','mixed',
+    'scoring_mode','points', 'scoring_value','24', 'num_courts','2',
+    'starts_at', (now() + interval '1 day')::text, 'duration_minutes','90',
+    'is_private', false, 'organizer_role','organizing_and_playing', 'name','CE Venue Event',
+    'venue_id', v_venue::text, 'has_location', true, 'location_text','Padel Central Lisboa'
+  ));
+  select manual_location_name into v_manual from events where id = v_event2;
+  if v_manual is not null then raise exception using errcode='PT001', message='venue event has manual_location_name set'; end if;
 
   raise notice 'OK create_event_location';
 end $$;

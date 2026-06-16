@@ -10,6 +10,7 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
   const [venueQuery, setVenueQuery] = useState('');
   const [locating, setLocating] = useState(false);
+  const [denied, setDenied] = useState(false);
   const venues = useSearchVenues(venueQuery);
 
   const pickVenue = (id: string, name: string) =>
@@ -25,9 +26,13 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
   const useMyLocation = async () => {
     if (locating) return;
     setLocating(true);
+    setDenied(false);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      if (status !== 'granted') {
+        setDenied(true);
+        return;
+      }
       const pos = await Location.getCurrentPositionAsync({});
       const [place] = await Location.reverseGeocodeAsync({
         latitude: pos.coords.latitude,
@@ -119,6 +124,7 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         <Text style={styles.locBtnText}>{locating ? t('locating') : t('useMyLocation')}</Text>
       </Pressable>
       {draft.locationLat != null ? <Text style={styles.coords}>✓ {draft.locationLat.toFixed(4)}, {draft.locationLng?.toFixed(4)}</Text> : null}
+      {denied ? <Text style={styles.denied}>{t('locationDenied')}</Text> : null}
     </View>
   );
 }
@@ -129,6 +135,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: '#0B1F3A', marginTop: 8 },
   input: { borderWidth: 1, borderColor: '#D7DEE6', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff' },
   empty: { color: '#6B7685', fontSize: 13, paddingVertical: 8 },
+  denied: { color: '#D7263D', fontSize: 12, marginTop: 6, textAlign: 'center' },
   venueRow: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginTop: 6, borderWidth: 1, borderColor: '#E2E8F0' },
   venueRowOn: { borderColor: '#0B7BFF', backgroundColor: '#EAF2FF' },
   venueName: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
