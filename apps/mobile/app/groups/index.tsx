@@ -2,17 +2,32 @@ import { useMyGroups, type MyGroup } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { Stack, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function YourGroupsScreen() {
   const { t } = useT('home');
   const router = useRouter();
   const groups = useMyGroups();
-  const rows = groups.data ?? [];
+  const [tab, setTab] = useState<'all' | 'managing' | 'participating'>('all');
+  const all = groups.data ?? [];
+  const rows =
+    tab === 'managing' ? all.filter((g) => g.is_managing)
+    : tab === 'participating' ? all.filter((g) => !g.is_managing)
+    : all;
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: t('yourGroups') }} />
+      <View style={styles.tabs}>
+        {(['all', 'managing', 'participating'] as const).map((k) => (
+          <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabActive]} accessibilityRole="button">
+            <Text style={[styles.tabText, tab === k && styles.tabTextActive]}>
+              {t(k === 'all' ? 'tabAll' : k === 'managing' ? 'tabManaging' : 'tabParticipating')}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
       {groups.isLoading ? (
         <ActivityIndicator color="#0B1F3A" style={{ marginTop: 32 }} />
       ) : groups.isError ? (
@@ -44,6 +59,11 @@ export default function YourGroupsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F9FC' },
+  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: '#0B7BFF' },
+  tabText: { fontSize: 14, color: '#6B7685', fontWeight: '600' },
+  tabTextActive: { color: '#0B7BFF', fontWeight: '700' },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#fff', marginHorizontal: 12, marginTop: 8, borderRadius: 12, padding: 14,
