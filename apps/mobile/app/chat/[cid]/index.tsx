@@ -1,7 +1,7 @@
 import { useT } from '@padel/i18n';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import type { Channel as ChannelType } from 'stream-chat';
 // NOTE (reconciled against stream-chat-expo 9.3.1): the input component is MessageComposer,
 // not MessageInput (MessageInput is not exported in 9.x).
@@ -12,6 +12,7 @@ import { streamClient } from '@/lib/streamClient';
 export default function ConversationScreen() {
   const { t } = useT('chat');
   const { cid } = useLocalSearchParams<{ cid: string }>();
+  const router = useRouter();
   const [channel, setChannel] = useState<ChannelType | null>(null);
 
   useEffect(() => {
@@ -49,7 +50,15 @@ export default function ConversationScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Screen options={{ title }} />
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <Pressable onPress={() => router.push(('/chat/' + cid + '/details') as never)} accessibilityRole="button">
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#0B1F3A' }}>{title}</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <Channel channel={channel}>
         <MessageList />
         <MessageComposer />
