@@ -2630,6 +2630,10 @@ export type Database = {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
       }
+      search_venues: {
+        Args: { p_query: string }
+        Returns: { id: string; name: string; address: string | null }[]
+      }
       st_3dmaxdistance: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: number
