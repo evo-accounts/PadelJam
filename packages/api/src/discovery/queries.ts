@@ -51,7 +51,7 @@ export const useExploreEvents = () => {
     queryFn: async () => {
       const { data, error } = await db.rpc('explore_events', { p_limit: RAIL_LIMIT, p_offset: 0 });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((r) => ({ ...r.event, distance_m: r.distance_m }));
     },
   });
 };
@@ -123,7 +123,7 @@ export const useExploreEventsList = () => {
         p_offset: offset as number,
       });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((r) => ({ ...r.event, distance_m: r.distance_m }));
     },
     getNextPageParam: nextOffset,
   });
