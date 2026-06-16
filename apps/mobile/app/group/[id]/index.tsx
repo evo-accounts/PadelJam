@@ -1,4 +1,5 @@
 import {
+  useAddGroupAdmins,
   useCommunity,
   useCommunityMembers,
   useGroup,
@@ -13,9 +14,11 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   Share,
@@ -52,8 +55,31 @@ export default function GroupHomeScreen() {
   const { data: community } = useCommunity(communityId ?? '');
   const { data: communityMembers } = useCommunityMembers(communityId ?? '');
 
+  const [period, setPeriod] = useState<'all' | '3m' | '6m' | '12m'>('all');
+  const monthsAgoIso = (n: number) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - n);
+    return d.toISOString();
+  };
+  const since =
+    period === '3m'
+      ? monthsAgoIso(3)
+      : period === '6m'
+        ? monthsAgoIso(6)
+        : period === '12m'
+          ? monthsAgoIso(12)
+          : undefined;
+
   const currentSeasonId = (seasons ?? []).find((s) => s.ended_at == null)?.id ?? '';
-  const { data: ranking } = useGroupRanking(currentSeasonId);
+  const { data: ranking } = useGroupRanking(currentSeasonId, since);
+
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
+  const [selectedAdmins, setSelectedAdmins] = useState<string[]>([]);
+  const addAdmins = useAddGroupAdmins(id);
+  const groupMemberIds = new Set((members ?? []).map((m) => m.user_id));
+  const eligibleAdmins = (communityMembers ?? []).filter(
+    (m) => (m.role === 'owner' || m.role === 'admin') && !groupMemberIds.has(m.user_id),
+  );
 
   const leave = useLeaveGroup();
   const ensureChannel = useEnsureChannel();
@@ -67,10 +93,21 @@ export default function GroupHomeScreen() {
     }
   };
 
-  if (isLoading || !group) {
+  if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <ActivityIndicator color="#0B1F3A" />
+      </SafeAreaView>
+    );
+  }
+  if (!group) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
+        <Text style={styles.noAccessTitle}>{t('noAccessTitle')}</Text>
+        <Text style={styles.noAccessBody}>{t('noAccessBody')}</Text>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" style={styles.noAccessBtn}>
+          <Text style={styles.noAccessBtnText}>{t('back')}</Text>
+        </Pressable>
       </SafeAreaView>
     );
   }
@@ -105,7 +142,12 @@ export default function GroupHomeScreen() {
             await leave.mutateAsync({ groupId: id, communityId });
             router.back();
           } catch (e) {
-            err(e);
+            if (e instanceof Error && e.message === 'sole_admin_must_add_another') {
+              setSelectedAdmins([]);
+              setAddAdminOpen(true);
+            } else {
+              err(e);
+            }
           }
         },
       },
@@ -234,6 +276,28 @@ export default function GroupHomeScreen() {
         {/* Ranking */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('rankingTitle')}</Text>
+          <View style={styles.periodRow}>
+            {(['all', '3m', '6m', '12m'] as const).map((p) => (
+              <Pressable
+                key={p}
+                onPress={() => setPeriod(p)}
+                style={[styles.periodChip, period === p && styles.periodChipOn]}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.periodChipText, period === p && styles.periodChipTextOn]}>
+                  {t(
+                    p === 'all'
+                      ? 'periodAll'
+                      : p === '3m'
+                        ? 'period3m'
+                        : p === '6m'
+                          ? 'period6m'
+                          : 'period12m',
+                  )}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
           <RankingList rows={ranking ?? []} />
         </View>
 
@@ -262,6 +326,59 @@ export default function GroupHomeScreen() {
 
         {community ? <View style={styles.spacer} /> : null}
       </ScrollView>
+
+      <Modal
+        visible={addAdminOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAddAdminOpen(false)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setAddAdminOpen(false)}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>{t('addAdminTitle')}</Text>
+            <Text style={styles.sheetBody}>{t('addAdminBody')}</Text>
+            {eligibleAdmins.length === 0 ? (
+              <Text style={styles.sheetEmpty}>{t('noEligibleAdmins')}</Text>
+            ) : (
+              eligibleAdmins.map((m) => (
+                <Pressable
+                  key={m.user_id}
+                  style={styles.adminRow}
+                  onPress={() =>
+                    setSelectedAdmins((s) =>
+                      s.includes(m.user_id) ? s.filter((x) => x !== m.user_id) : [...s, m.user_id],
+                    )
+                  }
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.adminName}>{m.profiles?.full_name ?? '—'}</Text>
+                  <Text>{selectedAdmins.includes(m.user_id) ? '✓' : ''}</Text>
+                </Pressable>
+              ))
+            )}
+            <Pressable
+              style={[
+                styles.addBtn,
+                (selectedAdmins.length === 0 || addAdmins.isPending) && { opacity: 0.5 },
+              ]}
+              disabled={selectedAdmins.length === 0 || addAdmins.isPending}
+              onPress={async () => {
+                try {
+                  await addAdmins.mutateAsync(selectedAdmins);
+                  setAddAdminOpen(false);
+                  if (communityId) await leave.mutateAsync({ groupId: id, communityId });
+                  router.back();
+                } catch (e2) {
+                  err(e2);
+                }
+              }}
+              accessibilityRole="button"
+            >
+              <Text style={styles.addBtnText}>{t('addAdminCta')}</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -313,4 +430,40 @@ const styles = StyleSheet.create({
   seasonRowText: { fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
   chevron: { fontSize: 22, color: '#C2CAD6' },
   spacer: { height: 8 },
+  noAccessTitle: { fontSize: 20, fontWeight: '800', color: '#0B1F3A', marginBottom: 8 },
+  noAccessBody: { fontSize: 14, color: '#6B7685', textAlign: 'center', paddingHorizontal: 32 },
+  noAccessBtn: {
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: '#0B7BFF',
+    borderRadius: 12,
+  },
+  noAccessBtnText: { color: '#fff', fontWeight: '700' },
+  periodRow: { flexDirection: 'row', gap: 8, marginBottom: 8, marginTop: 12, flexWrap: 'wrap' },
+  periodChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#EEF1F5' },
+  periodChipOn: { backgroundColor: '#0B7BFF' },
+  periodChipText: { fontSize: 12, color: '#3A4A5E', fontWeight: '600' },
+  periodChipTextOn: { color: '#fff' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center' },
+  sheet: { backgroundColor: '#fff', borderRadius: 14, margin: 24, padding: 20, gap: 8 },
+  sheetTitle: { fontSize: 16, fontWeight: '800', color: '#0B1F3A' },
+  sheetBody: { fontSize: 13, color: '#3A4A5E' },
+  sheetEmpty: { fontSize: 13, color: '#6B7685', paddingVertical: 8 },
+  adminRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E2E8F0',
+  },
+  adminName: { fontSize: 15, color: '#0B1F3A' },
+  addBtn: {
+    backgroundColor: '#0B7BFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  addBtnText: { color: '#fff', fontWeight: '700' },
 });
