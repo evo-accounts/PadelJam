@@ -960,6 +960,13 @@ const mobileEvent = {
     locationAddressLabel: 'Address',
     locationAddressPlaceholder: 'Street address or area',
     skipLocation: 'Skip for now',
+    searchVenueLabel: 'Search a venue',
+    searchVenuePlaceholder: 'Venue name',
+    venueResultsEmpty: 'No venues found.',
+    useMyLocation: 'Use my location',
+    locating: 'Getting your location…',
+    locationDenied: 'Location permission denied — enter it manually.',
+    orEnterManually: 'Or enter a location manually',
 
     // --- Step 6: courts ---
     step6Title: 'Courts',

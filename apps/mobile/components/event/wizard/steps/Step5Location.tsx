@@ -1,82 +1,139 @@
+import { useSearchVenues } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as Location from 'expo-location';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { WizardStepProps } from '../draft';
 
 export function Step5Location({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
+  const [venueQuery, setVenueQuery] = useState('');
+  const [locating, setLocating] = useState(false);
+  const venues = useSearchVenues(venueQuery);
+
+  const pickVenue = (id: string, name: string) =>
+    patch({
+      venueId: id,
+      manualLocationName: name,
+      manualLocationAddress: undefined,
+      locationLat: undefined,
+      locationLng: undefined,
+      hasLocation: true,
+    });
+
+  const useMyLocation = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({});
+      const [place] = await Location.reverseGeocodeAsync({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+      const label = [place?.name, place?.city ?? place?.subregion, place?.region]
+        .filter(Boolean)
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .join(', ');
+      patch({
+        venueId: undefined,
+        manualLocationName: label || draft.manualLocationName,
+        locationLat: pos.coords.latitude,
+        locationLng: pos.coords.longitude,
+        hasLocation: true,
+      });
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const setManualName = (text: string) =>
+    patch({
+      venueId: undefined,
+      manualLocationName: text,
+      hasLocation: text.trim().length > 0 || (draft.manualLocationAddress ?? '').trim().length > 0,
+    });
+  const setManualAddress = (text: string) =>
+    patch({
+      venueId: undefined,
+      manualLocationAddress: text,
+      hasLocation: (draft.manualLocationName ?? '').trim().length > 0 || text.trim().length > 0,
+    });
+
+  const results = venues.data ?? [];
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t('step5Title')}</Text>
 
-      <View style={styles.field}>
-        <Text style={styles.label}>{t('locationNameLabel')}</Text>
-        <TextInput
-          style={styles.input}
-          value={draft.manualLocationName ?? ''}
-          onChangeText={(text) =>
-            patch({
-              manualLocationName: text,
-              hasLocation:
-                text.trim().length > 0 || (draft.manualLocationAddress ?? '').trim().length > 0,
-            })
-          }
-          placeholder={t('locationNamePlaceholder')}
-          placeholderTextColor="#9AA4B2"
-          accessibilityLabel={t('locationNameLabel')}
-        />
-      </View>
+      <Text style={styles.label}>{t('searchVenueLabel')}</Text>
+      <TextInput
+        style={styles.input}
+        value={venueQuery}
+        onChangeText={setVenueQuery}
+        placeholder={t('searchVenuePlaceholder')}
+        placeholderTextColor="#9AA4B2"
+        autoCapitalize="none"
+      />
+      {venueQuery.trim().length > 0 ? (
+        venues.isLoading ? (
+          <ActivityIndicator color="#0B1F3A" style={{ marginTop: 8 }} />
+        ) : results.length === 0 ? (
+          <Text style={styles.empty}>{t('venueResultsEmpty')}</Text>
+        ) : (
+          results.map((v: { id: string; name: string }) => (
+            <Pressable
+              key={v.id}
+              style={[styles.venueRow, draft.venueId === v.id && styles.venueRowOn]}
+              onPress={() => pickVenue(v.id, v.name)}
+              accessibilityRole="button"
+            >
+              <Text style={styles.venueName}>{v.name}</Text>
+            </Pressable>
+          ))
+        )
+      ) : null}
 
-      <View style={styles.field}>
-        <Text style={styles.label}>{t('locationAddressLabel')}</Text>
-        <TextInput
-          style={styles.input}
-          value={draft.manualLocationAddress ?? ''}
-          onChangeText={(text) =>
-            patch({
-              manualLocationAddress: text,
-              hasLocation:
-                (draft.manualLocationName ?? '').trim().length > 0 || text.trim().length > 0,
-            })
-          }
-          placeholder={t('locationAddressPlaceholder')}
-          placeholderTextColor="#9AA4B2"
-          accessibilityLabel={t('locationAddressLabel')}
-        />
-      </View>
+      <Text style={styles.or}>{t('orEnterManually')}</Text>
 
-      <Pressable
-        onPress={() =>
-          patch({
-            manualLocationName: undefined,
-            manualLocationAddress: undefined,
-            hasLocation: false,
-          })
-        }
-        accessibilityRole="button"
-        hitSlop={8}
-      >
-        <Text style={styles.skip}>{t('skipLocation')}</Text>
+      <Text style={styles.label}>{t('locationNameLabel')}</Text>
+      <TextInput
+        style={styles.input}
+        value={draft.manualLocationName ?? ''}
+        onChangeText={setManualName}
+        placeholder={t('locationNamePlaceholder')}
+        placeholderTextColor="#9AA4B2"
+      />
+      <Text style={styles.label}>{t('locationAddressLabel')}</Text>
+      <TextInput
+        style={styles.input}
+        value={draft.manualLocationAddress ?? ''}
+        onChangeText={setManualAddress}
+        placeholder={t('locationAddressPlaceholder')}
+        placeholderTextColor="#9AA4B2"
+      />
+
+      <Pressable style={styles.locBtn} onPress={useMyLocation} disabled={locating} accessibilityRole="button">
+        <Text style={styles.locBtnText}>{locating ? t('locating') : t('useMyLocation')}</Text>
       </Pressable>
+      {draft.locationLat != null ? <Text style={styles.coords}>✓ {draft.locationLat.toFixed(4)}, {draft.locationLng?.toFixed(4)}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 16 },
-  title: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
-  field: { gap: 8 },
-  label: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E6EAF0',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#0B1F3A',
-    backgroundColor: '#fff',
-  },
-  skip: { fontSize: 15, fontWeight: '600', color: '#0B7BFF' },
+  container: { gap: 8 },
+  title: { fontSize: 20, fontWeight: '800', color: '#0B1F3A', marginBottom: 4 },
+  label: { fontSize: 13, fontWeight: '600', color: '#0B1F3A', marginTop: 8 },
+  input: { borderWidth: 1, borderColor: '#D7DEE6', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff' },
+  empty: { color: '#6B7685', fontSize: 13, paddingVertical: 8 },
+  venueRow: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginTop: 6, borderWidth: 1, borderColor: '#E2E8F0' },
+  venueRowOn: { borderColor: '#0B7BFF', backgroundColor: '#EAF2FF' },
+  venueName: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
+  or: { textAlign: 'center', color: '#6B7685', fontSize: 13, marginVertical: 12 },
+  locBtn: { backgroundColor: '#EAF2FF', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
+  locBtnText: { color: '#0B7BFF', fontWeight: '700', fontSize: 15 },
+  coords: { color: '#1F9D55', fontSize: 12, marginTop: 6, textAlign: 'center' },
 });
