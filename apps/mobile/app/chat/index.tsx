@@ -1,16 +1,26 @@
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Stack, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ChannelList } from 'stream-chat-expo';
 import type { Channel } from 'stream-chat';
+import { ChannelList } from 'stream-chat-expo';
+
+import { ChannelRow } from '@/components/chat/ChannelRow';
+
+type Tab = 'active' | 'archived';
 
 export default function ChatListScreen() {
   const { t } = useT('chat');
   const router = useRouter();
   const uid = useSession().session?.user.id;
+  const [tab, setTab] = useState<Tab>('active');
 
   if (!uid) return null;
+
+  // stream-chat-expo 9.3.1 has no `Preview` prop; the row is overridden via the underlying
+  // FlatList's renderItem (additionalFlatListProps). It still just needs the channel + current tab.
+  const Preview = ({ item }: { item: Channel }) => <ChannelRow channel={item} tab={tab} />;
 
   return (
     <View style={styles.container}>
@@ -24,10 +34,18 @@ export default function ChatListScreen() {
           ),
         }}
       />
+      <View style={styles.tabs}>
+        {(['active', 'archived'] as const).map((k) => (
+          <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabActive]} accessibilityRole="button">
+            <Text style={[styles.tabText, tab === k && styles.tabTextActive]}>{t(k === 'active' ? 'tabActive' : 'tabArchived')}</Text>
+          </Pressable>
+        ))}
+      </View>
       <ChannelList
-        filters={{ members: { $in: [uid] } }}
+        key={tab}
+        filters={{ members: { $in: [uid] }, archived: tab === 'archived' }}
         sort={{ last_message_at: -1 }}
-        onSelect={(channel: Channel) => router.push(('/chat/' + channel.cid) as never)}
+        additionalFlatListProps={{ renderItem: Preview }}
       />
     </View>
   );
@@ -36,4 +54,9 @@ export default function ChatListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   new: { color: '#0B7BFF', fontWeight: '700', fontSize: 15, paddingHorizontal: 8 },
+  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: '#0B7BFF' },
+  tabText: { fontSize: 15, color: '#6B7685', fontWeight: '600' },
+  tabTextActive: { color: '#0B7BFF', fontWeight: '700' },
 });
