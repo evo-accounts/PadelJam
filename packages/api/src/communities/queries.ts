@@ -15,6 +15,18 @@ export const useCanCreateCommunity = () => {
   });
 };
 
+export const useCanReviewCommunity = (communityId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.canReview(communityId),
+    queryFn: async () => {
+      const { data, error } = await db.rpc('can_review_community', { p_community_id: communityId });
+      if (error) throw error;
+      return data ?? false;
+    },
+  });
+};
+
 export const useCommunity = (id: string) => {
   const db = useDb();
   return useQuery({

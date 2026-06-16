@@ -17,6 +17,8 @@ const KNOWN = [
   'setup_incomplete', 'round_not_scored', 'round_exists', 'event_not_scheduled',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
   'recurring_events',
+  // community reviews: gate RPC codes the review screen translates directly
+  'invalid_rating', 'review_requires_participation',
 ] as const;
 
 /** Map a Supabase/Postgres error to a stable code the UI translates via i18n. */
