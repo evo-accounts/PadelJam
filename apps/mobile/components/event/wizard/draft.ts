@@ -24,6 +24,9 @@ export type EventDraft = {
   scoringValue: number | null;
   manualLocationName?: string;
   manualLocationAddress?: string;
+  venueId?: string;
+  locationLat?: number;
+  locationLng?: number;
   hasLocation: boolean;
   numCourts: number;
   startsAt?: string;

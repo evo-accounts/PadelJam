@@ -51,4 +51,5 @@ export const qk = {
   myProfile: (id: string) => ['profile', id, 'edit'] as const,
   mySettings: (id: string) => ['user-settings', id] as const,
   streamToken: (uid: string) => ['stream-token', uid] as const,
+  searchVenues: (q: string) => ['venues', 'search', q] as const,
 };

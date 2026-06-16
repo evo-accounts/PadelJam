@@ -283,3 +283,16 @@ export const useMyEvents = (filter: MyEventsFilter) => {
       lastPage.length < MY_EVENTS_PAGE_SIZE ? undefined : allPages.length * MY_EVENTS_PAGE_SIZE,
   });
 };
+
+export const useSearchVenues = (query: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.searchVenues(query),
+    enabled: query.trim().length > 0,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('search_venues', { p_query: query.trim() });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
