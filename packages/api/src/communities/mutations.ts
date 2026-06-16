@@ -232,24 +232,18 @@ export const useRemoveAdmin = (communityId: string) => {
 export const useUpsertReview = (communityId: string) => {
   const db = useDb();
   const qc = useQueryClient();
-  const uid = useSession().session?.user.id;
   return useMutation({
     mutationFn: async (input: { rating: number; body?: string }) => {
-      const { error } = await db
-        .from('community_reviews')
-        .upsert(
-          {
-            community_id: communityId,
-            user_id: uid!,
-            rating: input.rating,
-            body: input.body ?? null,
-          },
-          { onConflict: 'community_id,user_id' },
-        );
+      const { error } = await db.rpc('upsert_community_review', {
+        p_community_id: communityId,
+        p_rating: input.rating,
+        p_body: input.body ?? null,
+      });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.reviews(communityId) });
+      qc.invalidateQueries({ queryKey: qk.canReview(communityId) });
     },
   });
 };

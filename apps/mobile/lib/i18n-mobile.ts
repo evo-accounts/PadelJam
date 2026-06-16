@@ -380,6 +380,12 @@ const mobileCommunity = {
     reviewsSortHighest: 'Melhor classificadas',
     reviewsSortLowest: 'Pior classificadas',
     reviewsFilterAll: 'Todas',
+    reviewsGateBody: 'Participe em 3 eventos concluídos nesta comunidade para deixar uma avaliação.',
+    review_requires_participation:
+      'Participe em 3 eventos concluídos nesta comunidade para deixar uma avaliação.',
+    not_a_member: 'Junte-se a esta comunidade para deixar uma avaliação.',
+    qrTitle: 'Digitalize para abrir esta comunidade',
+    qrBody: 'Aponte a câmara para o código ou partilhe o link abaixo.',
   },
   'pt-BR': {
     createTitle: 'Criar comunidade',
@@ -583,6 +589,12 @@ const mobileCommunity = {
     reviewsSortHighest: 'Melhor avaliadas',
     reviewsSortLowest: 'Pior avaliadas',
     reviewsFilterAll: 'Todas',
+    reviewsGateBody: 'Participe de 3 eventos concluídos nesta comunidade para deixar uma avaliação.',
+    review_requires_participation:
+      'Participe de 3 eventos concluídos nesta comunidade para deixar uma avaliação.',
+    not_a_member: 'Junte-se a esta comunidade para deixar uma avaliação.',
+    qrTitle: 'Digitalize para abrir esta comunidade',
+    qrBody: 'Aponte a câmera para o código ou compartilhe o link abaixo.',
   },
   en: {
     createTitle: 'Create community',
@@ -783,6 +795,11 @@ const mobileCommunity = {
     reviewsSortHighest: 'Highest rated',
     reviewsSortLowest: 'Lowest rated',
     reviewsFilterAll: 'All',
+    reviewsGateBody: 'Play 3 completed events in this community to leave a review.',
+    review_requires_participation: 'Play 3 completed events in this community to leave a review.',
+    not_a_member: 'Join this community to leave a review.',
+    qrTitle: 'Scan to open this community',
+    qrBody: 'Point a camera at the code, or share the link below.',
   },
 } as const;
 

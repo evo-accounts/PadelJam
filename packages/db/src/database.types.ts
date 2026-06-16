@@ -2137,6 +2137,7 @@ export type Database = {
       can_create_event: { Args: { p_group_id: string }; Returns: boolean }
       can_create_group: { Args: { p_community_id: string }; Returns: boolean }
       can_create_post: { Args: { c: string }; Returns: boolean }
+      can_review_community: { Args: { p_community_id: string }; Returns: boolean }
       chat_channel_spec: {
         Args: { p_kind: string; p_id: string }
         Returns: { name: string; member_ids: string[] }[]
@@ -3241,6 +3242,10 @@ export type Database = {
           table_name: string
         }
         Returns: string
+      }
+      upsert_community_review: {
+        Args: { p_community_id: string; p_rating: number; p_body: string | null }
+        Returns: undefined
       }
     }
     Enums: {

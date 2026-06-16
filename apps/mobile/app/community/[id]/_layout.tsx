@@ -1,3 +1,4 @@
+import { useT } from '@padel/i18n';
 import { Stack } from 'expo-router';
 
 /**
@@ -6,12 +7,14 @@ import { Stack } from 'expo-router';
  * without losing the tabs underneath.
  */
 export default function CommunityIdLayout() {
+  const { t } = useT('community');
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(home)" />
       <Stack.Screen name="join" options={{ presentation: 'modal' }} />
       <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
       <Stack.Screen name="group-create" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="qr" options={{ presentation: 'modal', title: t('qrCode') }} />
       <Stack.Screen name="post/[postId]" />
       <Stack.Screen name="manage" />
       <Stack.Screen name="reviews" />

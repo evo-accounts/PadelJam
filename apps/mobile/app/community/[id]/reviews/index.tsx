@@ -1,4 +1,4 @@
-import { useCommunityReviews } from '@padel/api';
+import { useCanReviewCommunity, useCommunityReviews } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
@@ -28,6 +28,11 @@ export default function ReviewsScreen() {
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>(0);
 
   const myReview = reviews.find((r) => r.user_id === uid);
+
+  const { data: canReview } = useCanReviewCommunity(id);
+  // Existing reviewers can always edit; treat a still-loading `canReview` as not
+  // yet allowed so the write button doesn't flash in for non-eligible users.
+  const canWrite = (canReview ?? false) || !!myReview;
 
   const filtered = useMemo<ReviewRow[]>(() => {
     let list = reviews as ReviewRow[];
@@ -82,16 +87,20 @@ export default function ReviewsScreen() {
         )}
       </View>
 
-      {/* Write / Edit button */}
-      <Pressable
-        style={styles.writeBtn}
-        accessibilityRole="button"
-        onPress={() => router.push(`/community/${id}/reviews/write`)}
-      >
-        <Text style={styles.writeBtnText}>
-          {myReview ? t('reviewsEditCta') : t('reviewsWriteCta')}
-        </Text>
-      </Pressable>
+      {/* Write / Edit button (gated on participation; existing reviewers can edit) */}
+      {canWrite ? (
+        <Pressable
+          style={styles.writeBtn}
+          accessibilityRole="button"
+          onPress={() => router.push(`/community/${id}/reviews/write`)}
+        >
+          <Text style={styles.writeBtnText}>
+            {myReview ? t('reviewsEditCta') : t('reviewsWriteCta')}
+          </Text>
+        </Pressable>
+      ) : (
+        <Text style={styles.gateNotice}>{t('reviewsGateBody')}</Text>
+      )}
 
       {/* Sort controls */}
       <View style={styles.controlsRow}>
@@ -168,6 +177,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   writeBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  gateNotice: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#8A95A5',
+    textAlign: 'center',
+  },
   controlsRow: { paddingBottom: 4 },
   chips: { paddingHorizontal: 16, gap: 8, flexDirection: 'row' },
   chip: {
