@@ -2312,6 +2312,8 @@ export type Database = {
           has_location: boolean
           id: string
           is_private: boolean
+          location_point: string | null
+          location_text: string | null
           manual_location_address: string | null
           manual_location_name: string | null
           name: string
