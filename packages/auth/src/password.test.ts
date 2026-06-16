@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { changePassword } from './password';
+import { changePassword, signInWithPassword, setPassword } from './password';
 import type { TypedClient } from '@padel/db';
 
 const makeClient = (signInErr: unknown, updateErr: unknown) => {
@@ -29,4 +29,25 @@ describe('changePassword', () => {
     const r = await changePassword(client, 'a@x.com', 'old', 'newpassword');
     expect(r).toEqual({ ok: false, reason: 'update_failed' });
   });
+});
+
+it('signInWithPassword uses email for email kind', async () => {
+  const signIn = vi.fn().mockResolvedValue({ data: {}, error: null });
+  const c = { auth: { signInWithPassword: signIn } } as unknown as TypedClient;
+  await signInWithPassword(c, 'a@x.com', 'email', 'pw12345678');
+  expect(signIn).toHaveBeenCalledWith({ email: 'a@x.com', password: 'pw12345678' });
+});
+
+it('signInWithPassword uses phone for phone kind', async () => {
+  const signIn = vi.fn().mockResolvedValue({ data: {}, error: null });
+  const c = { auth: { signInWithPassword: signIn } } as unknown as TypedClient;
+  await signInWithPassword(c, '+351900000001', 'phone', 'pw12345678');
+  expect(signIn).toHaveBeenCalledWith({ phone: '+351900000001', password: 'pw12345678' });
+});
+
+it('setPassword calls updateUser with the new password', async () => {
+  const updateUser = vi.fn().mockResolvedValue({ data: {}, error: null });
+  const c = { auth: { updateUser } } as unknown as TypedClient;
+  await setPassword(c, 'newpw12345');
+  expect(updateUser).toHaveBeenCalledWith({ password: 'newpw12345' });
 });

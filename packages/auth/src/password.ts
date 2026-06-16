@@ -20,3 +20,17 @@ export const changePassword = async (
   if (updateErr) return { ok: false, reason: 'update_failed' };
   return { ok: true };
 };
+
+// Password sign-in with an email or phone identifier (the one entered on the identifier screen).
+export const signInWithPassword = (
+  c: TypedClient,
+  identifier: string,
+  kind: 'email' | 'phone',
+  password: string,
+) =>
+  c.auth.signInWithPassword(
+    kind === 'phone' ? { phone: identifier, password } : { email: identifier, password },
+  );
+
+// Set a new password for the currently-authenticated user (used after a recovery OTP login).
+export const setPassword = (c: TypedClient, password: string) => c.auth.updateUser({ password });
