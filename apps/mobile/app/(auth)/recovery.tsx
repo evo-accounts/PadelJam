@@ -33,11 +33,15 @@ export default function RecoveryScreen() {
   const [otp, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
   const [now, setNow] = useState(Date.now());
 
-  // Auto-send the recovery code to the entered identifier on mount.
+  // Auto-send the recovery code to the entered identifier on mount. The OTP helpers resolve with
+  // { error } (they don't throw on a Supabase-level failure), so inspect it and surface a real error.
   useEffect(() => {
     (kind === 'phone' ? startPhoneOtp(supabase, identifier) : startEmailOtp(supabase, identifier))
-      .then(() => dispatch({ type: 'sent', at: Date.now() }))
-      .catch(() => setError(t('recoveryCodeSent')));
+      .then(({ error: sendErr }) => {
+        if (sendErr) setError(sendErr.message);
+        else dispatch({ type: 'sent', at: Date.now() });
+      })
+      .catch(() => setError(t('locked')));
   }, [identifier, kind, t]);
 
   useEffect(() => {

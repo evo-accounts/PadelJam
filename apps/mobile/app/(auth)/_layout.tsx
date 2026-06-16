@@ -7,6 +7,8 @@ export default function AuthLayout() {
       <Stack.Screen name="sign-in" />
       <Stack.Screen name="otp" />
       <Stack.Screen name="create-account" />
+      <Stack.Screen name="password" />
+      <Stack.Screen name="recovery" />
     </Stack>
   );
 }

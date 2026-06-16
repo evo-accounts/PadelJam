@@ -97,7 +97,7 @@ const mobileAuth = {
     passwordTitle: 'Enter your password',
     passwordPlaceholder: 'Password',
     passwordWrong: "That password doesn't match our records.",
-    passwordRateLimited: 'Too many attempts. Use Try another way or wait a few minutes.',
+    passwordRateLimited: 'Too many attempts. Go back and use Try another way.',
     forgotPassword: 'Forgot password?',
     recoveryTitle: 'Password recovery',
     recoveryCodeSent: "We've sent a verification code to {{identifier}}.",
