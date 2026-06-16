@@ -5,17 +5,22 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { detectKind, getAuthTarget } from '@/lib/auth-flow';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
+
+const TERMS_URL = 'https://padeljam.app/terms';
+const PRIVACY_URL = 'https://padeljam.app/privacy';
 
 export default function CreateAccountScreen() {
   const { t } = useT('auth');
@@ -31,12 +36,14 @@ export default function CreateAccountScreen() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
 
   const submit = async () => {
     if (busy) return;
     const name = fullName.trim();
     const secondaryValue = secondary.trim();
     if (!name || !secondaryValue || !password) return;
+    if (!agreed) return;
 
     setBusy(true);
     setError(null);
@@ -131,10 +138,22 @@ export default function CreateAccountScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
+        <Pressable style={styles.termsRow} onPress={() => setAgreed((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }}>
+          <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
+            {agreed ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <Text style={styles.termsText}>
+            {t('termsAgreePrefix')}
+            <Text style={styles.termsLink} onPress={() => void Linking.openURL(TERMS_URL)}>{t('termsLink')}</Text>
+            {t('termsAnd')}
+            <Text style={styles.termsLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>{t('privacyLink')}</Text>
+          </Text>
+        </Pressable>
+
         <Pressable
-          style={[styles.button, busy && styles.buttonDisabled]}
+          style={[styles.button, (busy || !agreed) && styles.buttonDisabled]}
           onPress={submit}
-          disabled={busy}
+          disabled={busy || !agreed}
           accessibilityRole="button"
         >
           {busy ? (
@@ -166,4 +185,10 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#0B1F3A', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 16, marginBottom: 4 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#9AA7B6', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  checkboxOn: { backgroundColor: '#0B7BFF', borderColor: '#0B7BFF' },
+  checkboxMark: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  termsText: { flex: 1, fontSize: 13, color: '#3A4A5E', lineHeight: 18 },
+  termsLink: { color: '#0B7BFF', fontWeight: '700' },
 });
