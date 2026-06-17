@@ -40,6 +40,20 @@ export type Database = {
         Update: { id?: string; user_id?: string; title?: string; description?: string; status?: string; created_at?: string }
         Relationships: []
       }
+      push_tokens: {
+        Row: { user_id: string; expo_token: string; platform: string; updated_at: string }
+        Insert: { user_id: string; expo_token: string; platform: string; updated_at?: string }
+        Update: { user_id?: string; expo_token?: string; platform?: string; updated_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blast_templates: {
         Row: {
           id: string
@@ -2838,6 +2852,10 @@ export type Database = {
       postgis_wagyu_version: { Args: never; Returns: string }
       remove_member: {
         Args: { p_community_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      register_push_token: {
+        Args: { p_expo_token: string; p_platform: string }
         Returns: undefined
       }
       request_partner: {
