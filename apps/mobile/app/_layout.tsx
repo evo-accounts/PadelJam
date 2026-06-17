@@ -16,6 +16,7 @@ import { StreamChatProvider } from '@/components/chat/StreamChatProvider';
 import { useColorScheme } from '@/components/useColorScheme';
 import { registerMobileCopy } from '@/lib/i18n-mobile';
 import { resolveLocale } from '@/lib/locale';
+import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { initSentry } from '@/lib/sentry';
 import { supabase } from '@/lib/supabase';
 
@@ -103,7 +104,14 @@ type OnboardingRoute =
   | '/(onboarding)/hand'
   | '/(onboarding)/side'
   | '/(onboarding)/jammer-plus';
-type Target = '(tabs)' | 'welcome' | 'sign-in' | OnboardingRoute;
+type Target =
+  | '(tabs)'
+  | 'welcome'
+  | 'sign-in'
+  | '/(tabs)'
+  | '/(auth)/sign-in'
+  | '/(auth)/create-account'
+  | OnboardingRoute;
 
 /**
  * Splash boot routing (Requirements §03):
@@ -126,17 +134,7 @@ function Boot() {
       } = await supabase.auth.getSession();
 
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarded_at, location_text, dominant_hand, court_side')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        if (profile?.onboarded_at) return '(tabs)';
-        // Not onboarded (or no profile row yet) -> resume at the first unanswered step.
-        if (!profile?.location_text) return '/(onboarding)/location';
-        if (!profile?.dominant_hand) return '/(onboarding)/hand';
-        if (!profile?.court_side) return '/(onboarding)/side';
-        return '/(onboarding)/jammer-plus';
+        return (await resolvePostAuthRoute()) as Target;
       }
 
       const seen = await AsyncStorage.getItem(HAS_SEEN_WELCOME);

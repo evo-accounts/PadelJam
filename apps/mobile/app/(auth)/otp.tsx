@@ -21,6 +21,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getAuthTarget } from '@/lib/auth-flow';
+import { runGoogleSignIn } from '@/lib/googleSignIn';
+import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { supabase } from '@/lib/supabase';
 
 export default function OtpScreen() {
@@ -103,6 +105,21 @@ export default function OtpScreen() {
     }
   };
 
+  const onGoogle = async () => {
+    if (busy) return;
+    setSheetOpen(false);
+    setBusy(true);
+    setError(null);
+    try {
+      await runGoogleSignIn();
+      router.replace((await resolvePostAuthRoute()) as never);
+    } catch (e) {
+      setError(t(e instanceof Error ? e.message : 'oauth_failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
       <Text style={styles.title}>{t('otpTitle')}</Text>
@@ -164,6 +181,9 @@ export default function OtpScreen() {
               accessibilityRole="button"
             >
               <Text style={styles.sheetText}>{t('useDifferentId')}</Text>
+            </Pressable>
+            <Pressable style={styles.sheetRow} onPress={onGoogle} accessibilityRole="button">
+              <Text style={styles.sheetText}>{t('continueWithGoogle')}</Text>
             </Pressable>
           </View>
         </Pressable>

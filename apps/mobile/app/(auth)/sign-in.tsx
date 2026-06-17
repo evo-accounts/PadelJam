@@ -15,6 +15,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { detectKind, setAuthTarget } from '@/lib/auth-flow';
+import { runGoogleSignIn } from '@/lib/googleSignIn';
+import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { supabase } from '@/lib/supabase';
 
 export default function SignInScreen() {
@@ -43,6 +45,20 @@ export default function SignInScreen() {
       }
       setAuthTarget(value, kind);
       router.push('/(auth)/otp');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onGoogle = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await runGoogleSignIn();
+      router.replace((await resolvePostAuthRoute()) as never);
+    } catch (e) {
+      setError(t(e instanceof Error ? e.message : 'oauth_failed'));
     } finally {
       setBusy(false);
     }
@@ -81,6 +97,19 @@ export default function SignInScreen() {
             <Text style={styles.buttonText}>{t('continue')}</Text>
           )}
         </Pressable>
+        <View style={styles.dividerRow}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>{t('orDivider')}</Text>
+          <View style={styles.divider} />
+        </View>
+        <Pressable
+          style={[styles.googleButton, busy && styles.buttonDisabled]}
+          onPress={onGoogle}
+          disabled={busy}
+          accessibilityRole="button"
+        >
+          <Text style={styles.googleButtonText}>{t('continueWithGoogle')}</Text>
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -109,4 +138,9 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 },
+  divider: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#ccc' },
+  dividerText: { fontSize: 13, color: '#888' },
+  googleButton: { borderWidth: 1, borderColor: '#ccc', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  googleButtonText: { color: '#0B1F3A', fontSize: 16, fontWeight: '600' },
 });
