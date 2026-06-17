@@ -597,6 +597,9 @@ const mobileCommunity = {
     qrBody: 'Aponte a câmera para o código ou compartilhe o link abaixo.',
   },
   en: {
+    resultCardTitle: 'Event result',
+    viewEventCta: 'View event',
+    resultUnavailable: 'Result unavailable',
     createTitle: 'Create community',
     nameLabel: 'Name',
     namePlaceholder: 'Community name',

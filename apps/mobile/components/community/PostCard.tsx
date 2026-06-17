@@ -1,6 +1,7 @@
-import { useToggleLike } from '@padel/api';
+import { useEventResultSummary, useToggleLike } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PostImage } from '@/components/community/PostImage';
@@ -13,11 +14,35 @@ export type CommunityPost = {
   body: string | null;
   image_path: string | null;
   created_at: string;
+  kind?: string;
+  result_event_id?: string | null;
   likes: { count: number }[];
   comments: { count: number }[];
   mine: { user_id: string }[];
   author?: { id: string; full_name: string | null; avatar_url: string | null } | null;
 };
+
+function ResultBody({ eventId }: { eventId: string }) {
+  const { t } = useT('community');
+  const router = useRouter();
+  const { data: rows } = useEventResultSummary(eventId);
+  const top = (rows ?? []).slice(0, 3);
+  return (
+    <View style={styles.result}>
+      <Text style={styles.resultTitle}>{t('resultCardTitle')}</Text>
+      {top.length === 0 ? (
+        <Text style={styles.resultRow}>{t('resultUnavailable')}</Text>
+      ) : (
+        top.map((r) => (
+          <Text key={r.rank} style={styles.resultRow}>{`${r.rank}. ${r.name} · ${r.points}`}</Text>
+        ))
+      )}
+      <Pressable onPress={() => router.push(('/event/' + eventId) as never)} accessibilityRole="button">
+        <Text style={styles.resultLink}>{t('viewEventCta')}</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 /**
  * Interactive post card: author, body, optional (private/signed) image, an
@@ -56,8 +81,14 @@ export function PostCard({
           {name}
         </Text>
       </View>
-      {post.body ? <Text style={styles.body}>{post.body}</Text> : null}
-      {post.image_path ? <PostImage path={post.image_path} style={styles.image} /> : null}
+      {post.kind === 'result' && post.result_event_id ? (
+        <ResultBody eventId={post.result_event_id} />
+      ) : (
+        <>
+          {post.body ? <Text style={styles.body}>{post.body}</Text> : null}
+          {post.image_path ? <PostImage path={post.image_path} style={styles.image} /> : null}
+        </>
+      )}
       <View style={styles.actions}>
         <Pressable
           style={styles.action}
@@ -100,6 +131,10 @@ const styles = StyleSheet.create({
   author: { flex: 1, fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
   body: { fontSize: 15, color: '#222', lineHeight: 21 },
   image: { marginTop: 10 },
+  result: { backgroundColor: '#F4F6FA', borderRadius: 12, padding: 12, gap: 4 },
+  resultTitle: { fontSize: 12, fontWeight: '800', color: '#6B4EFF', textTransform: 'uppercase' },
+  resultRow: { fontSize: 15, color: '#0B1F3A', fontWeight: '500' },
+  resultLink: { fontSize: 14, fontWeight: '700', color: '#0B7BFF', marginTop: 4 },
   actions: { flexDirection: 'row', gap: 20, marginTop: 12 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   actionIcon: { fontSize: 18, color: '#3A4A60' },
