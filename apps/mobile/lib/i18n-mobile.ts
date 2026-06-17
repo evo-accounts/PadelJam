@@ -1307,6 +1307,15 @@ const mobileEvent = {
     blast_incomplete: 'Add a title and message.',
     exportCsvCta: 'Export attendance (CSV)',
     exportUnavailable: 'Sharing is not available; the CSV was copied to your clipboard.',
+
+    // --- Phase 5H: Share results ---
+    shareResultsCta: 'Share results',
+    shareResultsTitle: 'Share results',
+    postToFeedCta: 'Post to community feed',
+    shareExternalCta: 'Share…',
+    resultPosted: 'Posted to the community feed.',
+    already_posted: 'Results are already posted to the feed.',
+    not_completed: 'Finish the event first.',
   },
 } as const;
 
