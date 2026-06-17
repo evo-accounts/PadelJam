@@ -473,3 +473,74 @@ export const useSetEventRanking = (eventId: string) => {
     },
   });
 };
+
+export const useAssignToTeam = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      participantId: string;
+      teamNumber: number;
+      slot: 'a' | 'b';
+      targetName?: string;
+    }) => {
+      const { error } = await db.rpc('organizer_assign_to_team', {
+        p_event_id: eventId,
+        p_participant_id: input.participantId,
+        p_team_number: input.teamNumber,
+        p_slot: input.slot,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, eventId, 'team_assigned', {
+        target_name: input.targetName,
+        team_number: input.teamNumber,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
+    },
+  });
+};
+
+export const useRemoveFromTeam = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { participantId: string; targetName?: string }) => {
+      const { error } = await db.rpc('organizer_remove_from_team', {
+        p_event_id: eventId,
+        p_participant_id: input.participantId,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, eventId, 'team_removed', { target_name: input.targetName });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
+    },
+  });
+};
+
+export const useSwitchPlayers = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { participantA: string; participantB: string }) => {
+      const { error } = await db.rpc('organizer_switch_players', {
+        p_event_id: eventId,
+        p_a: input.participantA,
+        p_b: input.participantB,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, eventId, 'team_switched', {});
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
+    },
+  });
+};

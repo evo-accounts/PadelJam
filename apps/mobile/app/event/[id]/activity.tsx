@@ -18,6 +18,9 @@ function lineFor(t: (k: string, o?: Record<string, unknown>) => string, row: Act
     marked_paid: 'activityMarkedPaid',
     marked_unpaid: 'activityMarkedUnpaid',
     marked_all_paid: 'activityMarkedAllPaid',
+    team_assigned: 'activityTeamAssigned',
+    team_switched: 'activityTeamSwitched',
+    team_removed: 'activityTeamRemoved',
   };
   return t(key[row.action] ?? 'activityJoined', { actor, target });
 }

@@ -136,6 +136,21 @@ export const useEventInvitations = (id: string) => {
   });
 };
 
+export interface TeamSlotPlayer {
+  id: string;
+  user_id: string | null;
+  guest_name: string | null;
+  status: string;
+  profiles: { full_name: string | null; avatar_url: string | null } | null;
+}
+export interface TeamRow {
+  id: string;
+  team_number: number;
+  is_confirmed: boolean;
+  player_a: TeamSlotPlayer | null;
+  player_b: TeamSlotPlayer | null;
+}
+
 export const useEventTeams = (id: string) => {
   const db = useDb();
   return useQuery({
@@ -143,11 +158,16 @@ export const useEventTeams = (id: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('event_teams')
-        .select('*')
+        .select(
+          'id, team_number, is_confirmed, ' +
+            'player_a:event_participants!player_a_id (id, user_id, guest_name, status, profiles(full_name, avatar_url)), ' +
+            'player_b:event_participants!player_b_id (id, user_id, guest_name, status, profiles(full_name, avatar_url))',
+        )
         .eq('event_id', id)
-        .order('team_number', { ascending: true });
+        .order('team_number', { ascending: true })
+        .returns<TeamRow[]>();
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 };

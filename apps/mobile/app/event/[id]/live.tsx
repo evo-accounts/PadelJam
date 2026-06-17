@@ -451,7 +451,7 @@ export default function EventLiveScreen() {
             </View>
             {standings.map((s) => {
               const name = s.is_team
-                ? t('teamLabel', { number: teamNumberById.get(s.entity_id) ?? 0 })
+                ? t('teamLabel', { n: teamNumberById.get(s.entity_id) ?? 0 })
                 : (nameById.get(s.entity_id) ?? '—');
               return (
                 <View key={s.entity_id} style={styles.boardRow}>
