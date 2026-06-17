@@ -25,6 +25,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TeamManage } from '@/components/event/TeamManage';
+
 /** Display name for a participant row: profile name, then guest name, then dash. */
 function rowName(p: { profiles?: { full_name: string | null } | null; guest_name: string | null }): string {
   return p.profiles?.full_name ?? p.guest_name ?? '—';
@@ -285,7 +287,9 @@ export default function EventManageScreen() {
         </View>
 
         {/* Roster */}
-        {!hasRoster ? (
+        {event.specification === 'team' ? (
+          <TeamManage eventId={id} numCourts={event.num_courts} participants={participants} />
+        ) : !hasRoster ? (
           <View style={styles.section}>
             <Text style={styles.empty}>{t('noRoster')}</Text>
           </View>

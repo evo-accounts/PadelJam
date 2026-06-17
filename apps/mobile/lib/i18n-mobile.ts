@@ -1172,6 +1172,27 @@ const mobileEvent = {
     duplicateCta: 'Duplicate event',
     noRoster: 'No players yet',
 
+    // --- Phase 5G-3: Team management ---
+    continue: 'Continue',
+    teamViewTab: 'Teams',
+    playerViewTab: 'Players',
+    teamSlotEmpty: 'Add player',
+    teamUnpaired: 'Unpaired',
+    assignTitle: 'Assign a player',
+    assignNoneEligible: 'No players available to assign.',
+    assignConfirmTitle: 'Confirm player',
+    assignConfirmBody:
+      "{{name}} isn't confirmed. Adding them to a team will confirm them once the team is complete. Continue?",
+    switchTitle: 'Switch with…',
+    switchPlayerCta: 'Switch player',
+    removeFromTeamCta: 'Remove from team',
+    slotActionTitle: 'Player options',
+    interestedTab: 'Interested',
+    teamConfirmedCount: 'Confirmed {{confirmed}}/{{capacity}}',
+    activityTeamAssigned: '{{actor}} assigned {{target}}',
+    activityTeamSwitched: '{{actor}} switched players',
+    activityTeamRemoved: '{{actor}} removed {{target}} from a team',
+
     // --- Phase 5G-2: Activity log ---
     activityTitle: 'Activity log',
     activityLogCta: 'Activity log',
@@ -1222,7 +1243,7 @@ const mobileEvent = {
     pointsCol: 'Pts',
     recordCol: 'W-D-L',
     standingsEmpty: 'No results yet',
-    teamLabel: 'Team {{number}}',
+    teamLabel: 'Team {{n}}',
 
     // --- Phase 7: Finish flow ---
     finishCta: 'Finish event',
