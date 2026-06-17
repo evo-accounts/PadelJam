@@ -589,3 +589,30 @@ export const useCancelEvent = (eventId: string) => {
     },
   });
 };
+
+export const useSetEventTimer = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (action: 'start' | 'pause' | 'resume' | 'reset') => {
+      const { error } = await db.rpc('set_event_timer', { p_event_id: eventId, p_action: action });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventTimer(eventId) });
+    },
+  });
+};
+
+export const usePostEventResult = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (communityId: string) => {
+      const { data, error } = await db.rpc('post_event_result', { p_event_id: eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      qc.invalidateQueries({ queryKey: qk.posts(communityId) });
+      return data as string;
+    },
+  });
+};

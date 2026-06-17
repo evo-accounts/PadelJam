@@ -21,6 +21,8 @@ const KNOWN = [
   'invalid_rating', 'review_requires_participation',
   // blasts: RPC/validation codes the blast screen translates directly
   'no_community', 'channels_required', 'invalid_channel', 'blast_incomplete',
+  // timer + share-results: RPC codes the timer/share screens translate directly
+  'invalid_action', 'not_completed', 'already_posted',
 ] as const;
 
 /** Map a Supabase/Postgres error to a stable code the UI translates via i18n. */

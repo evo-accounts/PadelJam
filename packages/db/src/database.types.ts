@@ -508,6 +508,13 @@ export type Database = {
             referencedRelation: "communities"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "community_posts_result_event_id_fkey"
+            columns: ["result_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
         ]
       }
       community_reviews: {
@@ -1055,6 +1062,41 @@ export type Database = {
             columns: ["player_b_id"]
             isOneToOne: false
             referencedRelation: "event_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_timer: {
+        Row: {
+          duration_seconds: number
+          event_id: string
+          paused_at: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          duration_seconds?: number
+          event_id: string
+          paused_at?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          duration_seconds?: number
+          event_id?: string
+          paused_at?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_timer_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
@@ -2371,6 +2413,15 @@ export type Database = {
       event_capacity: { Args: { e: string }; Returns: number }
       event_group_community: { Args: { e: string }; Returns: string }
       event_is_visible: { Args: { e: string; u: string }; Returns: boolean }
+      event_result_summary: {
+        Args: { p_event_id: string }
+        Returns: { rank: number; name: string; points: number }[]
+      }
+      post_event_result: { Args: { p_event_id: string }; Returns: string }
+      set_event_timer: {
+        Args: { p_event_id: string; p_action: string }
+        Returns: undefined
+      }
       explore_communities: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
