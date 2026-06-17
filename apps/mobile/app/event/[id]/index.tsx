@@ -14,8 +14,11 @@ import {
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import { deadlineState, formatCountdown } from '@padel/utils';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
+import { streamClient } from '@/lib/streamClient';
+import { useNow } from '@/lib/useNow';
 import {
   ActivityIndicator,
   Pressable,
@@ -81,6 +84,9 @@ export default function EventDetailScreen() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Ticking clock so the join countdown + deadline-gated CTAs stay live.
+  const nowMs = useNow();
 
   // --- Loading ---
   if (isLoading) {
@@ -161,6 +167,14 @@ export default function EventDetailScreen() {
   const status = event.status;
   const badge = badgeStyles(status);
 
+  // --- Deadlines (JM-18..21): 6h join cutoff, 12h leave cutoff, both derived from starts_at ---
+  const { joinCutoffMs, leaveCutoffMs, joinClosed, leaveLocked } = deadlineState(
+    event.starts_at,
+    nowMs,
+  );
+  const joinCountdownText = formatCountdown(joinCutoffMs - nowMs);
+  const leaveByText = formatWhen(new Date(leaveCutoffMs).toISOString());
+
   const hasOwnChat = !!event && (event.is_private || event.group_id == null);
   const openEventChat = async () => {
     if (ensureChannel.isPending) return;
@@ -205,6 +219,51 @@ export default function EventDetailScreen() {
       });
       router.push(`/event/${id}/live` as Href);
     });
+
+  const onMessageOrganizer = () =>
+    run(async () => {
+      const channel = streamClient.channel('messaging', {
+        members: [uid!, event.organizer_id],
+      });
+      await channel.watch();
+      router.push(('/chat/' + channel.cid) as never);
+    });
+
+  // Past the leave cutoff: a confirmed/standby player can no longer self-leave (JM-19) —
+  // offer a DM to the organizer instead. Before the cutoff: Leave + a "leave by" hint.
+  const leaveOrContact = leaveLocked ? (
+    <View style={styles.ctaCol}>
+      <Text style={styles.deadlineNotice}>{t('leaveLockedBody')}</Text>
+      <Pressable
+        style={[styles.btn, styles.secondaryBtn]}
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={onMessageOrganizer}
+      >
+        {busy ? (
+          <ActivityIndicator color="#0B1F3A" />
+        ) : (
+          <Text style={styles.secondaryLabel}>{t('messageOrganizerCta')}</Text>
+        )}
+      </Pressable>
+    </View>
+  ) : (
+    <>
+      <Pressable
+        style={[styles.btn, styles.secondaryBtn]}
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={onLeave}
+      >
+        {busy ? (
+          <ActivityIndicator color="#0B1F3A" />
+        ) : (
+          <Text style={styles.secondaryLabel}>{t('leaveCta')}</Text>
+        )}
+      </Pressable>
+      <Text style={styles.leaveHint}>{t('leaveByHint', { when: leaveByText })}</Text>
+    </>
+  );
 
   // --- Adaptive CTA content ---
   const showJoinLeave = status === 'scheduled';
@@ -295,123 +354,95 @@ export default function EventDetailScreen() {
       cta = (
         <View style={styles.ctaCol}>
           <Text style={styles.ctaBadge}>{t('standbyBadge')}</Text>
-          {showJoinLeave ? (
-            <Pressable
-              style={[styles.btn, styles.secondaryBtn]}
-              accessibilityRole="button"
-              disabled={busy}
-              onPress={onLeave}
-            >
-              {busy ? (
-                <ActivityIndicator color="#0B1F3A" />
-              ) : (
-                <Text style={styles.secondaryLabel}>{t('leaveCta')}</Text>
-              )}
-            </Pressable>
-          ) : null}
+          {showJoinLeave ? leaveOrContact : null}
         </View>
       );
     } else {
       cta = (
         <View style={styles.ctaCol}>
           <Text style={styles.ctaBadge}>{t('goingBadge')}</Text>
-          {showJoinLeave ? (
-            <Pressable
-              style={[styles.btn, styles.secondaryBtn]}
-              accessibilityRole="button"
-              disabled={busy}
-              onPress={onLeave}
-            >
-              {busy ? (
-                <ActivityIndicator color="#0B1F3A" />
-              ) : (
-                <Text style={styles.secondaryLabel}>{t('leaveCta')}</Text>
-              )}
-            </Pressable>
-          ) : null}
+          {showJoinLeave ? leaveOrContact : null}
         </View>
       );
     }
   } else if (myInvite && showJoinLeave) {
-    const inviterRow =
-      participants.find((p) => p.user_id === myInvite.invited_by) ?? null;
-    const inviterName = inviterRow?.profiles?.full_name ?? null;
-    cta = (
-      <View style={styles.ctaCol}>
-        <Text style={styles.ctaBadge}>
-          {inviterName != null
-            ? t('invitedBanner', { name: inviterName })
-            : t('invitedBannerGeneric')}
-        </Text>
-        <View style={styles.ctaRow}>
+    if (joinClosed) {
+      cta = <Text style={styles.deadlineNotice}>{t('joiningClosed')}</Text>;
+    } else {
+      const inviterRow =
+        participants.find((p) => p.user_id === myInvite.invited_by) ?? null;
+      const inviterName = inviterRow?.profiles?.full_name ?? null;
+      cta = (
+        <View style={styles.ctaCol}>
+          <Text style={styles.ctaBadge}>
+            {inviterName != null
+              ? t('invitedBanner', { name: inviterName })
+              : t('invitedBannerGeneric')}
+          </Text>
+          <View style={styles.ctaRow}>
+            <Pressable
+              style={[styles.btn, styles.secondaryBtn, styles.btnFlex]}
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={onDecline}
+            >
+              {busy ? (
+                <ActivityIndicator color="#0B1F3A" />
+              ) : (
+                <Text style={styles.secondaryLabel}>{t('declineCta')}</Text>
+              )}
+            </Pressable>
+            <Pressable
+              style={[styles.btn, styles.primaryBtn, styles.btnFlex]}
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={onAccept}
+            >
+              {busy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryLabel}>{t('acceptCta')}</Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      );
+    }
+  } else if (showJoinLeave) {
+    if (joinClosed) {
+      cta = <Text style={styles.deadlineNotice}>{t('joiningClosed')}</Text>;
+    } else if (event.specification === 'team') {
+      cta = (
+        <View style={styles.ctaCol}>
+          <Text style={styles.countdown}>{t('joinCountdown', { time: joinCountdownText })}</Text>
           <Pressable
-            style={[styles.btn, styles.secondaryBtn, styles.btnFlex]}
+            style={[styles.btn, styles.primaryBtn]}
             accessibilityRole="button"
             disabled={busy}
-            onPress={onDecline}
+            onPress={() => router.push(`/event/${id}/partner-requests` as Href)}
           >
-            {busy ? (
-              <ActivityIndicator color="#0B1F3A" />
-            ) : (
-              <Text style={styles.secondaryLabel}>{t('declineCta')}</Text>
-            )}
+            <Text style={styles.primaryLabel}>{t('teamJoinCta')}</Text>
           </Pressable>
+        </View>
+      );
+    } else {
+      const joinLabel = totalIn >= totalCapacity ? t('waitlistCta') : t('joinCta');
+      cta = (
+        <View style={styles.ctaCol}>
+          <Text style={styles.countdown}>{t('joinCountdown', { time: joinCountdownText })}</Text>
           <Pressable
-            style={[styles.btn, styles.primaryBtn, styles.btnFlex]}
+            style={[styles.btn, styles.primaryBtn]}
             accessibilityRole="button"
             disabled={busy}
-            onPress={onAccept}
+            onPress={onJoin}
           >
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.primaryLabel}>{t('acceptCta')}</Text>
+              <Text style={styles.primaryLabel}>{joinLabel}</Text>
             )}
           </Pressable>
         </View>
-      </View>
-    );
-  } else if (showJoinLeave) {
-    if (event.specification === 'team') {
-      cta = (
-        <Pressable
-          style={[styles.btn, styles.primaryBtn]}
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => router.push(`/event/${id}/partner-requests` as Href)}
-        >
-          <Text style={styles.primaryLabel}>{t('teamJoinCta')}</Text>
-        </Pressable>
-      );
-    } else if (totalIn >= totalCapacity) {
-      cta = (
-        <Pressable
-          style={[styles.btn, styles.primaryBtn]}
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={onJoin}
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.primaryLabel}>{t('waitlistCta')}</Text>
-          )}
-        </Pressable>
-      );
-    } else {
-      cta = (
-        <Pressable
-          style={[styles.btn, styles.primaryBtn]}
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={onJoin}
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.primaryLabel}>{t('joinCta')}</Text>
-          )}
-        </Pressable>
       );
     }
   }
@@ -629,6 +660,15 @@ const styles = StyleSheet.create({
   ctaCol: { gap: 10 },
   ctaRow: { flexDirection: 'row', gap: 12 },
   ctaBadge: { fontSize: 15, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
+  countdown: { fontSize: 14, fontWeight: '600', color: '#0B7BFF', textAlign: 'center' },
+  deadlineNotice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7685',
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  leaveHint: { fontSize: 13, color: '#6B7685', textAlign: 'center' },
   error: { fontSize: 14, fontWeight: '600', color: '#D7263D', marginBottom: 10, textAlign: 'center' },
 
   // Buttons
