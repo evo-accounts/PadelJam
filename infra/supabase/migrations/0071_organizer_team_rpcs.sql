@@ -105,6 +105,10 @@ begin
     into b_team, b_slot from event_teams
     where event_id=p_event_id and (player_a_id=p_b or player_b_id=p_b);
 
+  -- Same-team swap is a no-op (the pair is unchanged) and the sequential single-slot UPDATEs
+  -- would transiently set both slots equal, tripping the et_distinct CHECK. Skip it.
+  if a_team is not null and a_team = b_team then return; end if;
+
   -- write B into A's old slot, A into B's old slot (no-op if that player had no slot)
   if a_team is not null then
     if a_slot='a' then update event_teams set player_a_id=p_b where id=a_team;

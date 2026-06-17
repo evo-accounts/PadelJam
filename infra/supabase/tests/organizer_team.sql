@@ -119,6 +119,17 @@ begin
   end if;
   raise notice 'OK switch P2<->P3 -> P3 confirmed in slot, P2 invited, team1 confirmed (P1+P3)';
 
+  -- (4b) same-team switch (P1 & P3 are both on team1) must be a harmless no-op, NOT a check_violation.
+  perform set_config('role','authenticated',true);
+  perform organizer_switch_players(ev, p1, p3);
+  perform set_config('role','postgres',true);
+  select is_confirmed, player_a_id, player_b_id into v_confirmed, v_pa, v_pb
+    from event_teams where event_id=ev and team_number=1;
+  if not (v_confirmed = true and v_pa = p1 and v_pb = p3) then
+    raise exception using errcode='PT001', message='(4b) same-team switch should be a no-op, got confirmed='||v_confirmed||' a='||coalesce(v_pa::text,'null')||' b='||coalesce(v_pb::text,'null');
+  end if;
+  raise notice 'OK same-team switch is a no-op';
+
   -- (5) As U2 (non-organizer): organizer_assign_to_team must raise forbidden
   perform set_config('role','authenticated',true);
   perform set_config('request.jwt.claims','{"sub":"a1000002-0000-0000-0000-000000000002","role":"authenticated"}',true);
