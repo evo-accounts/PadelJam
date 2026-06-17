@@ -7,6 +7,24 @@ import { americanoSchedule } from '../round-gen';
 // Mirrors the generated `Json` scalar from @padel/db (not re-exported there).
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+/** Fire-and-forget activity log. A logging failure must never fail the user's action. */
+async function logActivity(
+  db: ReturnType<typeof useDb>,
+  eventId: string,
+  action: string,
+  detail: Record<string, unknown> = {},
+) {
+  try {
+    await db.rpc('log_event_activity', {
+      p_event_id: eventId,
+      p_action: action,
+      p_detail: detail as Json,
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Create / duplicate
 // ---------------------------------------------------------------------------
@@ -65,12 +83,14 @@ export const useJoinEvent = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { eventId: string; groupId: string | null }) => {
-      const { error } = await db.rpc('join_event', { p_event_id: input.eventId });
+      const { data, error } = await db.rpc('join_event', { p_event_id: input.eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, input.eventId, 'joined', { status: data });
     },
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.event(input.eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(input.eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(input.eventId) });
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
     },
   });
@@ -83,10 +103,12 @@ export const useLeaveEvent = () => {
     mutationFn: async (input: { eventId: string; groupId: string | null }) => {
       const { error } = await db.rpc('leave_event', { p_event_id: input.eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, input.eventId, 'left');
     },
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.event(input.eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(input.eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(input.eventId) });
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
     },
   });
@@ -239,14 +261,16 @@ export const useMarkConfirmed = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (participantId: string) => {
+    mutationFn: async (input: { participantId: string; targetName?: string }) => {
       const { error } = await db.rpc('organizer_mark_confirmed', {
-        p_participant_id: participantId,
+        p_participant_id: input.participantId,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, eventId, 'confirmed', { target_name: input.targetName });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
 };
@@ -255,16 +279,18 @@ export const useRemoveParticipant = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { participantId: string; mode: string }) => {
+    mutationFn: async (input: { participantId: string; mode: string; targetName?: string }) => {
       const { error } = await db.rpc('organizer_remove_participant', {
         p_participant_id: input.participantId,
         p_mode: input.mode,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, eventId, 'removed', { target_name: input.targetName, mode: input.mode });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
 };
@@ -280,11 +306,13 @@ export const useAddManualParticipant = (eventId: string) => {
         p_gender: input.gender,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, eventId, 'guest_added', { guest_name: input.name });
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
 };
@@ -293,15 +321,19 @@ export const useMarkPaid = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { participantId: string; paid: boolean }) => {
+    mutationFn: async (input: { participantId: string; paid: boolean; targetName?: string }) => {
       const { error } = await db.rpc('mark_paid', {
         p_participant_id: input.participantId,
         p_paid: input.paid,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, eventId, input.paid ? 'marked_paid' : 'marked_unpaid', {
+        target_name: input.targetName,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
 };
@@ -313,9 +345,11 @@ export const useMarkAllPaid = (eventId: string) => {
     mutationFn: async () => {
       const { error } = await db.rpc('mark_all_paid', { p_event_id: eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      await logActivity(db, eventId, 'marked_all_paid');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
 };
