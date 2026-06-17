@@ -541,6 +541,48 @@ export type Database = {
           },
         ]
       }
+      event_activity: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_activity_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_activity_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_courts: {
         Row: {
           court_id: string
@@ -2382,6 +2424,10 @@ export type Database = {
       list_followers: {
         Args: { p_user: string; p_search?: string | null; p_limit?: number; p_offset?: number }
         Returns: { id: string; full_name: string; avatar_url: string | null }[]
+      }
+      log_event_activity: {
+        Args: { p_event_id: string; p_action: string; p_detail?: Json }
+        Returns: undefined
       }
       block_user: { Args: { p_target: string }; Returns: undefined }
       unblock_user: { Args: { p_target: string }; Returns: undefined }
