@@ -27,6 +27,7 @@ export const qk = {
   eventInvitations: (id: string) => ['event', id, 'invitations'] as const,
   eventActivity: (id: string) => ['event', id, 'activity'] as const,
   eventTeams: (id: string) => ['event', id, 'teams'] as const,
+  eventSeries: (id: string) => ['event', id, 'series'] as const,
   eventRounds: (id: string) => ['event', id, 'rounds'] as const,
   eventMatches: (id: string) => ['event', id, 'matches'] as const,
   eventStandings: (id: string) => ['event', id, 'standings'] as const,

@@ -935,6 +935,19 @@ const mobileEvent = {
     next: 'Next',
     back: 'Back',
     finish: 'Create event',
+
+    // --- 5G-6: recurring tag + next-occurrence card + cancel event ---
+    recurrentTag: 'Recurrent',
+    nextOccurrenceTitle: 'Next occurrence',
+    cancelEventCta: 'Cancel event',
+    cancelStandardTitle: 'Cancel this event?',
+    cancelStandardBody: 'Confirmed players will be notified.',
+    cancelRecurringTitle: 'Cancel recurring event',
+    cancelOnlyThisCta: 'Only this event',
+    cancelThisAndUpcomingCta: 'This and upcoming events',
+    not_cancellable: 'This event can no longer be cancelled.',
+    invalid_scope: 'Something went wrong. Please try again.',
+
     step: 'Step {{current}} of {{total}}',
     discardTitle: 'Discard event?',
     discardBody: 'All your choices will be lost and you\'ll return to the previous screen.',
@@ -1367,6 +1380,7 @@ const mobileNotifications = {
     community_invite: '{{actor}} invited you to {{entity}}',
     community_request_accepted: 'Your request to join {{entity}} was accepted',
     follow_joined_event: '{{actor}} joined {{entity}}',
+    event_cancelled: '{{entity}} was cancelled',
   },
 } as const;
 

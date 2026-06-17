@@ -572,3 +572,20 @@ export const useSendBlast = (eventId: string) => {
     },
   });
 };
+
+export const useCancelEvent = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { scope: 'only_this' | 'this_and_upcoming' }) => {
+      const { error } = await db.rpc('cancel_event', { p_event_id: eventId, p_scope: input.scope });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.myEvents('all') });
+      qc.invalidateQueries({ queryKey: qk.myEvents('organizing') });
+      qc.invalidateQueries({ queryKey: qk.myEvents('going') });
+    },
+  });
+};

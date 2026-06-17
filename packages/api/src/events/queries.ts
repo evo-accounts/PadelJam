@@ -407,3 +407,26 @@ export const useCanCustomizeBlast = (eventId: string) => {
     },
   });
 };
+
+export interface EventSeriesInfo {
+  day_of_week: number;
+  start_time: string;
+  is_active: boolean;
+}
+
+export const useEventSeries = (eventId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.eventSeries(eventId),
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('events')
+        .select('series_id, event_series(day_of_week, start_time, is_active)')
+        .eq('id', eventId)
+        .maybeSingle()
+        .returns<{ series_id: string | null; event_series: EventSeriesInfo | null }>();
+      if (error) throw error;
+      return data?.event_series ?? null;
+    },
+  });
+};
