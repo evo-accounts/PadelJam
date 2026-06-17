@@ -1,5 +1,6 @@
 import {
   useAddManualParticipant,
+  useCancelEvent,
   useDuplicateEvent,
   useEvent,
   useEventInvitations,
@@ -54,6 +55,7 @@ export default function EventManageScreen() {
   const markPaid = useMarkPaid(id);
   const markAllPaid = useMarkAllPaid(id);
   const duplicateEvent = useDuplicateEvent();
+  const cancelEvent = useCancelEvent(id);
 
   const [manualName, setManualName] = useState('');
   const [manualGender, setManualGender] = useState<'male' | 'female' | null>(null);
@@ -182,6 +184,27 @@ export default function EventManageScreen() {
       }
     });
 
+  const doCancel = (scope: 'only_this' | 'this_and_upcoming') =>
+    run(async () => {
+      await cancelEvent.mutateAsync({ scope });
+      router.back();
+    });
+
+  const onCancelEvent = () => {
+    if (event.series_id != null) {
+      Alert.alert(t('cancelRecurringTitle'), undefined, [
+        { text: t('cancelOnlyThisCta'), style: 'destructive', onPress: () => doCancel('only_this') },
+        { text: t('cancelThisAndUpcomingCta'), style: 'destructive', onPress: () => doCancel('this_and_upcoming') },
+        { text: t('cancel'), style: 'cancel' },
+      ]);
+    } else {
+      Alert.alert(t('cancelStandardTitle'), t('cancelStandardBody'), [
+        { text: t('cancelEventCta'), style: 'destructive', onPress: () => doCancel('only_this') },
+        { text: t('cancel'), style: 'cancel' },
+      ]);
+    }
+  };
+
   // --- A single roster row (confirm + remove + optional paid toggle). ---
   const renderRow = (p: (typeof participants)[number]) => {
     const name = rowName(p);
@@ -260,7 +283,17 @@ export default function EventManageScreen() {
           ) : null}
         </View>
 
-        {/* TODO(Phase 6f): wire up edit-event + cancel-event organizer actions. */}
+        {/* TODO(Phase 6f): wire up edit-event organizer action. */}
+        <View style={styles.section}>
+          <Pressable
+            style={[styles.btn, styles.cancelBtn]}
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={onCancelEvent}
+          >
+            <Text style={styles.cancelLabel}>{t('cancelEventCta')}</Text>
+          </Pressable>
+        </View>
 
         {/* Add player manually */}
         <View style={styles.section}>
@@ -542,4 +575,6 @@ const styles = StyleSheet.create({
   primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
   secondaryBtn: { backgroundColor: '#F0F3F8' },
   secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
+  cancelBtn: { backgroundColor: '#FCEBEC' },
+  cancelLabel: { fontSize: 16, fontWeight: '700', color: '#D7263D' },
 });

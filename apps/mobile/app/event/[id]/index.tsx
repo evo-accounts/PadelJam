@@ -4,6 +4,7 @@ import {
   useEvent,
   useEventInvitations,
   useEventParticipants,
+  useEventSeries,
   useEventTeams,
   useJoinEvent,
   useLeaveEvent,
@@ -14,7 +15,7 @@ import {
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { deadlineState, formatCountdown } from '@padel/utils';
+import { deadlineState, formatCountdown, nextWeeklyOccurrence } from '@padel/utils';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { streamClient } from '@/lib/streamClient';
@@ -73,6 +74,7 @@ export default function EventDetailScreen() {
   const { data: participantsData } = useEventParticipants(id);
   const { data: invitationsData } = useEventInvitations(id);
   const { data: teamsData } = useEventTeams(id);
+  const { data: series } = useEventSeries(id);
 
   const joinEvent = useJoinEvent();
   const leaveEvent = useLeaveEvent();
@@ -166,6 +168,12 @@ export default function EventDetailScreen() {
 
   const status = event.status;
   const badge = badgeStyles(status);
+
+  // --- Recurring series (5G-6): tag + computed next-occurrence card ---
+  const isRecurring = event.series_id != null && series != null && series.is_active;
+  const nextOccurrenceIso = isRecurring
+    ? nextWeeklyOccurrence(series!.day_of_week, series!.start_time, Date.now())
+    : null;
 
   // --- Deadlines (JM-18..21): 6h join cutoff, 12h leave cutoff, both derived from starts_at ---
   const { joinCutoffMs, leaveCutoffMs, joinClosed, leaveLocked } = deadlineState(
@@ -466,6 +474,11 @@ export default function EventDetailScreen() {
                 {t(statusKey(status))}
               </Text>
             </View>
+            {isRecurring ? (
+              <View style={styles.recurrentTag}>
+                <Text style={styles.recurrentTagText}>{t('recurrentTag')}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -484,6 +497,12 @@ export default function EventDetailScreen() {
           <Text style={styles.bodyMuted}>
             {t('durationValue', { count: event.duration_minutes })}
           </Text>
+          {nextOccurrenceIso ? (
+            <View style={styles.nextCard}>
+              <Text style={styles.sectionTitle}>{t('nextOccurrenceTitle')}</Text>
+              <Text style={styles.body}>{formatWhen(nextOccurrenceIso)}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Where */}
@@ -611,6 +630,11 @@ const styles = StyleSheet.create({
   badgeTextLive: { color: '#1A7F4B' },
   badgeDone: { backgroundColor: '#F0F3F8' },
   badgeTextDone: { color: '#6B7685' },
+
+  // Recurring (5G-6)
+  recurrentTag: { backgroundColor: '#EDE7FF', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  recurrentTagText: { fontSize: 11, fontWeight: '700', color: '#6B4EFF' },
+  nextCard: { marginTop: 12, backgroundColor: '#fff', borderRadius: 12, padding: 12 },
 
   // Sections
   section: { paddingHorizontal: 16, paddingTop: 20 },
