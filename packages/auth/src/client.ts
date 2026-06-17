@@ -1,5 +1,7 @@
 import { createClient, type TypedClient } from '@padel/db';
 
+export type { TypedClient } from '@padel/db';
+
 export type AuthStorage = {
   getItem: (k: string) => Promise<string | null> | string | null;
   setItem: (k: string, v: string) => Promise<void> | void;
