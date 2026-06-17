@@ -566,10 +566,36 @@ export const useSendBlast = (eventId: string) => {
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
       const row = data?.[0] ?? { blast_id: null, sent_to_count: 0 };
+      // Deliver the email channel best-effort (the row is already recorded). Use the supabase
+      // client's `functions.invoke` — it injects the project URL + the caller's auth automatically.
+      if (input.channels.includes('email') && row.blast_id) {
+        try {
+          await db.functions.invoke('send-blast', { body: { blast_id: row.blast_id } });
+        } catch {
+          /* delivery is best-effort; the blast is recorded regardless */
+        }
+      }
       return row.sent_to_count;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventBlasts(eventId) });
+    },
+  });
+};
+
+export const useSendRosterCsvEmail = (eventId: string) => {
+  const db = useDb();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await db.functions.invoke('send-roster-csv', {
+        body: { event_id: eventId },
+      });
+      // `send-roster-csv` returns 200 `{ ok:false, error:'email_not_configured' }` for the unconfigured
+      // case (so it arrives as `data`, not a thrown FunctionsHttpError); other failures set `error`.
+      if (error) throw new Error('csv_email_failed');
+      if (data && data.ok === false) {
+        throw new Error(data.error === 'email_not_configured' ? 'email_not_configured' : 'csv_email_failed');
+      }
     },
   });
 };
