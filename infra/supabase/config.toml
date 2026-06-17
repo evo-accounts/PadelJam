@@ -397,6 +397,7 @@ deno_version = 2
 [edge_runtime.secrets]
 RESEND_API_KEY = "env(RESEND_API_KEY)"
 RESEND_FROM_EMAIL = "env(RESEND_FROM_EMAIL)"
+PUSH_WEBHOOK_SECRET = "env(PUSH_WEBHOOK_SECRET)"
 
 [analytics]
 enabled = true
