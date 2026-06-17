@@ -29,6 +29,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TimerTab } from '@/components/event/TimerTab';
+
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
 type MatchPlayer = MatchRow['match_players'][number];
 
@@ -69,7 +71,7 @@ export default function EventLiveScreen() {
   const lastRound = rounds.length > 0 ? rounds[rounds.length - 1] : undefined;
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
   // null = not explicitly chosen yet; the default depends on event.status.
-  const [tab, setTab] = useState<'overview' | 'matches' | 'leaderboard' | null>(null);
+  const [tab, setTab] = useState<'overview' | 'matches' | 'leaderboard' | 'timer' | null>(null);
 
   // Interactive state.
   const [scoringMatchId, setScoringMatchId] = useState<string | null>(null);
@@ -257,6 +259,7 @@ export default function EventLiveScreen() {
 
   const pointsTotal = event.scoring_value ?? 0;
   const isPoints = event.scoring_mode === 'points';
+  const isTimed = event.scoring_mode === 'time';
   const clamp = (n: number, lo: number, hi: number): number =>
     Math.max(lo, Math.min(hi, n));
 
@@ -439,6 +442,8 @@ export default function EventLiveScreen() {
               ) : null}
             </>
           )
+        ) : effectiveTab === 'timer' ? (
+          <TimerTab eventId={id} isOrganizer={isOrganizer} />
         ) : standings.length === 0 ? (
           <Text style={styles.empty}>{t('standingsEmpty')}</Text>
         ) : (
@@ -513,6 +518,19 @@ export default function EventLiveScreen() {
             {t('matchesTab')}
           </Text>
         </Pressable>
+        {isTimed ? (
+          <Pressable
+            style={[styles.segment, effectiveTab === 'timer' && styles.segmentActive]}
+            accessibilityRole="button"
+            onPress={() => setTab('timer')}
+          >
+            <Text
+              style={[styles.segmentText, effectiveTab === 'timer' && styles.segmentTextActive]}
+            >
+              {t('timerTab')}
+            </Text>
+          </Pressable>
+        ) : null}
         <Pressable
           style={[styles.segment, effectiveTab === 'leaderboard' && styles.segmentActive]}
           accessibilityRole="button"
