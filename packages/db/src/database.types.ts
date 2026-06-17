@@ -2596,12 +2596,29 @@ export type Database = {
         Args: { p_paid: boolean; p_participant_id: string }
         Returns: undefined
       }
+      organizer_assign_to_team: {
+        Args: {
+          p_event_id: string
+          p_participant_id: string
+          p_team_number: number
+          p_slot: string
+        }
+        Returns: undefined
+      }
       organizer_mark_confirmed: {
         Args: { p_participant_id: string }
         Returns: undefined
       }
+      organizer_remove_from_team: {
+        Args: { p_event_id: string; p_participant_id: string }
+        Returns: undefined
+      }
       organizer_remove_participant: {
         Args: { p_mode: string; p_participant_id: string }
+        Returns: undefined
+      }
+      organizer_switch_players: {
+        Args: { p_a: string; p_b: string; p_event_id: string }
         Returns: undefined
       }
       partner_request_summary: {
