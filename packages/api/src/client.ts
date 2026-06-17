@@ -19,6 +19,8 @@ const KNOWN = [
   'recurring_events',
   // community reviews: gate RPC codes the review screen translates directly
   'invalid_rating', 'review_requires_participation',
+  // blasts: RPC/validation codes the blast screen translates directly
+  'no_community', 'channels_required', 'invalid_channel', 'blast_incomplete',
 ] as const;
 
 /** Map a Supabase/Postgres error to a stable code the UI translates via i18n. */

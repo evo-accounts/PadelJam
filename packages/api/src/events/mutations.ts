@@ -544,3 +544,31 @@ export const useSwitchPlayers = (eventId: string) => {
     },
   });
 };
+
+export const useSendBlast = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      sourceTemplateId: string | null;
+      title: string;
+      description: string;
+      imagePath: string | null;
+      channels: ('email' | 'whatsapp')[];
+    }) => {
+      const { data, error } = await db.rpc('send_event_blast', {
+        p_event_id: eventId,
+        p_source_template_id: input.sourceTemplateId,
+        p_title: input.title,
+        p_description: input.description,
+        p_image_path: input.imagePath,
+        p_channels: input.channels,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as number;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventBlasts(eventId) });
+    },
+  });
+};

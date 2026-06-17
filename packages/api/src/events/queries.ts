@@ -341,3 +341,69 @@ export const useEventActivity = (eventId: string) => {
     },
   });
 };
+
+export interface BlastTemplate {
+  id: string;
+  title: string;
+  description: string;
+  image_path: string;
+  category: string | null;
+  is_default: boolean;
+}
+export interface EventBlast {
+  id: string;
+  title: string;
+  description: string;
+  channels: string[];
+  sent_to_count: number;
+  sent_at: string;
+  source_template_id: string | null;
+  image_path: string | null;
+}
+
+export const useBlastTemplates = () => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.blastTemplates,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('blast_templates')
+        .select('id, title, description, image_path, category, is_default')
+        .eq('is_active', true)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: true })
+        .returns<BlastTemplate[]>();
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+export const useEventBlasts = (eventId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.eventBlasts(eventId),
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('event_blasts')
+        .select('id, title, description, channels, sent_to_count, sent_at, source_template_id, image_path')
+        .eq('event_id', eventId)
+        .order('sent_at', { ascending: false })
+        .returns<EventBlast[]>();
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+export const useCanCustomizeBlast = (eventId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.canCustomizeBlast(eventId),
+    queryFn: async () => {
+      const { data, error } = await db.rpc('can_customize_blast', { p_event_id: eventId });
+      if (error) throw error;
+      return data ?? false;
+    },
+  });
+};
