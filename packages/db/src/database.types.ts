@@ -40,6 +40,103 @@ export type Database = {
         Update: { id?: string; user_id?: string; title?: string; description?: string; status?: string; created_at?: string }
         Relationships: []
       }
+      blast_templates: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          image_path: string
+          category: string | null
+          is_default: boolean
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description: string
+          image_path: string
+          category?: string | null
+          is_default?: boolean
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          image_path?: string
+          category?: string | null
+          is_default?: boolean
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      event_blasts: {
+        Row: {
+          id: string
+          event_id: string
+          sender_id: string
+          source_template_id: string | null
+          title: string
+          description: string
+          image_path: string | null
+          channels: string[]
+          send_to: string
+          sent_to_count: number
+          sent_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          sender_id: string
+          source_template_id?: string | null
+          title: string
+          description: string
+          image_path?: string | null
+          channels: string[]
+          send_to?: string
+          sent_to_count?: number
+          sent_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          sender_id?: string
+          source_template_id?: string | null
+          title?: string
+          description?: string
+          image_path?: string | null
+          channels?: string[]
+          send_to?: string
+          sent_to_count?: number
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_blasts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_blasts_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_blasts_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "blast_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_settings: {
         Row: { user_id: string; notifications_push: boolean; notifications_whatsapp: boolean; notifications_email: boolean; updated_at: string }
         Insert: { user_id: string; notifications_push?: boolean; notifications_whatsapp?: boolean; notifications_email?: boolean; updated_at?: string }
@@ -2179,6 +2276,7 @@ export type Database = {
       can_create_event: { Args: { p_group_id: string }; Returns: boolean }
       can_create_group: { Args: { p_community_id: string }; Returns: boolean }
       can_create_post: { Args: { c: string }; Returns: boolean }
+      can_customize_blast: { Args: { p_event_id: string }; Returns: boolean }
       can_review_community: { Args: { p_community_id: string }; Returns: boolean }
       chat_channel_spec: {
         Args: { p_kind: string; p_id: string }
@@ -2431,6 +2529,17 @@ export type Database = {
       }
       block_user: { Args: { p_target: string }; Returns: undefined }
       unblock_user: { Args: { p_target: string }; Returns: undefined }
+      send_event_blast: {
+        Args: {
+          p_event_id: string
+          p_source_template_id: string | null
+          p_title: string
+          p_description: string
+          p_image_path: string | null
+          p_channels: string[]
+        }
+        Returns: number
+      }
       finish_event: {
         Args: {
           p_counts_override?: boolean

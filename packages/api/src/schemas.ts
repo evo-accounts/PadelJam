@@ -179,3 +179,15 @@ export const submitScoreSchema = z.object({
   notPlayed: z.boolean().default(false),
 });
 export type SubmitScoreInput = z.infer<typeof submitScoreSchema>;
+
+// ---------------------------------------------------------------------------
+// Blasts
+// ---------------------------------------------------------------------------
+
+export const BLAST_CHANNELS = ['email', 'whatsapp'] as const;
+export const blastSchema = z.object({
+  title: z.string().trim().min(1).max(80),
+  description: z.string().trim().min(1).max(1000),
+  channels: z.array(z.enum(BLAST_CHANNELS)).min(1),
+});
+export type BlastInput = z.infer<typeof blastSchema>;

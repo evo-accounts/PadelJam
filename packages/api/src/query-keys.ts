@@ -54,4 +54,7 @@ export const qk = {
   mySettings: (id: string) => ['user-settings', id] as const,
   streamToken: (uid: string) => ['stream-token', uid] as const,
   searchVenues: (q: string) => ['venues', 'search', q] as const,
+  blastTemplates: ['blast-templates'] as const,
+  eventBlasts: (id: string) => ['event', id, 'blasts'] as const,
+  canCustomizeBlast: (id: string) => ['event', id, 'can-customize-blast'] as const,
 };

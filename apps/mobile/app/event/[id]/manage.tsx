@@ -11,7 +11,11 @@ import {
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import { buildRosterCsv, rosterCsvFilename } from '@padel/utils';
+import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -158,6 +162,23 @@ export default function EventManageScreen() {
       });
       if (typeof newId === 'string') {
         router.replace(`/event/${newId}` as Href);
+      }
+    });
+
+  const onExportCsv = () =>
+    run(async () => {
+      const csv = buildRosterCsv(participants, {
+        entrance_fee_enabled: event.entrance_fee_enabled,
+        entrance_fee_amount: event.entrance_fee_amount,
+      });
+      const filename = rosterCsvFilename(event.name, new Date().toISOString().slice(0, 10));
+      const uri = FileSystem.documentDirectory + filename;
+      await FileSystem.writeAsStringAsync(uri, csv);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: filename });
+      } else {
+        await Clipboard.setStringAsync(csv);
+        Alert.alert(t('exportUnavailable'));
       }
     });
 
@@ -358,6 +379,31 @@ export default function EventManageScreen() {
             onPress={() => router.push(`/event/${id}/activity` as never)}
           >
             <Text style={styles.secondaryLabel}>{t('activityLogCta')}</Text>
+          </Pressable>
+        </View>
+
+        {/* Send a blast (community events only) */}
+        {event.group_id != null ? (
+          <View style={styles.section}>
+            <Pressable
+              style={[styles.btn, styles.secondaryBtn]}
+              accessibilityRole="button"
+              onPress={() => router.push(`/event/${id}/blast` as never)}
+            >
+              <Text style={styles.secondaryLabel}>{t('sendBlastCta')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {/* Export attendance CSV */}
+        <View style={styles.section}>
+          <Pressable
+            style={[styles.btn, styles.secondaryBtn]}
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={onExportCsv}
+          >
+            <Text style={styles.secondaryLabel}>{t('exportCsvCta')}</Text>
           </Pressable>
         </View>
 
