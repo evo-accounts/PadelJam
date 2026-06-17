@@ -2278,6 +2278,7 @@ export type Database = {
       can_create_post: { Args: { c: string }; Returns: boolean }
       can_customize_blast: { Args: { p_event_id: string }; Returns: boolean }
       can_review_community: { Args: { p_community_id: string }; Returns: boolean }
+      cancel_event: { Args: { p_event_id: string; p_scope?: string }; Returns: undefined }
       chat_channel_spec: {
         Args: { p_kind: string; p_id: string }
         Returns: { name: string; member_ids: string[] }[]
