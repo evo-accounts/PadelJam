@@ -1283,6 +1283,7 @@ const mobileEvent = {
     blastChannelsRequired: 'Pick at least one channel.',
     no_community: 'Blasts are only available on community events.',
     channels_required: 'Pick at least one channel.',
+    invalid_channel: 'That notification channel is not supported.',
     blast_incomplete: 'Add a title and message.',
     exportCsvCta: 'Export attendance (CSV)',
     exportUnavailable: 'Sharing is not available; the CSV was copied to your clipboard.',
