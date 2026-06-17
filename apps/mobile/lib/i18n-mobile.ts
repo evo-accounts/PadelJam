@@ -1263,6 +1263,27 @@ const mobileEvent = {
     rankingToggleLabel: 'Counts for group ranking',
     finishMessageTitle: 'Message from the organizer',
     completedTitle: 'Final results',
+
+    // --- Phase 5G-4: Blasts ---
+    sendBlastCta: 'Send a blast',
+    blastTitle: 'Send a blast',
+    blastTemplatesTab: 'Templates',
+    blastYourBlastsTab: 'Your blasts',
+    blastYourEmpty: "You haven't sent any blasts yet. Pick a template to start.",
+    blastCustomizeTitle: 'Customize blast',
+    blastTitleLabel: 'Title',
+    blastDescLabel: 'Message',
+    blastChannelEmail: 'Email',
+    blastChannelWhatsapp: 'WhatsApp',
+    blastSendToLabel: 'Send to',
+    blastSendToAll: 'All members',
+    blastSendCta: 'Send blast',
+    blastSentTitle: 'Blast sent',
+    blastSentBody: 'Recorded for {{count}} members.',
+    blastChannelsRequired: 'Pick at least one channel.',
+    no_community: 'Blasts are only available on community events.',
+    channels_required: 'Pick at least one channel.',
+    blast_incomplete: 'Add a title and message.',
   },
 } as const;
 

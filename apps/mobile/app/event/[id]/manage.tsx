@@ -361,6 +361,19 @@ export default function EventManageScreen() {
           </Pressable>
         </View>
 
+        {/* Send a blast (community events only) */}
+        {event.group_id != null ? (
+          <View style={styles.section}>
+            <Pressable
+              style={[styles.btn, styles.secondaryBtn]}
+              accessibilityRole="button"
+              onPress={() => router.push(`/event/${id}/blast` as never)}
+            >
+              <Text style={styles.secondaryLabel}>{t('sendBlastCta')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {/* Duplicate */}
         <View style={styles.section}>
           <Pressable
