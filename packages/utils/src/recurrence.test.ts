@@ -22,12 +22,19 @@ describe('nextWeeklyOccurrence', () => {
   it('same weekday but the time already passed -> next week', () => {
     const from = new Date('2026-06-17T20:00:00').getTime(); // 20:00 local
     const d = new Date(nextWeeklyOccurrence(3, '18:00', from)); // same weekday, 18:00 < 20:00
-    expect(d.getDay()).toBe(d.getDay()); // weekday matches the ISO-3 target below
+    expect(d.getDay()).toBe(3); // ISO Wednesday -> JS 3
     expect(d.getTime() - from).toBeGreaterThanOrEqual(6 * DAY);
   });
   it('maps ISO Sunday (7) to JS Sunday (0)', () => {
     const from = new Date('2026-06-17T09:00:00').getTime();
     const d = new Date(nextWeeklyOccurrence(7, '12:00', from));
     expect(d.getDay()).toBe(0);
+  });
+  it("accepts Postgres time's 'HH:MM:SS' shape", () => {
+    const from = new Date('2026-06-17T09:00:00').getTime();
+    const d = new Date(nextWeeklyOccurrence(5, '18:00:00', from)); // Friday
+    expect(d.getDay()).toBe(5);
+    expect(d.getHours()).toBe(18);
+    expect(d.getMinutes()).toBe(0);
   });
 });
