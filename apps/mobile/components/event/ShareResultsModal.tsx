@@ -1,9 +1,8 @@
 import { usePostEventResult } from '@padel/api';
 import { useT } from '@padel/i18n';
 import * as Clipboard from 'expo-clipboard';
-import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 export function ShareResultsModal({
   visible,
@@ -32,12 +31,15 @@ export function ShareResultsModal({
       .catch((e) => setError(t(e instanceof Error ? e.message : 'unknown_error')));
   };
 
+  const [copied, setCopied] = useState(false);
   const onShare = async () => {
-    if (await Sharing.isAvailableAsync()) {
-      // expo-sharing shares files/URLs; for a plain text summary, fall back to clipboard.
+    try {
+      // RN Share gives a native share sheet for plain text on iOS/Android.
+      await Share.share({ message: summaryText });
+    } catch {
+      // User dismissed or share failed → fall back to copying, with confirmation.
       await Clipboard.setStringAsync(summaryText);
-    } else {
-      await Clipboard.setStringAsync(summaryText);
+      setCopied(true);
     }
   };
 
@@ -62,7 +64,7 @@ export function ShareResultsModal({
             </Pressable>
           ) : null}
           <Pressable style={[styles.btn, styles.secondary]} onPress={onShare} accessibilityRole="button">
-            <Text style={styles.secondaryLabel}>{t('shareExternalCta')}</Text>
+            <Text style={styles.secondaryLabel}>{copied ? t('copied') : t('shareExternalCta')}</Text>
           </Pressable>
         </View>
       </Pressable>

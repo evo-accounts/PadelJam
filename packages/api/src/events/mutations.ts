@@ -608,11 +608,14 @@ export const usePostEventResult = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (communityId: string) => {
+    mutationFn: async (_communityId: string) => {
       const { data, error } = await db.rpc('post_event_result', { p_event_id: eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      qc.invalidateQueries({ queryKey: qk.posts(communityId) });
       return data as string;
+    },
+    onSuccess: (_data, communityId) => {
+      qc.invalidateQueries({ queryKey: qk.posts(communityId) });
+      qc.invalidateQueries({ queryKey: qk.eventResultSummary(eventId) });
     },
   });
 };

@@ -1316,6 +1316,7 @@ const mobileEvent = {
     shareResultsTitle: 'Share results',
     postToFeedCta: 'Post to community feed',
     shareExternalCta: 'Share…',
+    copied: 'Copied to clipboard',
     resultPosted: 'Posted to the community feed.',
     already_posted: 'Results are already posted to the feed.',
     not_completed: 'Finish the event first.',
