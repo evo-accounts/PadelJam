@@ -8,6 +8,7 @@ import {
   useEventTeams,
   useFinishEvent,
   useGenerateNextRound,
+  useGroup,
   useSetEventRanking,
   useSubmitScore,
 } from '@padel/api';
@@ -17,7 +18,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -28,6 +28,9 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { ShareResultsModal } from '@/components/event/ShareResultsModal';
+import { TimerTab } from '@/components/event/TimerTab';
 
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
 type MatchPlayer = MatchRow['match_players'][number];
@@ -58,6 +61,7 @@ export default function EventLiveScreen() {
   const { data: matchesData } = useEventMatches(id);
   const { data: standingsData } = useEventStandings(id);
   const { data: teamsData } = useEventTeams(id);
+  const { data: group } = useGroup(event?.group_id ?? '');
 
   // Mutations (declared before any early return).
   const submitScore = useSubmitScore(id);
@@ -69,11 +73,12 @@ export default function EventLiveScreen() {
   const lastRound = rounds.length > 0 ? rounds[rounds.length - 1] : undefined;
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
   // null = not explicitly chosen yet; the default depends on event.status.
-  const [tab, setTab] = useState<'overview' | 'matches' | 'leaderboard' | null>(null);
+  const [tab, setTab] = useState<'overview' | 'matches' | 'leaderboard' | 'timer' | null>(null);
 
   // Interactive state.
   const [scoringMatchId, setScoringMatchId] = useState<string | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -161,6 +166,12 @@ export default function EventLiveScreen() {
   for (const team of teams) {
     teamNumberById.set(team.id, team.team_number);
   }
+
+  // Plain-text results summary for the share sheet.
+  const resultsSummary = [
+    `🏆 ${event.name}`,
+    ...standings.map((s) => `${s.rank}. ${nameById.get(s.entity_id) ?? '—'} (${s.points})`),
+  ].join('\n');
 
   // --- Matches for the selected round, sorted by court ---
   const roundMatches = matches
@@ -257,6 +268,7 @@ export default function EventLiveScreen() {
 
   const pointsTotal = event.scoring_value ?? 0;
   const isPoints = event.scoring_mode === 'points';
+  const isTimed = event.scoring_mode === 'time';
   const clamp = (n: number, lo: number, hi: number): number =>
     Math.max(lo, Math.min(hi, n));
 
@@ -298,7 +310,7 @@ export default function EventLiveScreen() {
         finishMessage: msg.length > 0 ? msg : undefined,
       });
       setFinishOpen(false);
-      Alert.alert(t('finishedTitle'));
+      setShareOpen(true);
     });
   };
 
@@ -370,6 +382,14 @@ export default function EventLiveScreen() {
                 {error != null ? <Text style={styles.error}>{t(error)}</Text> : null}
               </View>
             ) : null}
+
+            <Pressable
+              style={[styles.btn, styles.shareBtn]}
+              accessibilityRole="button"
+              onPress={() => setShareOpen(true)}
+            >
+              <Text style={styles.shareLabel}>{t('shareResultsCta')}</Text>
+            </Pressable>
           </View>
         ) : effectiveTab === 'matches' ? (
           orderedMatches.length === 0 ? (
@@ -439,6 +459,8 @@ export default function EventLiveScreen() {
               ) : null}
             </>
           )
+        ) : effectiveTab === 'timer' ? (
+          <TimerTab eventId={id} isOrganizer={isOrganizer} />
         ) : standings.length === 0 ? (
           <Text style={styles.empty}>{t('standingsEmpty')}</Text>
         ) : (
@@ -513,6 +535,19 @@ export default function EventLiveScreen() {
             {t('matchesTab')}
           </Text>
         </Pressable>
+        {isTimed ? (
+          <Pressable
+            style={[styles.segment, effectiveTab === 'timer' && styles.segmentActive]}
+            accessibilityRole="button"
+            onPress={() => setTab('timer')}
+          >
+            <Text
+              style={[styles.segmentText, effectiveTab === 'timer' && styles.segmentTextActive]}
+            >
+              {t('timerTab')}
+            </Text>
+          </Pressable>
+        ) : null}
         <Pressable
           style={[styles.segment, effectiveTab === 'leaderboard' && styles.segmentActive]}
           accessibilityRole="button"
@@ -689,6 +724,14 @@ export default function EventLiveScreen() {
           </View>
         </View>
       </Modal>
+
+      <ShareResultsModal
+        visible={shareOpen}
+        onClose={() => setShareOpen(false)}
+        eventId={id}
+        communityId={event.group_id ? (group?.community_id ?? null) : null}
+        summaryText={resultsSummary}
+      />
     </SafeAreaView>
   );
 }
@@ -869,6 +912,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   finishMessageText: { fontSize: 15, color: '#0B1F3A', lineHeight: 21 },
+  shareBtn: { backgroundColor: '#0B7BFF' },
+  shareLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
   completedHeading: {
     fontSize: 18,
     fontWeight: '700',

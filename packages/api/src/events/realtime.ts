@@ -72,6 +72,13 @@ export const useEventRealtime = (eventId: string) => {
           qc.invalidateQueries({ queryKey: qk.eventStandings(eventId) });
         },
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'event_timer', filter },
+        () => {
+          qc.invalidateQueries({ queryKey: qk.eventTimer(eventId) });
+        },
+      )
       .subscribe();
     return () => {
       db.removeChannel(ch);

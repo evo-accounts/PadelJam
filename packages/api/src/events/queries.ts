@@ -430,3 +430,39 @@ export const useEventSeries = (eventId: string) => {
     },
   });
 };
+
+export interface EventTimerRow {
+  duration_seconds: number;
+  started_at: string | null;
+  paused_at: string | null;
+  status: 'idle' | 'running' | 'paused';
+}
+export const useEventTimer = (eventId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.eventTimer(eventId),
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('event_timer')
+        .select('duration_seconds, started_at, paused_at, status')
+        .eq('event_id', eventId)
+        .maybeSingle()
+        .returns<EventTimerRow | null>();
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+export interface ResultPlacement { rank: number; name: string; points: number }
+export const useEventResultSummary = (eventId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.eventResultSummary(eventId),
+    queryFn: async () => {
+      const { data, error } = await db.rpc('event_result_summary', { p_event_id: eventId });
+      if (error) throw error;
+      return (data ?? []) as ResultPlacement[];
+    },
+  });
+};

@@ -597,6 +597,9 @@ const mobileCommunity = {
     qrBody: 'Aponte a câmera para o código ou compartilhe o link abaixo.',
   },
   en: {
+    resultCardTitle: 'Event result',
+    viewEventCta: 'View event',
+    resultUnavailable: 'Result unavailable',
     createTitle: 'Create community',
     nameLabel: 'Name',
     namePlaceholder: 'Community name',
@@ -1231,6 +1234,13 @@ const mobileEvent = {
     liveTitle: 'Live',
     matchesTab: 'Matches',
     leaderboardTab: 'Leaderboard',
+    timerTab: 'Timer',
+    timerStart: 'Start',
+    timerPause: 'Pause',
+    timerResume: 'Resume',
+    timerReset: 'Reset',
+    timerIdle: 'Not started',
+    timerDone: "Time's up",
     roundLabel: 'Round {{number}}',
     yourMatchLabel: 'Your match',
     courtLabel: 'Court {{number}}',
@@ -1300,6 +1310,16 @@ const mobileEvent = {
     blast_incomplete: 'Add a title and message.',
     exportCsvCta: 'Export attendance (CSV)',
     exportUnavailable: 'Sharing is not available; the CSV was copied to your clipboard.',
+
+    // --- Phase 5H: Share results ---
+    shareResultsCta: 'Share results',
+    shareResultsTitle: 'Share results',
+    postToFeedCta: 'Post to community feed',
+    shareExternalCta: 'Share…',
+    copied: 'Copied to clipboard',
+    resultPosted: 'Posted to the community feed.',
+    already_posted: 'Results are already posted to the feed.',
+    not_completed: 'Finish the event first.',
   },
 } as const;
 
