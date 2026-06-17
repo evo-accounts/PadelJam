@@ -34,7 +34,10 @@ Deno.serve(async (req) => {
   const list = (recipients ?? []) as { email: string }[];
   if (list.length === 0) return json({ ok: true, sent: 0 });
 
-  const html = `<h2>${blast.title}</h2><p>${blast.description}</p>`;
+  // Escape organizer-authored text so stray `<`/`&` render correctly in recipients' mail clients.
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const html = `<h2>${esc(blast.title as string)}</h2><p>${esc(blast.description as string).replace(/\n/g, '<br>')}</p>`;
   try {
     await sendBatchEmails(list.map((r) => ({ to: r.email, subject: blast.title as string, html })));
   } catch (e) {

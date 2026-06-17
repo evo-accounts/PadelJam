@@ -1,4 +1,5 @@
-// Thin Resend REST wrapper. RESEND_API_KEY unset -> throws 'email_not_configured' (caller -> 500).
+// Thin Resend REST wrapper. RESEND_API_KEY/RESEND_FROM_EMAIL unset -> throws 'email_not_configured';
+// callers decide how to surface it (send-roster-csv returns 200 {ok:false}; send-blast swallows it).
 const API = 'https://api.resend.com/emails';
 
 type Attachment = { filename: string; content: string /* base64 */ };

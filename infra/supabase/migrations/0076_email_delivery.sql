@@ -24,7 +24,7 @@ begin
            (case when ep.user_id is not null then 'member' else 'manual' end) || ',' ||
            ep.status || ',' || lower(ep.is_standby::text) || ',' ||
            coalesce(ep.joined_at::text,'') || ',' || coalesce(ep.confirmed_at::text,'') || ',' ||
-           lower(ep.has_paid::text) || ',' || coalesce(ep.paid_at::text,'') || ',' || v_fee::text,
+           lower(ep.has_paid::text) || ',' || coalesce(ep.paid_at::text,'') || ',' || trim_scale(v_fee)::text,
            E'\n' order by ep.joined_at asc)
     into v_body
   from event_participants ep
