@@ -9,6 +9,7 @@ import {
   useMarkConfirmed,
   useMarkPaid,
   useRemoveParticipant,
+  useSendRosterCsvEmail,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
@@ -56,6 +57,7 @@ export default function EventManageScreen() {
   const markAllPaid = useMarkAllPaid(id);
   const duplicateEvent = useDuplicateEvent();
   const cancelEvent = useCancelEvent(id);
+  const sendCsvEmail = useSendRosterCsvEmail(id);
 
   const [manualName, setManualName] = useState('');
   const [manualGender, setManualGender] = useState<'male' | 'female' | null>(null);
@@ -183,6 +185,21 @@ export default function EventManageScreen() {
         Alert.alert(t('exportUnavailable'));
       }
     });
+
+  const onExport = () => {
+    Alert.alert(t('exportSheetTitle'), undefined, [
+      { text: t('exportCsvCta'), onPress: onExportCsv },
+      {
+        text: t('emailCsvCta'),
+        onPress: () =>
+          run(async () => {
+            await sendCsvEmail.mutateAsync();
+            Alert.alert(t('csvEmailed'));
+          }),
+      },
+      { text: t('cancel'), style: 'cancel' },
+    ]);
+  };
 
   const doCancel = (scope: 'only_this' | 'this_and_upcoming') =>
     run(async () => {
@@ -434,7 +451,7 @@ export default function EventManageScreen() {
             style={[styles.btn, styles.secondaryBtn]}
             accessibilityRole="button"
             disabled={busy}
-            onPress={onExportCsv}
+            onPress={onExport}
           >
             <Text style={styles.secondaryLabel}>{t('exportCsvCta')}</Text>
           </Pressable>

@@ -1314,6 +1314,11 @@ const mobileEvent = {
     blast_incomplete: 'Add a title and message.',
     exportCsvCta: 'Export attendance (CSV)',
     exportUnavailable: 'Sharing is not available; the CSV was copied to your clipboard.',
+    exportSheetTitle: 'Export attendance',
+    emailCsvCta: 'Email me the CSV',
+    csvEmailed: 'Sent to your email.',
+    email_not_configured: 'Email delivery isn’t set up yet.',
+    csv_email_failed: 'Could not email the CSV. Please try again.',
 
     // --- Phase 5H: Share results ---
     shareResultsCta: 'Share results',

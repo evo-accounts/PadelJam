@@ -21,7 +21,6 @@ declare
   g   uuid;
   ev  uuid;
   ev2 uuid;
-  r   integer;
   n   integer;
   cc  boolean;
 begin
@@ -63,9 +62,9 @@ begin
   perform set_config('request.jwt.claims','{"sub":"e0000001-0000-0000-0000-000000000001","role":"authenticated"}',true);
 
   -- (1) email channel: M1 opted in -> returns 1 + inserts a row.
-  r := send_event_blast(ev, null, 'Hi', 'Body', null, array['email']);
-  if r <> 1 then
-    raise exception using errcode='PT001', message='expected send_event_blast(email) = 1, got '||r;
+  select sent_to_count into n from send_event_blast(ev, null, 'Hi', 'Body', null, array['email']);
+  if n <> 1 then
+    raise exception using errcode='PT001', message='expected send_event_blast(email) = 1, got '||n;
   end if;
   perform set_config('role','postgres',true);
   select count(*) into n from event_blasts where event_id = ev;
@@ -76,9 +75,9 @@ begin
   raise notice 'OK send email: returns 1 and inserts 1 row';
 
   -- (2) whatsapp channel: M1 opted out -> returns 0.
-  r := send_event_blast(ev, null, 'Hi', 'Body', null, array['whatsapp']);
-  if r <> 0 then
-    raise exception using errcode='PT001', message='expected send_event_blast(whatsapp) = 0, got '||r;
+  select sent_to_count into n from send_event_blast(ev, null, 'Hi', 'Body', null, array['whatsapp']);
+  if n <> 0 then
+    raise exception using errcode='PT001', message='expected send_event_blast(whatsapp) = 0, got '||n;
   end if;
   raise notice 'OK send whatsapp: returns 0 (M1 opted out)';
 
