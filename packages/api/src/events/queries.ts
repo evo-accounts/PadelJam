@@ -296,3 +296,28 @@ export const useSearchVenues = (query: string) => {
     },
   });
 };
+
+export interface ActivityRow {
+  id: string;
+  action: string;
+  detail: { target_name?: string; guest_name?: string; mode?: string; status?: string } | null;
+  created_at: string;
+  profiles: { full_name: string | null; avatar_url: string | null } | null;
+}
+
+export const useEventActivity = (eventId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.eventActivity(eventId),
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('event_activity')
+        .select('id, action, detail, created_at, profiles:actor_id (full_name, avatar_url)')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false })
+        .returns<ActivityRow[]>();
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};

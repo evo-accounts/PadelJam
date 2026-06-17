@@ -1166,6 +1166,19 @@ const mobileEvent = {
     unpaidBadge: 'Unpaid',
     duplicateCta: 'Duplicate event',
     noRoster: 'No players yet',
+
+    // --- Phase 5G-2: Activity log ---
+    activityTitle: 'Activity log',
+    activityLogCta: 'Activity log',
+    activityEmpty: 'No activity yet.',
+    activityJoined: '{{actor}} joined',
+    activityLeft: '{{actor}} left',
+    activityConfirmed: '{{actor}} confirmed {{target}}',
+    activityRemoved: '{{actor}} removed {{target}}',
+    activityGuestAdded: '{{actor}} added {{target}}',
+    activityMarkedPaid: '{{actor}} marked {{target}} as paid',
+    activityMarkedUnpaid: '{{actor}} marked {{target}} as unpaid',
+    activityMarkedAllPaid: '{{actor}} marked everyone as paid',
     moreActions: 'More',
     shareCta: 'Share',
 

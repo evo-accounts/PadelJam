@@ -106,21 +106,25 @@ export default function EventManageScreen() {
     }
   };
 
-  const onConfirm = (participantId: string) =>
-    run(() => markConfirmed.mutateAsync(participantId));
+  const onConfirm = (participantId: string, targetName?: string) =>
+    run(() => markConfirmed.mutateAsync({ participantId, targetName }));
 
-  const onRemove = (participantId: string) => {
+  const onRemove = (participantId: string, targetName?: string) => {
     Alert.alert(t('removeConfirmTitle'), t('removeConfirmBody'), [
       {
         text: t('removeToInvitedCta'),
         onPress: () =>
-          run(() => removeParticipant.mutateAsync({ participantId, mode: 'to_invited' })),
+          run(() =>
+            removeParticipant.mutateAsync({ participantId, mode: 'to_invited', targetName }),
+          ),
       },
       {
         text: t('removeFromEventCta'),
         style: 'destructive',
         onPress: () =>
-          run(() => removeParticipant.mutateAsync({ participantId, mode: 'from_event' })),
+          run(() =>
+            removeParticipant.mutateAsync({ participantId, mode: 'from_event', targetName }),
+          ),
       },
       { text: t('cancel'), style: 'cancel' },
     ]);
@@ -139,8 +143,8 @@ export default function EventManageScreen() {
     });
   };
 
-  const onTogglePaid = (participantId: string, paid: boolean) =>
-    run(() => markPaid.mutateAsync({ participantId, paid }));
+  const onTogglePaid = (participantId: string, paid: boolean, targetName?: string) =>
+    run(() => markPaid.mutateAsync({ participantId, paid, targetName }));
 
   const onMarkAllPaid = () => run(() => markAllPaid.mutateAsync());
 
@@ -173,7 +177,9 @@ export default function EventManageScreen() {
               style={[styles.pill, p.has_paid ? styles.pillPaid : styles.pillUnpaid]}
               accessibilityRole="button"
               disabled={busy}
-              onPress={() => onTogglePaid(p.id, !p.has_paid)}
+              onPress={() =>
+                onTogglePaid(p.id, !p.has_paid, p.profiles?.full_name ?? p.guest_name ?? undefined)
+              }
             >
               <Text style={[styles.pillText, p.has_paid ? styles.pillTextPaid : styles.pillTextUnpaid]}>
                 {p.has_paid ? t('paidBadge') : t('unpaidBadge')}
@@ -185,7 +191,7 @@ export default function EventManageScreen() {
               style={[styles.smallBtn, styles.confirmBtn]}
               accessibilityRole="button"
               disabled={busy}
-              onPress={() => onConfirm(p.id)}
+              onPress={() => onConfirm(p.id, p.profiles?.full_name ?? p.guest_name ?? undefined)}
             >
               <Text style={styles.confirmLabel}>{t('markConfirmedCta')}</Text>
             </Pressable>
@@ -194,7 +200,7 @@ export default function EventManageScreen() {
             style={[styles.smallBtn, styles.removeBtn]}
             accessibilityRole="button"
             disabled={busy}
-            onPress={() => onRemove(p.id)}
+            onPress={() => onRemove(p.id, p.profiles?.full_name ?? p.guest_name ?? undefined)}
           >
             <Text style={styles.removeLabel}>{t('removeCta')}</Text>
           </Pressable>
@@ -339,6 +345,17 @@ export default function EventManageScreen() {
             ) : null}
           </>
         )}
+
+        {/* Activity log */}
+        <View style={styles.section}>
+          <Pressable
+            style={[styles.btn, styles.secondaryBtn]}
+            accessibilityRole="button"
+            onPress={() => router.push(`/event/${id}/activity` as never)}
+          >
+            <Text style={styles.secondaryLabel}>{t('activityLogCta')}</Text>
+          </Pressable>
+        </View>
 
         {/* Duplicate */}
         <View style={styles.section}>
