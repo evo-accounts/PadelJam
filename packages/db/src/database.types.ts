@@ -2590,7 +2590,15 @@ export type Database = {
           p_image_path: string | null
           p_channels: string[]
         }
-        Returns: number
+        Returns: { blast_id: string; sent_to_count: number }[]
+      }
+      event_roster_csv: {
+        Args: { p_event_id: string }
+        Returns: string
+      }
+      blast_email_recipients: {
+        Args: { p_blast_id: string }
+        Returns: { email: string }[]
       }
       finish_event: {
         Args: {

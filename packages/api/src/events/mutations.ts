@@ -565,7 +565,8 @@ export const useSendBlast = (eventId: string) => {
         p_channels: input.channels,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      return data as number;
+      const row = data?.[0] ?? { blast_id: null, sent_to_count: 0 };
+      return row.sent_to_count;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventBlasts(eventId) });
