@@ -17,6 +17,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { registerMobileCopy } from '@/lib/i18n-mobile';
 import { resolveLocale } from '@/lib/locale';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
+import { registerForPush } from '@/lib/push';
 import { initSentry } from '@/lib/sentry';
 import { supabase } from '@/lib/supabase';
 
@@ -161,10 +162,15 @@ function Boot() {
       await delay(SPLASH_MIN_MS);
       if (cancelled) return;
 
-      if (target === '(tabs)') router.replace('/(tabs)');
-      else if (target === 'welcome') router.replace('/(auth)/welcome');
+      if (target === '(tabs)') {
+        void registerForPush(); // authed: idempotent + self-guarding
+        router.replace('/(tabs)');
+      } else if (target === 'welcome') router.replace('/(auth)/welcome');
       else if (target === 'sign-in') router.replace('/(auth)/sign-in');
-      else router.replace(target); // target is an OnboardingRoute string
+      else {
+        void registerForPush(); // authed onboarding target
+        router.replace(target); // target is an OnboardingRoute string
+      }
 
       setReady(true);
       SplashScreen.hideAsync().catch(() => {

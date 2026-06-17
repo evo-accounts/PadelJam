@@ -5,6 +5,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text } from 'react-native';
 
+import { unregisterForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 
 const TERMS_URL = 'https://padeljam.app/terms';
@@ -32,6 +33,11 @@ export default function SettingsScreen() {
   };
 
   const onLogout = async () => {
+    try {
+      await unregisterForPush();
+    } catch {
+      /* best-effort; never block sign-out */
+    }
     await signOut(supabase);
     router.replace('/(auth)/sign-in');
   };
