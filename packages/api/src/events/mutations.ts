@@ -1,7 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDb, mapPgError } from '../client';
 import { qk } from '../query-keys';
-import { buildCreateEventPayload, type CreateEventInput, type EventType } from '../schemas';
+import {
+  buildCreateEventPayload,
+  buildUpdateEventPayload,
+  type CreateEventInput,
+  type EventType,
+  type UpdateEventInput,
+} from '../schemas';
 import { americanoSchedule } from '../round-gen';
 
 // Mirrors the generated `Json` scalar from @padel/db (not re-exported there).
@@ -45,6 +51,26 @@ export const useCreateEvent = () => {
         qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
         qc.invalidateQueries({ queryKey: qk.canCreateEvent(input.groupId) });
       }
+    },
+  });
+};
+
+export const useUpdateEvent = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { values: UpdateEventInput; groupId: string | null }) => {
+      const { error } = await db.rpc('update_event', {
+        p_event_id: eventId,
+        p_payload: buildUpdateEventPayload(input.values) as Json,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: (_d, input) => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.myEvents('all') });
+      qc.invalidateQueries({ queryKey: qk.myEvents('organizing') });
+      if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
     },
   });
 };

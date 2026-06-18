@@ -173,6 +173,58 @@ export function buildCreateEventPayload(input: CreateEventInput): Record<string,
   return payload;
 }
 
+/**
+ * The editable subset of an event (JM-24). event_type/specification/num_courts/
+ * location/group_id/series are immutable and never sent to `update_event`.
+ */
+export const updateEventSchema = z
+  .object({
+    name: z.string().trim().min(1, 'name_required').max(80),
+    description: z.string().trim().max(500).optional(),
+    thumbnailPath: z.string().optional(),
+    startsAt: z.string().datetime(),
+    durationMinutes: z.number().int().positive(),
+    scoringMode: z.enum(SCORING_MODES),
+    scoringValue: z.number().int().nullable(),
+    allowStandby: z.boolean(),
+    standbySpots: z.number().int().optional(),
+    isPrivate: z.boolean(),
+    entranceFee: z.object({
+      enabled: z.boolean(),
+      amount: z.number().optional(),
+      method: z.enum(ENTRANCE_FEE_METHODS).optional(),
+      mbaNumber: z.string().trim().optional(),
+    }),
+    playersSubmitResults: z.boolean(),
+    organizerRole: z.enum(ORGANIZER_ROLES),
+  })
+  .refine((v) => !v.entranceFee.enabled || (v.entranceFee.amount != null && !!v.entranceFee.method), {
+    path: ['entranceFee'],
+    message: 'fee_requires_amount_and_method',
+  });
+export type UpdateEventInput = z.infer<typeof updateEventSchema>;
+
+export function buildUpdateEventPayload(input: UpdateEventInput): Record<string, unknown> {
+  return {
+    name: input.name,
+    description: input.description ?? null,
+    thumbnail_path: input.thumbnailPath ?? null,
+    starts_at: input.startsAt,
+    duration_minutes: input.durationMinutes,
+    scoring_mode: input.scoringMode,
+    scoring_value: input.scoringValue,
+    allow_standby: input.allowStandby,
+    standby_spots: input.standbySpots ?? null,
+    is_private: input.isPrivate,
+    entrance_fee_enabled: input.entranceFee.enabled,
+    entrance_fee_amount: input.entranceFee.amount ?? null,
+    entrance_fee_method: input.entranceFee.method ?? null,
+    entrance_fee_mba_number: input.entranceFee.mbaNumber ?? null,
+    players_submit_results: input.playersSubmitResults,
+    organizer_role: input.organizerRole,
+  };
+}
+
 export const submitScoreSchema = z.object({
   sideA: z.number().int().min(0),
   sideB: z.number().int().min(0),

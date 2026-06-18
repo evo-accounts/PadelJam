@@ -16,7 +16,7 @@ const KNOWN = [
   'use_team_join', 'not_a_team_event', 'partner_unavailable', 'gender_required',
   'setup_incomplete', 'round_not_scored', 'round_exists', 'event_not_scheduled',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
-  'recurring_events', 'not_cancellable', 'invalid_scope',
+  'recurring_events', 'not_cancellable', 'invalid_scope', 'not_editable', 'standby_below_roster',
   // community reviews: gate RPC codes the review screen translates directly
   'invalid_rating', 'review_requires_participation',
   // blasts: RPC/validation codes the blast screen translates directly

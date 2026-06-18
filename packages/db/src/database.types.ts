@@ -3483,6 +3483,7 @@ export type Database = {
       }
       unarchive_group: { Args: { p_group_id: string }; Returns: undefined }
       unlockrows: { Args: { "": string }; Returns: number }
+      update_event: { Args: { p_event_id: string; p_payload: Json }; Returns: undefined }
       updategeometrysrid: {
         Args: {
           catalogn_name: string
