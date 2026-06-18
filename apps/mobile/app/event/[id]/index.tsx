@@ -16,7 +16,7 @@ import {
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { deadlineState, formatCountdown, nextWeeklyOccurrence } from '@padel/utils';
+import { deadlineState, formatCountdown } from '@padel/utils';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { streamClient } from '@/lib/streamClient';
@@ -181,9 +181,12 @@ export default function EventDetailScreen() {
   const badge = badgeStyles(status);
 
   // --- Recurring series (5G-6 + A1): tag + clickable next-occurrence card ---
+  // The card must show EXACTLY what materialize_occurrence creates: source.starts_at + 7 days
+  // (the RPC's `+ interval '7 days'`). Using the series day/time here would diverge from the
+  // created row whenever this occurrence was edited off-schedule.
   const isRecurring = event.series_id != null && series != null && series.is_active;
   const nextOccurrenceIso = isRecurring
-    ? nextWeeklyOccurrence(series!.day_of_week, series!.start_time, new Date(event.starts_at).getTime())
+    ? new Date(new Date(event.starts_at).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
     : null;
 
   // --- Deadlines (JM-18..21): 6h join cutoff, 12h leave cutoff, both derived from starts_at ---
