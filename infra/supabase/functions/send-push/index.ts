@@ -42,7 +42,9 @@ Deno.serve(async (req) => {
 
   const { data: settings } = await admin
     .from('user_settings').select('notifications_push').eq('user_id', n.user_id).maybeSingle();
-  if (!settings?.notifications_push) return json({ ok: true, skipped: 'push_off' });
+  // No row = column default (push ON), matching the app's settings DEFAULTS. Only an explicit
+  // false opts out (user_settings is created lazily, so most users have no row).
+  if (settings && settings.notifications_push === false) return json({ ok: true, skipped: 'push_off' });
 
   const { data: tokens } = await admin
     .from('push_tokens').select('expo_token').eq('user_id', n.user_id);

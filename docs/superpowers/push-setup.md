@@ -39,7 +39,7 @@ eas build --profile development --platform ios
 eas build --profile development --platform android
 ```
 
-Install the resulting build on the physical device and run the dev server (`pnpm --filter @padel/mobile start`,
+Install the resulting build on the physical device and run the dev server (`pnpm --filter mobile start`,
 or `npx expo start --dev-client` from `apps/mobile`).
 
 ## 3. Upload push credentials
@@ -59,10 +59,11 @@ The DB trigger (`notify_push`) `pg_net`-posts to the `send-push` edge function *
 `app.send_push_url` is set, authenticating with `app.send_push_secret` in the `x-push-secret` header. The edge
 function checks that header against its own `PUSH_WEBHOOK_SECRET`. **These two values must match.**
 
-1. Deploy the function:
+1. Deploy the function (it's invoked server-to-server by the DB trigger, so JWT verification is off —
+   `config.toml` sets `[functions.send-push] verify_jwt = false`; the `--no-verify-jwt` flag is the CLI equivalent):
 
    ```bash
-   pnpm dlx supabase@latest --workdir infra functions deploy send-push
+   pnpm dlx supabase@latest --workdir infra functions deploy send-push --no-verify-jwt
    ```
 
 2. Set the function secret (the edge-function side). Pick a strong random value and reuse it below:
