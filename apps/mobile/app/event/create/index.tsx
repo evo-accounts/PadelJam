@@ -1,4 +1,5 @@
 import { type CreateEventInput, useCreateEvent } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -17,6 +18,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
 import { StepIndicator } from '@/components/event/wizard/StepIndicator';
+import { uploadCommunityImage } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 
 export default function CreateEventScreen() {
   const { groupId, communityId } = useLocalSearchParams<{
@@ -37,6 +40,7 @@ function CreateEventWizard() {
   const { draft, patch, stepIndex, goNext, goBack, steps, isFirst, isLast, isDirty } =
     useEventWizard();
   const create = useCreateEvent();
+  const uid = useSession().session?.user.id;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +61,22 @@ function CreateEventWizard() {
   const finalize = async () => {
     const { eventType, specification, scoringMode, startsAt } = draft;
     if (!eventType || !specification || !scoringMode || !startsAt) return;
+
+    let thumbnailPath = draft.thumbnailPath;
+    if (draft.thumbnail && uid) {
+      try {
+        thumbnailPath = await uploadCommunityImage(
+          supabase,
+          'event-thumbnails',
+          uid,
+          draft.thumbnail.uri,
+          draft.thumbnail.mimeType,
+        );
+      } catch {
+        setError('unknown_error');
+        return;
+      }
+    }
 
     const input: CreateEventInput = {
       groupId: draft.groupId,
@@ -81,6 +101,7 @@ function CreateEventWizard() {
       organizerRole: draft.organizerRole,
       name: draft.name,
       description: draft.description,
+      thumbnailPath,
       series: draft.series,
       invitees: draft.invitees,
       courtIds: draft.courtIds,

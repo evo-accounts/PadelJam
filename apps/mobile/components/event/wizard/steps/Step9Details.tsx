@@ -1,10 +1,20 @@
 import { useT } from '@padel/i18n';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { ImagePickerRow } from '@/components/community/ImagePickerRow';
+import { pickAndValidateImage } from '@/lib/storage';
+
 import type { WizardStepProps } from '../draft';
 
 export function Step9Details({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
+
+  const onPickThumbnail = () => {
+    void (async () => {
+      const result = await pickAndValidateImage().catch(() => null);
+      if (result) patch({ thumbnail: result });
+    })();
+  };
 
   return (
     <View style={styles.container}>
@@ -35,6 +45,16 @@ export function Step9Details({ draft, patch }: WizardStepProps) {
           multiline
           textAlignVertical="top"
           accessibilityLabel={t('descriptionLabel')}
+        />
+      </View>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>{t('editThumbnailLabel')}</Text>
+        <ImagePickerRow
+          label={t('editThumbnailLabel')}
+          variant="cover"
+          uri={draft.thumbnail?.uri ?? null}
+          onPress={onPickThumbnail}
         />
       </View>
     </View>
