@@ -1432,6 +1432,7 @@ const mobileNotifications = {
     community_request_accepted: 'Your request to join {{entity}} was accepted',
     follow_joined_event: '{{actor}} joined {{entity}}',
     event_cancelled: '{{entity}} was cancelled',
+    event_updated: '{{entity}} was updated — check the new details',
   },
 } as const;
 
