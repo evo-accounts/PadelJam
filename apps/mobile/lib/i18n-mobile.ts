@@ -1111,6 +1111,11 @@ const mobileEvent = {
     editNameLabel: 'Name',
     editDescriptionLabel: 'Description',
     editDateTimeSection: 'Date & time',
+    editLocationSection: 'Location',
+    editCourtsSection: 'Courts',
+    editThumbnailSection: 'Thumbnail',
+    editThumbnailLabel: 'Event image',
+    courts_below_roster: 'Too many players are confirmed for that few courts. Remove players first.',
     saveCta: 'Save changes',
 
     // --- Event lists / cards ---
