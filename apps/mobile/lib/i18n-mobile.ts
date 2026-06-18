@@ -1097,7 +1097,18 @@ const mobileEvent = {
     forbidden: 'You do not have permission to perform this action.',
     standalone_must_be_private: 'Events without a group must be set to private.',
     fee_requires_amount_and_method: 'Please enter a fee amount and select a payment method.',
+    not_editable: 'This event can no longer be edited.',
+    standby_below_roster: "Can't reduce standby below the current standby players.",
     unknown_error: 'Something went wrong. Please try again.',
+
+    // --- Edit event ---
+    editEventCta: 'Edit event',
+    editTitle: 'Edit event',
+    editDetailsSection: 'Details',
+    editNameLabel: 'Name',
+    editDescriptionLabel: 'Description',
+    editDateTimeSection: 'Date & time',
+    saveCta: 'Save changes',
 
     // --- Event lists / cards ---
     filterAll: 'All',
