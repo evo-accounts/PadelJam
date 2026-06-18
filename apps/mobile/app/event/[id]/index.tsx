@@ -305,9 +305,50 @@ export default function EventDetailScreen() {
       </View>
     );
   } else if (isOrganizer) {
+    // JM-35: the organizer can also play. `me` is their participant row (set when organizing_and_playing,
+    // or after they Join as a player). Join/Leave respect the same 6h/12h cutoffs as players.
+    const organizerJoin =
+      me == null && !joinClosed ? (
+        <Pressable
+          style={[styles.btn, styles.secondaryBtn]}
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={
+            event.specification === 'team'
+              ? () => router.push(`/event/${id}/partner-requests` as Href)
+              : onJoin
+          }
+        >
+          {busy ? (
+            <ActivityIndicator color="#0B1F3A" />
+          ) : (
+            <Text style={styles.secondaryLabel}>{t('joinAsPlayerCta')}</Text>
+          )}
+        </Pressable>
+      ) : null;
+    const organizerLeave =
+      me != null && !leaveLocked ? (
+        <>
+          <Pressable
+            style={[styles.btn, styles.secondaryBtn]}
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={onLeave}
+          >
+            {busy ? (
+              <ActivityIndicator color="#0B1F3A" />
+            ) : (
+              <Text style={styles.secondaryLabel}>{t('leaveAsPlayerCta')}</Text>
+            )}
+          </Pressable>
+          <Text style={styles.leaveHint}>{t('leaveByHint', { when: leaveByText })}</Text>
+        </>
+      ) : null;
     cta = (
       <View style={styles.ctaCol}>
-        <Text style={styles.ctaBadge}>{t('organizerBadge')}</Text>
+        <Text style={styles.ctaBadge}>
+          {me != null ? t('organizerPlayingBadge') : t('organizerBadge')}
+        </Text>
         <Pressable
           style={[styles.btn, styles.primaryBtn]}
           accessibilityRole="button"
@@ -333,6 +374,8 @@ export default function EventDetailScreen() {
             {t('startSetupIncomplete', { needed: event.num_courts * 4 })}
           </Text>
         ) : null}
+        {organizerJoin}
+        {organizerLeave}
       </View>
     );
   } else if (me) {
