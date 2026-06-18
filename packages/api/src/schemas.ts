@@ -197,6 +197,13 @@ export const updateEventSchema = z
     }),
     playersSubmitResults: z.boolean(),
     organizerRole: z.enum(ORGANIZER_ROLES),
+    manualLocationName: z.string().trim().optional(),
+    manualLocationAddress: z.string().trim().optional(),
+    venueId: z.string().uuid().optional(),
+    locationLat: z.number().optional(),
+    locationLng: z.number().optional(),
+    hasLocation: z.boolean(),
+    numCourts: z.number().int().min(1),
   })
   .refine((v) => !v.entranceFee.enabled || (v.entranceFee.amount != null && !!v.entranceFee.method), {
     path: ['entranceFee'],
@@ -222,6 +229,14 @@ export function buildUpdateEventPayload(input: UpdateEventInput): Record<string,
     entrance_fee_mba_number: input.entranceFee.mbaNumber ?? null,
     players_submit_results: input.playersSubmitResults,
     organizer_role: input.organizerRole,
+    num_courts: input.numCourts,
+    manual_location_name: input.venueId ? null : (input.manualLocationName ?? null),
+    manual_location_address: input.venueId ? null : (input.manualLocationAddress ?? null),
+    venue_id: input.venueId ?? null,
+    location_lat: input.locationLat ?? null,
+    location_lng: input.locationLng ?? null,
+    location_text: input.manualLocationName ?? null,
+    has_location: input.hasLocation,
   };
 }
 
