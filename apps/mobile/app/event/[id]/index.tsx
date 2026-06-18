@@ -23,7 +23,6 @@ import { streamClient } from '@/lib/streamClient';
 import { useNow } from '@/lib/useNow';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -87,11 +86,12 @@ export default function EventDetailScreen() {
   const ensureChannel = useEnsureChannel();
   const materialize = useMaterializeOccurrence(id);
   const onOpenNextOccurrence = async () => {
+    setError(null);
     try {
       const newId = await materialize.mutateAsync();
       router.push(`/event/${newId}/manage` as Href);
     } catch (e) {
-      Alert.alert(t('errorTitle'), t((e as Error).message));
+      setError(e instanceof Error ? e.message : 'unknown_error');
     }
   };
 
