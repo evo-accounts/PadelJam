@@ -2432,6 +2432,7 @@ export type Database = {
         Returns: { rank: number; name: string; points: number }[]
       }
       post_event_result: { Args: { p_event_id: string }; Returns: string }
+      materialize_occurrence: { Args: { p_after_event_id: string }; Returns: string }
       set_event_timer: {
         Args: { p_event_id: string; p_action: string }
         Returns: undefined
