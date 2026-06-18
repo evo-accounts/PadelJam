@@ -11,6 +11,7 @@ import {
   useLeaveWaitingList,
   useStartEvent,
   useEnsureChannel,
+  useMaterializeOccurrence,
   type EventType,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
@@ -22,6 +23,7 @@ import { streamClient } from '@/lib/streamClient';
 import { useNow } from '@/lib/useNow';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -83,6 +85,15 @@ export default function EventDetailScreen() {
   const declineInvitation = useDeclineEventInvitation(id);
   const startEvent = useStartEvent(id);
   const ensureChannel = useEnsureChannel();
+  const materialize = useMaterializeOccurrence(id);
+  const onOpenNextOccurrence = async () => {
+    try {
+      const newId = await materialize.mutateAsync();
+      router.push(`/event/${newId}/manage` as Href);
+    } catch (e) {
+      Alert.alert(t('errorTitle'), t((e as Error).message));
+    }
+  };
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,10 +180,10 @@ export default function EventDetailScreen() {
   const status = event.status;
   const badge = badgeStyles(status);
 
-  // --- Recurring series (5G-6): tag + computed next-occurrence card ---
+  // --- Recurring series (5G-6 + A1): tag + clickable next-occurrence card ---
   const isRecurring = event.series_id != null && series != null && series.is_active;
   const nextOccurrenceIso = isRecurring
-    ? nextWeeklyOccurrence(series!.day_of_week, series!.start_time, Date.now())
+    ? nextWeeklyOccurrence(series!.day_of_week, series!.start_time, new Date(event.starts_at).getTime())
     : null;
 
   // --- Deadlines (JM-18..21): 6h join cutoff, 12h leave cutoff, both derived from starts_at ---
@@ -541,10 +552,24 @@ export default function EventDetailScreen() {
             {t('durationValue', { count: event.duration_minutes })}
           </Text>
           {nextOccurrenceIso ? (
-            <View style={styles.nextCard}>
-              <Text style={styles.sectionTitle}>{t('nextOccurrenceTitle')}</Text>
-              <Text style={styles.body}>{formatWhen(nextOccurrenceIso)}</Text>
-            </View>
+            isOrganizer ? (
+              <Pressable
+                style={styles.nextCard}
+                onPress={onOpenNextOccurrence}
+                disabled={materialize.isPending}
+              >
+                <Text style={styles.sectionTitle}>{t('nextOccurrenceTitle')}</Text>
+                <Text style={styles.body}>{formatWhen(nextOccurrenceIso)}</Text>
+                <Text style={styles.bodyMuted}>
+                  {materialize.isPending ? t('materializeOccurrenceLoading') : t('materializeOccurrenceHint')}
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={styles.nextCard}>
+                <Text style={styles.sectionTitle}>{t('nextOccurrenceTitle')}</Text>
+                <Text style={styles.body}>{formatWhen(nextOccurrenceIso)}</Text>
+              </View>
+            )
           ) : null}
         </View>
 
