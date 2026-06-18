@@ -946,6 +946,9 @@ const mobileEvent = {
     // --- 5G-6: recurring tag + next-occurrence card + cancel event ---
     recurrentTag: 'Recurrent',
     nextOccurrenceTitle: 'Next occurrence',
+    materializeOccurrenceHint: 'Tap to set up this occurrence',
+    materializeOccurrenceLoading: 'Setting up…',
+    series_inactive: 'This recurring series is no longer active.',
     cancelEventCta: 'Cancel event',
     cancelStandardTitle: 'Cancel this event?',
     cancelStandardBody: 'Confirmed players will be notified.',
