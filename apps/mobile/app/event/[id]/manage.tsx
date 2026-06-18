@@ -300,7 +300,19 @@ export default function EventManageScreen() {
           ) : null}
         </View>
 
-        {/* TODO(Phase 6f): wire up edit-event organizer action. */}
+        {/* TODO(Phase 6f): edit Location & Courts (deferred). */}
+        {event.status === 'scheduled' ? (
+          <View style={styles.section}>
+            <Pressable
+              style={[styles.btn, styles.secondaryBtn]}
+              accessibilityRole="button"
+              onPress={() => router.push(`/event/${id}/edit` as never)}
+            >
+              <Text style={styles.secondaryLabel}>{t('editEventCta')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <View style={styles.section}>
           <Pressable
             style={[styles.btn, styles.cancelBtn]}
