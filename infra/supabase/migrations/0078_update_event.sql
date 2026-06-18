@@ -10,6 +10,7 @@ begin
   if v_ev.id is null then raise exception 'event_not_found' using errcode='P0001'; end if;
   if v_ev.organizer_id <> v_user then raise exception 'forbidden' using errcode='P0001'; end if;
   if v_ev.status <> 'scheduled' then raise exception 'not_editable' using errcode='P0001'; end if;
+  if coalesce(btrim(p_payload->>'name'),'') = '' then raise exception 'name_required' using errcode='P0001'; end if;
 
   v_allow_standby := coalesce((p_payload->>'allow_standby')::boolean, false);
   v_standby := nullif(p_payload->>'standby_spots','')::int;
@@ -34,6 +35,11 @@ begin
     allow_standby          = v_allow_standby,
     standby_spots          = case when v_allow_standby then v_standby else null end,
     is_private             = v_private,
+    -- Recompute ranking eligibility ONLY when privacy actually changes (private events never count);
+    -- an unchanged-privacy edit preserves any explicit set_event_ranking override.
+    counts_for_ranking     = case when v_private is distinct from v_ev.is_private
+                                  then (v_ev.group_id is not null and not v_private)
+                                  else v_ev.counts_for_ranking end,
     entrance_fee_enabled   = coalesce((p_payload->>'entrance_fee_enabled')::boolean, false),
     entrance_fee_amount    = nullif(p_payload->>'entrance_fee_amount','')::numeric,
     entrance_fee_method    = nullif(p_payload->>'entrance_fee_method',''),

@@ -26,6 +26,7 @@ declare
   v_scoring int;
   v_starts timestamptz;
   v_private boolean;
+  v_counts boolean;
 begin
   -- ---- As U1: create the community (owner) ----
   perform set_config('role','authenticated',true);
@@ -86,6 +87,20 @@ begin
     raise exception using errcode='PT001', message='expected starts_at updated to ~2 days out';
   end if;
   raise notice 'OK organizer edit: name/scoring/starts_at updated';
+
+  -- C1: toggling a public group event to private must turn ranking OFF (counts_for_ranking).
+  perform set_config('role','authenticated',true);
+  perform update_event(ev, jsonb_build_object(
+    'name','New Name','starts_at',(now()+interval '2 days')::text,'duration_minutes',90,
+    'scoring_mode','points','scoring_value',24,'allow_standby',false,'is_private',true,
+    'entrance_fee_enabled',false,'players_submit_results',false,'organizer_role','organizing_only'));
+  perform set_config('role','postgres',true);
+  select is_private, counts_for_ranking into v_private, v_counts from events where id = ev;
+  if not v_private or v_counts then
+    raise exception using errcode='PT001',
+      message='expected is_private=true + counts_for_ranking=false after going private, got priv='||v_private||' counts='||v_counts;
+  end if;
+  raise notice 'OK ranking: public->private turns counts_for_ranking off';
 
   -- ============================================================
   -- (2) As U2 (non-organizer) -> forbidden.
