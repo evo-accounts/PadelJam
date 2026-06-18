@@ -18,7 +18,10 @@ the editable-fields half shipped in `update_event` (0078).
 3. **Re-notify** — a new `'event_updated'` notification fires for confirmed participants when **`starts_at`
    changed OR location changed** (one notification regardless of how many of those changed).
 4. **Thumbnail** — picker on the edit screen **and** the create wizard (so new events get a thumbnail), reusing
-   the existing `uploadCommunityImage` helper + the **`community-thumbnails`** bucket.
+   the existing `uploadCommunityImage`/`pickAndValidateImage`/`ImagePickerRow` helpers, uploading into a **new
+   `event-thumbnails` bucket** foldered by **user id**. (The `community-thumbnails` bucket is community-admin-
+   gated by RLS — `is_community_admin(folder)` — so it can't accept thumbnails from non-admin organizers; a new
+   bucket with own-folder RLS, mirroring `avatars`, is required.)
 
 ### Explicitly deferred
 
@@ -58,9 +61,16 @@ the editable-fields half shipped in `update_event` (0078).
   name/address; `useMyLocation` reverse-geocode for coords) and `Step6Courts` (`CourtCounter`, min 1 / max 12)
   in [apps/mobile/components/event/wizard/steps/](../../../apps/mobile/components/event/wizard/steps/). Both
   operate on the wizard `draft` via `patch(...)`.
-- **Storage helper** ([apps/mobile/lib/storage.ts](../../../apps/mobile/lib/storage.ts)):
-  `uploadCommunityImage(client, bucket, folderId, uri, mimeType) → path`, used by groups/communities/posts;
-  bucket `community-thumbnails`.
+- **Storage helpers** ([apps/mobile/lib/storage.ts](../../../apps/mobile/lib/storage.ts)):
+  `pickAndValidateImage() → PickedImage|null` (launches picker, validates ≤5MB + jpeg/png/webp) and
+  `uploadCommunityImage(client, bucket, folderId, uri, mimeType) → path` (uploads to `{folderId}/{unique}.{ext}`),
+  used by groups/communities/posts via the `ImagePickerRow` component
+  ([apps/mobile/components/community/ImagePickerRow.tsx](../../../apps/mobile/components/community/ImagePickerRow.tsx)).
+- **Buckets** ([0026_storage_buckets.sql](../../../infra/supabase/migrations/0026_storage_buckets.sql)):
+  `community-thumbnails` write RLS is `is_community_admin((foldername)[1])` — admin-gated, **unusable for event
+  organizers who aren't community admins**. The `avatars` bucket
+  ([0056_profile_fields.sql](../../../infra/supabase/migrations/0056_profile_fields.sql)) uses own-folder RLS
+  (`(storage.foldername(name))[1] = auth.uid()::text`) — the pattern to copy for a new `event-thumbnails` bucket.
 - **Notifications** ([0061_notifications.sql](../../../infra/supabase/migrations/0061_notifications.sql),
   [0073_cancel_event.sql](../../../infra/supabase/migrations/0073_cancel_event.sql)): rows created only via
   SECURITY DEFINER code; current type CHECK list ends at `'event_cancelled'`. `event_cancelled` inserts for
@@ -127,6 +137,19 @@ alter table notifications add constraint notifications_type_check check (type in
 
 `database.types.ts`: **no change** (signature unchanged).
 
+**`event-thumbnails` bucket** (same migration 0080, mirroring `avatars` own-folder RLS):
+```sql
+insert into storage.buckets (id, name, public) values ('event-thumbnails','event-thumbnails', true)
+  on conflict (id) do nothing;
+-- Path convention: {auth.uid()}/...  (own-folder write, public read since the bucket is public)
+create policy "event-thumb write: self" on storage.objects for insert to authenticated
+  with check (bucket_id = 'event-thumbnails' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "event-thumb update: self" on storage.objects for update to authenticated
+  using (bucket_id = 'event-thumbnails' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "event-thumb delete: self" on storage.objects for delete to authenticated
+  using (bucket_id = 'event-thumbnails' and (storage.foldername(name))[1] = auth.uid()::text);
+```
+
 ### 2. `@padel/api`
 
 - `updateEventSchema` — add `venueId`, `manualLocationName`, `manualLocationAddress`, `locationLat`,
@@ -142,9 +165,9 @@ alter table notifications add constraint notifications_type_check check (type in
   existing draft (these already operate on draft via `patch`). Include the location + `numCourts` fields in the
   `updateEventSchema.safeParse` payload (currently omitted). Surface `courts_below_roster` inline (alongside the
   existing `standby_below_roster`/`not_editable`).
-- Add a **thumbnail picker** row (image pick from the device). On Save, if a new local image was picked, upload
-  via `uploadCommunityImage(client, 'community-thumbnails', <eventId>, uri, mimeType)` → set the returned path as
-  `thumbnailPath` in the payload; otherwise keep the existing `thumbnailPath`.
+- Add a **thumbnail picker** row (`ImagePickerRow` + `pickAndValidateImage`). On Save, if a new local image was
+  picked, upload via `uploadCommunityImage(client, 'event-thumbnails', <uid>, uri, mimeType)` → set the returned
+  path as `thumbnailPath` in the payload; otherwise keep the existing `thumbnailPath`.
 - i18n (`event` namespace, English-only — PT/PT-BR to A5): `courts_below_roster`, thumbnail picker labels,
   section titles if not already present.
 
@@ -154,9 +177,8 @@ alter table notifications add constraint notifications_type_check check (type in
   renders name/description). Store the picked image in the wizard draft (`thumbnail`/`thumbnailPath` already
   exist on `EventDraft`).
 - In `apps/mobile/app/(tabs)/.../create/index.tsx` `finalize()`: if an image was picked, upload via
-  `uploadCommunityImage(client, 'community-thumbnails', <uid>, uri, mimeType)` (foldered by user id since no
-  event id exists yet) → include the returned path as `thumbnailPath` in the create payload.
-  (`createEventSchema`/`buildCreateEventPayload` already carry it.)
+  `uploadCommunityImage(client, 'event-thumbnails', <uid>, uri, mimeType)` → include the returned path as
+  `thumbnailPath` in the create payload. (`createEventSchema`/`buildCreateEventPayload` already carry it.)
 
 ### 5. `event_updated` notification rendering
 
@@ -194,5 +216,6 @@ alter table notifications add constraint notifications_type_check check (type in
 Additive migration `0080`; RPC `security definer set search_path = public` + grant (recreate, preserving 0078
 behavior); SQL test `PT001`/`OK`; thin `@padel/api` schema + payload builder mirroring the create equivalents;
 `mapPgError` allow-list; `useT('event')`/`useT('notifications')`; reuse `Step5Location`/`Step6Courts`/
-`CourtCounter`/`useSearchVenues`/`uploadCommunityImage`; `community-thumbnails` bucket foldered by event id
-(edit) / user id (create). `event_type`/`specification`/`group_id`/`series` remain immutable.
+`CourtCounter`/`useSearchVenues`/`ImagePickerRow`/`pickAndValidateImage`/`uploadCommunityImage`; new public
+`event-thumbnails` bucket with own-folder RLS (avatar pattern), foldered by user id for both create and edit.
+`event_type`/`specification`/`group_id`/`series` remain immutable.
