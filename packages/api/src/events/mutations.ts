@@ -672,3 +672,21 @@ export const usePostEventResult = (eventId: string) => {
     },
   });
 };
+
+export const useMaterializeOccurrence = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await db.rpc('materialize_occurrence', { p_after_event_id: eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as string; // new (or existing) occurrence event id
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.myEvents('all') });
+      qc.invalidateQueries({ queryKey: qk.myEvents('organizing') });
+      qc.invalidateQueries({ queryKey: qk.myEvents('going') });
+    },
+  });
+};
