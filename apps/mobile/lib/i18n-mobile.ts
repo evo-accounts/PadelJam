@@ -3199,18 +3199,16 @@ export type MobileLocale = keyof typeof mobileAuth;
  * locale. The `group` namespace only authors English; other locales fall back to
  * English via i18next's fallbackLng until translated.
  */
+export const MOBILE_NAMESPACES = {
+  auth: mobileAuth, onboarding: mobileOnboarding, community: mobileCommunity, group: mobileGroup,
+  event: mobileEvent, discovery: mobileDiscovery, home: mobileHome, notifications: mobileNotifications,
+  events: mobileEvents, profile: mobileProfile, chat: mobileChat,
+} as const;
+
 export function registerMobileCopy(instance: I18n): void {
-  (Object.keys(mobileAuth) as MobileLocale[]).forEach((locale) => {
-    instance.addResourceBundle(locale, 'auth', mobileAuth[locale], true, false);
-    instance.addResourceBundle(locale, 'onboarding', mobileOnboarding[locale], true, false);
-    instance.addResourceBundle(locale, 'community', mobileCommunity[locale], true, false);
-  });
-  instance.addResourceBundle('en', 'group', mobileGroup.en, true, false);
-  instance.addResourceBundle('en', 'event', mobileEvent.en, true, false);
-  instance.addResourceBundle('en', 'discovery', mobileDiscovery.en, true, false);
-  instance.addResourceBundle('en', 'home', mobileHome.en, true, false);
-  instance.addResourceBundle('en', 'notifications', mobileNotifications.en, true, false);
-  instance.addResourceBundle('en', 'events', mobileEvents.en, true, false);
-  instance.addResourceBundle('en', 'profile', mobileProfile.en, true, false);
-  instance.addResourceBundle('en', 'chat', mobileChat.en, true, false);
+  for (const [ns, blocks] of Object.entries(MOBILE_NAMESPACES)) {
+    (Object.keys(blocks) as MobileLocale[]).forEach((locale) => {
+      instance.addResourceBundle(locale, ns, (blocks as Record<string, object>)[locale], true, false);
+    });
+  }
 }
