@@ -29,7 +29,7 @@ export default function ChatDetailsScreen() {
   }, [cid]);
 
   const loadMore = useCallback(async () => {
-    if (!channel) return;
+    if (!channel || loading) return;
     setLoading(true);
     try {
       const res = await channel.query({ messages: { limit: PAGE, ...(cursor ? { id_lt: cursor } : {}) } });
@@ -43,7 +43,7 @@ export default function ChatDetailsScreen() {
       setLoading(false);
       setInitialised(true);
     }
-  }, [channel, cursor]);
+  }, [channel, cursor, loading]);
 
   // Initial page once the channel resolves.
   useEffect(() => {
