@@ -1,7 +1,8 @@
 import { startEmailOtp, startPhoneOtp } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -14,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { runAppleSignIn } from '@/lib/appleSignIn';
 import { detectKind, setAuthTarget } from '@/lib/auth-flow';
 import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
@@ -27,6 +29,10 @@ export default function SignInScreen() {
   const [identifier, setIdentifier] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === 'ios') AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
+  }, []);
 
   const onContinue = async () => {
     const value = identifier.trim();
@@ -58,6 +64,21 @@ export default function SignInScreen() {
       await runGoogleSignIn();
       router.replace((await resolvePostAuthRoute()) as never);
     } catch (e) {
+      setError(t(e instanceof Error ? e.message : 'oauth_failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onApple = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await runAppleSignIn();
+      router.replace((await resolvePostAuthRoute()) as never);
+    } catch (e) {
+      if (e instanceof Error && e.message === 'oauth_cancelled') { setBusy(false); return; }
       setError(t(e instanceof Error ? e.message : 'oauth_failed'));
     } finally {
       setBusy(false);
@@ -110,6 +131,24 @@ export default function SignInScreen() {
         >
           <Text style={styles.googleButtonText}>{t('continueWithGoogle')}</Text>
         </Pressable>
+        {Platform.OS === 'ios' && appleAvailable ? (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={12}
+            style={styles.appleButton}
+            onPress={onApple}
+          />
+        ) : (
+          <Pressable
+            style={[styles.googleButton, busy && styles.buttonDisabled]}
+            onPress={onApple}
+            disabled={busy}
+            accessibilityRole="button"
+          >
+            <Text style={styles.googleButtonText}>{t('continueWithApple')}</Text>
+          </Pressable>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -143,4 +182,5 @@ const styles = StyleSheet.create({
   dividerText: { fontSize: 13, color: '#888' },
   googleButton: { borderWidth: 1, borderColor: '#ccc', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   googleButtonText: { color: '#0B1F3A', fontSize: 16, fontWeight: '600' },
+  appleButton: { height: 48, marginTop: 12 },
 });

@@ -2904,6 +2904,7 @@ export type Database = {
         Args: { p_query: string }
         Returns: { id: string; name: string; address: string | null }[]
       }
+      social_email_conflict: { Args: Record<PropertyKey, never>; Returns: boolean }
       st_3dmaxdistance: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: number

@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { runAppleSignIn } from '@/lib/appleSignIn';
 import { getAuthTarget } from '@/lib/auth-flow';
 import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
@@ -120,6 +121,22 @@ export default function OtpScreen() {
     }
   };
 
+  const onApple = async () => {
+    if (busy) return;
+    setSheetOpen(false);
+    setBusy(true);
+    setError(null);
+    try {
+      await runAppleSignIn();
+      router.replace((await resolvePostAuthRoute()) as never);
+    } catch (e) {
+      if (e instanceof Error && e.message === 'oauth_cancelled') { setBusy(false); return; }
+      setError(t(e instanceof Error ? e.message : 'oauth_failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
       <Text style={styles.title}>{t('otpTitle')}</Text>
@@ -184,6 +201,9 @@ export default function OtpScreen() {
             </Pressable>
             <Pressable style={styles.sheetRow} onPress={onGoogle} accessibilityRole="button">
               <Text style={styles.sheetText}>{t('continueWithGoogle')}</Text>
+            </Pressable>
+            <Pressable style={styles.sheetRow} onPress={onApple} accessibilityRole="button">
+              <Text style={styles.sheetText}>{t('continueWithApple')}</Text>
             </Pressable>
           </View>
         </Pressable>
