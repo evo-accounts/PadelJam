@@ -2,6 +2,7 @@ import { exchangeCodeForSession, startGoogleOAuth } from '@padel/auth';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
+import { assertNoSocialEmailConflict } from '@/lib/socialConflict';
 import { supabase } from '@/lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -26,4 +27,5 @@ export async function runGoogleSignIn(): Promise<void> {
 
   const { error: exchangeError } = await exchangeCodeForSession(supabase, code);
   if (exchangeError) throw new Error('oauth_failed');
+  await assertNoSocialEmailConflict();
 }
