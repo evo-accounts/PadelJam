@@ -101,7 +101,10 @@ export default function EditEventScreen() {
           thumbnailPath = await uploadCommunityImage(supabase, 'event-thumbnails', uid, picked.uri, picked.mimeType);
         }
         let lat = d.locationLat, lng = d.locationLng;
-        if (lat == null && lng == null) {
+        // Only geocode a manual address. A venue event keeps its stored coords: location_point isn't
+        // readable back as lat/lng, so re-geocoding the venue name here would clobber it (update_event
+        // preserves location_point when no coords are sent).
+        if (lat == null && lng == null && d.venueId == null) {
           const q = geocodeQuery({ name: d.manualLocationName, address: d.manualLocationAddress });
           if (q) { const r = await geocodeAddress(q); if (r) { lat = r.lat; lng = r.lng; } }
         }
