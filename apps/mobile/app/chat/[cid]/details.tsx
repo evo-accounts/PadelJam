@@ -1,45 +1,59 @@
 import { useT } from '@padel/i18n';
+import { appendImages, extractImageUrls, nextCursor, pageHasMore, type MsgLike } from '@padel/utils';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { streamClient } from '@/lib/streamClient';
 
 const COLS = 3;
 const GAP = 2;
+const PAGE = 100;
 
 export default function ChatDetailsScreen() {
   const { t } = useT('chat');
   const { cid } = useLocalSearchParams<{ cid: string }>();
-  const [images, setImages] = useState<string[] | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialised, setInitialised] = useState(false);
   const [viewer, setViewer] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!cid) return;
-    let cancelled = false;
+  const channel = useMemo(() => {
+    if (!cid) return null;
     const [type, id] = cid.split(':');
-    if (!type || !id) return;
-    const channel = streamClient.channel(type, id);
-    channel
-      .query({ messages: { limit: 100 } })
-      .then((res) => {
-        const urls: string[] = [];
-        // newest first
-        for (let i = res.messages.length - 1; i >= 0; i--) {
-          for (const a of res.messages[i]?.attachments ?? []) {
-            if (a.type === 'image' && (a.image_url || a.asset_url)) urls.push((a.image_url ?? a.asset_url) as string);
-          }
-        }
-        if (!cancelled) setImages(urls);
-      })
-      .catch(() => {
-        if (!cancelled) setImages([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+    if (!type || !id) return null;
+    return streamClient.channel(type, id);
   }, [cid]);
+
+  const loadMore = useCallback(async () => {
+    if (!channel || loading) return;
+    setLoading(true);
+    try {
+      const res = await channel.query({ messages: { limit: PAGE, ...(cursor ? { id_lt: cursor } : {}) } });
+      const msgs = res.messages as unknown as MsgLike[];
+      setImages((cur) => appendImages(cur, extractImageUrls(msgs)));
+      setCursor(nextCursor(msgs));
+      setHasMore(pageHasMore(msgs, PAGE));
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+      setInitialised(true);
+    }
+  }, [channel, cursor, loading]);
+
+  // Initial page once the channel resolves.
+  useEffect(() => {
+    if (channel) void loadMore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel]);
+
+  const onEndReached = () => {
+    if (hasMore && !loading) void loadMore();
+  };
 
   const size = (Dimensions.get('window').width - GAP * (COLS - 1)) / COLS;
 
@@ -47,9 +61,9 @@ export default function ChatDetailsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: t('details') }} />
       <Text style={styles.section}>{t('media')}</Text>
-      {images === null ? (
+      {!initialised ? (
         <ActivityIndicator color="#0B1F3A" style={{ marginTop: 32 }} />
-      ) : images.length === 0 ? (
+      ) : images.length === 0 && !hasMore ? (
         <Text style={styles.empty}>{t('noPhotos')}</Text>
       ) : (
         <FlatList
@@ -58,6 +72,9 @@ export default function ChatDetailsScreen() {
           keyExtractor={(u, i) => u + i}
           columnWrapperStyle={{ gap: GAP }}
           contentContainerStyle={{ gap: GAP }}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loading && images.length > 0 ? <ActivityIndicator color="#0B1F3A" style={{ marginVertical: 16 }} /> : null}
           renderItem={({ item, index }) => (
             <Pressable onPress={() => setViewer(index)} accessibilityRole="imagebutton">
               <Image source={{ uri: item }} style={{ width: size, height: size }} contentFit="cover" />
@@ -71,7 +88,7 @@ export default function ChatDetailsScreen() {
           <Pressable style={styles.close} onPress={() => setViewer(null)} accessibilityRole="button">
             <Text style={styles.closeText}>✕</Text>
           </Pressable>
-          {images && viewer !== null ? (
+          {viewer !== null ? (
             <FlatList
               data={images}
               horizontal
