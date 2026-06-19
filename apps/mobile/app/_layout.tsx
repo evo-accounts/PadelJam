@@ -18,6 +18,7 @@ import { registerMobileCopy } from '@/lib/i18n-mobile';
 import { resolveLocale } from '@/lib/locale';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { registerForPush } from '@/lib/push';
+import { usePushTapRouting } from '@/lib/usePushTapRouting';
 import { initSentry } from '@/lib/sentry';
 import { supabase } from '@/lib/supabase';
 
@@ -125,6 +126,8 @@ type Target =
 function Boot() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+
+  usePushTapRouting();
 
   useEffect(() => {
     let cancelled = false;
