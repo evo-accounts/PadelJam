@@ -320,7 +320,7 @@ export const useSearchVenues = (query: string) => {
 export interface ActivityRow {
   id: string;
   action: string;
-  detail: { target_name?: string; guest_name?: string; mode?: string; status?: string } | null;
+  detail: { target_name?: string; guest_name?: string; mode?: string; status?: string; changes?: string[] } | null;
   created_at: string;
   profiles: { full_name: string | null; avatar_url: string | null } | null;
 }

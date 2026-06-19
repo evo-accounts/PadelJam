@@ -21,7 +21,19 @@ function lineFor(t: (k: string, o?: Record<string, unknown>) => string, row: Act
     team_assigned: 'activityTeamAssigned',
     team_switched: 'activityTeamSwitched',
     team_removed: 'activityTeamRemoved',
+    event_edited: 'activityEventEdited',
+    invited: 'activityInvited',
+    invite_accepted: 'activityInviteAccepted',
+    invite_declined: 'activityInviteDeclined',
   };
+  if (row.action === 'event_edited') {
+    const changes = Array.isArray((row.detail as { changes?: unknown })?.changes)
+      ? ((row.detail as { changes: string[] }).changes)
+      : [];
+    const words = changes.map((c) => t(`activityGroup_${c}` as never)).join(', ');
+    const base = t('activityEventEdited', { actor });
+    return words ? `${base} (${words})` : base;
+  }
   return t(key[row.action] ?? 'activityJoined', { actor, target });
 }
 
