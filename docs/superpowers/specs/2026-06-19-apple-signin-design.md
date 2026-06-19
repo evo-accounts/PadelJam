@@ -38,20 +38,24 @@ owned by a different account.
 
 ```sql
 -- §5.6: detect a social sign-in whose email is already owned by a DIFFERENT account.
--- Param-less (uses the caller's own session email) so it can't be used to enumerate other emails.
+-- Matches the caller's session (auth.users) email against OTHER users' profiles.email.
+-- (auth.users.email is UNIQUE, so two auth users can't share it; the §5.6 conflict is "the returned
+--  email already matches an existing profiles row" owned by someone else.) Param-less -> no enumeration.
 create or replace function social_email_conflict() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (
     select 1
     from profiles p
-    join auth.users u on u.id = p.id
-    where u.id <> auth.uid()
-      and lower(u.email) = lower((select email from auth.users where id = auth.uid()))
-      and (select email from auth.users where id = auth.uid()) is not null
+    where p.id <> auth.uid()
+      and lower(p.email) = lower((select email from auth.users where id = auth.uid()))
   );
 $$;
 grant execute on function social_email_conflict() to authenticated;
 ```
+> **Corrected during build:** an earlier draft compared `auth.users.email` across users, but that column is
+> unique (two auth users can't share it), so it could never fire. The shipped RPC compares the caller's session
+> email against other users' **`profiles.email`** — the "existing profiles row" §5.6 refers to. Happy path is
+> safe: `profiles.email` is UNIQUE and the caller's own row is excluded by `p.id <> auth.uid()`.
 - `database.types.ts`: add `social_email_conflict: { Args: Record<string, never>; Returns: boolean }`.
 - **SQL test** `infra/supabase/tests/social_email_conflict.sql`: seed users A and B; give A a `profiles` row whose
   `auth.users.email` = X; as B with the same email X → `social_email_conflict()` is **true**; as A (sole owner)
