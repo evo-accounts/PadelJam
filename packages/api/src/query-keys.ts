@@ -59,5 +59,6 @@ export const qk = {
   searchVenues: (q: string) => ['venues', 'search', q] as const,
   blastTemplates: ['blast-templates'] as const,
   eventBlasts: (id: string) => ['event', id, 'blasts'] as const,
+  blastDeliveries: (id: string) => ['event', id, 'blast-deliveries'] as const,
   canCustomizeBlast: (id: string) => ['event', id, 'can-customize-blast'] as const,
 };

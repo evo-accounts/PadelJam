@@ -466,3 +466,37 @@ export const useEventResultSummary = (eventId: string) => {
     },
   });
 };
+
+export interface BlastDelivery {
+  status: 'sent' | 'failed';
+  attempt: number;
+  sent_count: number;
+  failed_count: number;
+  error: string | null;
+}
+export const useEventBlastDeliveries = (eventId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.blastDeliveries(eventId),
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('delivery_log')
+        .select('blast_id, status, attempt, sent_count, failed_count, error, event_blasts!inner(event_id)')
+        .eq('event_blasts.event_id', eventId)
+        .order('attempt', { ascending: false });
+      if (error) throw error;
+      // Rows are attempt-desc; first time we see a blast_id is its latest attempt.
+      const latest: Record<string, BlastDelivery> = {};
+      for (const r of (data ?? []) as unknown as {
+        blast_id: string; status: 'sent' | 'failed'; attempt: number;
+        sent_count: number; failed_count: number; error: string | null;
+      }[]) {
+        if (r.blast_id && !latest[r.blast_id]) {
+          latest[r.blast_id] = { status: r.status, attempt: r.attempt,
+            sent_count: r.sent_count, failed_count: r.failed_count, error: r.error };
+        }
+      }
+      return latest;
+    },
+  });
+};

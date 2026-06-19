@@ -681,3 +681,21 @@ export const useMaterializeOccurrence = (eventId: string) => {
     },
   });
 };
+
+export const useRetryBlast = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (blastId: string) => {
+      const { error } = await db.rpc('retry_blast', { p_blast_id: blastId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      try {
+        await db.functions.invoke('send-blast', { body: { blast_id: blastId } });
+      } catch { /* delivery is best-effort; the new attempt will be logged by the function */ }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.blastDeliveries(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventBlasts(eventId) });
+    },
+  });
+};
