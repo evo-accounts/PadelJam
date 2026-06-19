@@ -6,6 +6,8 @@ import type { Channel as ChannelType } from 'stream-chat';
 import { streamClient } from '@/lib/streamClient';
 import { useT } from '@padel/i18n';
 
+import { useChannelPreview } from './useChannelPreview';
+
 type Tab = 'active' | 'archived';
 
 function channelTitle(channel: ChannelType): string {
@@ -26,9 +28,7 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
   const [confirm, setConfirm] = useState<null | 'archive' | 'delete'>(null);
 
   const isDirect = channel.type === 'messaging';
-  const messages = channel.state.messages;
-  const last = messages.length ? messages[messages.length - 1] : undefined;
-  const unread = channel.countUnread();
+  const { lastMessage, unread } = useChannelPreview(channel);
   const image = (channel.data as { image?: string } | undefined)?.image;
 
   const run = async (fn: () => Promise<unknown>) => {
@@ -48,7 +48,7 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
         <Image source={image ? { uri: image } : undefined} style={styles.avatar} />
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={1}>{channelTitle(channel)}</Text>
-          {last?.text ? <Text style={styles.preview} numberOfLines={1}>{last.text}</Text> : null}
+          {lastMessage ? <Text style={styles.preview} numberOfLines={1}>{lastMessage}</Text> : null}
         </View>
         {unread > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unread}</Text></View> : null}
       </Pressable>
