@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
+import type { Tables } from '@padel/db';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
 
@@ -53,6 +54,10 @@ export const useCanCreateEvent = (groupId: string) => {
   });
 };
 
+export type EventDetail = Tables<'events'> & {
+  venue: { name: string; address: string | null } | null;
+};
+
 export const useEvent = (id: string) => {
   const db = useDb();
   return useQuery({
@@ -60,7 +65,12 @@ export const useEvent = (id: string) => {
     queryFn: async () => {
       // .maybeSingle(): a private event the user can't see returns null (RLS
       // filters the row) rather than throwing — the no-access UI relies on this.
-      const { data, error } = await db.from('events').select('*').eq('id', id).maybeSingle();
+      const { data, error } = await db
+        .from('events')
+        .select('*, venue:venues(name, address)')
+        .eq('id', id)
+        .maybeSingle()
+        .returns<EventDetail>();
       if (error) throw error;
       return data;
     },
