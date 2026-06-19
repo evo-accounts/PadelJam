@@ -2,7 +2,9 @@ import {
   blastSchema,
   useBlastTemplates,
   useCanCustomizeBlast,
+  useEventBlastDeliveries,
   useEventBlasts,
+  useRetryBlast,
   useSendBlast,
   type BlastTemplate,
 } from '@padel/api';
@@ -32,6 +34,9 @@ export default function BlastScreen() {
   const { data: templates } = useBlastTemplates();
   const { data: yourBlasts } = useEventBlasts(id);
   const sendBlast = useSendBlast(id);
+  const { data: deliveries } = useEventBlastDeliveries(id);
+  const retryBlast = useRetryBlast(id);
+  const [retrying, setRetrying] = useState<string | null>(null);
 
   const [tab, setTab] = useState<'templates' | 'yours'>('templates');
   const [editing, setEditing] = useState<{ template: BlastTemplate | null; title: string; description: string } | null>(null);
@@ -196,6 +201,26 @@ export default function BlastScreen() {
               >
                 <Text style={styles.cardTitle}>{b.title}</Text>
                 <Text style={styles.cardBody} numberOfLines={1}>{b.description}</Text>
+                {(() => {
+                  const d = deliveries?.[b.id];
+                  const label = !d ? t('deliveryPending') : d.status === 'sent' ? t('deliveryDelivered') : t('deliveryFailed');
+                  return <Text style={styles.cardMeta}>{label}</Text>;
+                })()}
+                {deliveries?.[b.id]?.status === 'failed' ? (
+                  <Pressable
+                    style={styles.retryBtn}
+                    disabled={retrying === b.id}
+                    onPress={() => {
+                      setRetrying(b.id);
+                      retryBlast.mutateAsync(b.id)
+                        .catch((e) => setError(t(e instanceof Error ? e.message : 'unknown_error')))
+                        .finally(() => setRetrying(null));
+                    }}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.retryLabel}>{retrying === b.id ? t('blastSendCta') : t('retryBlastCta')}</Text>
+                  </Pressable>
+                ) : null}
               </Pressable>
             ))
           )}
@@ -262,6 +287,9 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 4 },
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
   cardBody: { fontSize: 14, color: '#6B7685' },
+  cardMeta: { fontSize: 12, color: '#6B7685', marginTop: 4 },
+  retryBtn: { marginTop: 8, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#EAF2FF' },
+  retryLabel: { color: '#0B7BFF', fontWeight: '700', fontSize: 13 },
   empty: { fontSize: 15, color: '#6B7685', textAlign: 'center', paddingVertical: 24 },
 
   label: { fontSize: 13, fontWeight: '700', color: '#8A95A5', textTransform: 'uppercase' },

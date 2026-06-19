@@ -61,7 +61,13 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(messages.slice(i, i + 100)),
     });
-    if (!res.ok) return json({ ok: false, error: `expo_failed:${res.status}` }, 200); // soft-fail
+    if (!res.ok) {
+      try { await admin.from('delivery_log').insert({ channel: 'push', notification_id: body.notification_id,
+        attempt: 1, status: 'failed', failed_count: messages.length, error: `expo_failed:${res.status}` }); } catch { /* best-effort */ }
+      return json({ ok: false, error: `expo_failed:${res.status}` }, 200); // soft-fail
+    }
   }
+  try { await admin.from('delivery_log').insert({ channel: 'push', notification_id: body.notification_id,
+    attempt: 1, status: 'sent', sent_count: messages.length }); } catch { /* best-effort */ }
   return json({ ok: true, sent: messages.length });
 });
