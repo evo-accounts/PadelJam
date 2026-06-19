@@ -40,6 +40,18 @@ export type Database = {
         Update: { id?: string; user_id?: string; title?: string; description?: string; status?: string; created_at?: string }
         Relationships: []
       }
+      delivery_log: {
+        Row: { id: string; channel: string; blast_id: string | null; notification_id: string | null;
+               status: string; attempt: number; sent_count: number; failed_count: number;
+               error: string | null; created_at: string }
+        Insert: { id?: string; channel: string; blast_id?: string | null; notification_id?: string | null;
+                  status: string; attempt?: number; sent_count?: number; failed_count?: number;
+                  error?: string | null; created_at?: string }
+        Update: { id?: string; channel?: string; blast_id?: string | null; notification_id?: string | null;
+                  status?: string; attempt?: number; sent_count?: number; failed_count?: number;
+                  error?: string | null; created_at?: string }
+        Relationships: []
+      }
       push_tokens: {
         Row: { user_id: string; expo_token: string; platform: string; updated_at: string }
         Insert: { user_id: string; expo_token: string; platform: string; updated_at?: string }
@@ -2863,6 +2875,7 @@ export type Database = {
         Args: { p_event_id: string; p_targets: string[] }
         Returns: undefined
       }
+      retry_blast: { Args: { p_blast_id: string }; Returns: undefined }
       set_event_ranking: {
         Args: { p_enabled: boolean; p_event_id: string }
         Returns: undefined
