@@ -6,13 +6,31 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://wispuppglipffcsqowlq.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_u0RZcSXfN6ZCWi5WkpjjSg_SLqSywLX",
+        "EXPO_PUBLIC_STREAM_API_KEY": "dv7cn4zhwgvj",
+        "EXPO_PUBLIC_APP_ENV": "development"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://wispuppglipffcsqowlq.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_u0RZcSXfN6ZCWi5WkpjjSg_SLqSywLX",
+        "EXPO_PUBLIC_STREAM_API_KEY": "dv7cn4zhwgvj",
+        "EXPO_PUBLIC_APP_ENV": "preview"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://wispuppglipffcsqowlq.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_u0RZcSXfN6ZCWi5WkpjjSg_SLqSywLX",
+        "EXPO_PUBLIC_STREAM_API_KEY": "dv7cn4zhwgvj",
+        "EXPO_PUBLIC_APP_ENV": "production"
+      }
     }
   },
   "submit": {
