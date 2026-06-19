@@ -1,15 +1,21 @@
 import { updateEventSchema, useEvent, useUpdateEvent } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { DateTimePicker } from '@/components/event/wizard/DateTimePicker';
 import type { EventDraft } from '@/components/event/wizard/draft';
 import { Stepper } from '@/components/event/wizard/Stepper';
 import { Step4Scoring } from '@/components/event/wizard/steps/Step4Scoring';
+import { Step5Location } from '@/components/event/wizard/steps/Step5Location';
+import { Step6Courts } from '@/components/event/wizard/steps/Step6Courts';
 import { Step8Preferences } from '@/components/event/wizard/steps/Step8Preferences';
+import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 
 export default function EditEventScreen() {
   const { t } = useT('event');
@@ -18,7 +24,9 @@ export default function EditEventScreen() {
   const { data: event, isLoading } = useEvent(id);
   const update = useUpdateEvent(id);
 
+  const uid = useSession().session?.user.id;
   const [draft, setDraft] = useState<EventDraft | null>(null);
+  const [picked, setPicked] = useState<PickedImage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -31,7 +39,10 @@ export default function EditEventScreen() {
       specification: event.specification,
       scoringMode: event.scoring_mode,
       scoringValue: event.scoring_value,
-      hasLocation: true,
+      hasLocation: event.has_location,
+      venueId: event.venue_id ?? undefined,
+      manualLocationName: event.manual_location_name ?? undefined,
+      manualLocationAddress: event.manual_location_address ?? undefined,
       numCourts: event.num_courts,
       startsAt: event.starts_at,
       durationMinutes: event.duration_minutes,
@@ -64,33 +75,63 @@ export default function EditEventScreen() {
     );
   }
 
+  const existingThumbUrl = d.thumbnailPath
+    ? supabase.storage.from('event-thumbnails').getPublicUrl(d.thumbnailPath).data.publicUrl
+    : null;
+  const onPickThumbnail = () => {
+    void (async () => {
+      try {
+        const result = await pickAndValidateImage();
+        if (result) setPicked(result);
+      } catch (e) {
+        setError(t(e instanceof Error ? e.message : 'unknown_error'));
+      }
+    })();
+  };
+
   const onSave = () => {
-    const parsed = updateEventSchema.safeParse({
-      name: d.name,
-      description: d.description?.trim() ? d.description : undefined,
-      thumbnailPath: d.thumbnailPath,
-      startsAt: d.startsAt,
-      durationMinutes: d.durationMinutes,
-      scoringMode: d.scoringMode,
-      scoringValue: d.scoringValue,
-      allowStandby: d.allowStandby,
-      standbySpots: d.standbySpots,
-      isPrivate: d.isPrivate,
-      entranceFee: d.entranceFee,
-      playersSubmitResults: d.playersSubmitResults,
-      organizerRole: d.organizerRole,
-    });
-    if (!parsed.success) {
-      setError(t(parsed.error.issues[0]?.message ?? 'name_required'));
-      return;
-    }
     setBusy(true);
     setError(null);
-    update
-      .mutateAsync({ values: parsed.data, groupId: event!.group_id })
-      .then(() => router.back())
-      .catch((e) => setError(t(e instanceof Error ? e.message : 'unknown_error')))
-      .finally(() => setBusy(false));
+    void (async () => {
+      try {
+        let thumbnailPath = d.thumbnailPath;
+        if (picked && uid) {
+          thumbnailPath = await uploadCommunityImage(supabase, 'event-thumbnails', uid, picked.uri, picked.mimeType);
+        }
+        const parsed = updateEventSchema.safeParse({
+          name: d.name,
+          description: d.description?.trim() ? d.description : undefined,
+          thumbnailPath,
+          startsAt: d.startsAt,
+          durationMinutes: d.durationMinutes,
+          scoringMode: d.scoringMode,
+          scoringValue: d.scoringValue,
+          allowStandby: d.allowStandby,
+          standbySpots: d.standbySpots,
+          isPrivate: d.isPrivate,
+          entranceFee: d.entranceFee,
+          playersSubmitResults: d.playersSubmitResults,
+          organizerRole: d.organizerRole,
+          hasLocation: d.hasLocation,
+          numCourts: d.numCourts,
+          venueId: d.venueId,
+          manualLocationName: d.manualLocationName,
+          manualLocationAddress: d.manualLocationAddress,
+          locationLat: d.locationLat,
+          locationLng: d.locationLng,
+        });
+        if (!parsed.success) {
+          setError(t(parsed.error.issues[0]?.message ?? 'name_required'));
+          return;
+        }
+        await update.mutateAsync({ values: parsed.data, groupId: event!.group_id });
+        router.back();
+      } catch (e) {
+        setError(t(e instanceof Error ? e.message : 'unknown_error'));
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   return (
@@ -132,6 +173,24 @@ export default function EditEventScreen() {
         {/* Scoring + Preferences (reused wizard steps) */}
         <Step4Scoring draft={d} patch={patch} />
         <Step8Preferences draft={d} patch={patch} />
+
+        {/* Location */}
+        <Text style={styles.section}>{t('editLocationSection')}</Text>
+        <Step5Location draft={d} patch={patch} />
+
+        {/* Courts */}
+        <Text style={styles.section}>{t('editCourtsSection')}</Text>
+        <Step6Courts draft={d} patch={patch} />
+
+        {/* Thumbnail */}
+        <Text style={styles.section}>{t('editThumbnailSection')}</Text>
+        <ImagePickerRow
+          label={t('editThumbnailLabel')}
+          variant="cover"
+          uri={picked?.uri ?? existingThumbUrl}
+          onPress={onPickThumbnail}
+          disabled={busy}
+        />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Pressable

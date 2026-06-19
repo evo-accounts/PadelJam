@@ -1111,6 +1111,11 @@ const mobileEvent = {
     editNameLabel: 'Name',
     editDescriptionLabel: 'Description',
     editDateTimeSection: 'Date & time',
+    editLocationSection: 'Location',
+    editCourtsSection: 'Courts',
+    editThumbnailSection: 'Thumbnail',
+    editThumbnailLabel: 'Event image',
+    courts_below_roster: 'Too many players are confirmed for that few courts. Remove players first.',
     saveCta: 'Save changes',
 
     // --- Event lists / cards ---
@@ -1427,6 +1432,7 @@ const mobileNotifications = {
     community_request_accepted: 'Your request to join {{entity}} was accepted',
     follow_joined_event: '{{actor}} joined {{entity}}',
     event_cancelled: '{{entity}} was cancelled',
+    event_updated: '{{entity}} was updated — check the new details',
   },
 } as const;
 
