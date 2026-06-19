@@ -82,12 +82,13 @@ begin
     or nullif(p_payload->>'manual_location_address','') is distinct from v_ev.manual_location_address;
 
   -- A3: which groups changed (compared against the old snapshot v_ev), for the activity log.
+  -- NOTE: cast each literal to ::text — `text[] || 'date'` parses the bare literal as an array literal and errors.
   if v_date_changed or (p_payload->>'duration_minutes')::int is distinct from v_ev.duration_minutes then
-    v_changes := v_changes || 'date'; end if;
-  if v_loc_changed then v_changes := v_changes || 'location'; end if;
+    v_changes := v_changes || 'date'::text; end if;
+  if v_loc_changed then v_changes := v_changes || 'location'::text; end if;
   if p_payload->>'scoring_mode' is distinct from v_ev.scoring_mode
      or nullif(p_payload->>'scoring_value','')::int is distinct from v_ev.scoring_value then
-    v_changes := v_changes || 'scoring'; end if;
+    v_changes := v_changes || 'scoring'::text; end if;
   if coalesce((p_payload->>'allow_standby')::boolean,false) is distinct from v_ev.allow_standby
      or nullif(p_payload->>'standby_spots','')::int is distinct from v_ev.standby_spots
      or v_private is distinct from v_ev.is_private
@@ -96,11 +97,11 @@ begin
      or nullif(p_payload->>'entrance_fee_method','') is distinct from v_ev.entrance_fee_method
      or coalesce((p_payload->>'players_submit_results')::boolean,false) is distinct from v_ev.players_submit_results
      or p_payload->>'organizer_role' is distinct from v_ev.organizer_role then
-    v_changes := v_changes || 'preferences'; end if;
+    v_changes := v_changes || 'preferences'::text; end if;
   if btrim(p_payload->>'name') is distinct from v_ev.name
      or p_payload->>'description' is distinct from v_ev.description
      or p_payload->>'thumbnail_path' is distinct from v_ev.thumbnail_path then
-    v_changes := v_changes || 'details'; end if;
+    v_changes := v_changes || 'details'::text; end if;
 
   update events set
     name                    = btrim(p_payload->>'name'),
