@@ -6,3 +6,4 @@ export * from './recurrence';
 export * from './chat-media';
 export * from './chat-preview';
 export * from './notification-route';
+export * from './geocode-query';
