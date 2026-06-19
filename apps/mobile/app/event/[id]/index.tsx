@@ -579,7 +579,14 @@ export default function EventDetailScreen() {
         {/* Where */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('whereTitle')}</Text>
-          {event.has_location && event.manual_location_name ? (
+          {event.venue ? (
+            <>
+              <Text style={styles.body}>{event.venue.name}</Text>
+              {event.venue.address ? (
+                <Text style={styles.bodyMuted}>{event.venue.address}</Text>
+              ) : null}
+            </>
+          ) : event.has_location && event.manual_location_name ? (
             <>
               <Text style={styles.body}>{event.manual_location_name}</Text>
               {event.manual_location_address ? (
