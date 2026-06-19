@@ -731,6 +731,7 @@ export default function EventLiveScreen() {
         eventId={id}
         communityId={event.group_id ? (group?.community_id ?? null) : null}
         summaryText={resultsSummary}
+        eventName={event.name}
       />
     </SafeAreaView>
   );

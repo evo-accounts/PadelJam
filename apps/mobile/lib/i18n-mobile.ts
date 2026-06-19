@@ -1645,6 +1645,7 @@ const mobileEvent = {
     // --- Phase 5H: Share results ---
     shareResultsCta: 'Partilhar resultados',
     shareResultsTitle: 'Partilhar resultados',
+    resultCardHeading: 'Classificação final',
     postToFeedCta: 'Publicar no feed da comunidade',
     shareExternalCta: 'Partilhar…',
     copied: 'Copiado para a área de transferência',
@@ -2076,6 +2077,7 @@ const mobileEvent = {
     // --- Phase 5H: Share results ---
     shareResultsCta: 'Compartilhar resultados',
     shareResultsTitle: 'Compartilhar resultados',
+    resultCardHeading: 'Classificação final',
     postToFeedCta: 'Publicar no feed da comunidade',
     shareExternalCta: 'Compartilhar…',
     copied: 'Copiado para a área de transferência',
@@ -2507,6 +2509,7 @@ const mobileEvent = {
     // --- Phase 5H: Share results ---
     shareResultsCta: 'Share results',
     shareResultsTitle: 'Share results',
+    resultCardHeading: 'Final standings',
     postToFeedCta: 'Post to community feed',
     shareExternalCta: 'Share…',
     copied: 'Copied to clipboard',

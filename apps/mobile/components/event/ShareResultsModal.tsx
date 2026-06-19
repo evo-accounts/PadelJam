@@ -1,8 +1,11 @@
 import { usePostEventResult } from '@padel/api';
 import { useT } from '@padel/i18n';
 import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
+import * as Sharing from 'expo-sharing';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
+import { ResultCard } from './ResultCard';
 
 export function ShareResultsModal({
   visible,
@@ -10,17 +13,20 @@ export function ShareResultsModal({
   eventId,
   communityId,
   summaryText,
+  eventName,
 }: {
   visible: boolean;
   onClose: () => void;
   eventId: string;
   communityId: string | null;
   summaryText: string;
+  eventName?: string;
 }) {
   const { t } = useT('event');
   const postResult = usePostEventResult(eventId);
   const [posted, setPosted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cardRef = useRef<View>(null);
 
   const onPost = () => {
     if (!communityId || postResult.isPending) return;
@@ -34,12 +40,20 @@ export function ShareResultsModal({
   const [copied, setCopied] = useState(false);
   const onShare = async () => {
     try {
-      // RN Share gives a native share sheet for plain text on iOS/Android.
-      await Share.share({ message: summaryText });
+      const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: t('shareResultsTitle') });
+        return;
+      }
+      throw new Error('sharing_unavailable');
     } catch {
-      // User dismissed or share failed → fall back to copying, with confirmation.
-      await Clipboard.setStringAsync(summaryText);
-      setCopied(true);
+      // Fallback: native text share (current behavior), then clipboard.
+      try {
+        await Share.share({ message: summaryText });
+      } catch {
+        await Clipboard.setStringAsync(summaryText);
+        setCopied(true);
+      }
     }
   };
 
@@ -66,6 +80,9 @@ export function ShareResultsModal({
           <Pressable style={[styles.btn, styles.secondary]} onPress={onShare} accessibilityRole="button">
             <Text style={styles.secondaryLabel}>{copied ? t('copied') : t('shareExternalCta')}</Text>
           </Pressable>
+          <View ref={cardRef} collapsable={false} style={styles.offscreen}>
+            <ResultCard eventId={eventId} eventName={eventName} />
+          </View>
         </View>
       </Pressable>
     </Modal>
@@ -83,4 +100,5 @@ const styles = StyleSheet.create({
   secondary: { backgroundColor: '#F0F3F8' },
   secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
   disabled: { opacity: 0.5 },
+  offscreen: { position: 'absolute', left: -9999, top: 0 },
 });
