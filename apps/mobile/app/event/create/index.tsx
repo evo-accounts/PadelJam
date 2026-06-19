@@ -1,6 +1,7 @@
 import { type CreateEventInput, useCreateEvent } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import { geocodeQuery } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -18,6 +19,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
 import { StepIndicator } from '@/components/event/wizard/StepIndicator';
+import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
@@ -78,6 +80,12 @@ function CreateEventWizard() {
       }
     }
 
+    let { locationLat, locationLng } = draft;
+    if (locationLat == null && locationLng == null) {
+      const q = geocodeQuery({ name: draft.manualLocationName, address: draft.manualLocationAddress });
+      if (q) { const r = await geocodeAddress(q); if (r) { locationLat = r.lat; locationLng = r.lng; } }
+    }
+
     const input: CreateEventInput = {
       groupId: draft.groupId,
       eventType,
@@ -87,8 +95,8 @@ function CreateEventWizard() {
       manualLocationName: draft.manualLocationName,
       manualLocationAddress: draft.manualLocationAddress,
       venueId: draft.venueId,
-      locationLat: draft.locationLat,
-      locationLng: draft.locationLng,
+      locationLat,
+      locationLng,
       hasLocation: draft.hasLocation,
       numCourts: draft.numCourts,
       startsAt,

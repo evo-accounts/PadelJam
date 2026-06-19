@@ -1,8 +1,11 @@
 import { useSearchVenues } from '@padel/api';
 import { useT } from '@padel/i18n';
+import { geocodeQuery } from '@padel/utils';
 import * as Location from 'expo-location';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+
+import { geocodeAddress } from '@/lib/geocode';
 
 import type { WizardStepProps } from '../draft';
 
@@ -11,7 +14,19 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
   const [venueQuery, setVenueQuery] = useState('');
   const [locating, setLocating] = useState(false);
   const [denied, setDenied] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geoNotFound, setGeoNotFound] = useState(false);
   const venues = useSearchVenues(venueQuery);
+
+  const runGeocode = async (query: string | null) => {
+    if (!query || geocoding) return;
+    setGeocoding(true);
+    setGeoNotFound(false);
+    const r = await geocodeAddress(query);
+    if (r) patch({ locationLat: r.lat, locationLng: r.lng });
+    else setGeoNotFound(true);
+    setGeocoding(false);
+  };
 
   const pickVenue = (id: string, name: string) =>
     patch({
@@ -88,11 +103,11 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         ) : results.length === 0 ? (
           <Text style={styles.empty}>{t('venueResultsEmpty')}</Text>
         ) : (
-          results.map((v: { id: string; name: string }) => (
+          results.map((v: { id: string; name: string; address: string | null }) => (
             <Pressable
               key={v.id}
               style={[styles.venueRow, draft.venueId === v.id && styles.venueRowOn]}
-              onPress={() => pickVenue(v.id, v.name)}
+              onPress={() => { pickVenue(v.id, v.name); void runGeocode(geocodeQuery({ name: v.name, address: v.address })); }}
               accessibilityRole="button"
             >
               <Text style={styles.venueName}>{v.name}</Text>
@@ -119,6 +134,16 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         placeholder={t('locationAddressPlaceholder')}
         placeholderTextColor="#9AA4B2"
       />
+
+      <Pressable
+        style={styles.locBtn}
+        onPress={() => void runGeocode(geocodeQuery({ name: draft.manualLocationName, address: draft.manualLocationAddress }))}
+        disabled={geocoding}
+        accessibilityRole="button"
+      >
+        <Text style={styles.locBtnText}>{geocoding ? t('locating') : t('findLocationCta')}</Text>
+      </Pressable>
+      {geoNotFound ? <Text style={styles.denied}>{t('locationNotFound')}</Text> : null}
 
       <Pressable style={styles.locBtn} onPress={useMyLocation} disabled={locating} accessibilityRole="button">
         <Text style={styles.locBtnText}>{locating ? t('locating') : t('useMyLocation')}</Text>

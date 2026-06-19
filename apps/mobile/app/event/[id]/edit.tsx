@@ -1,6 +1,7 @@
 import { updateEventSchema, useEvent, useUpdateEvent } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import { geocodeQuery } from '@padel/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -14,6 +15,7 @@ import { Step4Scoring } from '@/components/event/wizard/steps/Step4Scoring';
 import { Step5Location } from '@/components/event/wizard/steps/Step5Location';
 import { Step6Courts } from '@/components/event/wizard/steps/Step6Courts';
 import { Step8Preferences } from '@/components/event/wizard/steps/Step8Preferences';
+import { geocodeAddress } from '@/lib/geocode';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
@@ -98,6 +100,14 @@ export default function EditEventScreen() {
         if (picked && uid) {
           thumbnailPath = await uploadCommunityImage(supabase, 'event-thumbnails', uid, picked.uri, picked.mimeType);
         }
+        let lat = d.locationLat, lng = d.locationLng;
+        // Only geocode a manual address. A venue event keeps its stored coords: location_point isn't
+        // readable back as lat/lng, so re-geocoding the venue name here would clobber it (update_event
+        // preserves location_point when no coords are sent).
+        if (lat == null && lng == null && d.venueId == null) {
+          const q = geocodeQuery({ name: d.manualLocationName, address: d.manualLocationAddress });
+          if (q) { const r = await geocodeAddress(q); if (r) { lat = r.lat; lng = r.lng; } }
+        }
         const parsed = updateEventSchema.safeParse({
           name: d.name,
           description: d.description?.trim() ? d.description : undefined,
@@ -117,8 +127,8 @@ export default function EditEventScreen() {
           venueId: d.venueId,
           manualLocationName: d.manualLocationName,
           manualLocationAddress: d.manualLocationAddress,
-          locationLat: d.locationLat,
-          locationLng: d.locationLng,
+          locationLat: lat,
+          locationLng: lng,
         });
         if (!parsed.success) {
           setError(t(parsed.error.issues[0]?.message ?? 'name_required'));
