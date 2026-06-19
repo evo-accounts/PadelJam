@@ -8,6 +8,7 @@ import {
   type NotificationRow,
 } from '@padel/api';
 import { useT } from '@padel/i18n';
+import { notificationRoute } from '@padel/utils';
 import { FlashList } from '@shopify/flash-list';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -16,11 +17,7 @@ import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'rea
 const CTA_TYPES = ['event_invite', 'group_invite', 'community_invite'];
 
 function targetHref(n: NotificationRow): string | null {
-  if (n.event_id) return `/event/${n.event_id}`;
-  if (n.group_id) return `/group/${n.group_id}`;
-  if (n.community_id) return `/community/${n.community_id}`;
-  if (n.type === 'follow' && n.actor_id) return `/profile/${n.actor_id}`;
-  return null;
+  return notificationRoute(n);
 }
 
 export default function NotificationsScreen() {

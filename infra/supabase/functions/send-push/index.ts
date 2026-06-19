@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
 
   const { data: n, error: nErr } = await admin
     .from('notifications')
-    .select('user_id, type, actor_name, entity_name, event_id, group_id, community_id, ref_id')
+    .select('user_id, type, actor_name, entity_name, event_id, group_id, community_id, ref_id, actor_id')
     .eq('id', body.notification_id)
     .maybeSingle();
   if (nErr || !n) return json({ error: 'notification_not_found' }, 404);
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
   if (list.length === 0) return json({ ok: true, skipped: 'no_tokens' });
 
   const { title, body: msg } = render(n);
-  const data = { type: n.type, event_id: n.event_id, group_id: n.group_id, community_id: n.community_id, ref_id: n.ref_id };
+  const data = { type: n.type, event_id: n.event_id, group_id: n.group_id, community_id: n.community_id, ref_id: n.ref_id, actor_id: n.actor_id };
   const messages = list.map((t) => ({ to: t.expo_token, title, body: msg, data, sound: 'default' }));
 
   for (let i = 0; i < messages.length; i += 100) {
