@@ -78,7 +78,7 @@ begin
         when p_payload->>'location_lat' is not null and p_payload->>'location_lng' is not null
         then st_setsrid(st_makepoint((p_payload->>'location_lng')::float8,(p_payload->>'location_lat')::float8),4326)::geography
         else v_ev.location_point end,
-    location_text           = nullif(p_payload->>'location_text','')
+    location_text           = coalesce(nullif(p_payload->>'location_text',''), v_ev.location_text)
   where id = p_event_id;
 
   -- Re-notify confirmed participants (not the organizer) on a date or location change.

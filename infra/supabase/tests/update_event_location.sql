@@ -26,6 +26,7 @@ declare
   n_upd int;
   n_after int;
   v_starts timestamptz;
+  v_ltext text;
   i int;
 begin
   perform set_config('role','authenticated',true);
@@ -40,11 +41,11 @@ begin
   insert into events (
     group_id, organizer_id, event_type, specification, scoring_mode, scoring_value,
     num_courts, starts_at, duration_minutes, organizer_role, name, status, is_private,
-    manual_location_name, has_location
+    manual_location_name, has_location, location_text
   ) values (
     g, u1, 'americano', 'classic', 'points', 24,
     2, now() + interval '2 day', 90, 'organizing_only', 'LocEv', 'scheduled', false,
-    'Old Gym', true
+    'Old Gym', true, 'Venue Text'
   ) returning id into ev;
 
   -- A confirmed non-organizer participant (for the re-notify assertions).
@@ -75,6 +76,13 @@ begin
     raise exception using errcode='PT001', message='location change should notify the confirmed player once, got '||n_upd;
   end if;
   raise notice 'OK location manual->venue + event_updated fired';
+
+  -- location_text must be preserved when the payload omits it (venue event keeps its stored text).
+  select location_text into v_ltext from events where id = ev;
+  if v_ltext is distinct from 'Venue Text' then
+    raise exception using errcode='PT001', message='location_text should be preserved on a venue edit, got '||coalesce(v_ltext,'<null>');
+  end if;
+  raise notice 'OK location_text preserved on venue edit';
 
   -- (2) venue -> manual + coords: expect manual set, venue nulled, location_point written.
   perform set_config('role','authenticated',true);
