@@ -14,8 +14,8 @@ export function ResultCard({ eventId, eventName }: { eventId: string; eventName?
       {placements.length === 0 ? (
         <Text style={styles.row}>—</Text>
       ) : (
-        placements.map((r) => (
-          <Text key={r.rank} style={styles.row}>{`${r.rank}.  ${r.name}  ·  ${r.points}`}</Text>
+        placements.map((r, i) => (
+          <Text key={`${r.rank}-${i}`} style={styles.row}>{`${r.rank}.  ${r.name}  ·  ${r.points}`}</Text>
         ))
       )}
       <Text style={styles.footer}>Padel Jam</Text>
