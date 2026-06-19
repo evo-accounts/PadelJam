@@ -71,6 +71,7 @@ export const useUpdateEvent = (eventId: string) => {
       qc.invalidateQueries({ queryKey: qk.myEvents('all') });
       qc.invalidateQueries({ queryKey: qk.myEvents('organizing') });
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
 };
@@ -244,6 +245,7 @@ export const useInviteToEvent = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
 };
@@ -261,6 +263,7 @@ export const useAcceptEventInvitation = () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(input.eventId) });
       qc.invalidateQueries({ queryKey: qk.eventInvitations(input.eventId) });
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(input.eventId) });
     },
   });
 };
@@ -275,6 +278,7 @@ export const useDeclineEventInvitation = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
 };
@@ -292,7 +296,6 @@ export const useMarkConfirmed = (eventId: string) => {
         p_participant_id: input.participantId,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, eventId, 'confirmed', { target_name: input.targetName });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
@@ -311,7 +314,6 @@ export const useRemoveParticipant = (eventId: string) => {
         p_mode: input.mode,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, eventId, 'removed', { target_name: input.targetName, mode: input.mode });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
@@ -332,7 +334,6 @@ export const useAddManualParticipant = (eventId: string) => {
         p_gender: input.gender,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, eventId, 'guest_added', { guest_name: input.name });
       return data;
     },
     onSuccess: () => {
@@ -353,9 +354,6 @@ export const useMarkPaid = (eventId: string) => {
         p_paid: input.paid,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, eventId, input.paid ? 'marked_paid' : 'marked_unpaid', {
-        target_name: input.targetName,
-      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
@@ -371,7 +369,6 @@ export const useMarkAllPaid = (eventId: string) => {
     mutationFn: async () => {
       const { error } = await db.rpc('mark_all_paid', { p_event_id: eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, eventId, 'marked_all_paid');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
@@ -517,10 +514,6 @@ export const useAssignToTeam = (eventId: string) => {
         p_slot: input.slot,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, eventId, 'team_assigned', {
-        target_name: input.targetName,
-        team_number: input.teamNumber,
-      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
@@ -540,7 +533,6 @@ export const useRemoveFromTeam = (eventId: string) => {
         p_participant_id: input.participantId,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, eventId, 'team_removed', { target_name: input.targetName });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
@@ -561,7 +553,6 @@ export const useSwitchPlayers = (eventId: string) => {
         p_b: input.participantB,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, eventId, 'team_switched', {});
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
