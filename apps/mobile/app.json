@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.padeljam"
+      "bundleIdentifier": "app.padeljam",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "app.padeljam",
@@ -38,6 +39,7 @@
         }
       ],
       "expo-secure-store",
+      "expo-apple-authentication",
       "expo-notifications",
       "expo-localization",
       "expo-image",
