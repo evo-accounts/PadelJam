@@ -10,6 +10,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { useT } from '@padel/i18n';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { StreamChatProvider } from '@/components/chat/StreamChatProvider';
@@ -89,15 +90,17 @@ export default function RootLayout() {
   }
 
   return (
-    <I18nextProvider i18n={i18n}>
-      <SessionProvider client={supabase}>
-        <QueryClientProvider client={queryClient}>
-          <StreamChatProvider>
-            <Boot />
-          </StreamChatProvider>
-        </QueryClientProvider>
-      </SessionProvider>
-    </I18nextProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <I18nextProvider i18n={i18n}>
+        <SessionProvider client={supabase}>
+          <QueryClientProvider client={queryClient}>
+            <StreamChatProvider>
+              <Boot />
+            </StreamChatProvider>
+          </QueryClientProvider>
+        </SessionProvider>
+      </I18nextProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -224,6 +227,9 @@ function SplashView() {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   splash: {
     position: 'absolute',
     top: 0,
