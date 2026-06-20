@@ -17,3 +17,6 @@ shadcn-extension.json
 
 # Local Supabase deploy credentials (never commit)
 infra/.supabase-deploy.env
+
+# EAS / service-account credentials (sensitive — never commit)
+apps/mobile/credentials.json
