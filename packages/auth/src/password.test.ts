@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { changePassword, signInWithPassword, setPassword } from './password';
+import { primaryCredential } from './password';
 import type { TypedClient } from '@padel/db';
 
 const makeClient = (signInErr: unknown, updateErr: unknown) => {
@@ -50,4 +51,19 @@ it('setPassword calls updateUser with the new password', async () => {
   const c = { auth: { updateUser } } as unknown as TypedClient;
   await setPassword(c, 'newpw12345');
   expect(updateUser).toHaveBeenCalledWith({ password: 'newpw12345' });
+});
+
+describe('primaryCredential', () => {
+  it('uses email when the primary kind is email', () => {
+    expect(primaryCredential({ primaryKind: 'email', email: 'a@b.com', phone: '+351900000000' }))
+      .toEqual({ identifier: 'a@b.com', kind: 'email' });
+  });
+  it('uses phone when the primary kind is phone', () => {
+    expect(primaryCredential({ primaryKind: 'phone', email: 'a@b.com', phone: '+351900000000' }))
+      .toEqual({ identifier: '+351900000000', kind: 'phone' });
+  });
+  it('returns null when the chosen identifier is missing', () => {
+    expect(primaryCredential({ primaryKind: 'email', email: null, phone: '+351900000000' })).toBeNull();
+    expect(primaryCredential({ primaryKind: 'phone', email: 'a@b.com', phone: undefined })).toBeNull();
+  });
 });

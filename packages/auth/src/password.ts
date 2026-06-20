@@ -34,3 +34,17 @@ export const signInWithPassword = (
 
 // Set a new password for the currently-authenticated user (used after a recovery OTP login).
 export const setPassword = (c: TypedClient, password: string) => c.auth.updateUser({ password });
+
+/**
+ * Pick the credential to re-authenticate with after account completion: the PRIMARY (already-verified)
+ * identifier. Email-started and social sign-ups verify the email; phone-started verifies the phone.
+ * Returns null when the chosen identifier isn't present on the user.
+ */
+export function primaryCredential(args: {
+  primaryKind: 'email' | 'phone';
+  email: string | null | undefined;
+  phone: string | null | undefined;
+}): { identifier: string; kind: 'email' | 'phone' } | null {
+  if (args.primaryKind === 'email') return args.email ? { identifier: args.email, kind: 'email' } : null;
+  return args.phone ? { identifier: args.phone, kind: 'phone' } : null;
+}
