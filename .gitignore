@@ -14,3 +14,6 @@ infra/supabase/.temp/
 
 # Local editor/tooling state
 shadcn-extension.json
+
+# Local Supabase deploy credentials (never commit)
+infra/.supabase-deploy.env

@@ -398,6 +398,7 @@ deno_version = 2
 RESEND_API_KEY = "env(RESEND_API_KEY)"
 RESEND_FROM_EMAIL = "env(RESEND_FROM_EMAIL)"
 PUSH_WEBHOOK_SECRET = "env(PUSH_WEBHOOK_SECRET)"
+STREAM_API_SECRET = "env(STREAM_API_SECRET)"
 
 # send-push is invoked server-to-server by the notify_push DB trigger (x-push-secret header, no JWT).
 # Disable gateway JWT verification so the function's own shared-secret check is the auth boundary.
