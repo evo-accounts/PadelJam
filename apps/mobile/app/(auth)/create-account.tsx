@@ -1,4 +1,4 @@
-import { useSession } from '@padel/auth';
+import { primaryCredential, signInWithPassword, useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { formatDisplayName } from '@padel/utils';
 import { useRouter } from 'expo-router';
@@ -87,6 +87,23 @@ export default function CreateAccountScreen() {
       if (!resp.ok) {
         setError(`complete-account-failed:${resp.status}`);
         return;
+      }
+
+      // complete-account sets a password via the admin API, which rotates the OTP-issued refresh
+      // token — the current session would be signed out at the next refresh, mid-onboarding. Mint a
+      // fresh, durable session with the password we just set, using the primary verified identifier.
+      const cred = primaryCredential({
+        primaryKind: isSocial ? 'email' : kind,
+        email: session.user.email,
+        phone: session.user.phone,
+      });
+      if (cred) {
+        const { error: signInErr } = await signInWithPassword(supabase, cred.identifier, cred.kind, password);
+        if (signInErr) {
+          setError('session-refresh-failed');
+          router.replace('/(auth)/sign-in');
+          return;
+        }
       }
 
       router.replace('/(onboarding)/location');
