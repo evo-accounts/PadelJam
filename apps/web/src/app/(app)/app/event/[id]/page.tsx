@@ -60,9 +60,9 @@ export default function EventDetailPage() {
 
   const formatText = e.event_type ? t(`type${cap(e.event_type)}Label`) : null;
   const scoringText = e.scoring_mode
-    ? e.scoring_mode === 'classic'
+    ? e.scoring_mode === 'classic' || e.scoring_value == null
       ? t(`scoring${cap(e.scoring_mode)}Label`)
-      : `${t(`scoring${cap(e.scoring_mode)}Label`)} · ${e.scoring_value ?? ''}`
+      : `${t(`scoring${cap(e.scoring_mode)}Label`)} · ${e.scoring_value}`
     : null;
   const feeText = e.entrance_fee_enabled
     ? e.entrance_fee_method != null

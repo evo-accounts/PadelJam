@@ -1055,6 +1055,8 @@ const webEvent = {
     scoringTimeLabel: 'Tempo',
     feeCashLabel: 'Dinheiro',
     feeMbaLabel: 'MB WAY',
+    typeUp_and_downLabel: 'Up & Down',
+    feeAt_clubLabel: 'Pagar no clube',
   },
   'pt-BR': {
     title: 'Eventos',
@@ -1096,6 +1098,8 @@ const webEvent = {
     scoringTimeLabel: 'Tempo',
     feeCashLabel: 'Dinheiro',
     feeMbaLabel: 'MB WAY',
+    typeUp_and_downLabel: 'Up & Down',
+    feeAt_clubLabel: 'Pagar no clube',
   },
   en: {
     title: 'Events',
@@ -1137,6 +1141,8 @@ const webEvent = {
     scoringTimeLabel: 'Time',
     feeCashLabel: 'Cash',
     feeMbaLabel: 'MB WAY',
+    typeUp_and_downLabel: 'Up & Down',
+    feeAt_clubLabel: 'Pay at club',
   },
 } as const;
 
