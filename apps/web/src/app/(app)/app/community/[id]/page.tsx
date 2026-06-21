@@ -14,6 +14,7 @@ import {
   useCommunityFeedRealtime,
   useCommunityReviews,
   useCommunityGroups,
+  useCanCreateGroup,
 } from '@padel/api';
 import { CommunityHeader } from '@/components/community/CommunityHeader';
 import { GroupCard } from '@/components/group/GroupCard';
@@ -39,6 +40,7 @@ const typeKey: Record<string, 'typeClub' | 'typeTeam' | 'typeFriends'> = {
 
 export default function CommunityDetailPage() {
   const { t, i18n } = useT('community');
+  const { t: tg } = useT('group');
   const { id } = useParams<{ id: string }>();
   const c = useCommunity(id);
   const members = useCommunityMembers(id);
@@ -51,6 +53,7 @@ export default function CommunityDetailPage() {
   const perms = useCommunityPermissions(id);
   const reviews = useCommunityReviews(id);
   const groups = useCommunityGroups(id);
+  const canCreateGroup = useCanCreateGroup(id);
 
   const [ack, setAck] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -225,6 +228,11 @@ export default function CommunityDetailPage() {
           </TabsContent>
 
           <TabsContent value="groups" className="flex flex-col gap-3 pt-4">
+            {canCreateGroup.data === true ? (
+              <Button asChild variant="outline" className="self-start">
+                <Link href={`/app/community/${id}/group-create`}>{tg('newGroup')}</Link>
+              </Button>
+            ) : null}
             {groups.isLoading ? (
               <Skeleton className="h-24 w-full" />
             ) : (groups.data ?? []).length === 0 ? (

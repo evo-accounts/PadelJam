@@ -1,7 +1,9 @@
 'use client';
+import Link from 'next/link';
 import { useT } from '@padel/i18n';
 import { useMyGroups } from '@padel/api';
 import { GroupCard } from '@/components/group/GroupCard';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import type { MyGroup } from '@padel/api';
@@ -33,7 +35,12 @@ export default function GroupsPage() {
 
   return (
     <div className="flex flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">{t('title')}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{t('title')}</h1>
+        <Button asChild variant="outline">
+          <Link href="/app/community">{t('newGroup')}</Link>
+        </Button>
+      </div>
 
       <Tabs defaultValue="all">
         <TabsList>
