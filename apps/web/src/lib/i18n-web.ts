@@ -70,3 +70,43 @@ export function registerWebAuthCopy(instance: I18n): void {
     instance.addResourceBundle(locale, 'auth', webAuth[locale], true, false);
   });
 }
+
+/**
+ * App-shell copy (nav labels + a few shared strings), surfaced through the `app`
+ * i18n namespace. Lives in the web app for the same reason as the auth copy above.
+ */
+const webApp = {
+  'pt-PT': {
+    nav: { home: 'Início', events: 'Eventos', explore: 'Explorar', community: 'Comunidade', profile: 'Perfil' },
+    chat: 'Conversas',
+    notifications: 'Notificações',
+    comingSoon: 'Em breve',
+    welcome: 'Bem-vindo, {{name}}',
+    noCommunities: 'Ainda não pertences a nenhuma comunidade.',
+  },
+  'pt-BR': {
+    nav: { home: 'Início', events: 'Eventos', explore: 'Explorar', community: 'Comunidade', profile: 'Perfil' },
+    chat: 'Conversas',
+    notifications: 'Notificações',
+    comingSoon: 'Em breve',
+    welcome: 'Bem-vindo, {{name}}',
+    noCommunities: 'Você ainda não participa de nenhuma comunidade.',
+  },
+  en: {
+    nav: { home: 'Home', events: 'Events', explore: 'Explore', community: 'Community', profile: 'Profile' },
+    chat: 'Chat',
+    notifications: 'Notifications',
+    comingSoon: 'Coming soon',
+    welcome: 'Welcome, {{name}}',
+    noCommunities: "You're not in any communities yet.",
+  },
+} as const;
+
+/**
+ * Merges the web-only app-shell keys into the `app` namespace for every locale.
+ */
+export function registerWebAppCopy(instance: I18n): void {
+  (Object.keys(webApp) as WebLocale[]).forEach((locale) => {
+    instance.addResourceBundle(locale, 'app', webApp[locale], true, false);
+  });
+}
