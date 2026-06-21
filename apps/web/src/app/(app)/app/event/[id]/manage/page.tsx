@@ -6,13 +6,20 @@ import { useSession } from '@padel/auth';
 import {
   useEvent, useEventParticipants, useEventInvitations, useEventRealtime,
   useMarkConfirmed, useMarkPaid, useMarkAllPaid, useRemoveParticipant, useAddManualParticipant,
+  useDuplicateEvent, useCancelEvent, useSendRosterCsvEmail,
 } from '@padel/api';
+import { buildRosterCsv, rosterCsvFilename } from '@padel/utils';
+import Link from 'next/link';
 import { RosterRow, type RosterParticipant } from '@/components/event/manage/RosterRow';
 import { AddManualForm } from '@/components/event/manage/AddManualForm';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { avatarUrl } from '@/lib/upload';
 
 export default function EventManagePage() {
@@ -29,7 +36,11 @@ export default function EventManagePage() {
   const markAllPaid = useMarkAllPaid(id);
   const removeParticipant = useRemoveParticipant(id);
   const addManual = useAddManualParticipant(id);
+  const dup = useDuplicateEvent();
+  const cancelEvent = useCancelEvent(id);
+  const emailCsv = useSendRosterCsvEmail(id);
   const [err, setErr] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const isOrganizer = event.data != null && event.data.organizer_id === uid;
   useEffect(() => {
@@ -50,6 +61,30 @@ export default function EventManagePage() {
   const run = (fn: () => Promise<unknown>) => {
     setErr(null);
     fn().catch((x) => setErr(t(x instanceof Error ? x.message : 'unknown_error')));
+  };
+
+  const onExportCsv = () => {
+    const csv = buildRosterCsv(
+      rows.map((p) => ({
+        user_id: p.user_id,
+        guest_name: p.guest_name,
+        status: p.status,
+        is_standby: p.is_standby,
+        joined_at: p.joined_at,
+        confirmed_at: p.confirmed_at,
+        has_paid: p.has_paid,
+        paid_at: p.paid_at,
+        profiles: { full_name: p.profiles?.full_name ?? null },
+      })),
+      { entrance_fee_enabled: !!e.entrance_fee_enabled, entrance_fee_amount: e.entrance_fee_amount ?? null },
+    );
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = rosterCsvFilename(e.name, e.starts_at ?? new Date().toISOString());
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const section = (title: string, list: RosterParticipant[]) =>
@@ -111,7 +146,77 @@ export default function EventManagePage() {
       ) : null}
 
       <AddManualForm onAdd={(name, gender) => run(() => addManual.mutateAsync({ name, gender }))} />
-      {/* Task 3 inserts the management-actions Card here */}
+
+      <Card className="flex flex-col gap-2 p-4">
+        <Button asChild variant="outline">
+          <Link href={`/app/event/${id}/edit`}>{t('editEventCta')}</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href={`/app/event/${id}/manage/blast`}>{t('sendBlastCta')}</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href={`/app/event/${id}/manage/activity`}>{t('activityLogCta')}</Link>
+        </Button>
+        <Button variant="outline" onClick={onExportCsv}>{t('exportCsvCta')}</Button>
+        <Button variant="outline" onClick={() => run(() => emailCsv.mutateAsync())}>{t('emailCsvCta')}</Button>
+        <Button
+          variant="outline"
+          onClick={() =>
+            run(() =>
+              dup
+                .mutateAsync({ eventId: id, groupId: e.group_id, overrides: {} })
+                .then((newId) => router.push(`/app/event/${newId as string}`)),
+            )
+          }
+        >
+          {t('duplicateCta')}
+        </Button>
+        <Button variant="destructive" onClick={() => setCancelOpen(true)}>{t('cancelEventCta')}</Button>
+      </Card>
+
+      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{e.series_id ? t('cancelRecurringTitle') : t('cancelStandardTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('cancelStandardBody')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogCancel>{t('community:cancel')}</AlertDialogCancel>
+            {e.series_id ? (
+              <>
+                <AlertDialogAction
+                  onClick={() =>
+                    run(() =>
+                      cancelEvent.mutateAsync({ scope: 'only_this' }).then(() => router.push(`/app/event/${id}`)),
+                    )
+                  }
+                >
+                  {t('cancelOnlyThisCta')}
+                </AlertDialogAction>
+                <AlertDialogAction
+                  onClick={() =>
+                    run(() =>
+                      cancelEvent
+                        .mutateAsync({ scope: 'this_and_upcoming' })
+                        .then(() => router.push(`/app/event/${id}`)),
+                    )
+                  }
+                >
+                  {t('cancelThisAndUpcomingCta')}
+                </AlertDialogAction>
+              </>
+            ) : (
+              <AlertDialogAction
+                onClick={() =>
+                  run(() => cancelEvent.mutateAsync({ scope: 'only_this' }).then(() => router.push(`/app/event/${id}`)))
+                }
+              >
+                {t('cancelEventCta')}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
