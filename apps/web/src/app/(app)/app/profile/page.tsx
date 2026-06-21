@@ -18,6 +18,7 @@ function label(t: (k: string) => string, value: string | null | undefined): stri
 
 export default function ProfilePage() {
   const { t } = useT('profile');
+  const { t: ts } = useT('settings');
   const uid = useSession().session?.user.id;
   const profile = useProfile(uid);
   const me = useMyProfile();
@@ -52,9 +53,14 @@ export default function ProfilePage() {
         followingCount={Number(p.following_count ?? 0)}
         followersCount={Number(p.followers_count ?? 0)}
         actions={
-          <Button asChild>
-            <Link href="/app/profile/edit">{t('edit')}</Link>
-          </Button>
+          <>
+            <Button asChild>
+              <Link href="/app/profile/edit">{t('edit')}</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/app/settings">{ts('title')}</Link>
+            </Button>
+          </>
         }
       />
 
