@@ -15,7 +15,9 @@ import {
   useCommunityReviews,
   useCommunityGroups,
   useCanCreateGroup,
+  useCommunityEvents,
 } from '@padel/api';
+import { EventCard, type EventCardEvent } from '@/components/event/EventCard';
 import { CommunityHeader } from '@/components/community/CommunityHeader';
 import { GroupCard } from '@/components/group/GroupCard';
 import { MembersList } from '@/components/community/MembersList';
@@ -54,6 +56,7 @@ export default function CommunityDetailPage() {
   const reviews = useCommunityReviews(id);
   const groups = useCommunityGroups(id);
   const canCreateGroup = useCanCreateGroup(id);
+  const events = useCommunityEvents(id);
 
   const [ack, setAck] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -223,8 +226,16 @@ export default function CommunityDetailPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="events" className="pt-4">
-            <p className="text-center text-sm text-muted-foreground">{t('comingSoon')}</p>
+          <TabsContent value="events" className="flex flex-col gap-3 pt-4">
+            {events.isLoading ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (events.data ?? []).length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground">{t('comingSoon')}</p>
+            ) : (
+              (events.data ?? []).map((ev) => (
+                <EventCard key={ev.id} event={ev as unknown as EventCardEvent} />
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="groups" className="flex flex-col gap-3 pt-4">

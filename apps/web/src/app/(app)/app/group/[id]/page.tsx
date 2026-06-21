@@ -12,7 +12,9 @@ import {
   useJoinGroup,
   useLeaveGroup,
   useGroupRealtime,
+  useGroupEvents,
 } from '@padel/api';
+import { EventCard, type EventCardEvent } from '@/components/event/EventCard';
 import { RankingTable } from '@/components/group/RankingTable';
 import { GroupMembersList } from '@/components/group/GroupMembersList';
 import { SeasonsList } from '@/components/group/SeasonsList';
@@ -48,6 +50,7 @@ export default function GroupDetailPage() {
       ? undefined
       : new Date(Date.now() - Number(period) * 30 * 24 * 3600 * 1000).toISOString();
   const ranking = useGroupRanking(seasonId ?? '', since);
+  const events = useGroupEvents(id);
   const { t } = useT('group');
   const myRow = mine.data?.find((r) => r.group_id === id);
   const isMember = !!myRow;
@@ -168,8 +171,16 @@ export default function GroupDetailPage() {
             />
           </TabsContent>
 
-          <TabsContent value="events" className="pt-4">
-            <p className="text-center text-sm text-muted-foreground">{t('comingSoon')}</p>
+          <TabsContent value="events" className="flex flex-col gap-3 pt-4">
+            {events.isLoading ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (events.data ?? []).length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground">{t('comingSoon')}</p>
+            ) : (
+              (events.data ?? []).map((ev) => (
+                <EventCard key={ev.id} event={ev as unknown as EventCardEvent} />
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
