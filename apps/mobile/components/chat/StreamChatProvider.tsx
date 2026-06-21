@@ -1,14 +1,11 @@
 import { useMyProfile, useStreamToken } from '@padel/api';
 import { useSession } from '@padel/auth';
-import { useT } from '@padel/i18n';
 import { type PropsWithChildren, useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Chat, OverlayProvider } from 'stream-chat-expo';
 
 import { streamClient } from '@/lib/streamClient';
 
 export function StreamChatProvider({ children }: PropsWithChildren) {
-  const { t } = useT('chat');
   const uid = useSession().session?.user.id;
   const tokenQ = useStreamToken();
   const profile = useMyProfile();
@@ -45,26 +42,12 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
   // Not authed (e.g. on the auth screens): don't gate the app on chat.
   if (!uid) return <>{children}</>;
 
-  if (tokenQ.isError) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.msg}>{t('connectError')}</Text>
-        <Pressable onPress={() => tokenQ.refetch()} accessibilityRole="button">
-          <Text style={styles.retry}>{t('retry')}</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
+  // Always mount the Stream provider tree once authed — even if the token fetch errored — so the rest of
+  // the app stays usable and chat context exists. A token error is surfaced (with Retry) inside the chat
+  // tab, not as an app-wide block. The connect effect above no-ops until a token is available.
   return (
     <OverlayProvider>
       <Chat client={streamClient}>{children}</Chat>
     </OverlayProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#F7F9FC' },
-  msg: { color: '#6B7685', fontSize: 15 },
-  retry: { color: '#0B7BFF', fontWeight: '700', fontSize: 15 },
-});

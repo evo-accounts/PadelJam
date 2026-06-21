@@ -1,3 +1,4 @@
+import { useStreamToken } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Stack, useRouter } from 'expo-router';
@@ -14,6 +15,7 @@ export default function ChatListScreen() {
   const { t } = useT('chat');
   const router = useRouter();
   const uid = useSession().session?.user.id;
+  const tokenQ = useStreamToken();
   const [tab, setTab] = useState<Tab>('active');
 
   if (!uid) return null;
@@ -41,6 +43,14 @@ export default function ChatListScreen() {
           </Pressable>
         ))}
       </View>
+      {tokenQ.isError ? (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>{t('connectError')}</Text>
+          <Pressable onPress={() => tokenQ.refetch()} accessibilityRole="button" hitSlop={8}>
+            <Text style={styles.bannerRetry}>{t('retry')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <ChannelList
         key={tab}
         filters={{ members: { $in: [uid] }, archived: tab === 'archived' }}
@@ -59,4 +69,7 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomColor: '#0B7BFF' },
   tabText: { fontSize: 15, color: '#6B7685', fontWeight: '600' },
   tabTextActive: { color: '#0B7BFF', fontWeight: '700' },
+  banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFF4E5', paddingHorizontal: 16, paddingVertical: 10 },
+  bannerText: { color: '#8A5A00', fontSize: 13, flex: 1 },
+  bannerRetry: { color: '#0B7BFF', fontWeight: '700', fontSize: 13, paddingLeft: 12 },
 });
