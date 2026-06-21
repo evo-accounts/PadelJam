@@ -33,8 +33,9 @@ export default function ManageHubPage() {
 
   const archived = !!community.data?.archived_at;
 
-  const links: { key: 'settings' | 'permissions' | 'requests' | 'invite'; href: string; label: string }[] = [
+  const links: { key: 'settings' | 'members' | 'permissions' | 'requests' | 'invite'; href: string; label: string }[] = [
     { key: 'settings', href: `/app/community/${id}/manage/settings`, label: t('settings') },
+    { key: 'members', href: `/app/community/${id}/manage/members`, label: t('members') },
     { key: 'permissions', href: `/app/community/${id}/manage/permissions`, label: t('permissions') },
     {
       key: 'requests',
