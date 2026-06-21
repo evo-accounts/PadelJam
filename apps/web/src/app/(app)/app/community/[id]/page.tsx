@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { useT } from '@padel/i18n';
 import {
   useCommunity,
@@ -8,9 +9,16 @@ import {
   useCommunities,
   useJoinCommunity,
   useLeaveCommunity,
+  useCommunityPosts,
+  useCommunityPermissions,
+  useCommunityFeedRealtime,
+  useCommunityReviews,
 } from '@padel/api';
 import { CommunityHeader } from '@/components/community/CommunityHeader';
 import { MembersList } from '@/components/community/MembersList';
+import { PostComposer } from '@/components/community/PostComposer';
+import { PostCard } from '@/components/community/PostCard';
+import { StarRating } from '@/components/community/StarRating';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -35,6 +43,11 @@ export default function CommunityDetailPage() {
   const mine = useCommunities();
   const join = useJoinCommunity(id);
   const leave = useLeaveCommunity();
+
+  useCommunityFeedRealtime(id);
+  const posts = useCommunityPosts(id);
+  const perms = useCommunityPermissions(id);
+  const reviews = useCommunityReviews(id);
 
   const [ack, setAck] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -62,6 +75,11 @@ export default function CommunityDetailPage() {
 
   const mineRow = (mine.data ?? []).find((r) => r.community?.id === id);
   const isMember = !!mineRow;
+
+  const myRole = mineRow?.role;
+  const canPost =
+    isMember &&
+    (myRole === 'owner' || myRole === 'admin' || perms.data?.create_posts === true);
 
   const needsAck = community.cancellation_rules_enabled && !isMember;
 
@@ -136,6 +154,12 @@ export default function CommunityDetailPage() {
           </TabsList>
 
           <TabsContent value="about" className="flex flex-col gap-3 pt-4 text-sm">
+            <Link href={`/app/community/${id}/reviews`} className="flex items-center gap-2">
+              <StarRating value={Math.round(reviews.data?.average ?? 0)} />
+              <span className="text-sm text-muted-foreground">
+                {t('reviewsCount', { count: reviews.data?.count ?? 0 })}
+              </span>
+            </Link>
             <div className="flex flex-wrap gap-2">
               <span className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
                 {t(typeKey[community.type] ?? 'typeClub')}
@@ -173,7 +197,18 @@ export default function CommunityDetailPage() {
           </TabsContent>
 
           <TabsContent value="posts" className="pt-4">
-            <p className="text-center text-sm text-muted-foreground">{t('comingSoon')}</p>
+            <div className="flex flex-col gap-4">
+              <PostComposer communityId={id} canPost={canPost} />
+              {posts.isLoading ? (
+                <Skeleton className="h-24 w-full" />
+              ) : (posts.data ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('emptyFeed')}</p>
+              ) : (
+                (posts.data ?? []).map((p) => (
+                  <PostCard key={p.id} post={p} communityId={id} />
+                ))
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="events" className="pt-4">
