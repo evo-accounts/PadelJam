@@ -33,3 +33,13 @@ export async function uploadCommunityImage(
   if (error) throw error;
   return path;
 }
+
+export async function uploadPostImage(file: File, communityId: string): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('image_invalid_type');
+  if (file.size > 5 * 1024 * 1024) throw new Error('image_too_large');
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const path = `${communityId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from('community-post-images').upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  return path;
+}
