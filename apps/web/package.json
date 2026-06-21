@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@padel/api": "workspace:*",
     "@padel/auth": "workspace:*",
     "@padel/config": "workspace:*",
     "@padel/db": "workspace:*",
