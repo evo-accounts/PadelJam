@@ -23,7 +23,7 @@ export function avatarUrl(path: string | null | undefined): string | null {
 export async function uploadCommunityImage(
   file: File,
   communityId: string,
-  bucket: 'community-thumbnails' | 'community-covers',
+  bucket: 'community-thumbnails' | 'community-covers' | 'event-thumbnails',
 ): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('image_invalid_type');
   if (file.size > 5 * 1024 * 1024) throw new Error('image_too_large');
