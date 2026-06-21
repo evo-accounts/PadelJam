@@ -77,6 +77,7 @@ export default function CommunityDetailPage() {
   const isMember = !!mineRow;
 
   const myRole = mineRow?.role;
+  const isAdmin = myRole === 'owner' || myRole === 'admin';
   const canPost =
     isMember &&
     (myRole === 'owner' || myRole === 'admin' || perms.data?.create_posts === true);
@@ -128,6 +129,11 @@ export default function CommunityDetailPage() {
         </label>
       ) : null}
       {cta}
+      {isAdmin ? (
+        <Button asChild variant="outline">
+          <Link href={`/app/community/${id}/manage`}>{t('manageTitle')}</Link>
+        </Button>
+      ) : null}
       {err ? <p className="text-xs text-destructive">{err}</p> : null}
     </div>
   );
