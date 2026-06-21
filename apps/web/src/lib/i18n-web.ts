@@ -784,3 +784,113 @@ export function registerWebCommunityCopy(instance: I18n): void {
     instance.addResourceBundle(locale, 'community', webCommunity[locale], true, false);
   });
 }
+
+/**
+ * Groups copy (lists, detail tabs, ranking, seasons, membership actions),
+ * surfaced through the `group` i18n namespace. Lives in the web app for the same
+ * reason as the auth, app, profile, settings and community copy above.
+ */
+const webGroup = {
+  'pt-PT': {
+    title: 'Grupos',
+    all: 'Todos',
+    managing: 'A gerir',
+    participating: 'A participar',
+    newGroup: 'Novo grupo',
+    emptyGroups: 'Ainda não pertence a nenhum grupo.',
+    members: 'Membros',
+    ranking: 'Classificação',
+    seasons: 'Temporadas',
+    events: 'Eventos',
+    comingSoon: 'Em breve',
+    season: 'Temporada {{n}}',
+    previousSeasons: 'Temporadas anteriores',
+    currentSeason: 'Temporada atual',
+    join: 'Entrar',
+    leave: 'Sair',
+    inviteOnly: 'Apenas por convite',
+    manage: 'Gerir',
+    archived: 'Arquivado',
+    periodAll: 'Sempre',
+    period3: 'Últimos 3 meses',
+    period6: 'Últimos 6 meses',
+    period12: 'Últimos 12 meses',
+    rank: '#',
+    points: 'Pontos',
+    eventsPlayed: 'Eventos',
+    emptyRanking: 'Ainda sem classificação.',
+    memberCount: '{{count}} membros',
+    notAvailable: 'Este grupo não está disponível.',
+  },
+  'pt-BR': {
+    title: 'Grupos',
+    all: 'Todos',
+    managing: 'Gerenciando',
+    participating: 'Participando',
+    newGroup: 'Novo grupo',
+    emptyGroups: 'Você ainda não participa de nenhum grupo.',
+    members: 'Membros',
+    ranking: 'Classificação',
+    seasons: 'Temporadas',
+    events: 'Eventos',
+    comingSoon: 'Em breve',
+    season: 'Temporada {{n}}',
+    previousSeasons: 'Temporadas anteriores',
+    currentSeason: 'Temporada atual',
+    join: 'Entrar',
+    leave: 'Sair',
+    inviteOnly: 'Apenas por convite',
+    manage: 'Gerenciar',
+    archived: 'Arquivado',
+    periodAll: 'Sempre',
+    period3: 'Últimos 3 meses',
+    period6: 'Últimos 6 meses',
+    period12: 'Últimos 12 meses',
+    rank: '#',
+    points: 'Pontos',
+    eventsPlayed: 'Eventos',
+    emptyRanking: 'Ainda sem classificação.',
+    memberCount: '{{count}} membros',
+    notAvailable: 'Este grupo não está disponível.',
+  },
+  en: {
+    title: 'Groups',
+    all: 'All',
+    managing: 'Managing',
+    participating: 'Participating',
+    newGroup: 'New group',
+    emptyGroups: 'You are not in any groups yet.',
+    members: 'Members',
+    ranking: 'Ranking',
+    seasons: 'Seasons',
+    events: 'Events',
+    comingSoon: 'Coming soon',
+    season: 'Season {{n}}',
+    previousSeasons: 'Previous seasons',
+    currentSeason: 'Current season',
+    join: 'Join',
+    leave: 'Leave',
+    inviteOnly: 'Invite only',
+    manage: 'Manage',
+    archived: 'Archived',
+    periodAll: 'All time',
+    period3: 'Last 3 months',
+    period6: 'Last 6 months',
+    period12: 'Last 12 months',
+    rank: '#',
+    points: 'Points',
+    eventsPlayed: 'Events',
+    emptyRanking: 'No ranking yet.',
+    memberCount: '{{count}} members',
+    notAvailable: 'This group is not available.',
+  },
+} as const;
+
+/**
+ * Merges the web-only group keys into the `group` namespace for every locale.
+ */
+export function registerWebGroupCopy(instance: I18n): void {
+  (Object.keys(webGroup) as WebLocale[]).forEach((locale) => {
+    instance.addResourceBundle(locale, 'group', webGroup[locale], true, false);
+  });
+}
