@@ -117,7 +117,7 @@ export default function GroupDetailPage() {
               <Badge variant="secondary">
                 {t('season', { n: currentSeason?.season_number ?? 1 })}
               </Badge>
-              {g.archived_at ? <Badge variant="outline">Archived</Badge> : null}
+              {g.archived_at ? <Badge variant="outline">{t('archived')}</Badge> : null}
             </div>
           </div>
         </div>
