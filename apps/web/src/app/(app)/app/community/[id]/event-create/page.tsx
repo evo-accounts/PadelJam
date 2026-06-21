@@ -6,6 +6,12 @@ import { defaultWizardDraft, stepIsValid, type WizardDraft } from '@padel/utils'
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StepIndicator } from '@/components/event/wizard/StepIndicator';
+import { Step1Group } from '@/components/event/wizard/steps/Step1Group';
+import { Step2Type } from '@/components/event/wizard/steps/Step2Type';
+import { Step3Spec } from '@/components/event/wizard/steps/Step3Spec';
+import { Step4Scoring } from '@/components/event/wizard/steps/Step4Scoring';
+import { Step5Location } from '@/components/event/wizard/steps/Step5Location';
+import { Step6Courts } from '@/components/event/wizard/steps/Step6Courts';
 import type { StepProps } from '@/components/event/wizard/types';
 
 const TOTAL = 10;
@@ -29,7 +35,7 @@ export default function EventCreatePage() {
   );
   const isLast = stepIndex === TOTAL - 1;
 
-  // Shared props consumed by the real step components in Tasks 4–5.
+  // Shared props consumed by the real step components.
   const stepProps: StepProps = { draft, patch, communityId: id };
 
   return (
@@ -37,10 +43,13 @@ export default function EventCreatePage() {
       <StepIndicator stepIndex={stepIndex} total={TOTAL} />
       <Card>
         <CardContent className="py-6">
-          {/* Tasks 4–5 render the real step here based on stepNo, using stepProps. */}
-          <p className="text-sm text-muted-foreground" data-community={stepProps.communityId}>
-            {t(`step${stepNo}Title`)}
-          </p>
+          {stepNo === 1 ? <Step1Group {...stepProps} /> : null}
+          {stepNo === 2 ? <Step2Type {...stepProps} /> : null}
+          {stepNo === 3 ? <Step3Spec {...stepProps} /> : null}
+          {stepNo === 4 ? <Step4Scoring {...stepProps} /> : null}
+          {stepNo === 5 ? <Step5Location {...stepProps} /> : null}
+          {stepNo === 6 ? <Step6Courts {...stepProps} /> : null}
+          {stepNo >= 7 ? <p className="text-sm text-muted-foreground">{t(`step${stepNo}Title`)}</p> : null}
         </CardContent>
       </Card>
       <div className="flex justify-between">
