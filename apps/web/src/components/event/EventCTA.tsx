@@ -56,11 +56,11 @@ export function EventCTA({
     );
   }
 
-  const leaveHint = (
+  const leaveHint = Number.isFinite(state.leaveCutoffMs) ? (
     <p className="text-xs text-muted-foreground">
       {t('leaveByHint', { when: new Date(state.leaveCutoffMs).toLocaleString() })}
     </p>
-  );
+  ) : null;
   const errLine = error ? <p className="text-sm text-destructive">{error}</p> : null;
 
   if (isOrganizer) {
