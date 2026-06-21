@@ -13,8 +13,10 @@ import {
   useCommunityPermissions,
   useCommunityFeedRealtime,
   useCommunityReviews,
+  useCommunityGroups,
 } from '@padel/api';
 import { CommunityHeader } from '@/components/community/CommunityHeader';
+import { GroupCard } from '@/components/group/GroupCard';
 import { MembersList } from '@/components/community/MembersList';
 import { PostComposer } from '@/components/community/PostComposer';
 import { PostCard } from '@/components/community/PostCard';
@@ -48,6 +50,7 @@ export default function CommunityDetailPage() {
   const posts = useCommunityPosts(id);
   const perms = useCommunityPermissions(id);
   const reviews = useCommunityReviews(id);
+  const groups = useCommunityGroups(id);
 
   const [ack, setAck] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -221,8 +224,24 @@ export default function CommunityDetailPage() {
             <p className="text-center text-sm text-muted-foreground">{t('comingSoon')}</p>
           </TabsContent>
 
-          <TabsContent value="groups" className="pt-4">
-            <p className="text-center text-sm text-muted-foreground">{t('comingSoon')}</p>
+          <TabsContent value="groups" className="flex flex-col gap-3 pt-4">
+            {groups.isLoading ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (groups.data ?? []).length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground">{t('comingSoon')}</p>
+            ) : (
+              (groups.data ?? []).map((g) => (
+                <GroupCard
+                  key={g.id}
+                  group={{
+                    id: g.id,
+                    name: g.name,
+                    thumbnailPath: g.thumbnail_path,
+                    archived: g.archived_at != null,
+                  }}
+                />
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
