@@ -19,3 +19,17 @@ export function avatarUrl(path: string | null | undefined): string | null {
   if (!path) return null;
   return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
 }
+
+export async function uploadCommunityImage(
+  file: File,
+  communityId: string,
+  bucket: 'community-thumbnails' | 'community-covers',
+): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('image_invalid_type');
+  if (file.size > 5 * 1024 * 1024) throw new Error('image_too_large');
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const path = `${communityId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  return path;
+}
