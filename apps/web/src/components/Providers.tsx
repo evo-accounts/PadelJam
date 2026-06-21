@@ -8,7 +8,7 @@ import { SessionProvider } from '@padel/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { TypedClient } from '@padel/db';
 import { supabase } from '@/lib/supabase/client';
-import { registerWebAuthCopy, registerWebAppCopy, registerWebProfileCopy, registerWebSettingsCopy } from '@/lib/i18n-web';
+import { registerWebAuthCopy, registerWebAppCopy, registerWebProfileCopy, registerWebSettingsCopy, registerWebCommunityCopy } from '@/lib/i18n-web';
 import { initSentry } from '@/lib/sentry';
 import { resolveLocale } from '@/lib/locale';
 
@@ -36,6 +36,7 @@ export function Providers({ children }: { children: ReactNode }) {
       registerWebAppCopy(instance);
       registerWebProfileCopy(instance);
       registerWebSettingsCopy(instance);
+      registerWebCommunityCopy(instance);
       if (active) setI18n(instance);
     });
     return () => {
