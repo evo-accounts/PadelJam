@@ -154,6 +154,10 @@ const webProfile = {
     changeAvatar: 'Alterar foto',
     more: 'Mais',
     reportTitle: 'Denunciar jogador',
+    reportReason_spam: 'Spam',
+    reportReason_harassment: 'Assédio',
+    reportReason_inappropriate: 'Conteúdo impróprio',
+    reportReason_other: 'Outro',
   },
   'pt-BR': {
     title: 'Perfil',
@@ -193,6 +197,10 @@ const webProfile = {
     changeAvatar: 'Alterar foto',
     more: 'Mais',
     reportTitle: 'Denunciar jogador',
+    reportReason_spam: 'Spam',
+    reportReason_harassment: 'Assédio',
+    reportReason_inappropriate: 'Conteúdo impróprio',
+    reportReason_other: 'Outro',
   },
   en: {
     title: 'Profile',
@@ -232,6 +240,10 @@ const webProfile = {
     changeAvatar: 'Change photo',
     more: 'More',
     reportTitle: 'Report player',
+    reportReason_spam: 'Spam',
+    reportReason_harassment: 'Harassment',
+    reportReason_inappropriate: 'Inappropriate content',
+    reportReason_other: 'Other',
   },
 } as const;
 
