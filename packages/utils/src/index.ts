@@ -1,6 +1,7 @@
 export * from './phone';
 export * from './name';
 export * from './eventDeadlines';
+export * from './event-participation';
 export * from './rosterCsv';
 export * from './recurrence';
 export * from './chat-media';
