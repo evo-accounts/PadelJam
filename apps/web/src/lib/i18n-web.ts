@@ -151,6 +151,9 @@ const webProfile = {
     loadMore: 'Carregar mais',
     saved: 'Guardado',
     saveError: 'Não foi possível guardar. Tente novamente.',
+    changeAvatar: 'Alterar foto',
+    more: 'Mais',
+    reportTitle: 'Denunciar jogador',
   },
   'pt-BR': {
     title: 'Perfil',
@@ -187,6 +190,9 @@ const webProfile = {
     loadMore: 'Carregar mais',
     saved: 'Salvo',
     saveError: 'Não foi possível salvar. Tente novamente.',
+    changeAvatar: 'Alterar foto',
+    more: 'Mais',
+    reportTitle: 'Denunciar jogador',
   },
   en: {
     title: 'Profile',
@@ -223,6 +229,9 @@ const webProfile = {
     loadMore: 'Load more',
     saved: 'Saved',
     saveError: 'Could not save. Please try again.',
+    changeAvatar: 'Change photo',
+    more: 'More',
+    reportTitle: 'Report player',
   },
 } as const;
 
