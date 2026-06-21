@@ -27,14 +27,23 @@ until later W4 slices.
 ### `/app/event/[id]` — event detail (READ-ONLY)
 `useEvent(id)` (returns the `events` row plus `venue:venues(name, address)` join) + `useEventRealtime(id)` for
 live updates. Hooks declared before any early return. Loading → `Skeleton`; `!event.data` → `notAvailable`.
-- **Header** (inlined in the page, per the W3a precedent): title; a **status** `Badge`
-  (`scheduled` / `in_progress` / `completed` → localized label); `starts_at` formatted as locale date + time
-  (`Intl.DateTimeFormat` with the active i18n locale); venue (`venue.name` + `venue.address`, else
-  `locationTbd`); organizer label; a **recurring** tag when the event is recurrent.
-- **Details** section: fee (free vs formatted amount), format, scoring/match type — the read-only fields the
-  mobile detail screen surfaces under its details/about sections. Render only the fields present on the row;
-  do not invent fields. (Confirm exact column names — `fee_cents`/`format`/`scoring_type` etc. — against
-  `useEvent`'s row / `database.types.ts` before wiring; omit any field that isn't present.)
+- **Header** (inlined in the page, per the W3a precedent): event **name** (`event.name` — the events table has
+  no `title` column); a **status** `Badge` (`scheduled` / `in_progress` / `completed` → localized label);
+  `starts_at` formatted as locale date + time (`Intl.DateTimeFormat` with the active i18n locale); **location** —
+  the venue join first (`event.venue?.name` + `event.venue?.address`), else `has_location && manual_location_name`
+  (+ `manual_location_address`), else `locationTbd`; organizer label; a **recurring** tag when
+  `event.series_id != null` (the mobile screen also checks the series is active via `useEventSeries`, but for the
+  W4a read view `series_id != null` is sufficient — no need to fetch the series).
+- **Details** section — mirror the mobile detail screen (`apps/mobile/app/event/[id]/index.tsx`) field rendering,
+  using these real columns + dynamic label keys:
+  - **Format**: `event.event_type` → `t('type' + cap(event.event_type) + 'Label')`.
+  - **Scoring**: `event.scoring_mode` → `t('scoring' + cap(event.scoring_mode) + 'Label')`; when
+    `scoring_mode !== 'classic'`, append `· {scoring_value}`.
+  - **Fee**: `entrance_fee_enabled ? (entrance_fee_method != null ? \`${entrance_fee_amount ?? 0} · ${t('fee' + cap(entrance_fee_method) + 'Label')}\` : \`${entrance_fee_amount ?? 0}\`) : feeFree`.
+  - `cap` = capitalize-first helper (define inline). Render only fields whose source value is present; omit
+    otherwise. The set of `event_type` / `scoring_mode` / `entrance_fee_method` enum values (and thus the
+    `type*Label` / `scoring*Label` / `fee*Label` keys needed) must be copied from the mobile `event` i18n
+    bundle — enumerate them in the plan.
 - **Players** section: `useEventParticipants(id)` → rows `{ ..., profiles: {id, full_name, avatar_url}|null }`.
   Render avatar + name, **grouped by participant status** (`confirmed` vs `waiting_list`; show an "invited"
   group only if such rows are returned). Plus `useEventTeams(id)` — when the event has teams, render team
@@ -55,9 +64,11 @@ Replace the `events` `TabsContent` "coming soon" with `useGroupEvents(id)` → a
 Add `useGroupEvents(id)` alongside the existing hooks.
 
 ## Components (`apps/web/src/components/event/`)
-- **`EventCard`** — props a normalized event `{ id, title, starts_at, status, venue?, thumbnail_path? }` (accept
-  the raw `events` row fields it needs). A shadcn `Card` linking to `/app/event/${id}`: title, formatted date,
-  venue/location, a status `Badge`. Mirrors `GroupCard`'s shape/style.
+- **`EventCard`** — props the raw `events` row fields it needs (`{ id, name, starts_at, status, venue?,
+  location_text?, manual_location_name?, thumbnail_path? }`). A shadcn `Card` linking to `/app/event/${id}`:
+  name, formatted date, venue/location (same fallback chain as the header), a status `Badge`. Mirrors
+  `GroupCard`'s shape/style. `thumbnail_path` (if present) via `communityImageUrl(path, 'community-thumbnails')`
+  — verify events use that bucket; otherwise an icon/initials fallback.
 - **`EventParticipantsList`** — props `{ participants: {...profiles}[]; teams?: {...}[] }`. Avatar + name list
   grouped by status, or team groupings when teams exist. Avatars via `avatarUrl(profiles?.avatar_url)` (matches
   `GroupMembersList`).
@@ -88,7 +99,12 @@ aboutTitle:'About', feeLabel:'Fee', feeFree:'Free', formatLabel:'Format', scorin
 organizerLabel:'Organizer', locationTbd:'Location to be confirmed', recurrentTag:'Recurring',
 confirmedGroup:'Confirmed', waitlistGroup:'Waiting list', invitedGroup:'Invited', teamsTitle:'Teams',
 resultTitle:'Result', rank:'#', points:'Points', emptyPlayers:'No players yet.', emptyResult:'No result yet.',
-comingSoon:'Coming soon'` (translate pt-PT/pt-BR).
+comingSoon:'Coming soon', actionsComingSoon:'More actions coming soon.'`
+plus the **dynamic label keys** consumed by the Details section — `type<X>Label`, `scoring<X>Label`,
+`fee<X>Label` — copied verbatim (English) from the mobile `event` i18n bundle for every `event_type`,
+`scoring_mode`, and `entrance_fee_method` enum value. The plan must enumerate these exact keys from the mobile
+bundle (do not guess the enum members). Translate all keys for pt-PT/pt-BR (the pt values can be lifted from the
+mobile bundle where they already exist).
 
 ## Verification
 `pnpm --filter web typecheck` + `build`; browser (local Supabase): `/app/events` lists my upcoming events; the
