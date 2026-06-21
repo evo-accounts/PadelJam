@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
 import { participationState } from '@padel/utils';
@@ -25,6 +26,7 @@ import {
 } from '@/components/event/EventParticipantsList';
 import { EventResultTable, type EventResultRow } from '@/components/event/EventResultTable';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 
@@ -127,6 +129,11 @@ export default function EventDetailPage() {
           <h1 className="text-2xl font-semibold">{e.name}</h1>
           <Badge variant="secondary">{t(STATUS_KEY[e.status] ?? 'statusScheduled')}</Badge>
           {e.series_id ? <Badge variant="outline">{t('recurrentTag')}</Badge> : null}
+          {state.isOrganizer && e.status === 'scheduled' ? (
+            <Button asChild variant="outline" size="sm" className="ml-auto">
+              <Link href={`/app/event/${id}/edit`}>{t('editTitle')}</Link>
+            </Button>
+          ) : null}
         </div>
         {when ? <p className="text-sm text-muted-foreground">{when}</p> : null}
         <div className="text-sm text-muted-foreground">

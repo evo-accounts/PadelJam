@@ -43,6 +43,7 @@ const typeKey: Record<string, 'typeClub' | 'typeTeam' | 'typeFriends'> = {
 export default function CommunityDetailPage() {
   const { t, i18n } = useT('community');
   const { t: tg } = useT('group');
+  const { t: te } = useT('event');
   const { id } = useParams<{ id: string }>();
   const c = useCommunity(id);
   const members = useCommunityMembers(id);
@@ -227,6 +228,11 @@ export default function CommunityDetailPage() {
           </TabsContent>
 
           <TabsContent value="events" className="flex flex-col gap-3 pt-4">
+            {isAdmin ? (
+              <Button asChild variant="outline" className="self-start">
+                <Link href={`/app/community/${id}/event-create`}>{te('newEventCta')}</Link>
+              </Button>
+            ) : null}
             {events.isLoading ? (
               <Skeleton className="h-24 w-full" />
             ) : (events.data ?? []).length === 0 ? (

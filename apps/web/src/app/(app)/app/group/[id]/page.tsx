@@ -13,6 +13,7 @@ import {
   useLeaveGroup,
   useGroupRealtime,
   useGroupEvents,
+  useCanCreateEvent,
 } from '@padel/api';
 import { EventCard, type EventCardEvent } from '@/components/event/EventCard';
 import { RankingTable } from '@/components/group/RankingTable';
@@ -51,7 +52,9 @@ export default function GroupDetailPage() {
       : new Date(Date.now() - Number(period) * 30 * 24 * 3600 * 1000).toISOString();
   const ranking = useGroupRanking(seasonId ?? '', since);
   const events = useGroupEvents(id);
+  const canCreateEvent = useCanCreateEvent(id);
   const { t } = useT('group');
+  const { t: te } = useT('event');
   const myRow = mine.data?.find((r) => r.group_id === id);
   const isMember = !!myRow;
   const isManaging = !!myRow?.is_managing;
@@ -172,6 +175,13 @@ export default function GroupDetailPage() {
           </TabsContent>
 
           <TabsContent value="events" className="flex flex-col gap-3 pt-4">
+            {canCreateEvent.data === true ? (
+              <Button asChild variant="outline" className="self-start">
+                <Link href={`/app/community/${g.community_id}/event-create?groupId=${id}`}>
+                  {te('newEventCta')}
+                </Link>
+              </Button>
+            ) : null}
             {events.isLoading ? (
               <Skeleton className="h-24 w-full" />
             ) : (events.data ?? []).length === 0 ? (
