@@ -108,7 +108,8 @@ detail page for the organizer (W4a/W4b detail) → `/app/event/[id]/edit`.
 `useSearchVenues`, `useCanCreateEvent`, `createEventSchema`/`updateEventSchema`, the enum consts + types
 (`EventType`, `Specification`, `ScoringMode`, `OrganizerRole`, `EntranceFeeMethod`, `CreateEventInput`,
 `UpdateEventInput`). `uploadCommunityImage` (bucket union extended to `'event-thumbnails'`). shadcn
-`Input/Textarea/Switch/Select/RadioGroup/Button/Card/Label/Skeleton`. Extend the `event` i18n namespace.
+`Input/Textarea/Switch/Select/Button/Card/Label/Skeleton` (all present; **no `radio-group`** — render single-choice
+enums as a local `SelectableCard` button group or shadcn `Select`, not RadioGroup). Extend the `event` i18n namespace.
 
 ## Error / edge handling
 - Per-step Next disabled until `isValid`; the final Submit also runs `safeParse` as the authoritative gate.
