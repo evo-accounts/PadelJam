@@ -1,13 +1,23 @@
 'use client';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useT } from '@padel/i18n';
+import { useSession } from '@padel/auth';
+import { participationState } from '@padel/utils';
 import {
   useEvent,
   useEventParticipants,
   useEventTeams,
   useEventResultSummary,
   useEventRealtime,
+  useEventInvitations,
+  useJoinEvent,
+  useLeaveEvent,
+  useLeaveWaitingList,
+  useAcceptEventInvitation,
+  useDeclineEventInvitation,
 } from '@padel/api';
+import { EventCTA } from '@/components/event/EventCTA';
 import {
   EventParticipantsList,
   type EventParticipant,
@@ -15,7 +25,6 @@ import {
 } from '@/components/event/EventParticipantsList';
 import { EventResultTable, type EventResultRow } from '@/components/event/EventResultTable';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 
@@ -35,6 +44,16 @@ export default function EventDetailPage() {
   const participants = useEventParticipants(id);
   const teams = useEventTeams(id);
   const result = useEventResultSummary(id);
+  const uid = useSession().session?.user.id;
+  const invitations = useEventInvitations(id);
+  const joinEvent = useJoinEvent();
+  const leaveEvent = useLeaveEvent();
+  const leaveWaitlist = useLeaveWaitingList(id);
+  const acceptInvite = useAcceptEventInvitation();
+  const declineInvite = useDeclineEventInvitation(id);
+  const [nowMs] = useState(() => Date.now());
+  const [busy, setBusy] = useState(false);
+  const [ctaError, setCtaError] = useState<string | null>(null);
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
   if (!event.data) return <div className="p-6">{t('notAvailable')}</div>;
@@ -42,6 +61,31 @@ export default function EventDetailPage() {
   const e = event.data;
   const parts: EventParticipant[] = participants.data ?? [];
   const teamRows: EventTeam[] = teams.data ?? [];
+
+  const state = participationState(
+    e,
+    (participants.data ?? []) as {
+      user_id: string | null;
+      status: string;
+      is_standby: boolean;
+      waiting_list_position: number | null;
+    }[],
+    (invitations.data ?? []) as { invitee_id: string | null; invited_by: string }[],
+    uid,
+    nowMs,
+  );
+  const inviterName =
+    state.myInvite != null
+      ? parts.find((p) => p.user_id === state.myInvite!.invited_by)?.profiles?.full_name ?? null
+      : null;
+  const groupId = e.group_id;
+  const runCta = (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    setCtaError(null);
+    fn()
+      .catch((err) => setCtaError(t(err instanceof Error ? err.message : 'unknown_error')))
+      .finally(() => setBusy(false));
+  };
 
   const when = e.starts_at
     ? new Date(e.starts_at).toLocaleString(i18n.language, {
@@ -92,12 +136,19 @@ export default function EventDetailPage() {
         {e.description ? <p className="pt-2 text-sm">{e.description}</p> : null}
       </div>
 
-      <div>
-        <Button disabled className="w-full sm:w-auto">
-          {t('comingSoon')}
-        </Button>
-        <p className="pt-2 text-xs text-muted-foreground">{t('actionsComingSoon')}</p>
-      </div>
+      <EventCTA
+        event={e}
+        state={state}
+        nowMs={nowMs}
+        inviterName={inviterName}
+        busy={busy}
+        error={ctaError}
+        onJoin={() => runCta(() => joinEvent.mutateAsync({ eventId: id, groupId }))}
+        onLeave={() => runCta(() => leaveEvent.mutateAsync({ eventId: id, groupId }))}
+        onLeaveWaitlist={() => runCta(() => leaveWaitlist.mutateAsync())}
+        onAccept={() => runCta(() => acceptInvite.mutateAsync({ eventId: id, groupId }))}
+        onDecline={() => runCta(() => declineInvite.mutateAsync())}
+      />
 
       <Separator />
 
