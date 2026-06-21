@@ -1,0 +1,36 @@
+'use client';
+import Link from 'next/link';
+import { useT } from '@padel/i18n';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { avatarUrl } from '@/lib/upload';
+
+type Member = {
+  user_id: string;
+  role: string;
+  profiles: { id: string; full_name: string | null; avatar_url: string | null } | null;
+};
+
+export function MembersList({ members }: { members: Member[] }) {
+  const { t } = useT('community');
+  return (
+    <ul className="flex flex-col">
+      {members.map((m) => {
+        const name = m.profiles?.full_name ?? '—';
+        const initials = (m.profiles?.full_name ?? '?').slice(0, 2).toUpperCase();
+        return (
+          <li key={m.user_id} className="flex items-center gap-3 py-2">
+            <Avatar className="size-10">
+              <AvatarImage src={avatarUrl(m.profiles?.avatar_url) ?? undefined} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <Link href={`/app/profile/${m.user_id}`} className="min-w-0 flex-1 truncate font-medium">
+              {name}
+            </Link>
+            <Badge variant="outline">{t(`role_${m.role}`)}</Badge>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
