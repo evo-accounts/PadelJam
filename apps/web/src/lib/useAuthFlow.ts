@@ -11,6 +11,7 @@ import {
   otpReducer,
   initialOtpState,
   MAX_ATTEMPTS,
+  signInWithPassword,
 } from '@padel/auth';
 import type { TypedClient } from '@padel/db';
 import { supabase } from '@/lib/supabase/client';
@@ -162,13 +163,22 @@ export function useAuthFlow() {
           return;
         }
 
+        // complete-account sets a password via the admin API, which rotates the OTP-issued refresh
+        // token; re-establish a fresh session with the password we just set before entering the app.
+        const { error: signInErr } = await signInWithPassword(client, identifier.trim(), kind, password);
+        if (signInErr) {
+          setError('session-refresh-failed');
+          setStep('identifier');
+          return;
+        }
+
         setStep('done');
         router.push('/app');
       } finally {
         setBusy(false);
       }
     },
-    [router],
+    [identifier, kind, router],
   );
 
   const backToIdentifier = useCallback(() => {
