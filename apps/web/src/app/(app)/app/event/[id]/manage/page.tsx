@@ -181,7 +181,7 @@ export default function EventManagePage() {
             <AlertDialogDescription>{t('cancelStandardBody')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
-            <AlertDialogCancel>{t('community:cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             {e.series_id ? (
               <>
                 <AlertDialogAction
