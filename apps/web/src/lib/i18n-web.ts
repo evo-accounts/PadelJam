@@ -77,7 +77,7 @@ export function registerWebAuthCopy(instance: I18n): void {
  */
 const webApp = {
   'pt-PT': {
-    nav: { home: 'Início', events: 'Eventos', explore: 'Explorar', community: 'Comunidade', profile: 'Perfil' },
+    nav: { home: 'Início', events: 'Eventos', explore: 'Explorar', community: 'Comunidade', profile: 'Perfil', messages: 'Mensagens' },
     chat: 'Conversas',
     notifications: 'Notificações',
     comingSoon: 'Em breve',
@@ -85,7 +85,7 @@ const webApp = {
     noCommunities: 'Ainda não pertences a nenhuma comunidade.',
   },
   'pt-BR': {
-    nav: { home: 'Início', events: 'Eventos', explore: 'Explorar', community: 'Comunidade', profile: 'Perfil' },
+    nav: { home: 'Início', events: 'Eventos', explore: 'Explorar', community: 'Comunidade', profile: 'Perfil', messages: 'Mensagens' },
     chat: 'Conversas',
     notifications: 'Notificações',
     comingSoon: 'Em breve',
@@ -93,7 +93,7 @@ const webApp = {
     noCommunities: 'Você ainda não participa de nenhuma comunidade.',
   },
   en: {
-    nav: { home: 'Home', events: 'Events', explore: 'Explore', community: 'Community', profile: 'Profile' },
+    nav: { home: 'Home', events: 'Events', explore: 'Explore', community: 'Community', profile: 'Profile', messages: 'Messages' },
     chat: 'Chat',
     notifications: 'Notifications',
     comingSoon: 'Coming soon',
@@ -1845,5 +1845,58 @@ const webEvent = {
 export function registerWebEventCopy(instance: I18n): void {
   (Object.keys(webEvent) as WebLocale[]).forEach((locale) => {
     instance.addResourceBundle(locale, 'event', webEvent[locale], true, false);
+  });
+}
+
+/**
+ * Chat copy (conversation list, empty/error states, new-message picker),
+ * surfaced through the `chat` i18n namespace. Lives in the web app for the same
+ * reason as the auth, app, profile, settings, community, group and event copy above.
+ */
+const webChat = {
+  'pt-PT': {
+    title: 'Mensagens',
+    newMessage: 'Nova mensagem',
+    startConversation: 'Iniciar conversa',
+    noChannels: 'Ainda não tens conversas',
+    selectConversation: 'Seleciona uma conversa',
+    chatUnavailable: 'O chat está indisponível de momento.',
+    retry: 'Tentar novamente',
+    openChat: 'Abrir chat',
+    following: 'A seguir',
+    noFollowing: 'Ainda não segues ninguém.',
+  },
+  'pt-BR': {
+    title: 'Mensagens',
+    newMessage: 'Nova mensagem',
+    startConversation: 'Iniciar conversa',
+    noChannels: 'Você ainda não tem conversas',
+    selectConversation: 'Selecione uma conversa',
+    chatUnavailable: 'O chat está indisponível no momento.',
+    retry: 'Tentar novamente',
+    openChat: 'Abrir chat',
+    following: 'Seguindo',
+    noFollowing: 'Você ainda não segue ninguém.',
+  },
+  en: {
+    title: 'Messages',
+    newMessage: 'New message',
+    startConversation: 'Start a conversation',
+    noChannels: 'No conversations yet',
+    selectConversation: 'Select a conversation',
+    chatUnavailable: 'Chat is unavailable right now.',
+    retry: 'Retry',
+    openChat: 'Open chat',
+    following: 'Following',
+    noFollowing: 'You are not following anyone yet.',
+  },
+} as const;
+
+/**
+ * Merges the web-only chat keys into the `chat` namespace for every locale.
+ */
+export function registerWebChatCopy(instance: I18n): void {
+  (Object.keys(webChat) as WebLocale[]).forEach((locale) => {
+    instance.addResourceBundle(locale, 'chat', webChat[locale], true, false);
   });
 }
