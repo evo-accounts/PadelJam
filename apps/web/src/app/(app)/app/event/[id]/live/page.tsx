@@ -16,7 +16,9 @@ import { setupComplete } from '@padel/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { TeamSetup } from '@/components/event/live/TeamSetup';
+import { MatchesTab } from '@/components/event/live/MatchesTab';
 
 export default function EventLivePage() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +37,8 @@ export default function EventLivePage() {
   const e = event.data;
   const parts = participants.data ?? [];
   const isOrganizer = uid != null && e.organizer_id === uid;
+  const isParticipant = parts.some((p) => p.user_id === uid);
+  const canScore = isOrganizer || (e.players_submit_results && isParticipant);
   const confirmed = parts.filter((p) => p.status === 'confirmed');
   const confirmedTeamCount = (teams.data ?? []).filter((tm) => tm.is_confirmed).length;
   const ready = setupComplete({
@@ -109,7 +113,23 @@ export default function EventLivePage() {
       <h1 className="text-xl font-semibold">
         {e.status === 'completed' ? t('completedTitle') : t('liveTitle')}
       </h1>
-      {/* Tasks 5-7: in_progress tabs (matches/leaderboard/timer) + finish; completed view + share */}
+      {/* Task 7 will add the Finish action + completed-specific view. */}
+      <Tabs defaultValue="matches">
+        <TabsList>
+          <TabsTrigger value="matches">{t('matchesTab')}</TabsTrigger>
+          <TabsTrigger value="leaderboard">{t('leaderboardTab')}</TabsTrigger>
+          <TabsTrigger value="timer">{t('timerTab')}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="matches">
+          <MatchesTab eventId={id} canScore={canScore} isOrganizer={isOrganizer} />
+        </TabsContent>
+        <TabsContent value="leaderboard">
+          <p className="text-sm text-muted-foreground">{t('comingSoon')}</p>
+        </TabsContent>
+        <TabsContent value="timer">
+          <p className="text-sm text-muted-foreground">{t('comingSoon')}</p>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
