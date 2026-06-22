@@ -19,6 +19,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { TeamSetup } from '@/components/event/live/TeamSetup';
 import { MatchesTab } from '@/components/event/live/MatchesTab';
+import { Leaderboard } from '@/components/event/live/Leaderboard';
+import { MatchTimer } from '@/components/event/live/MatchTimer';
 
 export default function EventLivePage() {
   const { id } = useParams<{ id: string }>();
@@ -124,10 +126,10 @@ export default function EventLivePage() {
           <MatchesTab eventId={id} canScore={canScore} isOrganizer={isOrganizer} />
         </TabsContent>
         <TabsContent value="leaderboard">
-          <p className="text-sm text-muted-foreground">{t('comingSoon')}</p>
+          <Leaderboard eventId={id} />
         </TabsContent>
         <TabsContent value="timer">
-          <p className="text-sm text-muted-foreground">{t('comingSoon')}</p>
+          <MatchTimer eventId={id} isOrganizer={isOrganizer} />
         </TabsContent>
       </Tabs>
     </div>
