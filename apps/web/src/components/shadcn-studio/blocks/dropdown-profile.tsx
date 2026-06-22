@@ -38,7 +38,7 @@ const ProfileDropdown = ({ trigger, defaultOpen, align = 'end' }: Props) => {
               <AvatarImage src='https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-1.png' alt='John Doe' />
               <AvatarFallback>JD</AvatarFallback>
             </Avatar>
-            <span className='ring-card absolute right-0 bottom-0 block size-2 rounded-full bg-green-600 ring-2' />
+            <span className='ring-card absolute right-0 bottom-0 block size-2 rounded-full bg-success ring-2' />
           </div>
           <div className='flex flex-1 flex-col items-start'>
             <span className='text-foreground text-lg font-semibold'>John Doe</span>

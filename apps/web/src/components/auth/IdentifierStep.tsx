@@ -23,17 +23,17 @@ export function IdentifierStep({ flow }: { flow: Flow }) {
           type="text"
           autoComplete="username"
           autoFocus
-          className="rounded-md border border-gray-300 px-3 py-2"
+          className="rounded-md border border-input px-3 py-2"
           placeholder={t('identifierPlaceholder')}
           value={flow.identifier}
           onChange={(e) => flow.setIdentifier(e.target.value)}
         />
       </label>
-      {flow.error ? <p className="text-sm text-red-600">{flow.error}</p> : null}
+      {flow.error ? <p className="text-sm text-destructive">{flow.error}</p> : null}
       <button
         type="submit"
         disabled={flow.busy || !flow.identifier.trim()}
-        className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
+        className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
       >
         {t('continue')}
       </button>

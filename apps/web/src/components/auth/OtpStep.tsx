@@ -30,7 +30,7 @@ export function OtpStep({ flow }: { flow: Flow }) {
       }}
     >
       <h1 className="text-2xl font-semibold">{t('otpTitle')}</h1>
-      <p className="text-sm text-gray-600">{t('otpHelp', { identifier: flow.identifier })}</p>
+      <p className="text-sm text-muted-foreground">{t('otpHelp', { identifier: flow.identifier })}</p>
       <label className="flex flex-col gap-1 text-sm">
         <span>{t('otpLabel')}</span>
         <input
@@ -38,18 +38,18 @@ export function OtpStep({ flow }: { flow: Flow }) {
           autoComplete="one-time-code"
           maxLength={6}
           autoFocus
-          className="rounded-md border border-gray-300 px-3 py-2 tracking-[0.5em]"
+          className="rounded-md border border-input px-3 py-2 tracking-[0.5em]"
           placeholder={t('otpPlaceholder')}
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
         />
       </label>
-      {flow.locked ? <p className="text-sm text-red-600">{t('locked')}</p> : null}
-      {flow.error && !flow.locked ? <p className="text-sm text-red-600">{flow.error}</p> : null}
+      {flow.locked ? <p className="text-sm text-destructive">{t('locked')}</p> : null}
+      {flow.error && !flow.locked ? <p className="text-sm text-destructive">{flow.error}</p> : null}
       <button
         type="submit"
         disabled={flow.busy || flow.locked || code.length < 6}
-        className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
+        className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
       >
         {t('verify')}
       </button>
@@ -58,11 +58,11 @@ export function OtpStep({ flow }: { flow: Flow }) {
           type="button"
           onClick={() => void flow.resendOtp()}
           disabled={flow.busy || onCooldown}
-          className="text-blue-600 disabled:text-gray-400"
+          className="text-primary disabled:text-muted-foreground"
         >
           {onCooldown ? t('cooldown', { seconds: cooldownSeconds }) : t('resend')}
         </button>
-        <button type="button" onClick={flow.backToIdentifier} className="text-blue-600">
+        <button type="button" onClick={flow.backToIdentifier} className="text-primary">
           {t('tryAnotherWay')}
         </button>
       </div>

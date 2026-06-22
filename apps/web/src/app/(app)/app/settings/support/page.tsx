@@ -31,7 +31,7 @@ export default function SupportPage() {
       <Card>
         <CardContent>
           {sent ? (
-            <p className="text-sm text-green-600">{t('supportSent')}</p>
+            <p className="text-sm text-success">{t('supportSent')}</p>
           ) : (
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="space-y-2">
