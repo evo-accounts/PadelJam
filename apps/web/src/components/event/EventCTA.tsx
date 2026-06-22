@@ -48,10 +48,11 @@ export function EventCTA({
   if (event.status !== 'scheduled') {
     return (
       <div className="flex flex-col gap-2">
-        <Button disabled className="w-full sm:w-auto">
-          {event.status === 'completed' ? t('viewResultsCta') : t('viewMatchesCta')}
+        <Button asChild className="w-full sm:w-auto">
+          <Link href={`/app/event/${event.id}/live`}>
+            {event.status === 'completed' ? t('viewResultsCta') : t('viewMatchesCta')}
+          </Link>
         </Button>
-        <p className="text-xs text-muted-foreground">{t('comingSoon')}</p>
       </div>
     );
   }
@@ -68,6 +69,9 @@ export function EventCTA({
       <div className="flex flex-col items-start gap-2">
         <Badge variant="secondary">{me ? t('organizerPlayingBadge') : t('organizerBadge')}</Badge>
         <Button asChild className="w-full sm:w-auto">
+          <Link href={`/app/event/${event.id}/live`}>{t('startCta')}</Link>
+        </Button>
+        <Button asChild variant="outline" className="w-full sm:w-auto">
           <Link href={`/app/event/${event.id}/manage`}>{t('manageCta')}</Link>
         </Button>
         {me == null && !joinClosed ? (

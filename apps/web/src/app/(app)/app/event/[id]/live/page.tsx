@@ -11,6 +11,7 @@ import {
   useEventTeams,
   useEventRealtime,
   useStartEvent,
+  usePostEventResult,
 } from '@padel/api';
 import { setupComplete } from '@padel/utils';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import { TeamSetup } from '@/components/event/live/TeamSetup';
 import { MatchesTab } from '@/components/event/live/MatchesTab';
 import { Leaderboard } from '@/components/event/live/Leaderboard';
 import { MatchTimer } from '@/components/event/live/MatchTimer';
+import { FinishDialog } from '@/components/event/live/FinishDialog';
 
 export default function EventLivePage() {
   const { id } = useParams<{ id: string }>();
@@ -31,7 +33,9 @@ export default function EventLivePage() {
   const participants = useEventParticipants(id);
   const teams = useEventTeams(id);
   const start = useStartEvent(id);
+  const postResult = usePostEventResult(id);
   const [err, setErr] = useState<string | null>(null);
+  const [shareErr, setShareErr] = useState<string | null>(null);
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
   if (!event.data) return <div className="p-6">{t('notAvailable')}</div>;
@@ -109,13 +113,42 @@ export default function EventLivePage() {
     );
   }
 
+  if (e.status === 'completed') {
+    const onShare = () => {
+      setShareErr(null);
+      // events row has no `community_id` (it carries `group_id`); the arg is only
+      // used for post-cache invalidation, so we pass '' per the contract fallback.
+      postResult
+        .mutateAsync('')
+        .catch((x) => setShareErr(t(x instanceof Error ? x.message : 'unknown_error')));
+    };
+    return (
+      <div className="flex flex-col gap-4 p-6">
+        {backLink}
+        <h1 className="text-xl font-semibold">{t('completedTitle')}</h1>
+        <Leaderboard eventId={id} />
+        {e.finish_message ? (
+          <p className="text-sm text-muted-foreground">{e.finish_message}</p>
+        ) : null}
+        {isOrganizer ? (
+          <div className="flex flex-col items-start gap-2">
+            <Button disabled={postResult.isPending} onClick={onShare}>
+              {t('shareResultsCta')}
+            </Button>
+            {shareErr ? <p className="text-sm text-destructive">{shareErr}</p> : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 p-6">
       {backLink}
-      <h1 className="text-xl font-semibold">
-        {e.status === 'completed' ? t('completedTitle') : t('liveTitle')}
-      </h1>
-      {/* Task 7 will add the Finish action + completed-specific view. */}
+      <h1 className="text-xl font-semibold">{t('liveTitle')}</h1>
+      {isOrganizer ? (
+        <FinishDialog eventId={id} countsForRanking={e.counts_for_ranking} />
+      ) : null}
       <Tabs defaultValue="matches">
         <TabsList>
           <TabsTrigger value="matches">{t('matchesTab')}</TabsTrigger>
