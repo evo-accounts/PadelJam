@@ -16,6 +16,7 @@ import { setupComplete } from '@padel/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TeamSetup } from '@/components/event/live/TeamSetup';
 
 export default function EventLivePage() {
   const { id } = useParams<{ id: string }>();
@@ -73,8 +74,13 @@ export default function EventLivePage() {
       return (
         <div className="flex flex-col gap-4 p-6">
           {backLink}
-          {/* Task 4 renders <TeamSetup eventId={id} numCourts={e.num_courts} canStart={ready} starting={start.isPending} onStart={onStart} /> */}
-          <p className="text-sm text-muted-foreground">{t('assignTitle')}</p>
+          <TeamSetup
+            eventId={id}
+            numCourts={e.num_courts}
+            canStart={ready}
+            starting={start.isPending}
+            onStart={onStart}
+          />
           {err ? <p className="text-sm text-destructive">{err}</p> : null}
         </div>
       );
