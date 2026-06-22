@@ -38,6 +38,7 @@ type NavItem = { key: string; href: string; labelKey: string; icon: LucideIcon }
 const APP_NAV: NavItem[] = [
   { key: 'home', href: '/app', labelKey: 'nav.home', icon: Home },
   { key: 'events', href: '/app/events', labelKey: 'nav.events', icon: CalendarDays },
+  { key: 'chat', href: '/app/chat', labelKey: 'nav.messages', icon: MessageCircle },
   { key: 'explore', href: '/app/explore', labelKey: 'nav.explore', icon: Compass },
   { key: 'community', href: '/app/community', labelKey: 'nav.community', icon: Users },
   { key: 'profile', href: '/app/profile', labelKey: 'nav.profile', icon: User },

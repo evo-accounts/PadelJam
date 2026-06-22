@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useT } from '@padel/i18n';
 import {
@@ -14,6 +14,7 @@ import {
   useGroupRealtime,
   useGroupEvents,
   useCanCreateEvent,
+  useEnsureChannel,
 } from '@padel/api';
 import { EventCard, type EventCardEvent } from '@/components/event/EventCard';
 import { RankingTable } from '@/components/group/RankingTable';
@@ -55,10 +56,21 @@ export default function GroupDetailPage() {
   const canCreateEvent = useCanCreateEvent(id);
   const { t } = useT('group');
   const { t: te } = useT('event');
+  const { t: tc } = useT('chat');
   const myRow = mine.data?.find((r) => r.group_id === id);
   const isMember = !!myRow;
   const isManaging = !!myRow?.is_managing;
   const [err, setErr] = useState<string | null>(null);
+  const ensureChannel = useEnsureChannel();
+  const router = useRouter();
+  const [chatBusy, setChatBusy] = useState(false);
+  const openChat = () => {
+    setChatBusy(true);
+    ensureChannel
+      .mutateAsync({ kind: 'group', id })
+      .then((r) => router.push(`/app/chat/${encodeURIComponent(r.cid)}`))
+      .catch(() => setChatBusy(false));
+  };
 
   if (group.isLoading) return <Skeleton className="m-6 h-40" />;
   if (!group.data) return <div className="p-6">{t('notAvailable')}</div>;
@@ -129,6 +141,11 @@ export default function GroupDetailPage() {
         </div>
         <div className="flex flex-col items-end gap-2">
           {cta}
+          {isMember ? (
+            <Button variant="outline" disabled={chatBusy} onClick={openChat}>
+              {tc('openChat')}
+            </Button>
+          ) : null}
           {isManaging ? (
             <Button asChild variant="outline">
               <Link href={`/app/group/${id}/manage`}>{t('manage')}</Link>

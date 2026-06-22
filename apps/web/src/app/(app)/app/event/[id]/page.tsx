@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
@@ -17,6 +17,7 @@ import {
   useLeaveWaitingList,
   useAcceptEventInvitation,
   useDeclineEventInvitation,
+  useEnsureChannel,
 } from '@padel/api';
 import { EventCTA } from '@/components/event/EventCTA';
 import {
@@ -41,6 +42,7 @@ const cap = (s: string | null | undefined) =>
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useT('event');
+  const { t: tc } = useT('chat');
   useEventRealtime(id);
   const event = useEvent(id);
   const participants = useEventParticipants(id);
@@ -56,6 +58,16 @@ export default function EventDetailPage() {
   const [nowMs] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
   const [ctaError, setCtaError] = useState<string | null>(null);
+  const ensureChannel = useEnsureChannel();
+  const router = useRouter();
+  const [chatBusy, setChatBusy] = useState(false);
+  const openChat = () => {
+    setChatBusy(true);
+    ensureChannel
+      .mutateAsync({ kind: 'event', id })
+      .then((r) => router.push(`/app/chat/${encodeURIComponent(r.cid)}`))
+      .catch(() => setChatBusy(false));
+  };
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
   if (!event.data) return <div className="p-6">{t('notAvailable')}</div>;
@@ -132,6 +144,17 @@ export default function EventDetailPage() {
           {state.isOrganizer && e.status === 'scheduled' ? (
             <Button asChild variant="outline" size="sm" className="ml-auto">
               <Link href={`/app/event/${id}/edit`}>{t('editTitle')}</Link>
+            </Button>
+          ) : null}
+          {state.me != null || state.isOrganizer ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={chatBusy}
+              onClick={openChat}
+              className={state.isOrganizer && e.status === 'scheduled' ? undefined : 'ml-auto'}
+            >
+              {tc('openChat')}
             </Button>
           ) : null}
         </div>
