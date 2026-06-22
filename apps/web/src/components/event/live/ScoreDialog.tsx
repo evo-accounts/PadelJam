@@ -28,6 +28,12 @@ interface ScoreDialogProps {
   submitting: boolean;
 }
 
+/** Coerce free-typed input to a non-negative integer (HTML min isn't enforced on keyboard entry). */
+const toScore = (raw: string): number => {
+  const n = Math.floor(Number(raw));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
 export function ScoreDialog({ match, open, onOpenChange, onSubmit, submitting }: ScoreDialogProps) {
   const { t } = useT('event');
   const [sideA, setSideA] = useState(0);
@@ -55,7 +61,7 @@ export function ScoreDialog({ match, open, onOpenChange, onSubmit, submitting }:
                 type="number"
                 min={0}
                 value={sideA}
-                onChange={(e) => setSideA(Number(e.target.value))}
+                onChange={(e) => setSideA(toScore(e.target.value))}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -65,7 +71,7 @@ export function ScoreDialog({ match, open, onOpenChange, onSubmit, submitting }:
                 type="number"
                 min={0}
                 value={sideB}
-                onChange={(e) => setSideB(Number(e.target.value))}
+                onChange={(e) => setSideB(toScore(e.target.value))}
               />
             </div>
           </div>
