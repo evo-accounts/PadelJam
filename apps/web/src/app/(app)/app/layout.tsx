@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useT } from '@padel/i18n';
 import {
-  Bell,
   CalendarDays,
   Compass,
   Home,
@@ -30,7 +29,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import NotificationDropdown from '@/components/shadcn-studio/blocks/dropdown-notification';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import ProfileDropdown from '@/components/shadcn-studio/blocks/dropdown-profile';
 
 type NavItem = { key: string; href: string; labelKey: string; icon: LucideIcon };
@@ -92,18 +91,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="icon" asChild aria-label={t('chat')}>
-              <Link href="/app">
+              <Link href="/app/chat">
                 <MessageCircle />
               </Link>
             </Button>
-            <NotificationDropdown
-              trigger={
-                <Button variant="ghost" size="icon" className="relative" aria-label={t('notifications')}>
-                  <Bell />
-                  <span className="bg-destructive absolute top-2 right-2.5 size-2 rounded-full" />
-                </Button>
-              }
-            />
+            <NotificationBell />
             <ProfileDropdown
               trigger={
                 <Button variant="ghost" size="icon" className="size-9.5" aria-label={t('nav.profile')}>
