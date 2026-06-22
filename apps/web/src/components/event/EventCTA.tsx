@@ -67,10 +67,9 @@ export function EventCTA({
     return (
       <div className="flex flex-col items-start gap-2">
         <Badge variant="secondary">{me ? t('organizerPlayingBadge') : t('organizerBadge')}</Badge>
-        <Button disabled className="w-full sm:w-auto">
-          {t('manageCta')}
+        <Button asChild className="w-full sm:w-auto">
+          <Link href={`/app/event/${event.id}/manage`}>{t('manageCta')}</Link>
         </Button>
-        <p className="text-xs text-muted-foreground">{t('comingSoon')}</p>
         {me == null && !joinClosed ? (
           isTeam ? (
             <Button asChild variant="outline">
