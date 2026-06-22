@@ -1900,3 +1900,114 @@ export function registerWebChatCopy(instance: I18n): void {
     instance.addResourceBundle(locale, 'chat', webChat[locale], true, false);
   });
 }
+
+/**
+ * Notifications copy (bell list, partner-request actions, per-type sentence
+ * templates), surfaced through the `notifications` i18n namespace. Values are
+ * mirrored verbatim per-locale from the mobile `notifications` bundle, plus a
+ * web-only `seeAll` key.
+ */
+const webNotifications = {
+  'pt-PT': {
+    title: 'Notificações',
+    partnerRequests: 'Pedidos de Parceiro',
+    pendingCount_one: '{{count}} pendente',
+    pendingCount_other: '{{count}} pendentes',
+    markAllRead: 'Marcar todas como lidas',
+    clearAll: 'Limpar tudo',
+    join: 'Aderir',
+    joined: 'Aderiste',
+    empty: 'Ainda não há notificações.',
+    loadError: 'Não foi possível carregar as notificações.',
+    accept: 'Aceitar',
+    decline: 'Recusar',
+    requestsEmpty: 'Não há pedidos pendentes.',
+    requestsError: 'Não foi possível carregar os pedidos.',
+    respondError: 'Não foi possível concluir essa ação. Tenta novamente.',
+    partnerRequestLabel: 'Pedido de parceiro · {{entity}}',
+    joinRequestLabel: 'quer aderir a {{entity}}',
+    // Sentence templates by notification type:
+    follow: '{{actor}} começou a seguir-te',
+    event_invite: '{{actor}} convidou-te para {{entity}}',
+    group_invite: '{{actor}} convidou-te para {{entity}}',
+    community_invite: '{{actor}} convidou-te para {{entity}}',
+    community_request_accepted: 'O teu pedido para aderir a {{entity}} foi aceite',
+    follow_joined_event: '{{actor}} aderiu a {{entity}}',
+    event_cancelled: '{{entity}} foi cancelado',
+    event_updated: '{{entity}} foi atualizado — vê os novos detalhes',
+    // Web-only:
+    seeAll: 'Ver tudo',
+  },
+  'pt-BR': {
+    title: 'Notificações',
+    partnerRequests: 'Pedidos de Parceiro',
+    pendingCount_one: '{{count}} pendente',
+    pendingCount_other: '{{count}} pendentes',
+    markAllRead: 'Marcar todas como lidas',
+    clearAll: 'Limpar tudo',
+    join: 'Entrar',
+    joined: 'Entrou',
+    empty: 'Ainda não há notificações.',
+    loadError: 'Não foi possível carregar as notificações.',
+    accept: 'Aceitar',
+    decline: 'Recusar',
+    requestsEmpty: 'Não há pedidos pendentes.',
+    requestsError: 'Não foi possível carregar os pedidos.',
+    respondError: 'Não foi possível concluir essa ação. Tente novamente.',
+    partnerRequestLabel: 'Pedido de parceiro · {{entity}}',
+    joinRequestLabel: 'quer entrar em {{entity}}',
+    // Sentence templates by notification type:
+    follow: '{{actor}} começou a seguir você',
+    event_invite: '{{actor}} convidou você para {{entity}}',
+    group_invite: '{{actor}} convidou você para {{entity}}',
+    community_invite: '{{actor}} convidou você para {{entity}}',
+    community_request_accepted: 'Seu pedido para entrar em {{entity}} foi aceito',
+    follow_joined_event: '{{actor}} entrou em {{entity}}',
+    event_cancelled: '{{entity}} foi cancelado',
+    event_updated: '{{entity}} foi atualizado — confira os novos detalhes',
+    // Web-only:
+    seeAll: 'Ver tudo',
+  },
+  en: {
+    title: 'Notifications',
+    partnerRequests: 'Partner Requests',
+    pendingCount_one: '{{count}} pending',
+    pendingCount_other: '{{count}} pendings',
+    markAllRead: 'Mark all as read',
+    clearAll: 'Clear all',
+    join: 'Join',
+    joined: 'Joined',
+    empty: 'No notifications yet.',
+    loadError: 'Could not load notifications.',
+    accept: 'Accept',
+    decline: 'Decline',
+    requestsEmpty: 'No pending requests.',
+    requestsError: 'Could not load requests.',
+    respondError: 'Could not complete that action. Please try again.',
+    partnerRequestLabel: 'Partner request · {{entity}}',
+    joinRequestLabel: 'wants to join {{entity}}',
+    // Sentence templates by notification type:
+    follow: '{{actor}} followed you',
+    event_invite: '{{actor}} invited you to {{entity}}',
+    group_invite: '{{actor}} invited you to {{entity}}',
+    community_invite: '{{actor}} invited you to {{entity}}',
+    community_request_accepted: 'Your request to join {{entity}} was accepted',
+    follow_joined_event: '{{actor}} joined {{entity}}',
+    event_cancelled: '{{entity}} was cancelled',
+    event_updated: '{{entity}} was updated — check the new details',
+    // Web-only:
+    seeAll: 'See all',
+  },
+} as const;
+
+export function registerWebNotificationsCopy(instance: I18n): void {
+  (Object.keys(webNotifications) as WebLocale[]).forEach((locale) => {
+    instance.addResourceBundle(
+      locale,
+      'notifications',
+      webNotifications[locale],
+      true,
+      false,
+    );
+  });
+}

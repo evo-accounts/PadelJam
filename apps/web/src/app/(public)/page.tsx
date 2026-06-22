@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+
 export default function PublicHome() {
-  return <main>Padel Jam — public</main>;
+  redirect('/auth');
 }
