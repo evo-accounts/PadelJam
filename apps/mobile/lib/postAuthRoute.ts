@@ -9,11 +9,12 @@ function isSocialSession(session: { user: { app_metadata?: { provider?: string }
 }
 
 async function fetchProfile(userId: string) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('onboarded_at, location_text, dominant_hand, court_side')
     .eq('id', userId)
     .maybeSingle();
+  if (error) throw error;
   return data;
 }
 
