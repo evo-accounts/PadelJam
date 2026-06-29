@@ -5,8 +5,8 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
-import { assertNoSocialEmailConflict } from '@/lib/socialConflict';
 import { provisionSocialProfile } from '@/lib/provisionSocialProfile';
+import { assertNoSocialEmailConflict } from '@/lib/socialConflict';
 import { supabase } from '@/lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
