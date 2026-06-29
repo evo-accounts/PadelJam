@@ -20,3 +20,5 @@ infra/.supabase-deploy.env
 
 # EAS / service-account credentials (sensitive — never commit)
 apps/mobile/credentials.json
+
+.worktrees/
