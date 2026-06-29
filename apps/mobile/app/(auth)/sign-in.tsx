@@ -155,11 +155,11 @@ export default function SignInScreen() {
         <Text style={styles.disclosure}>
           {'By continuing, you agree to our '}
           <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(TERMS_URL)}>
-            {'Terms of Service'}
+            {t('termsLink')}
           </Text>
           {' and '}
           <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
-            {'Privacy Policy'}
+            {t('privacyLink')}
           </Text>
           {'.'}
         </Text>
