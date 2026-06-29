@@ -20,7 +20,10 @@ describe('provisionSocialProfile', () => {
       'https://example.supabase.co/functions/v1/provision-social-profile',
       expect.objectContaining({
         method: 'POST',
-        headers: expect.objectContaining({ Authorization: 'Bearer test-token-123' }),
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token-123',
+          'Content-Type': 'application/json',
+        }),
       }),
     );
   });
