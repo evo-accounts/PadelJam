@@ -2,6 +2,7 @@ import { exchangeCodeForSession, startGoogleOAuth } from '@padel/auth';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
+import { provisionSocialProfile } from '@/lib/provisionSocialProfile';
 import { assertNoSocialEmailConflict } from '@/lib/socialConflict';
 import { supabase } from '@/lib/supabase';
 
@@ -13,7 +14,7 @@ WebBrowser.maybeCompleteAuthSession();
  * On success the SessionProvider picks up the new session via onAuthStateChange.
  */
 export async function runGoogleSignIn(): Promise<void> {
-  const redirectTo = Linking.createURL('auth/callback'); // mobile://auth/callback
+  const redirectTo = Linking.createURL('auth/callback');
 
   const { data, error } = await startGoogleOAuth(supabase, redirectTo);
   if (error || !data?.url) throw new Error('oauth_failed');
@@ -27,5 +28,16 @@ export async function runGoogleSignIn(): Promise<void> {
 
   const { error: exchangeError } = await exchangeCodeForSession(supabase, code);
   if (exchangeError) throw new Error('oauth_failed');
+
+  // Provision the profile server-side. Google metadata includes full_name.
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    try {
+      await provisionSocialProfile(session.access_token);
+    } catch {
+      throw new Error('oauth_failed');
+    }
+  }
+
   await assertNoSocialEmailConflict();
 }
