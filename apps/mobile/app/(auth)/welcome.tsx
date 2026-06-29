@@ -20,6 +20,8 @@ const { width } = Dimensions.get('window');
 export default function WelcomeScreen() {
   const { t } = useT('onboarding');
   const { t: tAuth } = useT('auth');
+  const [disclosureBefore, disclosureRest] = tAuth('socialTermsDisclosure').split('{{termsLink}}');
+  const [disclosureMiddle, disclosureAfter] = (disclosureRest ?? '').split('{{privacyLink}}');
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
@@ -69,15 +71,15 @@ export default function WelcomeScreen() {
         <Text style={styles.buttonText}>{t('startNow')}</Text>
       </Pressable>
       <Text style={styles.disclosure}>
-        {'By continuing, you agree to our '}
+        {disclosureBefore}
         <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(TERMS_URL)}>
           {tAuth('termsLink')}
         </Text>
-        {' and '}
+        {disclosureMiddle}
         <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
           {tAuth('privacyLink')}
         </Text>
-        {'.'}
+        {disclosureAfter}
       </Text>
     </View>
   );

@@ -26,6 +26,8 @@ export default function SignInScreen() {
   const TERMS_URL = 'https://padeljam.app/terms';
   const PRIVACY_URL = 'https://padeljam.app/privacy';
   const { t } = useT('auth');
+  const [disclosureBefore, disclosureRest] = t('socialTermsDisclosure').split('{{termsLink}}');
+  const [disclosureMiddle, disclosureAfter] = (disclosureRest ?? '').split('{{privacyLink}}');
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -153,15 +155,15 @@ export default function SignInScreen() {
           </Pressable>
         )}
         <Text style={styles.disclosure}>
-          {'By continuing, you agree to our '}
+          {disclosureBefore}
           <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(TERMS_URL)}>
             {t('termsLink')}
           </Text>
-          {' and '}
+          {disclosureMiddle}
           <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
             {t('privacyLink')}
           </Text>
-          {'.'}
+          {disclosureAfter}
         </Text>
       </View>
     </KeyboardAvoidingView>
