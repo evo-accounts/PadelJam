@@ -62,6 +62,7 @@ const mobileAuth = {
     passwordTooShort: 'A palavra-passe deve ter pelo menos 8 caracteres.',
     recoveryDoneTitle: 'A sua palavra-passe foi alterada.',
     recoveryDoneCta: 'Continuar',
+    socialTermsDisclosure: 'Ao continuar, aceita os nossos {{termsLink}} e {{privacyLink}}.',
   },
   'pt-BR': {
     identifierLabel: 'E-mail ou celular',
@@ -118,6 +119,7 @@ const mobileAuth = {
     passwordTooShort: 'A senha deve ter pelo menos 8 caracteres.',
     recoveryDoneTitle: 'Sua senha foi alterada.',
     recoveryDoneCta: 'Continuar',
+    socialTermsDisclosure: 'Ao continuar, você concorda com nossos {{termsLink}} e {{privacyLink}}.',
   },
   en: {
     identifierLabel: 'Email or phone',
@@ -174,6 +176,7 @@ const mobileAuth = {
     passwordTooShort: 'Password must be at least 8 characters.',
     recoveryDoneTitle: 'Your password has been changed.',
     recoveryDoneCta: 'Continue',
+    socialTermsDisclosure: 'By continuing, you agree to our {{termsLink}} and {{privacyLink}}.',
   },
 } as const;
 
