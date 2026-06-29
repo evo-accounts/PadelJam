@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -22,7 +23,11 @@ import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { supabase } from '@/lib/supabase';
 
 export default function SignInScreen() {
+  const TERMS_URL = 'https://padeljam.app/terms';
+  const PRIVACY_URL = 'https://padeljam.app/privacy';
   const { t } = useT('auth');
+  const [disclosureBefore, disclosureRest] = t('socialTermsDisclosure').split('{{termsLink}}');
+  const [disclosureMiddle, disclosureAfter] = (disclosureRest ?? '').split('{{privacyLink}}');
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -149,6 +154,17 @@ export default function SignInScreen() {
             <Text style={styles.googleButtonText}>{t('continueWithApple')}</Text>
           </Pressable>
         )}
+        <Text style={styles.disclosure}>
+          {disclosureBefore}
+          <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(TERMS_URL)}>
+            {t('termsLink')}
+          </Text>
+          {disclosureMiddle}
+          <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
+            {t('privacyLink')}
+          </Text>
+          {disclosureAfter}
+        </Text>
       </View>
     </KeyboardAvoidingView>
   );
@@ -183,4 +199,6 @@ const styles = StyleSheet.create({
   googleButton: { borderWidth: 1, borderColor: '#ccc', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   googleButtonText: { color: '#0B1F3A', fontSize: 16, fontWeight: '600' },
   appleButton: { height: 48, marginTop: 12 },
+  disclosure: { fontSize: 11, color: '#9AA7B6', textAlign: 'center', marginTop: 16, lineHeight: 16 },
+  disclosureLink: { color: '#0B7BFF', fontWeight: '600' },
 });

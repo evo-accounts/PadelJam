@@ -5,6 +5,7 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
+import { provisionSocialProfile } from '@/lib/provisionSocialProfile';
 import { assertNoSocialEmailConflict } from '@/lib/socialConflict';
 import { supabase } from '@/lib/supabase';
 
@@ -41,9 +42,18 @@ export async function runAppleSignIn(): Promise<void> {
     if (!cred.identityToken) throw new Error('oauth_failed');
     const { error } = await signInWithAppleIdToken(supabase, cred.identityToken, rawNonce);
     if (error) throw new Error(isIdentityConflict(error) ? 'email_conflict' : 'oauth_failed');
-    // Apple returns the name only on first sign-in — persist it so create-account prefill works.
+
+    // Provision the profile server-side from Apple's verified identity.
+    // Pass the credential name (only populated on first sign-in by Apple).
+    const { data: { session } } = await supabase.auth.getSession();
     const full = [cred.fullName?.givenName, cred.fullName?.familyName].filter(Boolean).join(' ');
-    if (full) await supabase.auth.updateUser({ data: { full_name: full } });
+    if (session?.access_token) {
+      try {
+        await provisionSocialProfile(session.access_token, full || undefined);
+      } catch {
+        throw new Error('oauth_failed');
+      }
+    }
   } else {
     const redirectTo = Linking.createURL('auth/callback');
     const { data, error } = await startAppleOAuth(supabase, redirectTo);
@@ -55,6 +65,16 @@ export async function runAppleSignIn(): Promise<void> {
     if (!code) throw new Error('oauth_failed');
     const { error: exErr } = await exchangeCodeForSession(supabase, code);
     if (exErr) throw new Error(isIdentityConflict(exErr) ? 'email_conflict' : 'oauth_failed');
+
+    // Android: no credential name available; function reads metadata.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      try {
+        await provisionSocialProfile(session.access_token);
+      } catch {
+        throw new Error('oauth_failed');
+      }
+    }
   }
   await assertNoSocialEmailConflict();
 }

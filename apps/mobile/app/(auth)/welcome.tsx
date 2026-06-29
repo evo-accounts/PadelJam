@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Dimensions,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,6 +19,9 @@ const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const { t } = useT('onboarding');
+  const { t: tAuth } = useT('auth');
+  const [disclosureBefore, disclosureRest] = tAuth('socialTermsDisclosure').split('{{termsLink}}');
+  const [disclosureMiddle, disclosureAfter] = (disclosureRest ?? '').split('{{privacyLink}}');
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
@@ -31,6 +35,9 @@ export default function WelcomeScreen() {
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setPage(Math.round(e.nativeEvent.contentOffset.x / width));
   };
+
+  const TERMS_URL = 'https://padeljam.app/terms';
+  const PRIVACY_URL = 'https://padeljam.app/privacy';
 
   const start = async () => {
     await AsyncStorage.setItem('hasSeenWelcome', 'true');
@@ -63,6 +70,17 @@ export default function WelcomeScreen() {
       <Pressable style={styles.button} onPress={start} accessibilityRole="button">
         <Text style={styles.buttonText}>{t('startNow')}</Text>
       </Pressable>
+      <Text style={styles.disclosure}>
+        {disclosureBefore}
+        <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(TERMS_URL)}>
+          {tAuth('termsLink')}
+        </Text>
+        {disclosureMiddle}
+        <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
+          {tAuth('privacyLink')}
+        </Text>
+        {disclosureAfter}
+      </Text>
     </View>
   );
 }
@@ -83,4 +101,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  disclosure: { fontSize: 11, color: '#9AA7B6', textAlign: 'center', marginTop: 12, marginHorizontal: 24, lineHeight: 16 },
+  disclosureLink: { color: '#0B7BFF', fontWeight: '600' },
 });
