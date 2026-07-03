@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 
@@ -34,7 +35,8 @@ export default function HomeScreen() {
   const hasActivity = events.length > 0 || groups.length > 0;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.content}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -97,6 +99,8 @@ export default function HomeScreen() {
         <EmptyState profileHasLocation={!!profile.data?.location_text} router={router} t={t} />
       )}
     </ScrollView>
+      <CreateEventFab />
+    </View>
   );
 }
 
@@ -193,7 +197,7 @@ function EmptyState({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F9FC' },
-  content: { padding: 16, gap: 8, paddingBottom: 40 },
+  content: { padding: 16, gap: 8, paddingBottom: 100 },
   quickScrollWrapper: { marginHorizontal: -16, marginBottom: 8 },
   quickScroll: { paddingHorizontal: 16, gap: 10 },
   quickCard: {
