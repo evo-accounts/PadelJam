@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PadelJam — Remaining Setup Guide</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #0B1F3A; font-size: 11.5px; line-height: 1.5; margin: 0; }
+  h1 { font-size: 26px; margin: 0 0 4px; color: #0B1F3A; }
+  h2 { font-size: 17px; margin: 26px 0 8px; padding: 6px 10px; background: #0B1F3A; color: #fff; border-radius: 6px; page-break-after: avoid; }
+  h3 { font-size: 13.5px; margin: 16px 0 4px; color: #0B7BFF; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; background: #EEF2F7; padding: 1px 5px; border-radius: 4px; font-size: 10.5px; }
+  pre { background: #0B1F3A; color: #EAF2FF; padding: 10px 12px; border-radius: 8px; overflow-x: auto; font-size: 10px; line-height: 1.45; page-break-inside: avoid; }
+  pre code { background: none; color: inherit; padding: 0; }
+  .lead { color: #3A4A5E; font-size: 12px; }
+  .meta { color: #6B7685; font-size: 10.5px; margin-bottom: 2px; }
+  .box { border: 1px solid #D7DEE6; border-radius: 8px; padding: 10px 14px; margin: 10px 0; page-break-inside: avoid; }
+  .box.do { border-left: 4px solid #0B7BFF; }
+  .box.verify { border-left: 4px solid #1F9D55; background: #F4FBF6; }
+  .box.note { border-left: 4px solid #E0A800; background: #FFFBEF; }
+  .tag { display: inline-block; font-size: 9.5px; font-weight: 700; padding: 1px 7px; border-radius: 10px; color: #fff; vertical-align: middle; margin-left: 6px; }
+  .t-blocker { background: #D7263D; } .t-build { background: #0B7BFF; } .t-config { background: #6B7685; } .t-opt { background: #1F9D55; }
+  ul { margin: 6px 0; padding-left: 20px; } li { margin: 3px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 10.5px; }
+  th, td { border: 1px solid #D7DEE6; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #EEF2F7; }
+  .check { list-style: none; padding-left: 0; }
+  .check li::before { content: "☐  "; color: #0B7BFF; font-weight: 700; }
+  .step-head { page-break-after: avoid; }
+  hr { border: none; border-top: 1px solid #E2E8F0; margin: 18px 0; }
+  .small { font-size: 10px; color: #6B7685; }
+  a { color: #0B7BFF; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<p class="meta">PadelJam · Setup handoff · generated 2026-06-19</p>
+<h1>Remaining Setup — Your Side</h1>
+<p class="lead">Everything that can be built in code is done and merged to <code>main</code> (and pushed to GitHub).
+What remains needs <strong>your accounts, credentials, devices, and dashboards</strong> — things I can't do for you.
+This guide sequences those steps. Work top to bottom: each step unblocks the next.</p>
+
+<div class="box note">
+<strong>Legend:</strong>
+<span class="tag t-blocker">RELEASE-BLOCKER</span> needed for the iOS App Store release &nbsp;
+<span class="tag t-build">ENABLES BUILD</span> unblocks more app work &nbsp;
+<span class="tag t-config">CONFIG</span> dashboard/secret only &nbsp;
+<span class="tag t-opt">OPTIONAL</span> future enhancement
+</div>
+
+<h3>At a glance — the order</h3>
+<table>
+<tr><th>#</th><th>Step</th><th>Why</th><th>Detailed runbook</th></tr>
+<tr><td>1</td><td>Finish EAS dev builds</td><td>Foundation: lets you test everything native on real devices</td><td><code>docs/superpowers/push-setup.md</code></td></tr>
+<tr><td>2</td><td>Enable Apple sign-in</td><td>Mandatory for the iOS release (App Store 5.1.1)</td><td><code>docs/superpowers/5i-social-signin-setup.md</code></td></tr>
+<tr><td>3</td><td>Enable Google sign-in</td><td>Already coded; needs OAuth credentials</td><td><code>docs/superpowers/5i-social-signin-setup.md</code></td></tr>
+<tr><td>4</td><td>Wire up push delivery</td><td>Turns push notifications on; enables the B4b polish</td><td><code>docs/superpowers/push-setup.md</code></td></tr>
+<tr><td>5</td><td>Production email (Resend)</td><td>Blast + roster-CSV emails actually send</td><td><code>docs/superpowers/email-delivery-setup.md</code></td></tr>
+<tr><td>6</td><td>Production SMTP (auth emails)</td><td>OTP / password-reset / change-email emails</td><td>this guide</td></tr>
+<tr><td>7</td><td>On-device verification pass</td><td>Confirm the gated features actually work</td><td>this guide</td></tr>
+<tr><td>8</td><td>Production hardening (C6)</td><td><code>double_confirm_changes</code> for destructive ops</td><td>this guide</td></tr>
+</table>
+
+<hr/>
+
+<h2>Step 1 — Finish the EAS dev builds <span class="tag t-build">ENABLES BUILD</span></h2>
+<p>You already ran <code>eas init</code> (project <code>app.padeljam</code> is linked; <code>projectId</code> is committed).
+Now produce installable dev clients on your two phones. A dev build (not Expo Go) is required for the native
+modules — Apple sign-in, push, chat, image capture, geocoding.</p>
+<div class="box do"><strong>Do</strong> — from <code>apps/mobile/</code>:
+<pre><code>eas build --profile development --platform ios
+eas build --profile development --platform android
+# When prompted "non-exempt encryption?" it won't ask anymore — already declared exempt.
+# Install each finished build on the matching device, then start the JS dev server:
+npx expo start --dev-client</code></pre></div>
+<div class="box verify"><strong>Verify</strong>
+<ul class="check">
+<li>Both dev clients install and launch on the physical devices.</li>
+<li>The app boots, you can sign in (phone OTP), and chat connects.</li>
+</ul></div>
+<p class="small">Monorepo note: EAS installs deps from the workspace root via the committed <code>pnpm-lock.yaml</code>.
+If a cloud build fails at the install step, send me the error — there's a small EAS-monorepo config fix.</p>
+
+<h2>Step 2 — Enable Apple sign-in <span class="tag t-blocker">RELEASE-BLOCKER</span></h2>
+<p>The app code (native Apple button, token exchange, duplicate-email conflict handling) is done. You need to
+register the Apple identifiers and turn the provider on. <strong>Required before the iOS release</strong> because the app
+offers Google sign-in (App Store guideline 5.1.1).</p>
+<div class="box do"><strong>Do</strong>
+<ul>
+<li><strong>Apple Developer console:</strong> on the App ID for <code>app.padeljam</code>, enable the <em>Sign in with Apple</em> capability. Create a <strong>Services ID</strong> and a <strong>Sign in with Apple key</strong> (.p8).</li>
+<li><strong>Supabase → Authentication → Providers → Apple:</strong> enable it; set the Client ID (your Services ID / bundle id) and the secret.</li>
+<li><strong>If using local/CLI config</strong> (<code>infra/supabase/config.toml</code> → <code>[auth.external.apple]</code>): set <code>enabled = true</code>, <code>client_id</code>, and provide the secret via env var <code>SUPABASE_AUTH_EXTERNAL_APPLE_SECRET</code>.</li>
+</ul></div>
+<div class="box verify"><strong>Verify (on the iOS dev build)</strong>
+<ul class="check">
+<li>"Continue with Apple" shows the native sheet → you land signed in.</li>
+<li>A brand-new Apple account → routed to "Create your account" with name pre-filled.</li>
+<li>An Apple email that already belongs to another account → inline "already linked" message, bounced to sign-in.</li>
+</ul></div>
+
+<h2>Step 3 — Enable Google sign-in <span class="tag t-config">CONFIG</span></h2>
+<p>Google sign-in is already coded; it just needs OAuth credentials wired in. Runbook:
+<code>docs/superpowers/5i-social-signin-setup.md</code>.</p>
+<div class="box do"><strong>Do</strong>
+<ul>
+<li><strong>Google Cloud console:</strong> create an OAuth 2.0 client; add the Supabase callback + <code>mobile://auth/callback</code> as authorized redirects.</li>
+<li>Set the secrets (Supabase dashboard or function/auth env):
+<pre><code>SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=&lt;your-client-id&gt;
+SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET=&lt;your-client-secret&gt;</code></pre></li>
+<li>Enable the Google provider in Supabase (or <code>[auth.external.google]</code> <code>enabled = true</code>).</li>
+</ul></div>
+<div class="box verify"><strong>Verify</strong>
+<ul class="check"><li>"Continue with Google" completes the browser handshake and signs you in (new → create-account; returning → home).</li></ul></div>
+
+<h2>Step 4 — Wire up push delivery <span class="tag t-build">ENABLES BUILD</span> <span class="tag t-config">CONFIG</span></h2>
+<p>Token registration + the send-push function + the DB trigger are all built (and a delivery log records each
+attempt). Push is a <strong>no-op until</strong> you supply provider credentials and the fan-out settings. Runbook:
+<code>docs/superpowers/push-setup.md</code>.</p>
+<div class="box do"><strong>Do</strong>
+<ol>
+<li>Upload push credentials (interactive): <pre><code>cd apps/mobile && eas credentials   # add FCM (Android) + APNs (iOS) keys</code></pre></li>
+<li>Deploy the function: <pre><code>pnpm dlx supabase@latest --workdir infra functions deploy send-push --no-verify-jwt</code></pre></li>
+<li>Set the shared secret (pick a strong random value): <pre><code>pnpm dlx supabase@latest --workdir infra secrets set PUSH_WEBHOOK_SECRET='&lt;strong-random&gt;'</code></pre></li>
+<li>Point the DB trigger at the function (in the Supabase SQL editor / prod DB): <pre><code>ALTER DATABASE postgres SET app.send_push_url    = '&lt;send-push function URL&gt;';
+ALTER DATABASE postgres SET app.send_push_secret = '&lt;same value as PUSH_WEBHOOK_SECRET&gt;';</code></pre></li>
+</ol>
+<p class="small"><code>app.send_push_secret</code> <strong>must equal</strong> <code>PUSH_WEBHOOK_SECRET</code>. Never commit either.</p></div>
+<div class="box verify"><strong>Verify (on a device)</strong>
+<ul class="check">
+<li>Grant notification permission on first launch; a push token registers.</li>
+<li>Trigger a notification (e.g. have someone follow you / invite you) → the push arrives.</li>
+<li>Tap it → the app deep-links to the right screen (event / group / community / profile).</li>
+</ul></div>
+<div class="box note"><strong>After this works, ping me:</strong> I'll build <strong>B4b</strong> — app-icon badge counts + Expo delivery
+receipts + retry-on-failed — which only makes sense to build once live push is verifiable.</div>
+
+<h2>Step 5 — Production email via Resend <span class="tag t-config">CONFIG</span></h2>
+<p>The blast email + "email me the roster CSV" paths call Resend; they return <code>email_not_configured</code> until
+keyed. Runbook: <code>docs/superpowers/email-delivery-setup.md</code>.</p>
+<div class="box do"><strong>Do</strong>
+<ul>
+<li>Create a Resend account; verify your sender domain (e.g. <code>padeljam.app</code>).</li>
+<li>Set the function secrets:
+<pre><code>pnpm dlx supabase@latest --workdir infra secrets set RESEND_API_KEY=re_xxxxxxxx
+pnpm dlx supabase@latest --workdir infra secrets set "RESEND_FROM_EMAIL=Padel Jam &lt;noreply@padeljam.app&gt;"</code></pre></li>
+</ul></div>
+<div class="box verify"><strong>Verify</strong>
+<ul class="check"><li>Send a blast (email channel) / "email me the roster CSV" → the email arrives; the blast's delivery badge shows <em>Delivered</em>.</li></ul></div>
+
+<h2>Step 6 — Production SMTP for auth emails <span class="tag t-config">CONFIG</span></h2>
+<p>Supabase's <em>auth</em> emails (OTP fallback, password reset, change-email confirmations) need a real SMTP
+sender in production (the local Inbucket mailbox is dev-only).</p>
+<div class="box do"><strong>Do</strong> — in Supabase → Project Settings → Auth → SMTP (or <code>config.toml</code> <code>[auth.email.smtp]</code>): set host, port, user, and the password via an env var (e.g. SendGrid/Resend SMTP). Set a verified from-address.</div>
+<div class="box verify"><strong>Verify</strong>
+<ul class="check"><li>Trigger a password reset / email-change → the message is delivered from your domain.</li></ul></div>
+
+<h2>Step 7 — On-device verification pass <span class="tag t-blocker">RELEASE-BLOCKER</span></h2>
+<p>Once Steps 1–4 are in place, run through the features that could only be verified on a real dev build. Tell me
+about anything that misbehaves and I'll fix it.</p>
+<div class="box verify"><strong>Checklist</strong>
+<ul class="check">
+<li><strong>Apple sign-in</strong> — new / returning / conflict (relay email) cases.</li>
+<li><strong>Google sign-in</strong> — full handshake + the conflict case.</li>
+<li><strong>Push tap-routing</strong> — tap a notification in foreground, background, and from a cold start → correct screen.</li>
+<li><strong>Result image-card</strong> — finish an event → Share Results → "Share externally" produces the standings image.</li>
+<li><strong>Location geocoding</strong> — type a venue address → "Find location from address" → ✓ coords; the event shows a distance in Explore.</li>
+<li><strong>Chat</strong> — archive/delete, the media gallery paginates past 100 messages, and list rows update live as messages arrive.</li>
+<li><strong>Thumbnails</strong> — pick an event image at create/edit; it uploads + displays.</li>
+</ul></div>
+
+<h2>Step 8 — Production hardening (C6) <span class="tag t-config">CONFIG</span></h2>
+<p>Destructive account actions use <code>double_confirm_changes</code>, kept <code>false</code> locally for convenience.
+For production, enable it so email/phone changes require confirmation on both the old and new address.</p>
+<div class="box do"><strong>Do</strong> — set <code>double_confirm_changes = true</code> in the production auth config (Supabase dashboard / <code>config.toml</code> <code>[auth.email]</code>).</div>
+
+<hr/>
+
+<h2>Optional / future (no rush) <span class="tag t-opt">OPTIONAL</span></h2>
+<ul>
+<li><strong>Venue-catalog coordinates + proximity venue search</strong> — store coordinates on the curated <code>venues</code> catalog and let users search venues by nearness. (Today: events get coordinates via on-device geocoding; the catalog itself has none.) A real build slice when you want it — just ask.</li>
+<li><strong>Keyed Places autocomplete</strong> — a Google/Mapbox typeahead place picker for slicker venue entry. Needs an API key + billing; the on-device geocoder already covers the core need without one.</li>
+<li><strong>WhatsApp blast channel</strong> — descoped; would need a Twilio WhatsApp Business approved sender.</li>
+</ul>
+
+<h2>Reference — where each secret is used in code</h2>
+<table>
+<tr><th>Secret / setting</th><th>Used by</th></tr>
+<tr><td><code>SUPABASE_AUTH_EXTERNAL_APPLE_SECRET</code> + Apple client_id</td><td>Apple sign-in provider (<code>config.toml [auth.external.apple]</code>)</td></tr>
+<tr><td><code>SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID/SECRET</code></td><td>Google sign-in provider (<code>[auth.external.google]</code>)</td></tr>
+<tr><td><code>PUSH_WEBHOOK_SECRET</code> + <code>app.send_push_url</code> / <code>app.send_push_secret</code></td><td>send-push function + <code>notify_push</code> trigger</td></tr>
+<tr><td><code>RESEND_API_KEY</code> / <code>RESEND_FROM_EMAIL</code></td><td>send-blast + send-roster-csv functions</td></tr>
+<tr><td>EAS push credentials (FCM / APNs)</td><td>Expo push delivery to devices</td></tr>
+</table>
+<p class="small">Detailed step-by-step runbooks live in <code>docs/superpowers/</code>: <code>5i-social-signin-setup.md</code>,
+<code>email-delivery-setup.md</code>, <code>push-setup.md</code>, <code>eas-dev-build-setup.md</code>. Never commit secrets — set them as Supabase function secrets / project env, or your local <code>.env</code>.</p>
+
+</body>
+</html>
