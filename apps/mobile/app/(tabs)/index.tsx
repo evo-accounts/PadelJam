@@ -148,7 +148,16 @@ function EmptyState({
 
       <Text style={styles.sectionTitle}>{t('suggestedEvents')}</Text>
       {evRows.length === 0 ? (
-        <Text style={styles.empty}>{t('eventsEmpty')}</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyCardText}>{t('eventsEmpty')}</Text>
+          <Pressable
+            style={styles.emptyCardBtn}
+            onPress={() => router.push('/explore/events' as never)}
+            accessibilityRole="button"
+          >
+            <Text style={styles.emptyCardBtnText}>{t('eventsDiscoverCta')}</Text>
+          </Pressable>
+        </View>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
           {evRows.map((e: { id: string }) => (
@@ -159,9 +168,18 @@ function EmptyState({
         </ScrollView>
       )}
 
-      <Text style={styles.sectionTitle}>{t('suggestedGroups')}</Text>
+      <Text style={styles.sectionTitle}>{t('discoverGroups')}</Text>
       {grRows.length === 0 ? (
-        <Text style={styles.empty}>{t('groupsEmpty')}</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyCardText}>{t('groupsEmpty')}</Text>
+          <Pressable
+            style={styles.emptyCardBtn}
+            onPress={() => router.push('/explore/groups' as never)}
+            accessibilityRole="button"
+          >
+            <Text style={styles.emptyCardBtnText}>{t('groupsDiscoverCta')}</Text>
+          </Pressable>
+        </View>
       ) : (
         grRows.map((g: { id: string }) => (
           <View key={g.id} style={styles.railItem}>
@@ -210,4 +228,20 @@ const styles = StyleSheet.create({
   bannerBody: { fontSize: 13, color: '#3A4A5E' },
   bannerCta: { fontSize: 14, color: '#0B7BFF', fontWeight: '700', marginTop: 6 },
   empty: { color: '#6B7685', fontSize: 14, paddingVertical: 8 },
+  emptyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 8,
+  },
+  emptyCardText: { fontSize: 14, color: '#6B7685', textAlign: 'center' },
+  emptyCardBtn: {
+    backgroundColor: '#0B7BFF',
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  emptyCardBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });
