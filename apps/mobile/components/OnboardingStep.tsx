@@ -10,7 +10,9 @@ export function OnboardingStep({
   primaryLabel,
   onPrimary,
   onSkip,
+  onBack,
   primaryDisabled,
+  hidePrimary,
   children,
 }: {
   title: string;
@@ -18,7 +20,9 @@ export function OnboardingStep({
   primaryLabel: string;
   onPrimary: () => void;
   onSkip: () => void;
+  onBack?: () => void;
   primaryDisabled?: boolean;
+  hidePrimary?: boolean;
   children?: ReactNode;
 }) {
   const { t } = useT('onboarding');
@@ -26,7 +30,14 @@ export function OnboardingStep({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
-      <View style={styles.skipRow}>
+      <View style={styles.headerRow}>
+        {onBack ? (
+          <Pressable onPress={onBack} accessibilityRole="button" hitSlop={12}>
+            <Text style={styles.back}>{t('back')}</Text>
+          </Pressable>
+        ) : (
+          <View />
+        )}
         <Pressable onPress={onSkip} accessibilityRole="button" hitSlop={12}>
           <Text style={styles.skip}>{t('skip')}</Text>
         </Pressable>
@@ -38,14 +49,16 @@ export function OnboardingStep({
         {children}
       </View>
 
-      <Pressable
-        style={[styles.button, primaryDisabled && styles.buttonDisabled]}
-        onPress={onPrimary}
-        disabled={primaryDisabled}
-        accessibilityRole="button"
-      >
-        <Text style={styles.buttonText}>{primaryLabel}</Text>
-      </Pressable>
+      {!hidePrimary && (
+        <Pressable
+          style={[styles.button, primaryDisabled && styles.buttonDisabled]}
+          onPress={onPrimary}
+          disabled={primaryDisabled}
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonText}>{primaryLabel}</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -98,7 +111,8 @@ const choiceStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 24 },
-  skipRow: { alignItems: 'flex-end' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  back: { color: '#0B1F3A', fontSize: 22, fontWeight: '400' },
   skip: { color: '#0B1F3A', fontSize: 15, fontWeight: '600' },
   content: { flex: 1, justifyContent: 'center' },
   title: { fontSize: 28, fontWeight: '700', marginBottom: 12 },

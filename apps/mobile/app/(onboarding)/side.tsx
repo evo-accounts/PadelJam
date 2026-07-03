@@ -11,7 +11,7 @@ export default function SideStep() {
   const update = useUpdateProfile();
   const [side, setSide] = useState<string | null>(null);
 
-  const goNext = () => router.push('/(onboarding)/jammer-plus');
+  const goNext = () => router.push('/(onboarding)/notifications');
 
   const onContinue = async () => {
     if (update.isPending) return;
@@ -30,8 +30,9 @@ export default function SideStep() {
       title={t('sideTitle')}
       body={t('sideBody')}
       primaryLabel={t('continue')}
-      primaryDisabled={update.isPending}
+      primaryDisabled={!side || update.isPending}
       onPrimary={onContinue}
+      onBack={() => router.back()}
       onSkip={goNext}
     >
       <ChoiceRow

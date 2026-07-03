@@ -2,16 +2,18 @@ import { useT } from '@padel/i18n';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { OnboardingStep } from '@/components/OnboardingStep';
 import { supabase } from '@/lib/supabase';
 
 type Coords = { lat: number; lng: number };
+type Mode = 'pick' | 'manual';
 
 export default function LocationStep() {
   const { t } = useT('onboarding');
   const router = useRouter();
+  const [mode, setMode] = useState<Mode>('pick');
   const [text, setText] = useState('');
   const [coords, setCoords] = useState<Coords | null>(null);
   const [locating, setLocating] = useState(false);
@@ -32,25 +34,27 @@ export default function LocationStep() {
     setLocating(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setNotice(t('locationPermissionDenied'));
-        return;
-      }
-      const pos = await Location.getCurrentPositionAsync({});
-      const next: Coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      setCoords(next);
-      try {
-        const places = await Location.reverseGeocodeAsync({ latitude: next.lat, longitude: next.lng });
-        const addr = formatAddress(places[0]);
-        if (addr) setText(addr);
-      } catch {
-        // reverse-geocode is best-effort; keep the coords even if it fails.
+      if (status === 'granted') {
+        const pos = await Location.getCurrentPositionAsync({});
+        const next: Coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        try {
+          const places = await Location.reverseGeocodeAsync({ latitude: next.lat, longitude: next.lng });
+          const addr = formatAddress(places[0]);
+          await supabase.rpc('set_my_location', {
+            p_lat: next.lat,
+            p_lng: next.lng,
+            p_text: addr || null,
+          });
+        } catch {
+          // reverse-geocode or save is best-effort; still advance
+        }
       }
     } catch {
-      setNotice(t('locationPermissionDenied'));
+      // permission error: still advance regardless
     } finally {
       setLocating(false);
     }
+    goNext();
   };
 
   const onContinue = async () => {
@@ -81,25 +85,52 @@ export default function LocationStep() {
     }
   };
 
+  if (mode === 'pick') {
+    return (
+      <OnboardingStep
+        title={t('locationTitle')}
+        body={t('locationBody')}
+        primaryLabel=""
+        hidePrimary
+        onPrimary={() => {}}
+        onBack={() => router.back()}
+        onSkip={goNext}
+      >
+        <View style={styles.pickButtons}>
+          <Pressable
+            style={[styles.pickPrimary, locating && styles.pickPrimaryDisabled]}
+            onPress={useCurrentLocation}
+            disabled={locating}
+            accessibilityRole="button"
+          >
+            {locating ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.pickPrimaryText}>{t('locationUseCurrentTitle')}</Text>
+            )}
+          </Pressable>
+          <Pressable
+            style={styles.pickSecondary}
+            onPress={() => setMode('manual')}
+            accessibilityRole="button"
+          >
+            <Text style={styles.pickSecondaryText}>{t('locationAddManually')}</Text>
+          </Pressable>
+        </View>
+      </OnboardingStep>
+    );
+  }
+
   return (
     <OnboardingStep
-      title={t('locationTitle')}
+      title={t('locationManualTitle')}
       body={t('locationBody')}
       primaryLabel={t('continue')}
+      primaryDisabled={!text.trim() || saving}
       onPrimary={onContinue}
+      onBack={() => setMode('pick')}
       onSkip={goNext}
-      primaryDisabled={saving}>
-      <Pressable
-        style={styles.gpsButton}
-        onPress={useCurrentLocation}
-        disabled={locating}
-        accessibilityRole="button">
-        {locating ? (
-          <ActivityIndicator color="#0B7BFF" />
-        ) : (
-          <Text style={styles.gpsButtonText}>{t('locationUseCurrent')}</Text>
-        )}
-      </Pressable>
+    >
       <TextInput
         style={styles.input}
         value={text}
@@ -109,6 +140,7 @@ export default function LocationStep() {
         }}
         placeholder={t('locationManualPlaceholder')}
         autoCapitalize="words"
+        autoFocus
       />
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
     </OnboardingStep>
@@ -116,15 +148,27 @@ export default function LocationStep() {
 }
 
 const styles = StyleSheet.create({
-  gpsButton: {
-    borderWidth: 1,
-    borderColor: '#0B7BFF',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 12,
+  pickButtons: {
+    gap: 12,
   },
-  gpsButtonText: { color: '#0B7BFF', fontSize: 16, fontWeight: '600' },
+  pickPrimary: {
+    backgroundColor: '#0B1F3A',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  pickPrimaryDisabled: {
+    opacity: 0.6,
+  },
+  pickPrimaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  pickSecondary: {
+    borderWidth: 1,
+    borderColor: '#0B1F3A',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  pickSecondaryText: { color: '#0B1F3A', fontSize: 16, fontWeight: '600' },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',

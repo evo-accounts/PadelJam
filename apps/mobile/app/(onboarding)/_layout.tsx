@@ -6,6 +6,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="location" />
       <Stack.Screen name="hand" />
       <Stack.Screen name="side" />
+      <Stack.Screen name="notifications" />
       <Stack.Screen name="jammer-plus" />
     </Stack>
   );

@@ -13,7 +13,6 @@ export default function HandStep() {
 
   const goNext = () => router.push('/(onboarding)/side');
 
-  // Continue: persist the choice (if any) then advance. Skip: advance without persisting.
   const onContinue = async () => {
     if (update.isPending) return;
     if (hand) {
@@ -31,8 +30,9 @@ export default function HandStep() {
       title={t('handTitle')}
       body={t('handBody')}
       primaryLabel={t('continue')}
-      primaryDisabled={update.isPending}
+      primaryDisabled={!hand || update.isPending}
       onPrimary={onContinue}
+      onBack={() => router.back()}
       onSkip={goNext}
     >
       <ChoiceRow

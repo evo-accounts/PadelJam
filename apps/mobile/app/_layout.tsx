@@ -174,7 +174,6 @@ function Boot() {
       } else if (target === 'welcome') router.replace('/(auth)/welcome');
       else if (target === 'sign-in') router.replace('/(auth)/sign-in');
       else {
-        void registerForPush(); // authed onboarding target
         router.replace(target); // target is an OnboardingRoute string
       }
 
