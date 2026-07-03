@@ -21,4 +21,23 @@ describe('createPublicEnv', () => {
       createPublicEnv({ SUPABASE_URL: 'not-a-url', SUPABASE_ANON_KEY: 'k', APP_ENV: 'development' }),
     ).toThrow(/SUPABASE_URL/);
   });
+
+  it('accepts the EAS preview profile APP_ENV', () => {
+    const env = createPublicEnv({
+      SUPABASE_URL: 'https://abc.supabase.co',
+      SUPABASE_ANON_KEY: 'anon-key',
+      APP_ENV: 'preview',
+    });
+    expect(env.APP_ENV).toBe('preview');
+  });
+
+  it('treats an empty SENTRY_DSN as unset', () => {
+    const env = createPublicEnv({
+      SUPABASE_URL: 'https://abc.supabase.co',
+      SUPABASE_ANON_KEY: 'anon-key',
+      APP_ENV: 'production',
+      SENTRY_DSN: '',
+    });
+    expect(env.SENTRY_DSN).toBeUndefined();
+  });
 });

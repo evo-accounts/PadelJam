@@ -1,12 +1,17 @@
 import { z } from 'zod';
 
-const appEnv = z.enum(['development', 'staging', 'production']);
+const appEnv = z.enum(['development', 'staging', 'preview', 'production']);
+
+const optionalUrl = z.preprocess(
+  (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+  z.string().url().optional(),
+);
 
 export const publicEnvSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
   APP_ENV: appEnv.default('development'),
-  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_DSN: optionalUrl,
 });
 
 export const serverEnvSchema = publicEnvSchema.extend({
