@@ -2685,6 +2685,10 @@ const mobileHome = {
     loadError: 'Não foi possível carregar.',
     memberCount_one: '{{count}} membro',
     memberCount_other: '{{count}} membros',
+    discoverGroups: 'Grupos que podem interessar-te',
+    groupsDiscoverCta: 'Explorar grupos',
+    eventsDiscoverCta: 'Explorar eventos',
+    newGroupBtn: 'Explorar grupos',
   },
   'pt-BR': {
     tab: 'Início',
@@ -2710,6 +2714,10 @@ const mobileHome = {
     loadError: 'Não foi possível carregar.',
     memberCount_one: '{{count}} membro',
     memberCount_other: '{{count}} membros',
+    discoverGroups: 'Grupos que podem interessar a você',
+    groupsDiscoverCta: 'Explorar grupos',
+    eventsDiscoverCta: 'Explorar eventos',
+    newGroupBtn: 'Explorar grupos',
   },
   en: {
     tab: 'Home',
@@ -2735,6 +2743,10 @@ const mobileHome = {
     loadError: 'Could not load.',
     memberCount_one: '{{count}} member',
     memberCount_other: '{{count}} members',
+    discoverGroups: 'Groups you might like',
+    groupsDiscoverCta: 'Browse groups',
+    eventsDiscoverCta: 'Browse events',
+    newGroupBtn: 'Explore groups',
   },
 } as const;
 
@@ -3217,6 +3229,7 @@ const mobileChat = {
     media: 'Multimédia',
     noPhotos: 'Ainda não foram partilhadas fotos.',
     actionFailed: 'Não foi possível concluir essa ação.',
+    emptyStartCta: 'Iniciar uma conversa',
   },
   'pt-BR': {
     title: 'Conversas',
@@ -3246,6 +3259,7 @@ const mobileChat = {
     media: 'Mídia',
     noPhotos: 'Ainda não há fotos compartilhadas.',
     actionFailed: 'Não foi possível concluir essa ação.',
+    emptyStartCta: 'Iniciar uma conversa',
   },
   en: {
     title: 'Chat',
@@ -3275,6 +3289,7 @@ const mobileChat = {
     media: 'Media',
     noPhotos: 'No photos shared yet.',
     actionFailed: "Couldn't complete that action.",
+    emptyStartCta: 'Start a conversation',
   },
 } as const;
 
