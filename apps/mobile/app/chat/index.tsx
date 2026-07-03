@@ -12,6 +12,25 @@ import { ChannelRow } from '@/components/chat/ChannelRow';
 
 type Tab = 'active' | 'archived';
 
+function ChatEmptyState() {
+  const { t } = useT('chat');
+  const router = useRouter();
+  return (
+    <View style={styles.emptyWrap}>
+      <View style={styles.emptyCard}>
+        <Text style={styles.emptyText}>{t('noChats')}</Text>
+        <Pressable
+          style={styles.emptyBtn}
+          onPress={() => router.push('/chat/new' as never)}
+          accessibilityRole="button"
+        >
+          <Text style={styles.emptyBtnText}>{t('emptyStartCta')}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 export default function ChatListScreen() {
   const { t } = useT('chat');
   const router = useRouter();
@@ -67,6 +86,7 @@ export default function ChatListScreen() {
         filters={{ members: { $in: [uid] }, archived: tab === 'archived' }}
         sort={{ last_message_at: -1 }}
         additionalFlatListProps={{ renderItem: Preview }}
+        EmptyStateIndicator={ChatEmptyState}
       />
     </View>
   );
@@ -82,4 +102,15 @@ const styles = StyleSheet.create({
   banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFF4E5', paddingHorizontal: 16, paddingVertical: 10 },
   bannerText: { color: '#8A5A00', fontSize: 13, flex: 1 },
   bannerRetry: { color: '#0B7BFF', fontWeight: '700', fontSize: 13, paddingLeft: 12 },
+  emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  emptyCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 24,
+    alignItems: 'center', gap: 14, width: '100%',
+  },
+  emptyText: { fontSize: 15, color: '#6B7685', textAlign: 'center' },
+  emptyBtn: {
+    backgroundColor: '#0B7BFF', borderRadius: 8,
+    paddingHorizontal: 24, paddingVertical: 12,
+  },
+  emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });
