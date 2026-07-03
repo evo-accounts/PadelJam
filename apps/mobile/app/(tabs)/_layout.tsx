@@ -1,8 +1,8 @@
 import { useNotificationsRealtime } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
-import { Tabs } from 'expo-router';
-import { View } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { Pressable, View } from 'react-native';
 
 import Colors from '@/constants/Colors';
 import { ChatHeaderButton } from '@/components/chat/ChatHeaderButton';
@@ -13,6 +13,7 @@ import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t } = useT('community');
+  const router = useRouter();
 
   useNotificationsRealtime();
 
@@ -28,6 +29,17 @@ export default function TabLayout() {
           title: t('tab', { ns: 'home' }),
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingRight: 12 }}>
+              <Pressable
+                onPress={() => router.push('/(tabs)/explore' as never)}
+                accessibilityRole="button"
+                hitSlop={12}
+              >
+                <SymbolView
+                  name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
+                  tintColor="#0B1F3A"
+                  size={22}
+                />
+              </Pressable>
               <ChatHeaderButton />
               <NotificationBell />
             </View>
