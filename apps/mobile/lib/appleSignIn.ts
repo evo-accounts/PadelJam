@@ -51,7 +51,7 @@ export async function runAppleSignIn(): Promise<void> {
       try {
         await provisionSocialProfile(session.access_token, full || undefined);
       } catch {
-        throw new Error('oauth_failed');
+        // Best-effort: postAuthRoute.ts retries provision if the profile row is missing.
       }
     }
   } else {
