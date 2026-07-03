@@ -18,7 +18,21 @@ export default function YourGroupsScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: t('yourGroups') }} />
+      <Stack.Screen
+        options={{
+          title: t('yourGroups'),
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/explore/groups' as never)}
+              accessibilityRole="button"
+              hitSlop={12}
+              style={{ paddingHorizontal: 8 }}
+            >
+              <Text style={styles.headerBtn}>{t('newGroupBtn')}</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <View style={styles.tabs}>
         {(['all', 'managing', 'participating'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabActive]} accessibilityRole="button">
@@ -33,7 +47,16 @@ export default function YourGroupsScreen() {
       ) : groups.isError ? (
         <Text style={styles.empty}>{t('loadError')}</Text>
       ) : rows.length === 0 ? (
-        <Text style={styles.empty}>{t('groupsEmpty')}</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyCardText}>{t('groupsEmpty')}</Text>
+          <Pressable
+            style={styles.emptyCardBtn}
+            onPress={() => router.push('/explore/groups' as never)}
+            accessibilityRole="button"
+          >
+            <Text style={styles.emptyCardBtnText}>{t('newGroupBtn')}</Text>
+          </Pressable>
+        </View>
       ) : (
         <FlashList
           data={rows}
@@ -72,4 +95,15 @@ const styles = StyleSheet.create({
   sub: { fontSize: 13, color: '#6B7685', marginTop: 2 },
   count: { fontSize: 13, color: '#6B7685' },
   empty: { textAlign: 'center', marginTop: 48, color: '#6B7685', fontSize: 15 },
+  emptyCard: {
+    backgroundColor: '#fff', borderRadius: 12, padding: 24,
+    alignItems: 'center', gap: 12, margin: 16,
+  },
+  emptyCardText: { fontSize: 14, color: '#6B7685', textAlign: 'center' },
+  emptyCardBtn: {
+    backgroundColor: '#0B7BFF', borderRadius: 8,
+    paddingHorizontal: 20, paddingVertical: 10,
+  },
+  emptyCardBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  headerBtn: { color: '#0B7BFF', fontWeight: '700', fontSize: 15 },
 });
