@@ -53,14 +53,16 @@ export default function NotificationsScreen() {
         }}
       />
 
-      <Pressable
-        style={styles.pinned}
-        onPress={() => router.push('/notifications/partner-requests' as never)}
-        accessibilityRole="button"
-      >
-        <Text style={styles.pinnedLabel}>{t('partnerRequests')}</Text>
-        <Text style={styles.pinnedCount}>{t('pendingCount', { count: pending })}</Text>
-      </Pressable>
+      {pending > 0 && (
+        <Pressable
+          style={styles.pinned}
+          onPress={() => router.push('/notifications/partner-requests' as never)}
+          accessibilityRole="button"
+        >
+          <Text style={styles.pinnedLabel}>{t('partnerRequests')}</Text>
+          <Text style={styles.pinnedCount}>{t('pendingCount', { count: pending })}</Text>
+        </Pressable>
+      )}
 
       {list.isLoading ? (
         <ActivityIndicator color="#0B1F3A" style={{ marginTop: 32 }} />
