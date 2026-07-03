@@ -85,8 +85,7 @@ export default function ChatListScreen() {
         key={tab}
         filters={{ members: { $in: [uid] }, archived: tab === 'archived' }}
         sort={{ last_message_at: -1 }}
-        additionalFlatListProps={{ renderItem: Preview }}
-        EmptyStateIndicator={ChatEmptyState}
+        additionalFlatListProps={{ renderItem: Preview, ListEmptyComponent: ChatEmptyState }}
       />
     </View>
   );
