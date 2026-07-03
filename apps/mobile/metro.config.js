@@ -27,6 +27,12 @@ const resolveSingleton = (name) => path.resolve(projectRoot, 'node_modules', nam
 
 const defaultResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // stream-chat-expo pulls in react-native native codegen internals that don't
+  // exist on web. Redirect them to a no-op stub so the web bundle doesn't fail.
+  if (platform === 'web' && moduleName.includes('codegenNativeComponent')) {
+    return { type: 'sourceFile', filePath: path.resolve(projectRoot, 'stubs/nativeComponent.web.js') };
+  }
+
   const singleton = SINGLETONS.find((m) => moduleName === m || moduleName.startsWith(m + '/'));
   if (singleton) {
     const rest = moduleName.slice(singleton.length); // '' or '/subpath'
