@@ -33,8 +33,14 @@ Deno.serve(async (req) => {
   if (userErr || !user) return new Response('Unauthorized', { status: 401 });
 
   // Only allow social providers — reject OTP users so they still go through complete-account.
+  // Check both `provider` (original signup method) and `providers` (all linked identities),
+  // because Supabase auto-linking keeps provider='email' even after Apple/Google is linked.
+  const providers: string[] = (user.app_metadata?.providers as string[] | undefined) ?? [];
   const provider = (user.app_metadata?.provider as string | undefined) ?? '';
-  if (!['apple', 'google'].includes(provider)) {
+  const hasSocialProvider =
+    ['apple', 'google'].includes(provider) ||
+    providers.some((p) => ['apple', 'google'].includes(p));
+  if (!hasSocialProvider) {
     return json({ error: 'not_social_provider' }, 403);
   }
 
