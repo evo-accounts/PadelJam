@@ -35,19 +35,24 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.quickRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.quickScroll}
+        style={styles.quickScrollWrapper}
+      >
         {QUICK_ACTIONS.map((a) => (
           <Pressable
             key={a.key}
-            style={styles.quick}
+            style={styles.quickCard}
             onPress={() => router.push(a.href as never)}
             accessibilityRole="button"
           >
-            <SymbolView name={{ ios: a.icon, android: a.android, web: a.android }} size={26} tintColor="#0B7BFF" />
+            <SymbolView name={{ ios: a.icon, android: a.android, web: a.android }} size={24} tintColor="#0B7BFF" />
             <Text style={styles.quickLabel}>{t(a.key)}</Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       {loading ? (
         <ActivityIndicator color="#0B1F3A" style={{ marginTop: 40 }} />
@@ -171,8 +176,22 @@ function EmptyState({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F9FC' },
   content: { padding: 16, gap: 8, paddingBottom: 40 },
-  quickRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  quick: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 12 },
+  quickScrollWrapper: { marginHorizontal: -16, marginBottom: 8 },
+  quickScroll: { paddingHorizontal: 16, gap: 10 },
+  quickCard: {
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    minWidth: 80,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
   quickLabel: { fontSize: 11, color: '#0B1F3A', fontWeight: '600', textAlign: 'center' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 8 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: '#0B1F3A', marginTop: 16, marginBottom: 8 },
