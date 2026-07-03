@@ -1,6 +1,7 @@
 import { useStreamToken } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import { SymbolView } from 'expo-symbols';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -30,8 +31,18 @@ export default function ChatListScreen() {
         options={{
           title: t('title'),
           headerRight: () => (
-            <Pressable onPress={() => router.push('/chat/new' as never)} accessibilityRole="button" hitSlop={12}>
-              <Text style={styles.new}>{t('newChat')}</Text>
+            <Pressable
+              onPress={() => router.push('/chat/new' as never)}
+              accessibilityRole="button"
+              accessibilityLabel={t('newChat')}
+              hitSlop={12}
+              style={{ paddingHorizontal: 8 }}
+            >
+              <SymbolView
+                name={{ ios: 'square.and.pencil', android: 'edit', web: 'edit' }}
+                tintColor="#0B7BFF"
+                size={22}
+              />
             </Pressable>
           ),
         }}
@@ -63,7 +74,6 @@ export default function ChatListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  new: { color: '#0B7BFF', fontWeight: '700', fontSize: 15, paddingHorizontal: 8 },
   tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: '#0B7BFF' },
