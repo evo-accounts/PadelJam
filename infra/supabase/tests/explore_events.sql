@@ -40,21 +40,21 @@ begin
   perform set_config('role','authenticated',true);
   perform set_config('request.jwt.claims','{"sub":"e3000002-0000-0000-0000-000000000002","role":"authenticated"}',true);
 
-  if not exists (select 1 from explore_events(50,0) where id = ev_up) then
+  if not exists (select 1 from explore_events(50,0) where (event).id = ev_up) then
     raise exception using errcode='PT001', message='upcoming public event not surfaced';
   end if;
-  if exists (select 1 from explore_events(50,0) where id = ev_past) then
+  if exists (select 1 from explore_events(50,0) where (event).id = ev_past) then
     raise exception using errcode='PT001', message='past event surfaced';
   end if;
-  if exists (select 1 from explore_events(50,0) where id = ev_priv) then
+  if exists (select 1 from explore_events(50,0) where (event).id = ev_priv) then
     raise exception using errcode='PT001', message='private event surfaced';
   end if;
-  if exists (select 1 from explore_events(50,0) where id = ev_done) then
+  if exists (select 1 from explore_events(50,0) where (event).id = ev_done) then
     raise exception using errcode='PT001', message='completed event surfaced';
   end if;
 
   perform set_config('request.jwt.claims','{"sub":"e3000001-0000-0000-0000-000000000001","role":"authenticated"}',true);
-  if exists (select 1 from explore_events(50,0) where id = ev_up) then
+  if exists (select 1 from explore_events(50,0) where (event).id = ev_up) then
     raise exception using errcode='PT001', message='own event surfaced to organizer';
   end if;
 
@@ -62,7 +62,7 @@ begin
   insert into event_participants (event_id, user_id, status) values (ev_up,'e3000002-0000-0000-0000-000000000002','confirmed') on conflict do nothing;
   perform set_config('role','authenticated',true);
   perform set_config('request.jwt.claims','{"sub":"e3000002-0000-0000-0000-000000000002","role":"authenticated"}',true);
-  if exists (select 1 from explore_events(50,0) where id = ev_up) then
+  if exists (select 1 from explore_events(50,0) where (event).id = ev_up) then
     raise exception using errcode='PT001', message='joined event surfaced';
   end if;
 
