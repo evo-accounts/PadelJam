@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
+import { unregisterForPush } from '@/lib/push';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
 
 export default function DeleteAccountScreen() {
@@ -22,6 +23,11 @@ export default function DeleteAccountScreen() {
       if (!session) {
         setError(t('deleteFailed'));
         return;
+      }
+      try {
+        await unregisterForPush();
+      } catch {
+        /* best-effort; the migration also purges tokens server-side */
       }
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
         method: 'POST',

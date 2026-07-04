@@ -37,3 +37,59 @@ begin
   raise notice 'OK account_deletion';
 end $$;
 rollback;
+
+-- soft_delete_account: push tokens + notifications are purged; participation in a
+-- completed event survives (anonymized), participation in a scheduled event is removed.
+begin;
+insert into auth.users (id, instance_id, aud, role, email) values
+  ('fd000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','delown@x.com'),
+  ('fd000002-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','delme@x.com') on conflict do nothing;
+insert into profiles (id, email, phone, full_name) values
+  ('fd000001-0000-0000-0000-000000000001','delown@x.com','+351904000001','DelOwner'),
+  ('fd000002-0000-0000-0000-000000000002','delme@x.com','+351904000002','DelMe') on conflict do nothing;
+
+-- Deletee has a push token and a notification.
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"fd000002-0000-0000-0000-000000000002","role":"authenticated"}';
+select register_push_token('ExponentPushToken[deltest]', 'ios');
+reset role;
+insert into notifications (user_id, type) values ('fd000002-0000-0000-0000-000000000002','follow');
+
+-- One completed and one scheduled private event owned by the other user; deletee confirmed in both.
+insert into events (id, organizer_id, event_type, specification, scoring_mode, num_courts,
+                    starts_at, duration_minutes, organizer_role, is_private, name, status)
+values
+  ('ed000001-0000-0000-0000-000000000001','fd000001-0000-0000-0000-000000000001','americano','classic','classic',1,
+   now() - interval '7 days', 90, 'organizing_and_playing', true, 'DelDone', 'completed'),
+  ('ed000002-0000-0000-0000-000000000002','fd000001-0000-0000-0000-000000000001','americano','classic','classic',1,
+   now() + interval '7 days', 90, 'organizing_and_playing', true, 'DelNext', 'scheduled');
+insert into event_participants (event_id, user_id, status) values
+  ('ed000001-0000-0000-0000-000000000001','fd000002-0000-0000-0000-000000000002','confirmed'),
+  ('ed000002-0000-0000-0000-000000000002','fd000002-0000-0000-0000-000000000002','confirmed');
+
+-- Run the deletion as the deletee.
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"fd000002-0000-0000-0000-000000000002","role":"authenticated"}';
+select soft_delete_account();
+reset role;
+
+do $$
+begin
+  if exists (select 1 from push_tokens where user_id = 'fd000002-0000-0000-0000-000000000002') then
+    raise exception using errcode='PT001', message='push tokens not purged'; end if;
+  if exists (select 1 from notifications where user_id = 'fd000002-0000-0000-0000-000000000002') then
+    raise exception using errcode='PT001', message='notifications not purged'; end if;
+  if not exists (select 1 from event_participants
+                  where event_id = 'ed000001-0000-0000-0000-000000000001'
+                    and user_id = 'fd000002-0000-0000-0000-000000000002') then
+    raise exception using errcode='PT001', message='completed-event participation must survive'; end if;
+  if exists (select 1 from event_participants
+              where event_id = 'ed000002-0000-0000-0000-000000000002'
+                and user_id = 'fd000002-0000-0000-0000-000000000002') then
+    raise exception using errcode='PT001', message='scheduled-event participation must be removed'; end if;
+  if (select full_name from profiles where id = 'fd000002-0000-0000-0000-000000000002') <> 'Deleted user' then
+    raise exception using errcode='PT001', message='profile not anonymized'; end if;
+
+  raise notice 'OK account_deletion_push_and_participation';
+end $$;
+rollback;
