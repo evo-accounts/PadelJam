@@ -1,9 +1,16 @@
-// Completes a new account: attaches the SECOND identifier (phone if the user started via email, or
-// email if via phone) + a password to the existing auth.users row, then creates the profiles row
-// SERVER-SIDE from the identifiers actually persisted on auth.users. Doing profile creation here
-// (not on the client) prevents a client from inserting a profile with an email/phone that isn't
-// theirs (profiles is globally readable). The secondary identifier is set lazily (unconfirmed) per
-// Padel Jam AU-07. Requires the service-role key, so this must run server-side only.
+// Completes a new account: sets the password (admin API, so the weak-password checks are enforced
+// server-side), validates the display name, and creates the profiles row SERVER-SIDE from the
+// identifiers actually persisted on auth.users. Doing profile creation here (not on the client)
+// prevents a client from inserting a profile with an email/phone that isn't theirs (profiles is
+// globally readable).
+//
+// The SECONDARY identifier (phone if the user started via email, or email if via phone) is NOT
+// attached here (M12 superseded the AU-07 "lazy" attach): the client verifies it as the signed-in
+// user via GoTrue's native change flows (updateUser -> verifyOtp type email_change/phone_change),
+// and the sync_profile_contact trigger (migration 0058) lands the verified value on the profile.
+// The body still carries the secondary so we can 409 early on an identifier owned by another
+// profile — pure UX (fast feedback before an OTP is sent); ownership is enforced by verification.
+// Requires the service-role key, so this must run server-side only.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const E164 = /^\+[1-9]\d{6,14}$/;
@@ -43,10 +50,9 @@ Deno.serve(async (req) => {
 
   const admin = createClient(url, serviceKey);
 
-  // Refuse identifiers already owned by ANOTHER account (prevents squatting a
-  // victim's email/phone as an unverified secondary identifier — AU-07 keeps the
-  // identifier unconfirmed, so without this check the attach would poison
-  // social_email_conflict() for the rightful owner).
+  // Refuse identifiers already owned by ANOTHER profile. Verification (the OTP round-trip the
+  // client runs after this call) is what enforces ownership; this pre-check only surfaces the
+  // conflict before a code is sent — better UX and no SMS spent on a doomed attempt.
   if (email) {
     const { count, error: emailCheckErr } = await admin
       .from('profiles')
@@ -57,21 +63,20 @@ Deno.serve(async (req) => {
     if ((count ?? 0) > 0) return json({ error: 'email_taken' }, 409);
   }
   if (phone) {
+    // profiles.phone holds GoTrue's format (no leading '+', copied from auth.users), while the
+    // client sends E164 — match both so the check isn't defeated by the representation.
     const { count, error: phoneCheckErr } = await admin
       .from('profiles')
       .select('id', { count: 'exact', head: true })
-      .eq('phone', phone)
+      .in('phone', [phone, phone.replace(/^\+/, '')])
       .neq('id', user.id);
     if (phoneCheckErr) return json({ error: 'identifier_check_failed' }, 500);
     if ((count ?? 0) > 0) return json({ error: 'phone_taken' }, 409);
   }
 
-  // 1) Attach secondary identifier + password to the existing user.
-  const { error: updateErr } = await admin.auth.admin.updateUserById(user.id, {
-    ...(phone ? { phone } : {}),
-    ...(email ? { email } : {}),
-    password,
-  });
+  // 1) Set the password on the existing user. The secondary identifier is deliberately NOT
+  //    attached — it reaches auth.users only through the client's verified change flow.
+  const { error: updateErr } = await admin.auth.admin.updateUserById(user.id, { password });
   if (updateErr) return json({ error: updateErr.message }, 400);
 
   // 2) Read the authoritative identifiers now on the user (server-verified, not client-supplied).
@@ -79,14 +84,18 @@ Deno.serve(async (req) => {
   if (fetchErr || !fresh.user) return json({ error: 'user_fetch_failed' }, 400);
   const authEmail = fresh.user.email;
   const authPhone = fresh.user.phone;
-  if (!authEmail || !authPhone) return json({ error: 'missing_identifier' }, 400);
+  // The verified PRIMARY identifier must exist; the secondary may still be pending verification.
+  if (!authEmail && !authPhone) return json({ error: 'missing_identifier' }, 400);
 
-  // 3) Create the profile from server-trusted values (service role bypasses RLS).
+  // 3) Create the profile from server-trusted values (service role bypasses RLS). The missing
+  //    secondary stays NULL until sync_profile_contact copies it over post-verification.
   const { error: profileErr } = await admin.from('profiles').upsert(
     {
       id: user.id,
-      email: authEmail,
-      phone: authPhone,
+      // `|| null` (not ??): GoTrue reports a missing phone as "" — an empty string would
+      // collide on the UNIQUE constraint as soon as a second user skips the same secondary.
+      email: authEmail || null,
+      phone: authPhone || null,
       full_name: full_name.trim().replace(/\s+/g, ' '),
     },
     { onConflict: 'id' },
