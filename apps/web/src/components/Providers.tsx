@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import type { i18n as I18n } from 'i18next';
 import { createI18n } from '@padel/i18n';
+import { useAuthCacheReset } from '@padel/api';
 import { SessionProvider } from '@padel/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { TypedClient } from '@padel/db';
@@ -15,6 +16,11 @@ import { resolveLocale } from '@/lib/locale';
 const client = supabase as unknown as TypedClient;
 
 const queryClient = new QueryClient();
+
+function AuthCacheReset() {
+  useAuthCacheReset();
+  return null;
+}
 
 export function Providers({ children }: { children: ReactNode }) {
   const [i18n, setI18n] = useState<I18n | null>(null);
@@ -53,7 +59,10 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
-        <SessionProvider client={client}>{children}</SessionProvider>
+        <SessionProvider client={client}>
+          <AuthCacheReset />
+          {children}
+        </SessionProvider>
       </QueryClientProvider>
     </I18nextProvider>
   );

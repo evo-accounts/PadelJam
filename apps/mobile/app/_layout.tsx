@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthCacheReset } from '@padel/api';
 import { SessionProvider } from '@padel/auth';
 import { createI18n } from '@padel/i18n';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -131,6 +132,7 @@ function Boot() {
   const [ready, setReady] = useState(false);
 
   usePushTapRouting();
+  useAuthCacheReset();
 
   useEffect(() => {
     let cancelled = false;
