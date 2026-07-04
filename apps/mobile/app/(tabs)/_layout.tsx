@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNotificationsRealtime } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
@@ -9,6 +10,7 @@ import { ChatHeaderButton } from '@/components/chat/ChatHeaderButton';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { registerForPush } from '@/lib/push';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -16,6 +18,13 @@ export default function TabLayout() {
   const router = useRouter();
 
   useNotificationsRealtime();
+
+  // (tabs) only mounts for an authenticated user. Registering here (not just in
+  // the cold-start Boot path) covers fresh sign-ins within a running app.
+  // registerForPush is idempotent and never throws.
+  useEffect(() => {
+    void registerForPush();
+  }, []);
 
   return (
     <Tabs
