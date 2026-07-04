@@ -1,6 +1,6 @@
 import { primaryCredential, signInWithPassword, useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { formatDisplayName } from '@padel/utils';
+import { formatDisplayName, isE164 } from '@padel/utils';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -56,6 +56,12 @@ export default function CreateAccountScreen() {
     const secondaryValue = secondary.trim();
     if (!name || !secondaryValue || !password) return;
     if (!agreed) return;
+    // The phone must be E164 (+countrycode…). Without this guard a local-format number
+    // fails isE164 in detectKind, gets sent as an EMAIL, and surfaces as an opaque 400.
+    if (secondaryKind === 'phone' && !isE164(secondaryValue)) {
+      setError(t('invalid_phone'));
+      return;
+    }
 
     setBusy(true);
     setError(null);
@@ -92,10 +98,12 @@ export default function CreateAccountScreen() {
         } catch {
           // Non-JSON error body — fall through to the generic failure code below.
         }
-        if (code === 'email_taken' || code === 'phone_taken') {
+        if (code === 'email_taken' || code === 'phone_taken' || code === 'invalid_phone') {
           setError(t(code));
         } else {
-          setError(`complete-account-failed:${resp.status}`);
+          // Include the server's error code so real causes (e.g. an identifier already
+          // registered at the auth level) are visible instead of a bare status.
+          setError(`complete-account-failed:${resp.status}${code ? `:${code}` : ''}`);
         }
         return;
       }
