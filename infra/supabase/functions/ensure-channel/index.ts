@@ -55,7 +55,6 @@ Deno.serve(async (req) => {
     const channel = server.channel(kind, id, {
       name,
       created_by_id: user.id,
-      members: memberIds,
     });
     await channel.create(); // get-or-create
     await channel.update({ name });
@@ -63,12 +62,21 @@ Deno.serve(async (req) => {
     // Full reconcile. Note: add + remove are two non-atomic Stream calls — if removeMembers
     // throws after addMembers succeeds, the channel is left half-reconciled; lazy
     // reconcile-on-open self-heals on the next open (a trigger→webhook upgrade would fix this).
-    const res = await channel.queryMembers({});
-    const current = res.members.map((m) => m.user_id).filter((x): x is string => !!x);
-    const toAdd = memberIds.filter((x) => !current.includes(x));
-    const toRemove = current.filter((x) => !memberIds.includes(x));
-    if (toAdd.length) await channel.addMembers(toAdd);
-    if (toRemove.length) await channel.removeMembers(toRemove);
+    // Page through ALL current members (Stream returns max 100 per query).
+    const current: string[] = [];
+    for (let offset = 0; ; offset += 100) {
+      const page = await channel.queryMembers({}, { created_at: 1 }, { limit: 100, offset });
+      const ids = page.members.map((m) => m.user_id).filter((x): x is string => !!x);
+      current.push(...ids);
+      if (page.members.length < 100) break;
+    }
+    const currentSet = new Set(current);
+    const memberSet = new Set(memberIds);
+    const toAdd = memberIds.filter((x) => !currentSet.has(x));
+    const toRemove = current.filter((x) => !memberSet.has(x));
+    // Stream caps member mutations at 100 per call; chunk both directions.
+    for (let i = 0; i < toAdd.length; i += 100) await channel.addMembers(toAdd.slice(i, i + 100));
+    for (let i = 0; i < toRemove.length; i += 100) await channel.removeMembers(toRemove.slice(i, i + 100));
 
     return json({ cid: channel.cid });
   } catch (e) {
