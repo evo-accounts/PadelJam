@@ -43,6 +43,27 @@ Deno.serve(async (req) => {
 
   const admin = createClient(url, serviceKey);
 
+  // Refuse identifiers already owned by ANOTHER account (prevents squatting a
+  // victim's email/phone as an unverified secondary identifier — AU-07 keeps the
+  // identifier unconfirmed, so without this check the attach would poison
+  // social_email_conflict() for the rightful owner).
+  if (email) {
+    const { count } = await admin
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .ilike('email', email.replaceAll('%', '\\%').replaceAll('_', '\\_'))
+      .neq('id', user.id);
+    if ((count ?? 0) > 0) return json({ error: 'email_taken' }, 409);
+  }
+  if (phone) {
+    const { count } = await admin
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('phone', phone)
+      .neq('id', user.id);
+    if ((count ?? 0) > 0) return json({ error: 'phone_taken' }, 409);
+  }
+
   // 1) Attach secondary identifier + password to the existing user.
   const { error: updateErr } = await admin.auth.admin.updateUserById(user.id, {
     ...(phone ? { phone } : {}),

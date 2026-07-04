@@ -85,7 +85,18 @@ export default function CreateAccountScreen() {
       });
 
       if (!resp.ok) {
-        setError(`complete-account-failed:${resp.status}`);
+        let code: string | undefined;
+        try {
+          const body = (await resp.json()) as { error?: string };
+          code = body.error;
+        } catch {
+          // Non-JSON error body — fall through to the generic failure code below.
+        }
+        if (code === 'email_taken' || code === 'phone_taken') {
+          setError(t(code));
+        } else {
+          setError(`complete-account-failed:${resp.status}`);
+        }
         return;
       }
 
