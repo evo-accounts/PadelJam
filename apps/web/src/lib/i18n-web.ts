@@ -22,6 +22,12 @@ const webAuth = {
     createAccount: 'Criar conta',
     cooldown: 'Reenviar em {{seconds}}s',
     locked: 'Demasiadas tentativas. Tente de outra forma.',
+    email_taken: 'Este email já está associado a outra conta.',
+    phone_taken: 'Este número de telemóvel já está associado a outra conta.',
+    identifier_check_failed: 'Não foi possível verificar os seus dados. Tente novamente.',
+    password_too_short: 'A palavra-passe deve ter pelo menos 8 caracteres.',
+    invalid_phone: 'Introduza um número de telemóvel válido no formato internacional (+…).',
+    full_name_required: 'Introduza o seu nome completo.',
   },
   'pt-BR': {
     identifierLabel: 'E-mail ou celular',
@@ -39,6 +45,12 @@ const webAuth = {
     createAccount: 'Criar conta',
     cooldown: 'Reenviar em {{seconds}}s',
     locked: 'Muitas tentativas. Tente de outra forma.',
+    email_taken: 'Este e-mail já está vinculado a outra conta.',
+    phone_taken: 'Este número de celular já está vinculado a outra conta.',
+    identifier_check_failed: 'Não foi possível verificar seus dados. Tente novamente.',
+    password_too_short: 'A senha deve ter pelo menos 8 caracteres.',
+    invalid_phone: 'Informe um número de celular válido no formato internacional (+…).',
+    full_name_required: 'Informe seu nome completo.',
   },
   en: {
     identifierLabel: 'Email or phone',
@@ -56,6 +68,12 @@ const webAuth = {
     createAccount: 'Create account',
     cooldown: 'Resend in {{seconds}}s',
     locked: 'Too many attempts. Try another way.',
+    email_taken: 'This email is already linked to another account.',
+    phone_taken: 'This phone number is already linked to another account.',
+    identifier_check_failed: 'We could not verify your details. Please try again.',
+    password_too_short: 'Password must be at least 8 characters.',
+    invalid_phone: 'Enter a valid phone number in international format (+…).',
+    full_name_required: 'Enter your full name.',
   },
 } as const;
 

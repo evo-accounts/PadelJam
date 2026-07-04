@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@padel/i18n';
 import { isE164, formatDisplayName } from '@padel/utils';
 import {
   startEmailOtp,
@@ -29,8 +30,20 @@ const client = supabase as unknown as TypedClient;
 
 const detectKind = (value: string): IdentifierKind => (isE164(value.trim()) ? 'phone' : 'email');
 
+// Error codes the complete-account Edge Function returns that have user-facing
+// copy in the web `auth` namespace (registered in i18n-web.ts).
+const COMPLETE_ACCOUNT_ERROR_CODES = new Set([
+  'email_taken',
+  'phone_taken',
+  'identifier_check_failed',
+  'password_too_short',
+  'invalid_phone',
+  'full_name_required',
+]);
+
 export function useAuthFlow() {
   const router = useRouter();
+  const { t } = useT('auth');
 
   const [step, setStep] = useState<AuthStep>('identifier');
   const [identifier, setIdentifier] = useState('');
@@ -159,7 +172,18 @@ export function useAuthFlow() {
         });
 
         if (!resp.ok) {
-          setError(`complete-account-failed:${resp.status}`);
+          let code: string | undefined;
+          try {
+            const body = (await resp.json()) as { error?: string };
+            code = body.error;
+          } catch {
+            // Non-JSON error body — fall through to the generic failure code below.
+          }
+          setError(
+            code && COMPLETE_ACCOUNT_ERROR_CODES.has(code)
+              ? t(code)
+              : `complete-account-failed:${resp.status}`,
+          );
           return;
         }
 
@@ -178,7 +202,7 @@ export function useAuthFlow() {
         setBusy(false);
       }
     },
-    [identifier, kind, router],
+    [identifier, kind, router, t],
   );
 
   const backToIdentifier = useCallback(() => {
