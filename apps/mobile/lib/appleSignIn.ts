@@ -41,7 +41,12 @@ export async function runAppleSignIn(): Promise<void> {
     }
     if (!cred.identityToken) throw new Error('oauth_failed');
     const { error } = await signInWithAppleIdToken(supabase, cred.identityToken, rawNonce);
-    if (error) throw new Error(isIdentityConflict(error) ? 'email_conflict' : 'oauth_failed');
+    if (error) {
+      // Surface the raw GoTrue rejection in the dev console — the UI copy collapses
+      // everything to oauth_failed, which hides config errors (audience/secret/nonce).
+      console.warn('[apple-sign-in] token exchange failed:', error.status, error.message);
+      throw new Error(isIdentityConflict(error) ? 'email_conflict' : 'oauth_failed');
+    }
 
     // Provision the profile server-side from Apple's verified identity.
     // Pass the credential name (only populated on first sign-in by Apple).
