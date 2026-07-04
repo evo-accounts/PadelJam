@@ -4,6 +4,7 @@ import { useAuthFlow } from '@/lib/useAuthFlow';
 import { IdentifierStep } from '@/components/auth/IdentifierStep';
 import { OtpStep } from '@/components/auth/OtpStep';
 import { CreateAccountStep } from '@/components/auth/CreateAccountStep';
+import { VerifySecondaryStep } from '@/components/auth/VerifySecondaryStep';
 
 export default function AuthPage() {
   const flow = useAuthFlow();
@@ -13,6 +14,7 @@ export default function AuthPage() {
       {flow.step === 'identifier' ? <IdentifierStep flow={flow} /> : null}
       {flow.step === 'otp' ? <OtpStep flow={flow} /> : null}
       {flow.step === 'createAccount' ? <CreateAccountStep flow={flow} /> : null}
+      {flow.step === 'verifySecondary' ? <VerifySecondaryStep flow={flow} /> : null}
     </main>
   );
 }

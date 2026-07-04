@@ -32,3 +32,7 @@ export const verifyPhoneOtp = (c: TypedClient, phone: string, token: string) =>
 export const startEmailChange = (c: TypedClient, newEmail: string) => c.auth.updateUser({ email: newEmail });
 export const verifyEmailChange = (c: TypedClient, newEmail: string, token: string) =>
   c.auth.verifyOtp({ email: newEmail, token, type: 'email_change' });
+
+export const startPhoneChange = (c: TypedClient, newPhone: string) => c.auth.updateUser({ phone: newPhone });
+export const verifyPhoneChange = (c: TypedClient, newPhone: string, token: string) =>
+  c.auth.verifyOtp({ phone: newPhone, token, type: 'phone_change' });

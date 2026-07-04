@@ -1,8 +1,18 @@
-import { primaryCredential, signInWithPassword, useSession } from '@padel/auth';
+import {
+  initialOtpState,
+  otpReducer,
+  primaryCredential,
+  signInWithPassword,
+  startEmailChange,
+  startPhoneChange,
+  useSession,
+  verifyEmailChange,
+  verifyPhoneChange,
+} from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { formatDisplayName, isE164 } from '@padel/utils';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -22,6 +32,8 @@ import { SUPABASE_URL, supabase } from '@/lib/supabase';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
+
+const ONBOARDING_ROUTE = '/(onboarding)/location';
 
 export default function CreateAccountScreen() {
   const { t } = useT('auth');
@@ -43,17 +55,61 @@ export default function CreateAccountScreen() {
   // For social sign-up the verified identifier is the email, so collect the phone.
   const secondaryKind = isSocial ? 'phone' : kind === 'phone' ? 'email' : 'phone';
 
+  const [phase, setPhase] = useState<'form' | 'verify'>('form');
   const [fullName, setFullName] = useState(socialName);
   const [secondary, setSecondary] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
 
+  // Resend cooldown / attempt lockout for the secondary-identifier OTP (verify phase).
+  const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (otpState.cooldownUntil <= now) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [otpState.cooldownUntil, now]);
+  const cooldownRemaining = Math.max(0, Math.ceil((otpState.cooldownUntil - now) / 1000));
+
+  const secondaryValue = secondary.trim();
+  const secKind = detectKind(secondaryValue);
+
+  // GoTrue rejects a change to an identifier already registered on auth.users (the profiles
+  // pre-check in complete-account can't see auth-only users) — reuse the "taken" copy for those.
+  const startChangeErrorKey = (err: { code?: string } | null): string => {
+    if (err?.code === 'email_exists') return 'email_taken';
+    if (err?.code === 'phone_exists') return 'phone_taken';
+    return 'sendCodeFailed';
+  };
+
+  const startSecondaryChange = async (): Promise<'sent' | 'applied' | 'failed'> => {
+    const { data, error: changeErr } =
+      secKind === 'phone'
+        ? await startPhoneChange(supabase, secondaryValue)
+        : await startEmailChange(supabase, secondaryValue);
+    if (changeErr) {
+      setError(t(startChangeErrorKey(changeErr)));
+      return 'failed';
+    }
+    // If the server has confirmations disabled, GoTrue applies the change immediately (the
+    // returned user already carries the new identifier — phone in GoTrue format, no '+').
+    // There is no code in flight, so showing the verify step would dead-end.
+    const applied =
+      secKind === 'phone'
+        ? data.user?.phone === secondaryValue.replace(/^\+/, '')
+        : data.user?.email?.toLowerCase() === secondaryValue.toLowerCase();
+    if (applied) return 'applied';
+    dispatch({ type: 'sent', at: Date.now() });
+    setNow(Date.now());
+    return 'sent';
+  };
+
   const submit = async () => {
     if (busy) return;
     const name = fullName.trim();
-    const secondaryValue = secondary.trim();
     if (!name || !secondaryValue || !password) return;
     if (!agreed) return;
     // The phone must be E164 (+countrycode…). Without this guard a local-format number
@@ -74,13 +130,13 @@ export default function CreateAccountScreen() {
         return;
       }
 
-      const secKind = detectKind(secondaryValue);
       const secondaryBody =
         secKind === 'phone' ? { phone: secondaryValue } : { email: secondaryValue };
 
-      // The Edge Function attaches the secondary identifier + password AND creates the profiles row
-      // server-side from the identifiers it persists on auth.users — the client never writes its own
-      // identity into the globally-readable profiles table.
+      // The Edge Function sets the password AND creates the profiles row server-side from the
+      // identifiers persisted on auth.users — the client never writes its own identity into the
+      // globally-readable profiles table. The secondary identifier goes along only for the fast
+      // already-taken pre-check; it is attached below via the VERIFIED change flow, never here.
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/complete-account`, {
         method: 'POST',
         headers: {
@@ -127,11 +183,118 @@ export default function CreateAccountScreen() {
         }
       }
 
-      router.replace('/(onboarding)/location');
+      // Verify the secondary identifier as the signed-in user: updateUser sends the OTP, the
+      // verify phase collects it. Enter the phase even when the send fails — the account already
+      // exists, so the user retries (resend) or skips from there instead of resubmitting the form.
+      if ((await startSecondaryChange()) === 'applied') {
+        router.replace(ONBOARDING_ROUTE);
+        return;
+      }
+      setPhase('verify');
     } finally {
       setBusy(false);
     }
   };
+
+  const verifySecondary = async () => {
+    if (busy || otpState.locked || code.length < 6) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { error: verifyError } =
+        secKind === 'phone'
+          ? await verifyPhoneChange(supabase, secondaryValue, code)
+          : await verifyEmailChange(supabase, secondaryValue, code);
+      if (verifyError) {
+        dispatch({ type: 'fail' });
+        setError(verifyError.message);
+        return;
+      }
+      router.replace(ONBOARDING_ROUTE);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    if (busy || cooldownRemaining > 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if ((await startSecondaryChange()) === 'applied') router.replace(ONBOARDING_ROUTE);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // The secondary is optional (profiles.email/phone are nullable): skipping leaves the profile
+  // with just the verified primary; the user can add the other identifier later in settings.
+  const skip = () => {
+    if (busy) return;
+    router.replace(ONBOARDING_ROUTE);
+  };
+
+  if (phase === 'verify') {
+    return (
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.inner,
+            { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>
+            {secKind === 'phone' ? t('verifyPhoneTitle') : t('verifyEmailTitle')}
+          </Text>
+          <Text style={styles.help}>{t('otpHelp', { identifier: secondaryValue })}</Text>
+
+          <Text style={styles.label}>{t('otpLabel')}</Text>
+          <TextInput
+            style={styles.codeInput}
+            value={code}
+            onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+            placeholder={t('otpPlaceholder')}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={6}
+            editable={!busy && !otpState.locked}
+            autoFocus
+          />
+
+          {otpState.locked ? <Text style={styles.error}>{t('locked')}</Text> : null}
+          {error && !otpState.locked ? <Text style={styles.error}>{error}</Text> : null}
+
+          <Pressable
+            style={[styles.button, (busy || otpState.locked || code.length < 6) && styles.buttonDisabled]}
+            onPress={verifySecondary}
+            disabled={busy || otpState.locked || code.length < 6}
+            accessibilityRole="button"
+          >
+            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('verify')}</Text>}
+          </Pressable>
+
+          <Pressable
+            style={styles.linkButton}
+            onPress={resend}
+            disabled={busy || cooldownRemaining > 0}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.link, cooldownRemaining > 0 && styles.linkMuted]}>
+              {cooldownRemaining > 0 ? t('cooldown', { seconds: cooldownRemaining }) : t('resend')}
+            </Text>
+          </Pressable>
+
+          <Pressable style={styles.linkButton} onPress={skip} disabled={busy} accessibilityRole="button">
+            <Text style={styles.link}>{t('skipForNow')}</Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -232,6 +395,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   inner: { paddingHorizontal: 24 },
   title: { fontSize: 26, fontWeight: '700', marginBottom: 32 },
+  help: { fontSize: 14, color: '#444', marginBottom: 32, marginTop: -20 },
   label: { fontSize: 14, color: '#444', marginBottom: 8 },
   input: {
     borderWidth: 1,
@@ -242,11 +406,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
+  codeInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 24,
+    letterSpacing: 8,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
   inputDisabled: { backgroundColor: '#F0F3F8', color: '#6B7685' },
   error: { color: '#c0392b', marginBottom: 16 },
   button: { backgroundColor: '#0B1F3A', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  linkButton: { paddingVertical: 14, alignItems: 'center' },
+  link: { color: '#0B1F3A', fontSize: 15, fontWeight: '600' },
+  linkMuted: { color: '#999' },
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 16, marginBottom: 4 },
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#9AA7B6', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   checkboxOn: { backgroundColor: '#0B7BFF', borderColor: '#0B7BFF' },

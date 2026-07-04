@@ -277,7 +277,10 @@ content_path = "./supabase/templates/email_change.html"
 # Allow/disallow new user signups via SMS to your project.
 enable_signup = true
 # If enabled, users need to confirm their phone number before signing in.
-enable_confirmations = false
+# Kept ON so a phone attached via updateUser (secondary-identifier verification at account
+# completion, M12) requires the phone_change OTP instead of being applied unverified. The
+# sign-in OTP flow is unaffected (it always exchanges a code). Production must match.
+enable_confirmations = true
 # Template for sending OTP to users
 template = "Your code is {{ `{{ .Code }}` }}"
 # Controls the minimum amount of time that must pass before sending another sms otp.

@@ -8,6 +8,10 @@ import {
   startPhoneOtp,
   verifyEmailOtp,
   verifyPhoneOtp,
+  startEmailChange,
+  startPhoneChange,
+  verifyEmailChange,
+  verifyPhoneChange,
   otpReducer,
   initialOtpState,
   MAX_ATTEMPTS,
@@ -16,7 +20,7 @@ import {
 import type { TypedClient } from '@padel/db';
 import { supabase } from '@/lib/supabase/client';
 
-export type AuthStep = 'identifier' | 'otp' | 'createAccount' | 'done';
+export type AuthStep = 'identifier' | 'otp' | 'createAccount' | 'verifySecondary' | 'done';
 export type IdentifierKind = 'email' | 'phone';
 
 export interface CompleteAccountInput {
@@ -35,6 +39,8 @@ export function useAuthFlow() {
   const [step, setStep] = useState<AuthStep>('identifier');
   const [identifier, setIdentifier] = useState('');
   const [kind, setKind] = useState<IdentifierKind>('email');
+  const [secondary, setSecondary] = useState('');
+  const [secondaryKind, setSecondaryKind] = useState<IdentifierKind>('phone');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
@@ -126,6 +132,39 @@ export function useAuthFlow() {
     [identifier, kind, otpState.locked, router],
   );
 
+  // GoTrue rejects a change to an identifier already registered on auth.users (the profiles
+  // pre-check in complete-account can't see auth-only users) — reuse the "taken" copy for those.
+  const startChangeErrorKey = (err: { code?: string } | null): string => {
+    if (err?.code === 'email_exists') return 'email_taken';
+    if (err?.code === 'phone_exists') return 'phone_taken';
+    return 'sendCodeFailed';
+  };
+
+  const startSecondaryChange = useCallback(
+    async (value: string, k: IdentifierKind): Promise<'sent' | 'applied' | 'failed'> => {
+      const { data, error: changeErr } =
+        k === 'phone' ? await startPhoneChange(client, value) : await startEmailChange(client, value);
+      if (changeErr) {
+        // Clear any attempts/cooldown carried over from the primary OTP step so the failed send
+        // doesn't start the verify step locked or on cooldown.
+        dispatch({ type: 'reset' });
+        setError(startChangeErrorKey(changeErr));
+        return 'failed';
+      }
+      // If the server has confirmations disabled, GoTrue applies the change immediately (the
+      // returned user already carries the new identifier — phone in GoTrue format, no '+').
+      // There is no code in flight, so showing the verify step would dead-end.
+      const applied =
+        k === 'phone'
+          ? data.user?.phone === value.replace(/^\+/, '')
+          : data.user?.email?.toLowerCase() === value.toLowerCase();
+      if (applied) return 'applied';
+      dispatch({ type: 'sent', at: Date.now() });
+      return 'sent';
+    },
+    [],
+  );
+
   const completeAccount = useCallback(
     async ({ fullName, secondaryIdentifier, password }: CompleteAccountInput) => {
       setBusy(true);
@@ -139,27 +178,37 @@ export function useAuthFlow() {
           return;
         }
 
-        const secondaryKind = detectKind(secondaryIdentifier.trim());
-        const secondary =
-          secondaryKind === 'phone'
-            ? { phone: secondaryIdentifier.trim() }
-            : { email: secondaryIdentifier.trim() };
+        const secondaryValue = secondaryIdentifier.trim();
+        const secKind = detectKind(secondaryValue);
+        const secondaryBody =
+          secKind === 'phone' ? { phone: secondaryValue } : { email: secondaryValue };
 
         const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        // The Edge Function attaches the secondary identifier + password AND creates the profiles
-        // row server-side from the identifiers it persists on auth.users — never trust the client
-        // to write its own identity into the globally-readable profiles table.
+        // The Edge Function sets the password AND creates the profiles row server-side from the
+        // identifiers it persists on auth.users — never trust the client to write its own identity
+        // into the globally-readable profiles table. The secondary identifier goes along only for
+        // the fast already-taken pre-check; it is attached below via the VERIFIED change flow.
         const resp = await fetch(`${baseUrl}/functions/v1/complete-account`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ ...secondary, password, full_name: formatDisplayName(fullName) }),
+          body: JSON.stringify({ ...secondaryBody, password, full_name: formatDisplayName(fullName) }),
         });
 
         if (!resp.ok) {
-          setError(`complete-account-failed:${resp.status}`);
+          let code: string | undefined;
+          try {
+            code = ((await resp.json()) as { error?: string }).error;
+          } catch {
+            // Non-JSON error body — fall through to the generic failure code below.
+          }
+          if (code === 'email_taken' || code === 'phone_taken' || code === 'invalid_phone') {
+            setError(code);
+          } else {
+            setError(`complete-account-failed:${resp.status}${code ? `:${code}` : ''}`);
+          }
           return;
         }
 
@@ -172,14 +221,68 @@ export function useAuthFlow() {
           return;
         }
 
+        // Verify the secondary identifier as the signed-in user: updateUser sends the OTP, the
+        // verifySecondary step collects it. Enter the step even when the send fails — the account
+        // already exists, so the user retries (resend) or skips instead of resubmitting the form.
+        setSecondary(secondaryValue);
+        setSecondaryKind(secKind);
+        if ((await startSecondaryChange(secondaryValue, secKind)) === 'applied') {
+          setStep('done');
+          router.push('/app');
+          return;
+        }
+        setStep('verifySecondary');
+      } finally {
+        setBusy(false);
+      }
+    },
+    [identifier, kind, startSecondaryChange],
+  );
+
+  const verifySecondary = useCallback(
+    async (code: string) => {
+      if (otpState.locked) return;
+      setBusy(true);
+      setError(null);
+      try {
+        const { error: verifyError } =
+          secondaryKind === 'phone'
+            ? await verifyPhoneChange(client, secondary, code)
+            : await verifyEmailChange(client, secondary, code);
+        if (verifyError) {
+          dispatch({ type: 'fail' });
+          setError(verifyError.message);
+          return;
+        }
         setStep('done');
         router.push('/app');
       } finally {
         setBusy(false);
       }
     },
-    [identifier, kind, router],
+    [secondary, secondaryKind, otpState.locked, router],
   );
+
+  const resendSecondary = useCallback(async () => {
+    if (otpState.cooldownUntil - Date.now() > 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if ((await startSecondaryChange(secondary, secondaryKind)) === 'applied') {
+        setStep('done');
+        router.push('/app');
+      }
+    } finally {
+      setBusy(false);
+    }
+  }, [secondary, secondaryKind, otpState.cooldownUntil, startSecondaryChange, router]);
+
+  // The secondary is optional (profiles.email/phone are nullable): skipping leaves the profile
+  // with just the verified primary; the user can add the other identifier later in settings.
+  const skipSecondary = useCallback(() => {
+    setStep('done');
+    router.push('/app');
+  }, [router]);
 
   const backToIdentifier = useCallback(() => {
     dispatch({ type: 'reset' });
@@ -192,6 +295,8 @@ export function useAuthFlow() {
     identifier,
     setIdentifier,
     kind,
+    secondary,
+    secondaryKind,
     error,
     busy,
     locked: otpState.locked,
@@ -202,6 +307,9 @@ export function useAuthFlow() {
     resendOtp,
     verify,
     completeAccount,
+    verifySecondary,
+    resendSecondary,
+    skipSecondary,
     backToIdentifier,
   };
 }

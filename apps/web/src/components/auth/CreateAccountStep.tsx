@@ -16,6 +16,10 @@ export function CreateAccountStep({ flow }: { flow: Flow }) {
   const secondaryIsPhone = flow.kind === 'email';
   const secondaryLabel = secondaryIsPhone ? t('secondaryPhoneLabel') : t('secondaryEmailLabel');
 
+  // Error values that are i18n keys (set by the flow hook); anything else is a raw message.
+  const errorKeys = ['email_taken', 'phone_taken', 'invalid_phone'];
+  const displayError = flow.error && errorKeys.includes(flow.error) ? t(flow.error) : flow.error;
+
   return (
     <form
       className="flex flex-col gap-4"
@@ -57,7 +61,7 @@ export function CreateAccountStep({ flow }: { flow: Flow }) {
           onChange={(e) => setPassword(e.target.value)}
         />
       </label>
-      {flow.error ? <p className="text-sm text-destructive">{flow.error}</p> : null}
+      {displayError ? <p className="text-sm text-destructive">{displayError}</p> : null}
       <button
         type="submit"
         disabled={flow.busy || !fullName.trim() || !secondaryIdentifier.trim() || !password}
