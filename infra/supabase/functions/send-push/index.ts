@@ -55,19 +55,35 @@ Deno.serve(async (req) => {
   const data = { type: n.type, event_id: n.event_id, group_id: n.group_id, community_id: n.community_id, ref_id: n.ref_id, actor_id: n.actor_id };
   const messages = list.map((t) => ({ to: t.expo_token, title, body: msg, data, sound: 'default' }));
 
+  let sent = 0;
+  const deadTokens: string[] = [];
   for (let i = 0; i < messages.length; i += 100) {
+    const chunk = messages.slice(i, i + 100);
     const res = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(messages.slice(i, i + 100)),
+      body: JSON.stringify(chunk),
     });
     if (!res.ok) {
       try { await admin.from('delivery_log').insert({ channel: 'push', notification_id: body.notification_id,
         attempt: 1, status: 'failed', failed_count: messages.length, error: `expo_failed:${res.status}` }); } catch { /* best-effort */ }
       return json({ ok: false, error: `expo_failed:${res.status}` }, 200); // soft-fail
     }
+    // Per-ticket outcomes: count real sends, collect DeviceNotRegistered tokens for pruning.
+    try {
+      const tickets = (await res.json()) as { data?: { status: string; details?: { error?: string } }[] };
+      (tickets.data ?? []).forEach((t, idx) => {
+        if (t.status === 'ok') sent += 1;
+        else if (t.details?.error === 'DeviceNotRegistered') deadTokens.push(chunk[idx].to);
+      });
+    } catch {
+      sent += chunk.length; // unparseable body — assume delivered (previous behavior)
+    }
+  }
+  if (deadTokens.length) {
+    try { await admin.from('push_tokens').delete().in('expo_token', deadTokens); } catch { /* best-effort */ }
   }
   try { await admin.from('delivery_log').insert({ channel: 'push', notification_id: body.notification_id,
-    attempt: 1, status: 'sent', sent_count: messages.length }); } catch { /* best-effort */ }
-  return json({ ok: true, sent: messages.length });
+    attempt: 1, status: 'sent', sent_count: sent, failed_count: messages.length - sent }); } catch { /* best-effort */ }
+  return json({ ok: true, sent });
 });
