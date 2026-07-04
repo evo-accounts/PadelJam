@@ -3,9 +3,19 @@ import { supabase } from '@/lib/supabase';
 
 const SOCIAL_PROVIDERS = ['apple', 'google'];
 
-function isSocialSession(session: { user: { app_metadata?: { provider?: string } } }): boolean {
-  const provider = session.user.app_metadata?.provider ?? '';
-  return SOCIAL_PROVIDERS.includes(provider);
+function isSocialSession(session: {
+  user: { app_metadata?: { provider?: string; providers?: string[] } };
+}): boolean {
+  // Mirror provision-social-profile: check both `provider` (original signup
+  // method) and `providers` (all linked identities) — Supabase auto-linking
+  // keeps provider='email' after Apple/Google is linked.
+  const meta = session.user.app_metadata ?? {};
+  const provider = meta.provider ?? '';
+  const providers = meta.providers ?? [];
+  return (
+    SOCIAL_PROVIDERS.includes(provider) ||
+    providers.some((p) => SOCIAL_PROVIDERS.includes(p))
+  );
 }
 
 async function fetchProfile(userId: string) {

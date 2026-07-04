@@ -79,4 +79,32 @@ describe('resolvePostAuthRoute', () => {
     mockFrom.mockReturnValue(makeProfileQuery(null).from());
     expect(await resolvePostAuthRoute()).toBe('/(auth)/create-account');
   });
+
+  it('auto-linked social user (provider=email, providers includes google) with no profile → retries provision then routes to onboarding', async () => {
+    mockGetSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'tok',
+          user: { id: 'u1', app_metadata: { provider: 'email', providers: ['email', 'google'] } },
+        },
+      },
+    });
+    mockProvision.mockResolvedValue(undefined);
+    let calls = 0;
+    mockFrom.mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => {
+            calls++;
+            // First call: no profile. Second call (after provision): profile exists.
+            return calls === 1
+              ? { data: null }
+              : { data: { onboarded_at: null, location_text: null, dominant_hand: null, court_side: null } };
+          },
+        }),
+      }),
+    });
+    expect(await resolvePostAuthRoute()).toBe('/(onboarding)/location');
+    expect(mockProvision).toHaveBeenCalledWith('tok', undefined);
+  });
 });
