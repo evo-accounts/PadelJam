@@ -69,8 +69,8 @@
       [
         "expo-dynamic-app-icon",
         {
-          "default": {
-            "image": "./assets/app-icons/default.png",
+          "primary": {
+            "image": "./assets/app-icons/primary.png",
             "prerendered": true
           },
           "blue": {

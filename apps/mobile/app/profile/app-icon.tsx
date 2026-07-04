@@ -6,7 +6,9 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const ICONS = [
-  { name: 'default', key: 'iconDefault' as const, source: require('@/assets/app-icons/default.png') },
+  // 'primary' (not 'default'): Android resource names can't be Java keywords,
+  // and the plugin emits a mipmap per key — 'default' broke the release build.
+  { name: 'primary', key: 'iconDefault' as const, source: require('@/assets/app-icons/primary.png') },
   { name: 'blue', key: 'iconBlue' as const, source: require('@/assets/app-icons/blue.png') },
   { name: 'dark', key: 'iconDark' as const, source: require('@/assets/app-icons/dark.png') },
   { name: 'light', key: 'iconLight' as const, source: require('@/assets/app-icons/light.png') },
@@ -18,9 +20,9 @@ const ICONS = [
 function readActive(): string {
   try {
     const current = getAppIcon();
-    return current === 'DEFAULT' ? 'default' : current;
+    return current === 'DEFAULT' ? 'primary' : current;
   } catch {
-    return 'default';
+    return 'primary';
   }
 }
 
