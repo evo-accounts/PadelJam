@@ -1,0 +1,20 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index a50832e4b7e04df076540e8bdcd56fac98cdd279..a3bf5b91b10473cbcff7912329bd6b6e326a2c9d 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -55,12 +55,12 @@ android {
+   compileSdkVersion safeExtGet("compileSdkVersion", 31)
+ 
+   compileOptions {
+-    sourceCompatibility JavaVersion.VERSION_11
+-    targetCompatibility JavaVersion.VERSION_11
++    sourceCompatibility JavaVersion.VERSION_17
++    targetCompatibility JavaVersion.VERSION_17
+   }
+ 
+   kotlinOptions {
+-    jvmTarget = JavaVersion.VERSION_11.majorVersion
++    jvmTarget = JavaVersion.VERSION_17.majorVersion
+   }
+ 
+   defaultConfig {
