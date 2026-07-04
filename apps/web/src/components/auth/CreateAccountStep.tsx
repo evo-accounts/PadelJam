@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useT } from '@padel/i18n';
-import type { useAuthFlow } from '@/lib/useAuthFlow';
+import { COMPLETE_ACCOUNT_ERROR_CODES, type useAuthFlow } from '@/lib/useAuthFlow';
 
 type Flow = ReturnType<typeof useAuthFlow>;
 
@@ -17,8 +17,8 @@ export function CreateAccountStep({ flow }: { flow: Flow }) {
   const secondaryLabel = secondaryIsPhone ? t('secondaryPhoneLabel') : t('secondaryEmailLabel');
 
   // Error values that are i18n keys (set by the flow hook); anything else is a raw message.
-  const errorKeys = ['email_taken', 'phone_taken', 'invalid_phone'];
-  const displayError = flow.error && errorKeys.includes(flow.error) ? t(flow.error) : flow.error;
+  const displayError =
+    flow.error && COMPLETE_ACCOUNT_ERROR_CODES.has(flow.error) ? t(flow.error) : flow.error;
 
   return (
     <form

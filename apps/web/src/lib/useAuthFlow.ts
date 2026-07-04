@@ -33,6 +33,18 @@ const client = supabase as unknown as TypedClient;
 
 const detectKind = (value: string): IdentifierKind => (isE164(value.trim()) ? 'phone' : 'email');
 
+// Error codes the complete-account Edge Function returns that have user-facing
+// copy in the web `auth` namespace (registered in i18n-web.ts). Exported so the
+// step components use the same list when deciding whether flow.error is a key.
+export const COMPLETE_ACCOUNT_ERROR_CODES = new Set([
+  'email_taken',
+  'phone_taken',
+  'identifier_check_failed',
+  'password_too_short',
+  'invalid_phone',
+  'full_name_required',
+]);
+
 export function useAuthFlow() {
   const router = useRouter();
 
@@ -204,7 +216,8 @@ export function useAuthFlow() {
           } catch {
             // Non-JSON error body — fall through to the generic failure code below.
           }
-          if (code === 'email_taken' || code === 'phone_taken' || code === 'invalid_phone') {
+          // Store the i18n KEY; the step components translate at render (their convention).
+          if (code && COMPLETE_ACCOUNT_ERROR_CODES.has(code)) {
             setError(code);
           } else {
             setError(`complete-account-failed:${resp.status}${code ? `:${code}` : ''}`);
