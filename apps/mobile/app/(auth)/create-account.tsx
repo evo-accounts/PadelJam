@@ -98,6 +98,8 @@ export default function CreateAccountScreen() {
         } catch {
           // Non-JSON error body — fall through to the generic failure code below.
         }
+        // Dev console gets the full detail; the UI copy may collapse it.
+        console.warn('[complete-account] failed:', resp.status, code ?? '(no error code in body)');
         if (code === 'email_taken' || code === 'phone_taken' || code === 'invalid_phone') {
           setError(t(code));
         } else {

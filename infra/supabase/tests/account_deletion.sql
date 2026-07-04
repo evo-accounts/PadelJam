@@ -48,7 +48,11 @@ insert into profiles (id, email, phone, full_name) values
   ('fd000001-0000-0000-0000-000000000001','delown@x.com','+351904000001','DelOwner'),
   ('fd000002-0000-0000-0000-000000000002','delme@x.com','+351904000002','DelMe') on conflict do nothing;
 
--- Deletee has a push token and a notification.
+-- Deletee has a push token, a notification, a phone on auth.users, and an identity row.
+update auth.users set phone = '+351904000002' where id = 'fd000002-0000-0000-0000-000000000002';
+insert into auth.identities (provider_id, user_id, identity_data, provider)
+values ('fd000002-0000-0000-0000-000000000002', 'fd000002-0000-0000-0000-000000000002',
+        '{"sub":"fd000002-0000-0000-0000-000000000002","email":"delme@x.com"}', 'email');
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"fd000002-0000-0000-0000-000000000002","role":"authenticated"}';
 select register_push_token('ExponentPushToken[deltest]', 'ios');
@@ -89,6 +93,13 @@ begin
     raise exception using errcode='PT001', message='scheduled-event participation must be removed'; end if;
   if (select full_name from profiles where id = 'fd000002-0000-0000-0000-000000000002') <> 'Deleted user' then
     raise exception using errcode='PT001', message='profile not anonymized'; end if;
+  if (select email from auth.users where id = 'fd000002-0000-0000-0000-000000000002')
+       not like 'deleted+%' then
+    raise exception using errcode='PT001', message='auth email not freed'; end if;
+  if (select phone from auth.users where id = 'fd000002-0000-0000-0000-000000000002') is not null then
+    raise exception using errcode='PT001', message='auth phone not freed'; end if;
+  if exists (select 1 from auth.identities where user_id = 'fd000002-0000-0000-0000-000000000002') then
+    raise exception using errcode='PT001', message='auth identities not removed'; end if;
 
   raise notice 'OK account_deletion_push_and_participation';
 end $$;
