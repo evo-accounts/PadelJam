@@ -43,6 +43,10 @@ export default function DeleteAccountPage() {
       }
       await signOut(supabase as unknown as TypedClient);
       router.replace('/auth');
+    } catch {
+      // The raw fetch above rejects (TypeError: Failed to fetch) on a network-level failure —
+      // surface a retry-able error instead of an unhandled promise rejection.
+      setError(t('saveError'));
     } finally {
       setBusy(false);
     }

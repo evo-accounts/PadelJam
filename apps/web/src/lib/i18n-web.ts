@@ -32,6 +32,7 @@ const webAuth = {
     verifyPhoneTitle: 'Confirme o seu telemóvel',
     skipForNow: 'Ignorar por agora',
     sendCodeFailed: 'Não foi possível enviar o código. Tente novamente ou ignore por agora.',
+    networkError: 'Falha de ligação. Verifique a sua Internet e tente novamente.',
   },
   'pt-BR': {
     identifierLabel: 'E-mail ou celular',
@@ -59,6 +60,7 @@ const webAuth = {
     verifyPhoneTitle: 'Confirme seu celular',
     skipForNow: 'Pular por enquanto',
     sendCodeFailed: 'Não foi possível enviar o código. Tente novamente ou pule por enquanto.',
+    networkError: 'Falha na conexão. Verifique sua internet e tente novamente.',
   },
   en: {
     identifierLabel: 'Email or phone',
@@ -86,6 +88,7 @@ const webAuth = {
     verifyPhoneTitle: 'Verify your phone number',
     skipForNow: 'Skip for now',
     sendCodeFailed: 'Could not send the code. Try again or skip for now.',
+    networkError: 'Connection failed. Check your internet and try again.',
   },
 } as const;
 
