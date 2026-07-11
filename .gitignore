@@ -22,3 +22,9 @@ infra/.supabase-deploy.env
 apps/mobile/credentials.json
 
 .worktrees/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
