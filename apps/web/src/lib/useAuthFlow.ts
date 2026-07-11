@@ -33,9 +33,11 @@ const client = supabase as unknown as TypedClient;
 
 const detectKind = (value: string): IdentifierKind => (isE164(value.trim()) ? 'phone' : 'email');
 
-// Error codes the complete-account Edge Function returns that have user-facing
-// copy in the web `auth` namespace (registered in i18n-web.ts). Exported so the
-// step components use the same list when deciding whether flow.error is a key.
+// flow.error values that are i18n keys in the web `auth` namespace (registered in
+// i18n-web.ts): the codes the complete-account Edge Function returns, plus the
+// client-side `networkError` set when the request never reaches the server.
+// Exported so the step components use the same list when deciding whether
+// flow.error is a key to translate.
 export const COMPLETE_ACCOUNT_ERROR_CODES = new Set([
   'email_taken',
   'phone_taken',
@@ -43,6 +45,7 @@ export const COMPLETE_ACCOUNT_ERROR_CODES = new Set([
   'password_too_short',
   'invalid_phone',
   'full_name_required',
+  'networkError',
 ]);
 
 export function useAuthFlow() {
@@ -245,6 +248,11 @@ export function useAuthFlow() {
           return;
         }
         setStep('verifySecondary');
+      } catch {
+        // The raw fetch above rejects (TypeError: Failed to fetch) on any network-level failure —
+        // offline, dropped connection, CORS, server unreachable. Surface a retry-able error instead
+        // of letting it escape as an unhandled promise rejection (Sentry PJAM-DESKTOP-1).
+        setError('networkError');
       } finally {
         setBusy(false);
       }
