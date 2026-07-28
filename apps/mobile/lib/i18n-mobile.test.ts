@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { MOBILE_NAMESPACES } from './i18n-mobile';
+import { createInstance } from 'i18next';
+import { MOBILE_NAMESPACES, registerMobileCopy } from './i18n-mobile';
 
 const tokens = (s: string): string[] =>
   ((s.match(/\{\{\s*(\w+)\s*\}\}/g) ?? []).map((t) => t.replace(/\s/g, ''))).sort();
@@ -21,5 +22,30 @@ describe('mobile i18n locale parity', () => {
         }
       });
     }
+  }
+});
+
+describe('welcome screen copy resolves from the auth namespace', () => {
+  const welcomeKeys = [
+    'welcomeTitle1',
+    'welcomeBody1',
+    'welcomeTitle2',
+    'welcomeBody2',
+    'welcomeTitle3',
+    'welcomeBody3',
+    'startNow',
+  ];
+  for (const locale of ['pt-PT', 'pt-BR', 'en'] as const) {
+    it(`resolves every welcome key for ${locale}`, async () => {
+      const instance = createInstance();
+      await instance.init({ lng: locale, fallbackLng: 'en', resources: {} });
+      registerMobileCopy(instance);
+      const t = instance.getFixedT(locale, 'auth');
+      for (const key of welcomeKeys) {
+        const value = t(key);
+        expect(value, `auth:${key} (${locale})`).not.toBe(key);
+        expect(value.length).toBeGreaterThan(0);
+      }
+    });
   }
 });
