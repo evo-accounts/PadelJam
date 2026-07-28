@@ -29,7 +29,11 @@ export function IdentifierStep({ flow }: { flow: Flow }) {
           onChange={(e) => flow.setIdentifier(e.target.value)}
         />
       </label>
-      {flow.error ? <p className="text-sm text-destructive">{flow.error}</p> : null}
+      {flow.error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {flow.error}
+        </p>
+      ) : null}
       <button
         type="submit"
         disabled={flow.busy || !flow.identifier.trim()}

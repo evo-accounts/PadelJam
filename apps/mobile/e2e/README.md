@@ -5,6 +5,9 @@ against the **local Supabase stack**. No Maestro/Detox — a small TypeScript dr
 `xcrun simctl` + [fb-idb](https://fbidb.io) (touch/text injection and `describe-all`
 accessibility snapshots), run by vitest.
 
+The web app has its own separate end-to-end suite (Playwright) at
+[`e2e-web`](../../../e2e-web/README.md).
+
 ## Prerequisites
 
 - Docker running, local stack up:
