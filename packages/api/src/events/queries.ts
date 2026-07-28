@@ -6,6 +6,15 @@ import { qk } from '../query-keys';
 
 type ProfileEmbed = { id: string; full_name: string | null; avatar_url: string | null } | null;
 
+// event_participants has TWO foreign keys to profiles — user_id and invited_by —
+// so PostgREST cannot infer what an unqualified `profiles(...)` embed means and
+// answers 300 PGRST201 instead of rows. Every embed of a participant's profile
+// must name the FK explicitly, including the nested ones reached through
+// event_teams and match_players. Same pattern as the event_invitations and
+// partner_requests embeds below, which are qualified for the same reason.
+export const PARTICIPANT_PROFILE_EMBED =
+  'profiles!event_participants_user_id_fkey(id, full_name, avatar_url)';
+
 export const useGroupEvents = (groupId: string) => {
   const db = useDb();
   return useQuery({
@@ -86,7 +95,7 @@ export const useEventParticipants = (id: string) => {
       // auth tables, so the embed is cast via .returns<>().
       const { data, error } = await db
         .from('event_participants')
-        .select('*, profiles(id, full_name, avatar_url)')
+        .select(`*, ${PARTICIPANT_PROFILE_EMBED}`)
         .eq('event_id', id)
         .order('joined_at', { ascending: true })
         .returns<
@@ -151,7 +160,7 @@ export interface TeamSlotPlayer {
   user_id: string | null;
   guest_name: string | null;
   status: string;
-  profiles: { full_name: string | null; avatar_url: string | null } | null;
+  profiles: ProfileEmbed;
 }
 export interface TeamRow {
   id: string;
@@ -170,8 +179,8 @@ export const useEventTeams = (id: string) => {
         .from('event_teams')
         .select(
           'id, team_number, is_confirmed, ' +
-            'player_a:event_participants!player_a_id (id, user_id, guest_name, status, profiles(full_name, avatar_url)), ' +
-            'player_b:event_participants!player_b_id (id, user_id, guest_name, status, profiles(full_name, avatar_url))',
+            `player_a:event_participants!player_a_id (id, user_id, guest_name, status, ${PARTICIPANT_PROFILE_EMBED}), ` +
+            `player_b:event_participants!player_b_id (id, user_id, guest_name, status, ${PARTICIPANT_PROFILE_EMBED})`,
         )
         .eq('event_id', id)
         .order('team_number', { ascending: true })
@@ -209,7 +218,7 @@ export const useEventMatches = (id: string) => {
       const { data, error } = await db
         .from('event_matches')
         .select(
-          '*, match_players(id, side, participant_id, event_participants(id, user_id, guest_name, profiles(id, full_name, avatar_url)))',
+          `*, match_players(id, side, participant_id, event_participants(id, user_id, guest_name, ${PARTICIPANT_PROFILE_EMBED}))`,
         )
         .eq('event_id', id)
         .order('court_number', { ascending: true })
