@@ -8,7 +8,7 @@ import { defineConfig, devices } from '@playwright/test';
  * (3100, override with WEB_PORT) rather than the default 3000 so the suite
  * never collides with a dev server a developer already has running.
  * Override BASE_URL to run against a deployed environment, e.g.
- *   BASE_URL=https://padeljam.app pnpm --filter @padel/e2e test:e2e
+ *   BASE_URL=https://padeljam.app pnpm --filter @padel/e2e-web test:e2e
  */
 const WEB_PORT = process.env.WEB_PORT ?? '3100';
 const baseURL = process.env.BASE_URL ?? `http://localhost:${WEB_PORT}`;

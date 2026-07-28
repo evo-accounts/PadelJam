@@ -1,6 +1,9 @@
-# @padel/e2e
+# @padel/e2e-web
 
-End-to-end tests for PadelJam, powered by [Playwright](https://playwright.dev).
+End-to-end tests for the PadelJam **web** app, powered by
+[Playwright](https://playwright.dev). The mobile app has its own separate
+end-to-end harness (idb + vitest, driving the iOS simulator) at
+[`apps/mobile/e2e`](../apps/mobile/e2e/README.md).
 
 ## Setup
 
@@ -8,7 +11,7 @@ Browsers are installed via the workspace. If you're setting up fresh:
 
 ```bash
 pnpm install
-pnpm --filter @padel/e2e exec playwright install
+pnpm --filter @padel/e2e-web exec playwright install
 ```
 
 ## Running tests
@@ -16,17 +19,17 @@ pnpm --filter @padel/e2e exec playwright install
 From anywhere in the repo:
 
 ```bash
-pnpm --filter @padel/e2e test:e2e          # run all tests, all browsers
-pnpm --filter @padel/e2e test:e2e:ui       # interactive UI mode
-pnpm --filter @padel/e2e test:e2e:headed   # headed browsers
-pnpm --filter @padel/e2e test:e2e:debug    # step-through debugger
-pnpm --filter @padel/e2e test:e2e:report   # open the last HTML report
+pnpm --filter @padel/e2e-web test:e2e          # run all tests, all browsers
+pnpm --filter @padel/e2e-web test:e2e:ui       # interactive UI mode
+pnpm --filter @padel/e2e-web test:e2e:headed   # headed browsers
+pnpm --filter @padel/e2e-web test:e2e:debug    # step-through debugger
+pnpm --filter @padel/e2e-web test:e2e:report   # open the last HTML report
 ```
 
 Target a specific browser or file:
 
 ```bash
-pnpm --filter @padel/e2e test:e2e --project=chromium tests/example.spec.ts
+pnpm --filter @padel/e2e-web test:e2e --project=chromium tests/example.spec.ts
 ```
 
 ## The web server
@@ -37,7 +40,7 @@ default `:3000`. `next dev` reads `apps/web/.env.local`. Point tests at a
 deployed environment instead with:
 
 ```bash
-BASE_URL=https://padeljam.app pnpm --filter @padel/e2e test:e2e
+BASE_URL=https://padeljam.app pnpm --filter @padel/e2e-web test:e2e
 ```
 
 ## Tests
@@ -65,10 +68,10 @@ stack isn't reachable.
 
 ## CI
 
-[`.github/workflows/e2e.yml`](../.github/workflows/e2e.yml) runs the full suite
-on every PR and on `main`: it spins up the local Supabase stack, wires its
-URL/anon key into `apps/web/.env.local`, installs the browsers, and uploads the
-HTML report as an artifact.
+None yet — the repo has no `.github/workflows`, so this suite runs only when
+someone runs it locally. A workflow would need to spin up the local Supabase
+stack, wire its URL/anon key into `apps/web/.env.local`, install the browsers,
+and upload the HTML report as an artifact.
 
 > Note: this workspace's test script is `test:e2e`, not `test`, so `pnpm test` /
 > `turbo run test` at the repo root does **not** launch browsers.

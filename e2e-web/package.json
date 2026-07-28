@@ -1,5 +1,5 @@
 {
-  "name": "@padel/e2e",
+  "name": "@padel/e2e-web",
   "version": "0.0.0",
   "private": true,
   "scripts": {
