@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
+import { uniqueChannelTopic } from '../realtime-channel';
 
 export const useNotificationsRealtime = () => {
   const db = useDb();
@@ -15,7 +16,7 @@ export const useNotificationsRealtime = () => {
       qc.invalidateQueries({ queryKey: qk.notificationsUnread });
     };
     const ch = db
-      .channel('notifications:' + uid)
+      .channel(uniqueChannelTopic('notifications:' + uid))
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + uid },

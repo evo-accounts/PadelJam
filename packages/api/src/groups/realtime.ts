@@ -2,13 +2,14 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
+import { uniqueChannelTopic } from '../realtime-channel';
 
 export const useGroupRealtime = (groupId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   useEffect(() => {
     const ch = db
-      .channel('group:' + groupId)
+      .channel(uniqueChannelTopic('group:' + groupId))
       .on(
         'postgres_changes',
         {
