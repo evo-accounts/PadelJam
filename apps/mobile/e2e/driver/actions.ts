@@ -4,15 +4,32 @@ import { captureFailure, waitFor, type WaitOpts } from './expect';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** iPhone 17 Pro logical viewport, in device points. */
+const SCREEN = { width: 402, height: 874 };
+
+/**
+ * Elements inside horizontal rails report frames that extend past the screen,
+ * so their centre can be off-device (a tap there is silently dropped). Clamp to
+ * the visible area, keeping a small inset away from edge-gesture zones.
+ */
+function clampToScreen(x: number, y: number): { x: number; y: number } {
+  const inset = 8;
+  return {
+    x: Math.min(Math.max(x, inset), SCREEN.width - inset),
+    y: Math.min(Math.max(y, inset), SCREEN.height - inset),
+  };
+}
+
 /** Tap an element (waits for it first) or an absolute point in device points. */
 export async function tap(target: Selector | { x: number; y: number }, opts?: WaitOpts): Promise<void> {
   if ('x' in target && 'y' in target && !('text' in target)) {
-    await idbTap(target.x, target.y);
+    const p = clampToScreen(target.x, target.y);
+    await idbTap(p.x, p.y);
     return;
   }
   const el = await waitFor(target as Selector, opts);
-  const c = center(el);
-  await idbTap(c.x, c.y);
+  const p = clampToScreen(center(el).x, center(el).y);
+  await idbTap(p.x, p.y);
 }
 
 /**
@@ -23,34 +40,73 @@ export async function tap(target: Selector | { x: number; y: number }, opts?: Wa
  */
 export async function typeText(field: Selector, text: string, opts?: WaitOpts): Promise<void> {
   const target = await waitFor(field, opts);
-  const c = center(target);
-  await idbTap(c.x, c.y);
-  await sleep(500);
+
+  const isInput = (el: { type: string }) => el.type === 'TextField' || el.type === 'TextArea';
+  // Remember WHICH input this is (ordinal), not just where it sits: screens
+  // reflow when validation errors or countdowns appear, moving the field a few
+  // points and breaking a frozen-coordinate lookup (which then reads "" and
+  // reports a failure even though the text landed correctly).
+  const initialInputs = (await snapshot()).filter(isInput);
+  const targetIndex = initialInputs.findIndex(
+    (el) => Math.abs(el.frame.y - target.frame.y) < 2 && Math.abs(el.frame.x - target.frame.x) < 2,
+  );
 
   const fieldAt = async () => {
-    const tree = await snapshot();
-    return tree.find(
-      (el) => (el.type === 'TextField' || el.type === 'TextArea')
-        && Math.abs(el.frame.y - target.frame.y) < 8
-        && Math.abs(el.frame.x - target.frame.x) < 8,
-    );
+    const inputs = (await snapshot()).filter(isInput);
+    if (targetIndex >= 0 && inputs[targetIndex]) return inputs[targetIndex];
+    // Fallback: nearest input to where the field started.
+    return inputs
+      .slice()
+      .sort((a, b) => Math.abs(a.frame.y - target.frame.y) - Math.abs(b.frame.y - target.frame.y))[0];
   };
 
   // Formatting-only differences (spaces/dashes a field inserts) are fine;
   // extra letters/digits are NOT — `includes` used to accept mangled values
   // like "del<text>jam" left behind by a mid-text cursor.
   const normalize = (s: string) => s.replace(/[\s()-]/g, '');
+  // The field's pre-typing value is its placeholder. OTP screens use bullets
+  // ("••••••") as a placeholder, which the secure-field heuristic below would
+  // otherwise mistake for a filled password — reporting success on an EMPTY
+  // field and submitting a blank code.
+  const placeholder = target.AXValue ?? '';
   const settled = async () => {
     const el = await fieldAt();
     const value = el?.AXValue ?? '';
     if (value === text || normalize(value) === normalize(text)) return true;
+    if (value === placeholder) return value; // unchanged — never "settled"
     // Secure fields mask their value — accept a mask of the right length.
     if (/^[•*]+$/.test(value) && value.length === text.length) return true;
     return value;
   };
 
-  await idbText(text);
+  // Always type character-by-character. Bulk `idb ui text` outruns React's
+  // controlled-input state: the NATIVE field ends up showing the full string
+  // (so an AX check passes) while the component's state kept only part of it —
+  // e.g. "+351912345678" on screen but "351912345678" in state, which the app
+  // then rejects as an invalid email.
+  const typeSlow = async () => {
+    for (const ch of text) {
+      await idbText(ch);
+      await sleep(45);
+    }
+  };
+
+  // On single-input screens (OTP/code screens autoFocus their field) use the
+  // existing focus — tapping an already-focused field can drop it. Only safe
+  // with exactly one input, else blind typing lands in a neighbouring field.
+  const inputs = (await snapshot()).filter((el) => el.type === 'TextField' || el.type === 'TextArea');
+  if (inputs.length === 1) {
+    await typeSlow();
+    await sleep(400);
+    if ((await settled()) === true) return;
+  }
+
+  const c = center(target);
+  await tap({ x: c.x, y: c.y });
+  await sleep(500);
+  await typeSlow();
   await sleep(400);
+
   for (let attempt = 0; attempt < 3; attempt++) {
     const state = await settled();
     if (state === true) return;
@@ -62,10 +118,7 @@ export async function typeText(field: Selector, text: string, opts?: WaitOpts): 
     await sleep(150);
     for (let i = 0; i < String(state).length + 5; i++) await idbKey(42);
     for (let i = 0; i < 4; i++) await idbKey(76); // forward-delete stragglers
-    for (const ch of text) {
-      await idbText(ch);
-      await sleep(40);
-    }
+    await typeSlow();
     await sleep(400);
   }
   const finalState = await settled();
@@ -98,6 +151,39 @@ export async function swipe(direction: 'up' | 'down' | 'left' | 'right', opts: {
   const [x1, y1, x2, y2] = map[direction];
   await idbSwipe(x1, y1, x2, y2);
   await sleep(400);
+}
+
+/**
+ * Toggle an RN Switch (surfaces as a CheckBox whose AXValue is "0"/"1") and
+ * verify the value actually flipped — a tap that lands while the screen is
+ * still loading is silently swallowed, so retry until the state changes.
+ */
+export async function toggleSwitch(sel: Selector, opts: { attempts?: number } = {}): Promise<void> {
+  const el = await waitFor(sel);
+  const before = el.AXValue;
+  // Settings screens mount switches while their query is still resolving, and a
+  // zero-duration tap at dead centre does not always actuate a UISwitch — cycle
+  // through positions/durations until the reported value actually changes.
+  await sleep(1500);
+  const { x, y, width, height } = el.frame;
+  const cy = y + height / 2;
+  const strategies: Array<[number, number, number | undefined]> = [
+    [x + width / 2, cy, undefined],
+    [x + width / 2, cy, 0.1],
+    [x + width * 0.25, cy, 0.05], // the "off" half
+    [x + width * 0.75, cy, 0.05], // the "on" half
+    [x + width / 2, cy, 0.2],
+  ];
+  const attempts = opts.attempts ?? strategies.length;
+  for (let i = 0; i < attempts; i++) {
+    const [tx, ty, dur] = strategies[i % strategies.length]!;
+    await idbTap(tx, ty, dur);
+    await sleep(1500);
+    const now = query(await snapshot(), sel)?.AXValue;
+    if (now !== before) return;
+  }
+  const dir = await captureFailure(`toggleSwitch did not flip ${JSON.stringify(sel)} (stuck at "${before}")`);
+  throw new Error(`toggleSwitch failed for ${JSON.stringify(sel)}: value stayed "${before}"\nartifacts: ${dir}`);
 }
 
 /** iOS interactive-pop back gesture: swipe from the left screen edge. */

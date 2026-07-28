@@ -38,7 +38,24 @@ export async function terminate(): Promise<void> {
   await run('xcrun', ['simctl', 'terminate', CONFIG.udid, CONFIG.bundleId]); // ok if not running
 }
 
-export const openUrl = (url: string) => simctl(['openurl', CONFIG.udid, url], 60_000);
+/**
+ * Open a URL on the device.
+ *
+ * `simctl openurl` is unreliable on long-running simulators: SpringBoard's
+ * launch-services can degrade until every call blocks for ~10s and returns
+ * NSPOSIXErrorDomain 60 (sometimes killing the foreground app). Callers should
+ * treat OpenUrlUnavailableError as an environment limitation, not a test failure.
+ */
+export class OpenUrlUnavailableError extends Error {}
+
+export async function openUrl(url: string): Promise<void> {
+  const r = await run('xcrun', ['simctl', 'openurl', CONFIG.udid, url], { timeoutMs: 20_000 });
+  if (r.code === 0) return;
+  if (/timed out|NSPOSIXErrorDomain, code=60/.test(`${r.stderr}${r.stdout}`)) {
+    throw new OpenUrlUnavailableError(`simctl openurl is unresponsive on this simulator (${url}). Reboot the device to recover.`);
+  }
+  throw new Error(`simctl openurl failed: ${r.stderr || r.stdout}`);
+}
 
 /** Grant/revoke/reset a privacy service (location, photos, camera, …). */
 export const privacy = (action: 'grant' | 'revoke' | 'reset', service: string) =>

@@ -41,8 +41,18 @@ export async function wipeDb(): Promise<void> {
     end $$;
     delete from auth.users;
   `);
-  const remaining = await psql(`select count(*) from public.profiles`);
-  if (remaining.trim() !== '0') throw new Error(`wipeDb left ${remaining.trim()} profiles behind`);
+  // Verify BOTH sides: auth.users deletion is FK-restricted by public tables
+  // (tenants.owner_id), so a partial wipe leaves users behind and every later
+  // seed fails with a duplicate-email 500. Retry once, then fail loudly.
+  const counts = async () => {
+    const out = await psql('select (select count(*) from public.profiles) || \'/\' || (select count(*) from auth.users)');
+    return out.trim();
+  };
+  if ((await counts()) !== '0/0') {
+    await psql('delete from auth.users');
+    const after = await counts();
+    if (after !== '0/0') throw new Error(`wipeDb incomplete (profiles/auth.users = ${after})`);
+  }
 }
 
 /** Wipe + reseed; parses the E2E_MANIFEST line the seed script prints. */

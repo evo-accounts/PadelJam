@@ -1,5 +1,5 @@
 import { beforeAll, describe, it } from 'vitest';
-import { scrollUntilVisible, tap, typeText } from '../driver/actions';
+import { scrollUntilVisible, tap, toggleSwitch, typeText } from '../driver/actions';
 import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { deepLink, loginAs, tabTo } from '../driver/flows';
@@ -62,7 +62,7 @@ describe('12 profile & settings', () => {
     await tap({ text: /notifications/i });
     await expectVisible({ text: /push/i }, { timeout: 15_000 });
     // The switches surface as CheckBox elements; push is the first one.
-    await tap({ type: 'CheckBox', nth: 0 });
+    await toggleSwitch({ type: 'CheckBox', nth: 0 });
     const m = manifest();
     await pollUntil(
       () => select('user_settings', `user_id=eq.${m.users.maria}&select=notifications_push`),

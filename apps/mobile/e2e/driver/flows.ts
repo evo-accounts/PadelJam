@@ -117,16 +117,28 @@ export async function tapAlertButton(label: string | RegExp): Promise<void> {
  * PadelJam?" confirmation whose buttons are invisible to the app AX tree —
  * detect the empty tree and blind-tap "Open" (fixed position on this device).
  */
-export async function deepLink(url: string): Promise<void> {
-  const { openUrl } = await import('./sim');
-  await openUrl(url);
-  await sleep(1500);
-  for (let i = 0; i < 3; i++) {
-    const tree = await snapshot();
-    if (tree.length > 1) return;
-    await tap({ x: 275, y: 473 }); // "Open"
-    await sleep(1200);
+export async function deepLink(url: string, expect?: RegExp): Promise<void> {
+  const { openUrl } = await import('./sim'); // throws OpenUrlUnavailableError when SpringBoard degrades
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await openUrl(url);
+    await sleep(1500);
+    // Dismiss the springboard confirmation if it appeared (empty app AX tree).
+    for (let i = 0; i < 3; i++) {
+      if ((await snapshot()).length > 1) break;
+      await tap({ x: 275, y: 473 }); // "Open"
+      await sleep(1200);
+    }
+    if (!expect) return;
+    // A warm app already showing another screen sometimes ignores the first
+    // openurl — verify the target rendered, else re-issue the link.
+    const deadline = Date.now() + 8_000;
+    while (Date.now() < deadline) {
+      if (query(await snapshot(), { text: expect })) return;
+      await sleep(500);
+    }
+    console.warn(`[e2e] deepLink(${url}) did not render ${expect} — re-issuing (attempt ${attempt + 1})`);
   }
+  throw new Error(`deepLink failed: ${url} never rendered ${expect}`);
 }
 
 /**
