@@ -127,14 +127,22 @@ type Target =
  *   onboarding step (location -> hand -> side -> jammer-plus);
  *   unauthenticated+first-install -> (auth)/welcome; returning -> (auth)/sign-in
  */
-function Boot() {
+// The splash boot routing must run at most once per JS process: if this subtree
+// ever remounts after sign-in (e.g. a provider changing its tree shape), a
+// re-run would re-resolve the route, and any transient failure in that
+// re-resolve would bounce an authenticated user back to sign-in.
+let bootCompleted = false;
+
+// Exported for tests only — expo-router ignores extra named exports on layout routes.
+export function Boot() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(bootCompleted);
 
   usePushTapRouting();
   useAuthCacheReset();
 
   useEffect(() => {
+    if (bootCompleted) return;
     let cancelled = false;
 
     const resolve = async (): Promise<Target> => {
@@ -169,6 +177,7 @@ function Boot() {
 
       await delay(SPLASH_MIN_MS);
       if (cancelled) return;
+      bootCompleted = true;
 
       if (target === '(tabs)') {
         void registerForPush(); // authed: idempotent + self-guarding

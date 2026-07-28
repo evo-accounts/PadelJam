@@ -4,3 +4,6 @@ import { StreamChat } from 'stream-chat';
 // (used only by the stream-token edge function). Set EXPO_PUBLIC_STREAM_API_KEY in the app env.
 const apiKey = process.env.EXPO_PUBLIC_STREAM_API_KEY ?? '';
 export const streamClient = StreamChat.getInstance(apiKey);
+
+/** Chat is disabled entirely when no API key is configured (e.g. local/E2E). Fixed for the process lifetime. */
+export const streamEnabled = apiKey.length > 0;

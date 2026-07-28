@@ -24,6 +24,7 @@ import { runAppleSignIn } from '@/lib/appleSignIn';
 import { getAuthTarget } from '@/lib/auth-flow';
 import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
+import { decidePostVerifyRoute } from '@/lib/postVerifyRoute';
 import { supabase } from '@/lib/supabase';
 
 export default function OtpScreen() {
@@ -70,17 +71,18 @@ export default function OtpScreen() {
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', data.user.id)
         .maybeSingle();
 
-      if (profile) {
-        router.replace('/(tabs)');
-      } else {
-        router.replace('/(auth)/create-account');
+      const decision = decidePostVerifyRoute(profile, profileError);
+      if (decision.kind === 'error') {
+        setError(decision.message);
+        return;
       }
+      router.replace(decision.target);
     } finally {
       setBusy(false);
     }
