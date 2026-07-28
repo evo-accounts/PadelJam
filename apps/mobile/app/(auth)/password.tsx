@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getAuthTarget } from '@/lib/auth-flow';
+import { decidePostVerifyRoute } from '@/lib/postVerifyRoute';
 import { supabase } from '@/lib/supabase';
 
 export default function PasswordScreen() {
@@ -30,8 +31,13 @@ export default function PasswordScreen() {
         setError(t('passwordWrong'));
         return;
       }
-      const { data: profile } = await supabase.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
-      router.replace(profile ? '/(tabs)' : '/(auth)/create-account');
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
+      const decision = decidePostVerifyRoute(profile, profileError);
+      if (decision.kind === 'error') {
+        setError(decision.message);
+        return;
+      }
+      router.replace(decision.target);
     } finally {
       setBusy(false);
     }
