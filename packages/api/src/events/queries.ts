@@ -168,10 +168,13 @@ export const useEventTeams = (id: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('event_teams')
+        // event_participants has TWO FKs to profiles (user_id, invited_by), so the
+        // nested profiles embed MUST name the constraint or PostgREST answers
+        // PGRST201 (HTTP 300) and the whole query fails.
         .select(
           'id, team_number, is_confirmed, ' +
-            'player_a:event_participants!player_a_id (id, user_id, guest_name, status, profiles(full_name, avatar_url)), ' +
-            'player_b:event_participants!player_b_id (id, user_id, guest_name, status, profiles(full_name, avatar_url))',
+            'player_a:event_participants!player_a_id (id, user_id, guest_name, status, profiles!event_participants_user_id_fkey(full_name, avatar_url)), ' +
+            'player_b:event_participants!player_b_id (id, user_id, guest_name, status, profiles!event_participants_user_id_fkey(full_name, avatar_url))',
         )
         .eq('event_id', id)
         .order('team_number', { ascending: true })
@@ -205,11 +208,13 @@ export const useEventMatches = (id: string) => {
     queryFn: async () => {
       // match_players embeds its participant; the participant in turn embeds the
       // profile. Both embeds are cast via .returns<>() (profiles is keyed to
-      // auth tables in the generated types).
+      // auth tables in the generated types). The nested profiles embed names the
+      // user_id constraint because event_participants has two FKs to profiles
+      // (user_id, invited_by) — without the hint PostgREST answers PGRST201.
       const { data, error } = await db
         .from('event_matches')
         .select(
-          '*, match_players(id, side, participant_id, event_participants(id, user_id, guest_name, profiles(id, full_name, avatar_url)))',
+          '*, match_players(id, side, participant_id, event_participants(id, user_id, guest_name, profiles!event_participants_user_id_fkey(id, full_name, avatar_url)))',
         )
         .eq('event_id', id)
         .order('court_number', { ascending: true })
