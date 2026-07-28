@@ -3,7 +3,7 @@ import { useSession } from '@padel/auth';
 import { type PropsWithChildren, useEffect } from 'react';
 import { Chat, OverlayProvider } from 'stream-chat-expo';
 
-import { streamClient } from '@/lib/streamClient';
+import { streamClient, streamEnabled } from '@/lib/streamClient';
 
 export function StreamChatProvider({ children }: PropsWithChildren) {
   const uid = useSession().session?.user.id;
@@ -39,12 +39,15 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
     // name/image are read at connect time only; identity/token changes (incl. user switch) drive reconnect.
   }, [uid, tokenQ.data, profile.data?.full_name, profile.data?.avatar_url]);
 
-  // Not authed (e.g. on the auth screens): don't gate the app on chat.
-  if (!uid) return <>{children}</>;
+  // No API key (local/E2E): chat is off for the whole process — shape never changes.
+  if (!streamEnabled) return <>{children}</>;
 
-  // Always mount the Stream provider tree once authed — even if the token fetch errored — so the rest of
-  // the app stays usable and chat context exists. A token error is surfaced (with Retry) inside the chat
-  // tab, not as an app-wide block. The connect effect above no-ops until a token is available.
+  // The wrapper must NOT depend on auth state: swapping the element type here
+  // (fragment ⇄ OverlayProvider/Chat) remounts the entire child subtree — the
+  // navigator and the Boot splash-routing effect included — which re-ran boot
+  // routing right after sign-in and could bounce the user back to sign-in.
+  // Chat tolerates a disconnected client; the connect effect above only
+  // connects once a uid and token exist, and token fetches are gated on uid.
   return (
     <OverlayProvider>
       <Chat client={streamClient}>{children}</Chat>

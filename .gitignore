@@ -28,3 +28,8 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# E2E artifacts
+apps/mobile/e2e/artifacts/
+apps/mobile/.e2e-derived/
+infra/supabase/signing_keys.json

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
+import { uniqueChannelTopic } from '../realtime-channel';
 
 export const useCommunityFeedRealtime = (communityId: string) => {
   const db = useDb();
@@ -10,7 +11,7 @@ export const useCommunityFeedRealtime = (communityId: string) => {
     const invalidatePosts = () =>
       qc.invalidateQueries({ queryKey: qk.posts(communityId) });
     const ch = db
-      .channel('feed:' + communityId)
+      .channel(uniqueChannelTopic('feed:' + communityId))
       .on(
         'postgres_changes',
         {
@@ -41,7 +42,7 @@ export const useMembersRealtime = (communityId: string) => {
   const qc = useQueryClient();
   useEffect(() => {
     const ch = db
-      .channel('members:' + communityId)
+      .channel(uniqueChannelTopic('members:' + communityId))
       .on(
         'postgres_changes',
         {
