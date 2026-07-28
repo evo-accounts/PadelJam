@@ -75,6 +75,9 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "e2e": "node ../../scripts/e2e/run.mjs",
+    "e2e:build": "node ../../scripts/e2e/run.mjs --build-only",
+    "e2e:test": "vitest run -c e2e/vitest.e2e.config.ts",
     "update:preview": "eas update --channel preview --auto",
     "update:production": "eas update --channel production --auto"
   },

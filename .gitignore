@@ -22,3 +22,8 @@ infra/.supabase-deploy.env
 apps/mobile/credentials.json
 
 .worktrees/
+
+# E2E artifacts
+apps/mobile/e2e/artifacts/
+apps/mobile/.e2e-derived/
+infra/supabase/signing_keys.json
