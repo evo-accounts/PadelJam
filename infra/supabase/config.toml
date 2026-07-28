@@ -167,6 +167,9 @@ jwt_expiry = 3600
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
 # signing_keys_path = "./signing_keys.json"
+# NOTE: run the local stack with `pnpm dlx supabase@latest` (per README). Older CLIs
+# (≤2.75) pair an ES256-signing GoTrue with an edge-runtime that only verifies HS256,
+# which makes every verify_jwt edge function (complete-account, delete-account, …) 401.
 # If disabled, the refresh token will never expire.
 enable_refresh_token_rotation = true
 # Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
@@ -237,14 +240,18 @@ otp_length = 6
 otp_expiry = 600
 
 # Use Resend as the SMTP provider so email templates can be customised.
-[auth.email.smtp]
-enabled = true
-host = "smtp.resend.com"
-port = 465
-user = "resend"
-pass = "env(RESEND_API_KEY)"
-admin_email = "env(RESEND_FROM_EMAIL)"
-sender_name = "PadelJam"
+# DISABLED LOCALLY: with this enabled and RESEND_API_KEY unset, every auth email
+# fails with SMTP 535 — contradicting the local setup (README: email lands in
+# Mailpit/Inbucket on :55324). Re-enable (with real creds) for staging/prod via
+# `supabase secrets` / hosted dashboard, not the local stack.
+# [auth.email.smtp]
+# enabled = true
+# host = "smtp.resend.com"
+# port = 465
+# user = "resend"
+# pass = "env(RESEND_API_KEY)"
+# admin_email = "env(RESEND_FROM_EMAIL)"
+# sender_name = "PadelJam"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
