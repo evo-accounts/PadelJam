@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
+import { uniqueChannelTopic } from '../realtime-channel';
 
 export const useEventRealtime = (eventId: string) => {
   const db = useDb();
@@ -9,7 +10,7 @@ export const useEventRealtime = (eventId: string) => {
   useEffect(() => {
     const filter = 'event_id=eq.' + eventId;
     const ch = db
-      .channel('event:' + eventId)
+      .channel(uniqueChannelTopic('event:' + eventId))
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'event_participants', filter },
