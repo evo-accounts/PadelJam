@@ -18,9 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
-  const { t } = useT('onboarding');
-  const { t: tAuth } = useT('auth');
-  const [disclosureBefore, disclosureRest] = tAuth('socialTermsDisclosure').split('{{termsLink}}');
+  const { t } = useT('auth');
+  const [disclosureBefore, disclosureRest] = t('socialTermsDisclosure').split('{{termsLink}}');
   const [disclosureMiddle, disclosureAfter] = (disclosureRest ?? '').split('{{privacyLink}}');
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -73,11 +72,11 @@ export default function WelcomeScreen() {
       <Text style={styles.disclosure}>
         {disclosureBefore}
         <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(TERMS_URL)}>
-          {tAuth('termsLink')}
+          {t('termsLink')}
         </Text>
         {disclosureMiddle}
         <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
-          {tAuth('privacyLink')}
+          {t('privacyLink')}
         </Text>
         {disclosureAfter}
       </Text>
