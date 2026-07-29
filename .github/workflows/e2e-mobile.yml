@@ -1,0 +1,94 @@
+name: E2E (mobile)
+
+# The iOS E2E suite needs a macOS runner with Xcode, a booted simulator, Docker
+# for the local Supabase stack, and idb for input injection. It is heavy
+# (~10 min build + ~15 min run), so it is NOT part of the default PR checks by
+# default — trigger it manually, nightly, or on demand with the `e2e` label.
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Suite prefix to run (e.g. 04). Empty runs all.'
+        required: false
+        default: ''
+  schedule:
+    - cron: '0 3 * * *' # nightly, 03:00 UTC
+  pull_request:
+    types: [labeled, synchronize]
+
+concurrency:
+  # One run at a time: the simulator and the local database are shared
+  # singletons, and parallel runs corrupt each other's seeded data.
+  group: e2e-mobile
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    # Skip label-triggered runs unless the PR actually carries the `e2e` label.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'e2e')
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Boot iOS simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j \
+            | python3 -c "import json,sys;ds=[d for v in json.load(sys.stdin)['devices'].values() for d in v if d['isAvailable'] and 'iPhone' in d['name']];print(ds[0]['udid'])")
+          echo "E2E_UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Install idb
+        run: |
+          brew tap facebook/fb
+          brew install idb-companion
+          pipx install fb-idb || python3 -m pip install --user fb-idb
+          echo "E2E_IDB_PATH=$(command -v idb || echo "$HOME/Library/Python/3.9/bin/idb")" >> "$GITHUB_ENV"
+
+      - name: Start local Supabase stack
+        env:
+          SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: local_test_token
+        run: |
+          pnpm dlx supabase@latest --workdir infra start
+          # The seed and the suite read these from the repo-root .env.
+          pnpm dlx supabase@latest --workdir infra status -o env \
+            | sed -e 's/^API_URL=/SUPABASE_URL=/' \
+                  -e 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' \
+                  -e 's/^PUBLISHABLE_KEY=/SUPABASE_ANON_KEY=/' > .env
+          # The bundle inlines EXPO_PUBLIC_* at build time.
+          {
+            echo "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:55321"
+            echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$(grep '^SUPABASE_ANON_KEY=' .env | cut -d= -f2- | tr -d '\"')"
+            echo "EXPO_PUBLIC_APP_ENV=development"
+          } > apps/mobile/.env
+
+      - name: Run E2E suites
+        run: node scripts/e2e/run.mjs ${{ inputs.suite && format('--suite {0}', inputs.suite) || '' }}
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: apps/mobile/e2e/artifacts/
+          retention-days: 7
+
+      - name: Stop Supabase stack
+        if: always()
+        run: pnpm dlx supabase@latest --workdir infra stop || true
