@@ -63,13 +63,32 @@ export async function tabTo(name: 'Home' | 'Events' | 'Explore' | 'Community' | 
   await sleep(600);
 }
 
-/** Pop pushed screens (back gesture) until the tab bar is visible. */
+/**
+ * Pop pushed screens until the tab bar is visible.
+ *
+ * The back gesture swipes from the left edge across the content area, so any
+ * screen whose body is a PAGER (the community [id]/(home) top tabs) consumes
+ * it and the stack never pops. Fall back to relaunching — the SecureStore
+ * session survives, so boot routing lands back on Home — and THROW if the tab
+ * bar is still unreachable. Returning silently here made a later `tabTo` fail
+ * with an unrelated-looking timeout, which cost a long debugging detour.
+ */
 export async function ensureTabs(maxPops = 4): Promise<void> {
   const { backGesture } = await import('./actions');
+  const onTabs = async () => !!query(await snapshot(), { text: /, tab, \d of 5/ });
   for (let i = 0; i < maxPops; i++) {
-    if (query(await snapshot(), { text: /, tab, \d of 5/ })) return;
+    if (await onTabs()) return;
     await backGesture();
   }
+  if (await onTabs()) return;
+  // Pager screens eat the edge swipe; relaunch is the reliable escape.
+  const { relaunch } = await import('./app');
+  await relaunch();
+  await sleep(2000);
+  if (await onTabs()) return;
+  const { captureFailure } = await import('./expect');
+  const dir = await captureFailure('ensureTabs could not reach the tab bar (pops exhausted, relaunch did not land on tabs)');
+  throw new Error(`ensureTabs failed to reach the tab bar\nartifacts: ${dir}`);
 }
 
 /** Log out via Profile tab → settings → Log out. Ends on the sign-in screen. */
