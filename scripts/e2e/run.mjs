@@ -6,13 +6,17 @@
  *   pnpm --filter mobile e2e -- --suite 01   # one suite (prefix match)
  *   pnpm --filter mobile e2e -- --build-only # just (re)build + install
  *   pnpm --filter mobile e2e -- --no-build   # skip build freshness check
+ *   pnpm --filter mobile e2e -- --wait       # queue behind a running suite instead of failing
+ *
+ * Only ONE run may hold the simulator + local Supabase at a time; a second run
+ * fails fast (or queues with --wait) rather than silently corrupting both.
  *
  * Env: E2E_UDID, E2E_IDB_PATH, E2E_STREAM=1, E2E_OAUTH=1, E2E_PUSH_DELIVERY=1.
  * Requires: Docker + local Supabase stack running, Xcode installed.
  */
 import { execFileSync, execSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,6 +43,79 @@ const die = (msg) => { console.error(`[e2e] ERROR: ${msg}`); process.exit(1); };
 
 function sh(cmd, cmdArgs, opts = {}) {
   return execFileSync(cmd, cmdArgs, { env: ENV, encoding: 'utf8', stdio: opts.inherit ? 'inherit' : 'pipe', ...opts });
+}
+
+// --- 0. Hold the shared-stack lock -----------------------------------------
+// There is exactly ONE target simulator and ONE local Supabase on a dev machine,
+// and a run owns both: it installs over the app and `resetDb()` rotates every
+// seeded id. Two concurrent runs therefore corrupt each other SILENTLY — the
+// symptoms look like app bugs (a persona bounced to sign-in because its user id
+// no longer exists, stray characters typed into the other run's fields), which
+// is exactly how this cost two sessions most of a morning. Fail fast instead.
+// Deliberately a FIXED machine-wide path, not os.tmpdir(): $TMPDIR is per-session
+// on macOS (/var/folders/…), so two shells can resolve it differently and each
+// take "the" lock — failing open, which is worse than no lock at all.
+const LOCK = '/tmp/padeljam-e2e.lock';
+
+/** The lock holder is live only if its pid is alive AND still an e2e run (pids get reused). */
+function lockHolder() {
+  let raw;
+  try { raw = readFileSync(LOCK, 'utf8'); } catch { return null; }
+  let info;
+  try { info = JSON.parse(raw); } catch { return null; }
+  if (!info?.pid) return null;
+  try { process.kill(info.pid, 0); } catch { return null; } // dead pid → stale
+  const cmd = spawnSync('ps', ['-p', String(info.pid), '-o', 'command='], { encoding: 'utf8' }).stdout ?? '';
+  return /run\.mjs/.test(cmd) ? info : null;
+}
+
+function describeHolder(h) {
+  const mins = Math.round((Date.now() - Date.parse(h.startedAt)) / 60000);
+  return `pid ${h.pid}, started ${Number.isFinite(mins) ? `${mins} min ago` : h.startedAt}`
+    + `${h.suite ? `, suite ${h.suite}` : ', all suites'}`;
+}
+
+function acquireLock() {
+  for (;;) {
+    try {
+      writeFileSync(
+        LOCK,
+        JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString(), cwd: ROOT, suite: opt('--suite') ?? null }),
+        { flag: 'wx' }, // exclusive create: loses the race rather than clobbering
+      );
+      return;
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
+    const holder = lockHolder();
+    if (!holder) { // stale lock from a killed run
+      try { unlinkSync(LOCK); } catch { /* another run reclaimed it first */ }
+      continue;
+    }
+    if (!flag('--wait')) {
+      die('another E2E run holds the simulator + local Supabase.\n'
+        + `  holder: ${describeHolder(holder)}\n`
+        + `  cwd:    ${holder.cwd}\n`
+        + '  Running both corrupts BOTH sets of results — it installs over your app and\n'
+        + '  resetDb() rotates the seeded ids underneath you. Wait for it, or use --wait to queue.\n'
+        + `  If you are certain it is gone: rm ${LOCK}`);
+    }
+    log(`Waiting for the shared stack — ${describeHolder(holder)}`);
+    execFileSync('sleep', ['15']);
+  }
+}
+
+function releaseLock() {
+  try {
+    const info = JSON.parse(readFileSync(LOCK, 'utf8'));
+    if (info.pid === process.pid) unlinkSync(LOCK); // never drop a lock we requeued to someone else
+  } catch { /* already gone */ }
+}
+
+acquireLock();
+process.on('exit', releaseLock);
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(sig, () => { releaseLock(); process.exit(130); });
 }
 
 // --- 1. Resolve simulator ---------------------------------------------------
