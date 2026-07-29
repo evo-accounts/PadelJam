@@ -29,6 +29,19 @@ describe('09 communities', () => {
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
   });
 
+  /**
+   * Get back to a bottom-tab screen. Tests here leave the app inside the
+   * community stack, whose home is a PAGER: `backGesture()` swipes the left edge
+   * mid-screen, the pager consumes it as its own horizontal swipe, and
+   * `ensureTabs()` exhausts its pops and gives up — so `tabTo` then times out
+   * looking for a tab bar that never appeared. Relaunching sidesteps it; the
+   * SecureStore session survives, so boot routing lands back on Home.
+   */
+  const returnToTabs = async () => {
+    await relaunch();
+    await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
+  };
+
   const openCommunity = async (name: RegExp) => {
     await tabTo('Community');
     await scrollUntilVisible({ text: name }, { maxSwipes: 8 });
@@ -82,24 +95,19 @@ describe('09 communities', () => {
     await expectVisible({ text: /e2e post/i }, { timeout: 20_000 });
   });
 
-  // TODO(e2e): a post card collapses into ONE accessibility Button whose label
-  // folds in its actions ("…, Like, Comment"), so Like has no element of its
-  // own and cannot be targeted reliably (a positional tap inside the card did
-  // not register either). Worth noting as an accessibility gap too: VoiceOver
-  // users cannot reach Like/Comment independently. Needs a testID on the action
-  // row, at which point this test can be restored as-is.
-  it.skip('likes a post', async () => {
+  // Was skipped while the whole card was one accessibility Button whose label
+  // folded in its own actions, leaving Like with no element to target. The card
+  // now exposes Like and Comment as siblings of the tappable body, so this taps
+  // the real button by label instead of guessing at coordinates.
+  it('likes a post', async () => {
     const m = manifest();
     const before = ((await select('post_likes', `user_id=eq.${m.users.alex}&select=post_id`)) as unknown[]).length;
-    // Re-establish position: earlier tabs may have left another tab selected.
+    // Re-establish position: the previous test leaves us inside the community stack.
+    await returnToTabs();
     await openCommunity(/lisbon padel club/i);
     await tap({ text: /^posts$/i });
     await sleep(1200);
-    // The whole post card is ONE accessibility Button whose label folds in its
-    // actions ("…, Like, Comment"), so Like has no element of its own. Tap the
-    // action row at the bottom-left of the card instead.
-    const card = await expectVisible({ text: /e2e post/i });
-    await tap({ x: card.frame.x + 40, y: card.frame.y + card.frame.height - 16 });
+    await tap({ label: 'Like' });
     await pollUntil(
       () => select('post_likes', `user_id=eq.${m.users.alex}&select=post_id`),
       (rows) => (rows as unknown[]).length !== before,
@@ -112,14 +120,8 @@ describe('09 communities', () => {
   // queries `id=eq.undefined` too. Expected to pass once task_9cb95a32 lands.
   it('a request-to-join community shows the request path to an outsider', async () => {
     // pedro is not a member of C "Cascais Social" (his seeded request is pending).
-    // Logout starts from the Profile tab, so we must be on a tab screen first —
-    // but the previous tests leave us inside the community stack, whose home is a
-    // PAGER. The interactive-pop back gesture (a left-edge swipe mid-screen) is
-    // consumed by the pager's own horizontal swipe, so `ensureTabs()` can never
-    // escape and gives up silently. Relaunch instead: the session survives, so
-    // boot routing lands back on the Home tab.
-    await relaunch();
-    await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
+    // Logout starts from the Profile tab, so we must be on a tab screen first.
+    await returnToTabs();
     await switchUser('pedro');
     // pedro belongs to no community, so the Community tab lists nothing for
     // him — reach it through Explore instead.

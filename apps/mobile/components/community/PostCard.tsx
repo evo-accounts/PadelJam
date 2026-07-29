@@ -46,8 +46,15 @@ function ResultBody({ eventId }: { eventId: string }) {
 
 /**
  * Interactive post card: author, body, optional (private/signed) image, an
- * optimistic like toggle and a comment affordance. Tapping the card opens the
+ * optimistic like toggle and a comment affordance. Tapping the body opens the
  * post detail.
+ *
+ * The actions row is deliberately a SIBLING of the tappable body rather than a
+ * child of it. React Native marks a Pressable as an accessibility element, and
+ * iOS then merges every descendant into that one element — wrapping the whole
+ * card made the post a single button whose label folded in its own actions
+ * ("Alex Organizer, Welcome…, Like, Comment"), so Like and Comment had no
+ * element of their own and VoiceOver users could not reach them at all.
  */
 export function PostCard({
   post,
@@ -68,27 +75,29 @@ export function PostCard({
   const likedByMe = (post.mine?.length ?? 0) > 0;
 
   return (
-    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
-      <View style={styles.header}>
-        {avatar ? (
-          <Image source={{ uri: avatar }} style={styles.avatar} contentFit="cover" transition={120} />
+    <View style={styles.card}>
+      <Pressable onPress={onPress} accessibilityRole="button">
+        <View style={styles.header}>
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={styles.avatar} contentFit="cover" transition={120} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarInitial}>{(name.charAt(0) || '?').toUpperCase()}</Text>
+            </View>
+          )}
+          <Text style={styles.author} numberOfLines={1}>
+            {name}
+          </Text>
+        </View>
+        {post.kind === 'result' && post.result_event_id ? (
+          <ResultBody eventId={post.result_event_id} />
         ) : (
-          <View style={[styles.avatar, styles.avatarFallback]}>
-            <Text style={styles.avatarInitial}>{(name.charAt(0) || '?').toUpperCase()}</Text>
-          </View>
+          <>
+            {post.body ? <Text style={styles.body}>{post.body}</Text> : null}
+            {post.image_path ? <PostImage path={post.image_path} style={styles.image} /> : null}
+          </>
         )}
-        <Text style={styles.author} numberOfLines={1}>
-          {name}
-        </Text>
-      </View>
-      {post.kind === 'result' && post.result_event_id ? (
-        <ResultBody eventId={post.result_event_id} />
-      ) : (
-        <>
-          {post.body ? <Text style={styles.body}>{post.body}</Text> : null}
-          {post.image_path ? <PostImage path={post.image_path} style={styles.image} /> : null}
-        </>
-      )}
+      </Pressable>
       <View style={styles.actions}>
         <Pressable
           style={styles.action}
@@ -110,7 +119,7 @@ export function PostCard({
           <Text style={styles.actionText}>{commentCount}</Text>
         </Pressable>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
