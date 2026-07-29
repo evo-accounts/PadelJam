@@ -26,7 +26,23 @@ pnpm --filter mobile e2e                # preflight → build-if-stale → seed 
 pnpm --filter mobile e2e -- --suite 01  # one suite (prefix match on suites/)
 pnpm --filter mobile e2e -- --build-only
 pnpm --filter mobile e2e -- --no-build  # reuse the existing Release build
+pnpm --filter mobile e2e -- --wait      # queue behind a running suite instead of failing
 ```
+
+### Only one run at a time
+
+There is exactly **one** target simulator and **one** local Supabase, and a run owns
+both — it installs over the app, and `resetDb()` rotates every seeded id. Two
+concurrent runs corrupt each other *silently*, and the symptoms look like app bugs:
+a persona bounced to sign-in because its user id no longer exists, stray characters
+typed into the other run's fields, 400/406s from queries holding ids that were just
+rotated away. This has cost more than one debugging session.
+
+So a run takes an exclusive lock at `/tmp/padeljam-e2e.lock` and a second one fails
+fast, naming the holder's pid, age, suite and checkout. Use `--wait` to queue behind
+it instead. A lock left by a killed run is detected as stale (dead pid, or a pid
+reused by something that is not an e2e run) and reclaimed automatically — you should
+never need to delete it by hand, but the error message tells you how if you do.
 
 The orchestrator ([scripts/e2e/run.mjs](../../../scripts/e2e/run.mjs)) builds a
 **Release** simulator app (embedded JS bundle — no Metro), installs it, wipes + reseeds
