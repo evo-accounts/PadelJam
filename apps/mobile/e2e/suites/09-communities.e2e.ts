@@ -2,7 +2,7 @@ import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
 import { scrollUntilVisible, tap, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
-import { freshInstall } from '../driver/app';
+import { freshInstall, relaunch } from '../driver/app';
 import { loginAs, switchUser, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
@@ -112,7 +112,14 @@ describe('09 communities', () => {
   // queries `id=eq.undefined` too. Expected to pass once task_9cb95a32 lands.
   it('a request-to-join community shows the request path to an outsider', async () => {
     // pedro is not a member of C "Cascais Social" (his seeded request is pending).
-    await tabTo('Home'); // logout starts from the Profile tab; be on a tab screen first
+    // Logout starts from the Profile tab, so we must be on a tab screen first —
+    // but the previous tests leave us inside the community stack, whose home is a
+    // PAGER. The interactive-pop back gesture (a left-edge swipe mid-screen) is
+    // consumed by the pager's own horizontal swipe, so `ensureTabs()` can never
+    // escape and gives up silently. Relaunch instead: the session survives, so
+    // boot routing lands back on the Home tab.
+    await relaunch();
+    await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
     await switchUser('pedro');
     // pedro belongs to no community, so the Community tab lists nothing for
     // him — reach it through Explore instead.

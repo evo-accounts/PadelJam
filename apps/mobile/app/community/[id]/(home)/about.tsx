@@ -4,10 +4,11 @@ import {
   useCommunityReviews,
 } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { RulesModal } from '@/components/community/RulesModal';
 
 const TYPE_KEY: Record<string, string> = {
@@ -36,12 +37,20 @@ const ROLE_LABEL_KEY: Record<string, string> = {
 export default function CommunityAboutScreen() {
   const { t, i18n } = useT('community');
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const id = useCommunityId();
   const [showRules, setShowRules] = useState(false);
 
-  const { data: community } = useCommunity(id);
-  const { data: members } = useCommunityMembers(id);
-  const { data: reviews } = useCommunityReviews(id);
+  const { data: community, isError } = useCommunity(id);
+  const { data: members, isError: membersError } = useCommunityMembers(id);
+  const { data: reviews, isError: reviewsError } = useCommunityReviews(id);
+
+  if (isError) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={styles.error}>{t('loadError')}</Text>
+      </View>
+    );
+  }
 
   if (!community) return <View style={styles.container} />;
 
@@ -69,7 +78,9 @@ export default function CommunityAboutScreen() {
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>{t('aboutMembersLabel')}</Text>
-        <Text style={styles.value}>{t('membersPill', { count: memberCount })}</Text>
+        <Text style={[styles.value, membersError && styles.error]}>
+          {membersError ? t('loadError') : t('membersPill', { count: memberCount })}
+        </Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>{t('aboutPrivacyLabel')}</Text>
@@ -89,7 +100,12 @@ export default function CommunityAboutScreen() {
         <Text style={styles.value}>{created}</Text>
       </View>
 
-      {admins.length > 0 ? (
+      {membersError ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('aboutAdminsLabel')}</Text>
+          <Text style={styles.error}>{t('loadError')}</Text>
+        </View>
+      ) : admins.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('aboutAdminsLabel')}</Text>
           {admins.map((a) => (
@@ -114,13 +130,15 @@ export default function CommunityAboutScreen() {
         accessibilityRole="button"
         onPress={() => router.push(`/community/${id}/reviews` as Href)}
       >
-        <Text style={styles.reviewsText}>
-          {hasReviews
-            ? t('reviewsSummary', {
-                average: reviews!.average!.toFixed(1),
-                count: reviews!.count,
-              })
-            : t('noReviews')}
+        <Text style={[styles.reviewsText, reviewsError && styles.error]}>
+          {reviewsError
+            ? t('loadError')
+            : hasReviews
+              ? t('reviewsSummary', {
+                  average: reviews!.average!.toFixed(1),
+                  count: reviews!.count,
+                })
+              : t('noReviews')}
         </Text>
       </Pressable>
 
@@ -137,6 +155,8 @@ export default function CommunityAboutScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
+  error: { fontSize: 15, color: '#C0392B', fontWeight: '600', textAlign: 'center' },
   content: { padding: 16, gap: 4 },
   description: { fontSize: 15, color: '#222', lineHeight: 22, marginBottom: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },

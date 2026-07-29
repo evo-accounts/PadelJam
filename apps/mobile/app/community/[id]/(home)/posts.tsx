@@ -1,18 +1,19 @@
 import { useAbility, useCommunityFeedRealtime, useCommunityPosts } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { PostCard, type CommunityPost } from '@/components/community/PostCard';
 
 export default function CommunityPostsScreen() {
   const { t } = useT('community');
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const id = useCommunityId();
 
   useCommunityFeedRealtime(id);
-  const { data: posts, isLoading } = useCommunityPosts(id);
+  const { data: posts, isLoading, isError } = useCommunityPosts(id);
   const { data: ability } = useAbility(id);
   // The ability is already scoped to this community (built from the member's role
   // + permissions for `id`), so a type-only check evaluates its community_id
@@ -33,7 +34,9 @@ export default function CommunityPostsScreen() {
     <View style={styles.container}>
       {rows.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.empty}>{t('noPosts')}</Text>
+          <Text style={[styles.empty, isError && styles.error]}>
+            {isError ? t('loadError') : t('noPosts')}
+          </Text>
         </View>
       ) : (
         <FlashList
@@ -67,6 +70,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F6F8FB' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   empty: { fontSize: 15, color: '#3A4A60' },
+  error: { color: '#C0392B', fontWeight: '600' },
   list: { paddingVertical: 8 },
   fab: {
     position: 'absolute',

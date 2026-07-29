@@ -2,10 +2,11 @@ import { useCommunityEvents } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { EventCard } from '@/components/event/EventCard';
 
 type Filter = 'all' | 'organizing';
@@ -13,9 +14,9 @@ type Filter = 'all' | 'organizing';
 export default function CommunityEventsScreen() {
   const { t } = useT('event');
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const id = useCommunityId();
   const uid = useSession().session?.user.id;
-  const { data: events, isLoading } = useCommunityEvents(id);
+  const { data: events, isLoading, isError } = useCommunityEvents(id);
   const [filter, setFilter] = useState<Filter>('all');
 
   if (isLoading) {
@@ -45,8 +46,12 @@ export default function CommunityEventsScreen() {
       <View style={styles.container}>
         {header}
         <View style={styles.center}>
-          <Text style={styles.empty}>
-            {filter === 'organizing' ? t('eventsEmptyOrganizing') : t('eventsEmpty')}
+          <Text style={[styles.empty, isError && styles.error]}>
+            {isError
+              ? t('loadError')
+              : filter === 'organizing'
+                ? t('eventsEmptyOrganizing')
+                : t('eventsEmpty')}
           </Text>
         </View>
       </View>
@@ -93,6 +98,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   empty: { fontSize: 15, color: '#3A4A60' },
+  error: { color: '#C0392B', fontWeight: '600' },
   listContent: { paddingHorizontal: 12, paddingVertical: 8 },
   separator: { height: 8 },
   filters: { flexDirection: 'row', gap: 8, paddingTop: 8, paddingBottom: 4 },
