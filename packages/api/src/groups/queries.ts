@@ -66,29 +66,34 @@ export const useMyGroupMemberships = (communityId: string) => {
   });
 };
 
-export const useGroup = (id: string) => {
+// Callers may not have the id yet — screens that derive it from another query
+// still in flight. Without the guard a falsy id goes out as `id=eq.` and the
+// round-trip is doomed, so gate the fetch instead of querying a placeholder.
+export const useGroup = (id: string | null | undefined) => {
   const db = useDb();
   return useQuery({
-    queryKey: qk.group(id),
+    queryKey: qk.group(id ?? ''),
+    enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await db.from('groups').select('*').eq('id', id).single();
+      const { data, error } = await db.from('groups').select('*').eq('id', id!).single();
       if (error) throw error;
       return data;
     },
   });
 };
 
-export const useGroupMembers = (id: string) => {
+export const useGroupMembers = (id: string | null | undefined) => {
   const db = useDb();
   return useQuery({
-    queryKey: qk.groupMembers(id),
+    queryKey: qk.groupMembers(id ?? ''),
+    enabled: !!id,
     queryFn: async () => {
       // profiles is reachable via the user_id FK at the DB level but the generated
       // types key group_members.user_id to auth tables, so the embed is cast.
       const { data, error } = await db
         .from('group_members')
         .select('user_id, created_at, profiles(id, full_name, avatar_url)')
-        .eq('group_id', id)
+        .eq('group_id', id!)
         .returns<
           {
             user_id: string;

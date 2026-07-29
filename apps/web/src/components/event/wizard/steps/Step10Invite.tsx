@@ -11,7 +11,7 @@ import type { StepProps } from '../types';
 
 export function Step10Invite({ draft, patch }: StepProps) {
   const { t } = useT('event');
-  const members = useGroupMembers(draft.groupId ?? '');
+  const members = useGroupMembers(draft.groupId);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
