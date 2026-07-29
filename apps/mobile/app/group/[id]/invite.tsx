@@ -41,9 +41,10 @@ export default function GroupInviteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: group } = useGroup(id);
+  // Undefined until useGroup resolves; the hooks stay disabled until then.
   const communityId = group?.community_id;
-  const { data: community } = useCommunity(communityId ?? '');
-  const { data: communityMembers } = useCommunityMembers(communityId ?? '');
+  const { data: community } = useCommunity(communityId);
+  const { data: communityMembers } = useCommunityMembers(communityId);
   const { data: groupMembers } = useGroupMembers(id);
   const invite = useInviteToGroup(id);
 

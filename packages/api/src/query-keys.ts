@@ -1,7 +1,9 @@
 export const qk = {
   communities: ['communities'] as const,
-  community: (id: string) => ['community', id] as const,
-  members: (id: string) => ['community', id, 'members'] as const,
+  // `undefined` is accepted so callers awaiting an id (e.g. a group's community_id,
+  // still loading) can key a disabled query without a placeholder id.
+  community: (id: string | undefined) => ['community', id] as const,
+  members: (id: string | undefined) => ['community', id, 'members'] as const,
   permissions: (id: string) => ['community', id, 'permissions'] as const,
   posts: (id: string) => ['community', id, 'posts'] as const,
   post: (postId: string) => ['post', postId] as const,

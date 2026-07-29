@@ -51,9 +51,10 @@ export default function GroupHomeScreen() {
   const { data: members } = useGroupMembers(id);
   const { data: seasons } = useGroupSeasons(id);
   const { data: events } = useGroupEvents(id);
+  // Undefined until useGroup resolves; the hooks stay disabled until then.
   const communityId = group?.community_id;
-  const { data: community } = useCommunity(communityId ?? '');
-  const { data: communityMembers } = useCommunityMembers(communityId ?? '');
+  const { data: community } = useCommunity(communityId);
+  const { data: communityMembers } = useCommunityMembers(communityId);
 
   const [period, setPeriod] = useState<'all' | '3m' | '6m' | '12m'>('all');
   const monthsAgoIso = (n: number) => {
