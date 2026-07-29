@@ -20,6 +20,26 @@ function clampToScreen(x: number, y: number): { x: number; y: number } {
   };
 }
 
+/**
+ * The status-bar band (and the Dynamic Island within it) swallows touches
+ * before they reach the app. An element whose centre falls there — e.g. a
+ * banner pinned to the very top of a screen — must be tapped lower down, or
+ * off to the side of the island.
+ */
+const STATUS_BAND = 60;
+const ISLAND = { x0: 120, x1: 285 };
+function avoidStatusBar(p: { x: number; y: number }, el?: { frame: { x: number; y: number; width: number; height: number } }) {
+  if (p.y >= STATUS_BAND) return p;
+  if (el) {
+    const lower = el.frame.y + el.frame.height - 6;
+    if (lower > p.y) return clampToScreen(p.x, lower);
+  }
+  if (p.x > ISLAND.x0 && p.x < ISLAND.x1) {
+    return clampToScreen(el ? el.frame.x + 16 : 24, p.y);
+  }
+  return p;
+}
+
 /** Tap an element (waits for it first) or an absolute point in device points. */
 export async function tap(target: Selector | { x: number; y: number }, opts?: WaitOpts): Promise<void> {
   if ('x' in target && 'y' in target && !('text' in target)) {
@@ -28,7 +48,7 @@ export async function tap(target: Selector | { x: number; y: number }, opts?: Wa
     return;
   }
   const el = await waitFor(target as Selector, opts);
-  const p = clampToScreen(center(el).x, center(el).y);
+  const p = avoidStatusBar(clampToScreen(center(el).x, center(el).y), el);
   await idbTap(p.x, p.y);
 }
 
