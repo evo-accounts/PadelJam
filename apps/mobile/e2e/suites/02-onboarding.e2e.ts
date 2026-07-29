@@ -11,16 +11,10 @@ describe('02 onboarding', () => {
   beforeAll(async () => {
     await resetDb('full'); // omar is seeded not-onboarded
     await freshInstall();
-    await loginAs('omar');
-    // WORKAROUND (task_b4ac9e0d): since PR #6, in-session verify routes profile-holders
-    // straight to tabs, skipping onboarding — a regression vs Requirements §03. Cold-start
-    // Boot still routes correctly, so relaunch to reach the onboarding steps. Once the fix
-    // lands, drop this relaunch: loginAs(omar) must land on the location step directly.
-    const { relaunch } = await import('../driver/app');
-    await relaunch();
+    await loginAs('omar'); // post-verify routing must land on the first unanswered step
   });
 
-  it('routes a not-onboarded user to the location step (via cold start)', async () => {
+  it('routes a not-onboarded user to the location step', async () => {
     await expectVisible({ text: /where do you play/i }, { timeout: 30_000 });
   });
 
