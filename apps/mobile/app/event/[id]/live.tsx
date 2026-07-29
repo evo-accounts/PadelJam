@@ -61,7 +61,7 @@ export default function EventLiveScreen() {
   const { data: matchesData } = useEventMatches(id);
   const { data: standingsData } = useEventStandings(id);
   const { data: teamsData } = useEventTeams(id);
-  const { data: group } = useGroup(event?.group_id ?? '');
+  const { data: group } = useGroup(event?.group_id);
 
   // Mutations (declared before any early return).
   const submitScore = useSubmitScore(id);

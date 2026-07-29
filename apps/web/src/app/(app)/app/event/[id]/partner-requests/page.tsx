@@ -26,7 +26,7 @@ export default function PartnerRequestsPage() {
   const event = useEvent(id);
   const participants = useEventParticipants(id);
   const requests = usePartnerRequests(id);
-  const groupId = event.data?.group_id ?? '';
+  const groupId = event.data?.group_id;
   const members = useGroupMembers(groupId);
   const requestPartner = useRequestPartner(id);
   const acceptReq = useAcceptPartnerRequest(id);
