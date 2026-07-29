@@ -51,12 +51,13 @@ export const useCommunityEvents = (communityId: string) => {
   });
 };
 
-export const useCanCreateEvent = (groupId: string) => {
+export const useCanCreateEvent = (groupId: string | null | undefined) => {
   const db = useDb();
   return useQuery({
-    queryKey: qk.canCreateEvent(groupId),
+    queryKey: qk.canCreateEvent(groupId ?? ''),
+    enabled: !!groupId,
     queryFn: async () => {
-      const { data, error } = await db.rpc('can_create_event', { p_group_id: groupId });
+      const { data, error } = await db.rpc('can_create_event', { p_group_id: groupId! });
       if (error) throw error;
       return data ?? false;
     },

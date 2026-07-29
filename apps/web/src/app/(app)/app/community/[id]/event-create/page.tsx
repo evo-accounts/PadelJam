@@ -34,7 +34,7 @@ export default function EventCreatePage() {
     ...defaultWizardDraft,
     groupId: presetGroup ?? null,
   }));
-  const canCreate = useCanCreateEvent(draft.groupId ?? '');
+  const canCreate = useCanCreateEvent(draft.groupId);
   const [stepIndex, setStepIndex] = useState(0);
   const [nowMs] = useState(() => Date.now());
   const [thumbFile, setThumbFile] = useState<File | null>(null);
