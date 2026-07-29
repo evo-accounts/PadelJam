@@ -1,16 +1,17 @@
 import { useCanCreateGroup, useCommunityGroups } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { GroupCard } from '@/components/group/GroupCard';
 
 export default function CommunityGroupsScreen() {
   const { t } = useT('group');
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: groups, isLoading } = useCommunityGroups(id);
+  const id = useCommunityId();
+  const { data: groups, isLoading, isError } = useCommunityGroups(id);
   const { data: canCreate } = useCanCreateGroup(id);
 
   const newGroupButton = canCreate ? (
@@ -38,7 +39,9 @@ export default function CommunityGroupsScreen() {
       <View style={styles.container}>
         {newGroupButton ? <View style={styles.header}>{newGroupButton}</View> : null}
         <View style={styles.center}>
-          <Text style={styles.empty}>{t('emptyAll')}</Text>
+          <Text style={[styles.empty, isError && styles.error]}>
+            {isError ? t('loadError') : t('emptyAll')}
+          </Text>
         </View>
       </View>
     );
@@ -64,6 +67,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   empty: { fontSize: 15, color: '#3A4A60' },
+  error: { color: '#C0392B', fontWeight: '600' },
   listContent: { paddingHorizontal: 12, paddingVertical: 8 },
   header: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
   newButton: {
