@@ -27,29 +27,36 @@ export const useCanReviewCommunity = (communityId: string) => {
   });
 };
 
-export const useCommunity = (id: string) => {
+// Callers may not have the id yet (screens that derive it from another query still in
+// flight). Without the `enabled` guard a falsy id is sent verbatim as `id=eq.` and
+// PostgREST 400s on every such render, so gate the fetch rather than fetching a
+// placeholder. Note a disabled query reports `isLoading: false` (v5 derives it as
+// `isPending && isFetching`), so callers that spin on `isLoading` will not hang.
+export const useCommunity = (id: string | undefined) => {
   const db = useDb();
   return useQuery({
-    queryKey: qk.community(id),
+    queryKey: qk.community(id ?? ''),
+    enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await db.from('communities').select('*').eq('id', id).single();
+      const { data, error } = await db.from('communities').select('*').eq('id', id!).single();
       if (error) throw error;
       return data;
     },
   });
 };
 
-export const useCommunityMembers = (id: string) => {
+export const useCommunityMembers = (id: string | undefined) => {
   const db = useDb();
   return useQuery({
-    queryKey: qk.members(id),
+    queryKey: qk.members(id ?? ''),
+    enabled: !!id,
     queryFn: async () => {
       // profiles is reachable via the user_id FK at the DB level but the generated
       // types key community_members.user_id to auth_providers, so the embed is cast.
       const { data, error } = await db
         .from('community_members')
         .select('user_id, role, profiles(id, full_name, avatar_url)')
-        .eq('community_id', id)
+        .eq('community_id', id!)
         .returns<
           {
             user_id: string;
