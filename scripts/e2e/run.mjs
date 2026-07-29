@@ -74,14 +74,43 @@ async function preflight() {
 }
 
 // --- 3. Build freshness -----------------------------------------------------
+// The workspace packages are compiled into the embedded JS bundle, so edits under
+// packages/*/src must invalidate the stamp too — otherwise the run silently tests
+// stale code. Resolved transitively from package.json rather than hard-coded, so a
+// new @padel/* dependency is picked up without touching this file.
+function workspacePackageDirs() {
+  const dirByName = new Map();
+  const pkgRoot = join(ROOT, 'packages');
+  for (const entry of existsSync(pkgRoot) ? readdirSync(pkgRoot) : []) {
+    const manifest = join(pkgRoot, entry, 'package.json');
+    if (!existsSync(manifest)) continue;
+    dirByName.set(JSON.parse(readFileSync(manifest, 'utf8')).name, join(pkgRoot, entry));
+  }
+  const found = new Set();
+  const visit = (manifest) => {
+    const pkg = JSON.parse(readFileSync(manifest, 'utf8'));
+    for (const dep of Object.keys({ ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies })) {
+      const dir = dirByName.get(dep);
+      if (!dir || found.has(dir)) continue;
+      found.add(dir);
+      visit(join(dir, 'package.json'));
+    }
+  };
+  visit(join(MOBILE, 'package.json'));
+  return [...found];
+}
+
 function sourceHash() {
   const h = createHash('sha1');
   const roots = [join(MOBILE, 'app'), join(MOBILE, 'components'), join(MOBILE, 'lib'), join(MOBILE, 'constants'), join(MOBILE, 'app.json'), join(MOBILE, '.env')];
+  for (const dir of workspacePackageDirs()) roots.push(join(dir, 'src'), join(dir, 'package.json'));
   const walk = (p) => {
     if (!existsSync(p)) return;
     const st = statSync(p);
     if (st.isDirectory()) {
-      for (const f of readdirSync(p)) walk(join(p, f));
+      // Sorted: readdir order is not guaranteed, and an unstable order would make
+      // the stamp differ between runs over identical sources.
+      for (const f of readdirSync(p).sort()) walk(join(p, f));
     } else {
       h.update(p);
       h.update(String(st.mtimeMs));
