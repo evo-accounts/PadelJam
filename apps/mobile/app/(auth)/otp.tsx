@@ -73,7 +73,7 @@ export default function OtpScreen() {
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('onboarded_at, location_text, dominant_hand, court_side')
         .eq('id', data.user.id)
         .maybeSingle();
 

@@ -1,3 +1,4 @@
+import { onboardingRoute } from '@/lib/postVerifyRoute';
 import { provisionSocialProfile } from '@/lib/provisionSocialProfile';
 import { supabase } from '@/lib/supabase';
 
@@ -26,14 +27,6 @@ async function fetchProfile(userId: string) {
     .maybeSingle();
   if (error) throw error;
   return data;
-}
-
-function onboardingRoute(profile: { onboarded_at: string | null; location_text: string | null; dominant_hand: string | null; court_side: string | null }): string {
-  if (profile.onboarded_at) return '/(tabs)';
-  if (!profile.location_text) return '/(onboarding)/location';
-  if (!profile.dominant_hand) return '/(onboarding)/hand';
-  if (!profile.court_side) return '/(onboarding)/side';
-  return '/(onboarding)/jammer-plus';
 }
 
 /**
