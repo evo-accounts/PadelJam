@@ -31,7 +31,11 @@ export default function PasswordScreen() {
         setError(t('passwordWrong'));
         return;
       }
-      const { data: profile, error: profileError } = await supabase.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('onboarded_at, location_text, dominant_hand, court_side')
+        .eq('id', data.user.id)
+        .maybeSingle();
       const decision = decidePostVerifyRoute(profile, profileError);
       if (decision.kind === 'error') {
         setError(decision.message);

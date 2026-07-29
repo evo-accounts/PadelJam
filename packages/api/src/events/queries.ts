@@ -177,6 +177,9 @@ export const useEventTeams = (id: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('event_teams')
+        // event_participants has TWO FKs to profiles (user_id, invited_by), so the
+        // nested profiles embed MUST name the constraint or PostgREST answers
+        // PGRST201 (HTTP 300) and the whole query fails.
         .select(
           'id, team_number, is_confirmed, ' +
             `player_a:event_participants!player_a_id (id, user_id, guest_name, status, ${PARTICIPANT_PROFILE_EMBED}), ` +
@@ -214,7 +217,9 @@ export const useEventMatches = (id: string) => {
     queryFn: async () => {
       // match_players embeds its participant; the participant in turn embeds the
       // profile. Both embeds are cast via .returns<>() (profiles is keyed to
-      // auth tables in the generated types).
+      // auth tables in the generated types). The nested profiles embed names the
+      // user_id constraint because event_participants has two FKs to profiles
+      // (user_id, invited_by) — without the hint PostgREST answers PGRST201.
       const { data, error } = await db
         .from('event_matches')
         .select(

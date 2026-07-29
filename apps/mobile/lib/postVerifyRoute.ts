@@ -1,17 +1,44 @@
 /**
  * Routing decision after a successful credential verification (OTP or password):
- * profile row → tabs; no row → create-account. A FAILED lookup is surfaced as
- * an error instead of being conflated with "no profile" — a transient backend
- * error here otherwise sends an existing user into account creation.
+ * onboarded profile → tabs; not-onboarded profile → first unanswered onboarding
+ * step; no row → create-account. A FAILED lookup is surfaced as an error instead
+ * of being conflated with "no profile" — a transient backend error here
+ * otherwise sends an existing user into account creation.
+ *
+ * The step resolution is shared with Boot's resolvePostAuthRoute so a signed-in
+ * user lands on the same screen whether routing runs post-verify or on relaunch.
  */
+export type OnboardingProfile = {
+  onboarded_at: string | null;
+  location_text: string | null;
+  dominant_hand: string | null;
+  court_side: string | null;
+};
+
+export type OnboardingRoute =
+  | '/(tabs)'
+  | '/(onboarding)/location'
+  | '/(onboarding)/hand'
+  | '/(onboarding)/side'
+  | '/(onboarding)/jammer-plus';
+
+export function onboardingRoute(profile: OnboardingProfile): OnboardingRoute {
+  if (profile.onboarded_at) return '/(tabs)';
+  if (!profile.location_text) return '/(onboarding)/location';
+  if (!profile.dominant_hand) return '/(onboarding)/hand';
+  if (!profile.court_side) return '/(onboarding)/side';
+  return '/(onboarding)/jammer-plus';
+}
+
 export type PostVerifyDecision =
-  | { kind: 'route'; target: '/(tabs)' | '/(auth)/create-account' }
+  | { kind: 'route'; target: OnboardingRoute | '/(auth)/create-account' }
   | { kind: 'error'; message: string };
 
 export function decidePostVerifyRoute(
-  profile: { id: string } | null,
+  profile: OnboardingProfile | null,
   error: { message: string } | null,
 ): PostVerifyDecision {
   if (error) return { kind: 'error', message: error.message };
-  return { kind: 'route', target: profile ? '/(tabs)' : '/(auth)/create-account' };
+  if (!profile) return { kind: 'route', target: '/(auth)/create-account' };
+  return { kind: 'route', target: onboardingRoute(profile) };
 }
