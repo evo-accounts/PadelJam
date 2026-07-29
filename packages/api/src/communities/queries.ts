@@ -35,7 +35,7 @@ export const useCanReviewCommunity = (communityId: string) => {
 export const useCommunity = (id: string | undefined) => {
   const db = useDb();
   return useQuery({
-    queryKey: qk.community(id),
+    queryKey: qk.community(id ?? ''),
     enabled: !!id,
     queryFn: async () => {
       const { data, error } = await db.from('communities').select('*').eq('id', id!).single();
@@ -48,7 +48,7 @@ export const useCommunity = (id: string | undefined) => {
 export const useCommunityMembers = (id: string | undefined) => {
   const db = useDb();
   return useQuery({
-    queryKey: qk.members(id),
+    queryKey: qk.members(id ?? ''),
     enabled: !!id,
     queryFn: async () => {
       // profiles is reachable via the user_id FK at the DB level but the generated
