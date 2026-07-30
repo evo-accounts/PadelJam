@@ -1,9 +1,17 @@
 name: E2E (mobile)
 
-# The iOS E2E suite needs a macOS runner with Xcode, a booted simulator, Docker
-# for the local Supabase stack, and idb for input injection. It is heavy
-# (~10 min build + ~15 min run), so it is NOT part of the default PR checks by
-# default — trigger it manually, nightly, or on demand with the `e2e` label.
+# The iOS E2E suite needs Xcode, a simulator, idb, and Docker running the local
+# Supabase stack. It runs on a SELF-HOSTED macOS runner, because a hosted one
+# cannot host the stack: hosted macOS runners have no container runtime and
+# cannot virtualize to add one — `colima start --vm-type=vz` returns
+# VZErrorDomain Code=2 "Virtualization is not available on this hardware", and
+# `kern.hv_support` does not even exist as a sysctl OID. qemu falls back to
+# software emulation, which does work but took 11.5 min to boot the VM and
+# 31 min to start the stack (2-3 min locally) — no use for a 13-suite nightly.
+#
+# That also matches the suite's own design: it owns ONE simulator and ONE local
+# database exclusively (see the lock in scripts/e2e/run.mjs), which describes a
+# machine, not a disposable runner.
 on:
   workflow_dispatch:
     inputs:
@@ -11,15 +19,16 @@ on:
         description: 'Suite prefix to run (e.g. 04). Empty runs all.'
         required: false
         default: ''
-  # The nightly is PAUSED, and deliberately so: on a hosted runner this
-  # workflow cannot pass, for a reason no amount of retrying fixes (see the
-  # container-runtime note below). It failed silently every night for two
-  # nights before anyone looked, and a cron that provably cannot go green is
-  # worse than no cron — it trains you to ignore the one signal that matters.
-  # Restore this the moment the suite runs on a machine that can virtualize.
-  #
-  # schedule:
-  #   - cron: '0 3 * * *' # nightly, 03:00 UTC
+  schedule:
+    # A run WIPES the local database (resetDb rotates every seeded id), so this
+    # wants an hour when the machine is on but nobody is working. If the Mac is
+    # asleep the job simply queues and starts when the runner next comes
+    # online — which may be mid-morning, so move this if that bites.
+    - cron: '0 3 * * *' # nightly, 03:00 UTC
+  # NOTE: `pull_request` on a self-hosted runner executes the PR's code on your
+  # machine. The `e2e` label gate below means only someone who can label a PR
+  # can trigger it, which on a private repo is collaborators only — but do not
+  # widen this trigger without thinking about that.
   pull_request:
     types: [labeled, synchronize]
 
@@ -35,13 +44,15 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'e2e')
-    runs-on: macos-15
+    # Swap in a dedicated label (e.g. `padeljam-e2e`) if you ever add a second
+    # self-hosted macOS runner that must not pick this up.
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 90
 
     env:
-      # Three brew invocations here, each of which would otherwise spend ~1 min
-      # updating an index the runner image already ships fresh.
-      HOMEBREW_NO_AUTO_UPDATE: '1'
+      # Point at Xcode without `sudo xcode-select`, which would change the
+      # setting globally on someone's own machine (and need a sudo password).
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
     steps:
       - uses: actions/checkout@v4
@@ -55,96 +66,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-
-      - name: Boot iOS simulator
-        run: |
-          UDID=$(xcrun simctl list devices available -j \
-            | python3 -c "import json,sys;ds=[d for v in json.load(sys.stdin)['devices'].values() for d in v if d['isAvailable'] and 'iPhone' in d['name']];print(ds[0]['udid'])")
-          echo "E2E_UDID=$UDID" >> "$GITHUB_ENV"
-          xcrun simctl boot "$UDID"
-          xcrun simctl bootstatus "$UDID" -b
-
-      - name: Install idb
-        run: |
-          brew tap facebook/fb
-          # Homebrew now refuses formulae from third-party taps until the tap is
-          # trusted, which broke this step (and every nightly) once the runner
-          # image picked up that version. Older Homebrew has no `trust` command
-          # at all, so probe for it rather than hard-failing on either side.
-          if brew trust --help >/dev/null 2>&1; then
-            brew trust facebook/fb
-          fi
-          brew install idb-companion
-          pipx install fb-idb || python3 -m pip install --user fb-idb
-          echo "E2E_IDB_PATH=$(command -v idb || echo "$HOME/Library/Python/3.9/bin/idb")" >> "$GITHUB_ENV"
-
-      # macOS runners ship no container runtime — `docker` is simply not on
-      # PATH — so `supabase start` had nothing to talk to. Colima supplies one
-      # via a Linux VM, and published ports forward to the host, so the
-      # simulator reaches the stack on 127.0.0.1 exactly as it does locally.
-      #
-      # THE CATCH, measured rather than assumed. A hosted macos-15 runner
-      # cannot virtualize at all:
-      #
-      #   kern.hv_support             → sysctl: unknown oid
-      #   colima start --vm-type=vz   → VZErrorDomain Code=2
-      #                                 "Virtualization is not available on
-      #                                  this hardware."
-      #
-      # Tested with and without the extra data disk; both fail identically, so
-      # it is the hardware, not a flag. qemu therefore runs as pure TCG
-      # software emulation, which does work end to end — `docker info`
-      # succeeded — but at a speed that cannot host this suite:
-      #
-      #   colima start     11.5 min
-      #   supabase start   31 min and still going (2-3 min locally)
-      #
-      # So this step is correct and will be fast on any host with hardware
-      # virtualization (a self-hosted Mac, or an Intel runner where qemu gets
-      # HVF). It is left in place, with the nightly paused above, rather than
-      # deleted — the missing piece is the runner, not the configuration.
-      - name: Set up Docker (Colima)
-        run: |
-          brew install docker colima qemu
-
-          echo "kern.hv_support=$(sysctl -n kern.hv_support 2>&1)"
-          df -h / | tail -1
-
-          # vz is Apple-Silicon-only and unavailable on hosted runners, so ask
-          # for qemu explicitly: it is the one driver available on both an
-          # Intel host (where HVF makes it fast) and here.
-          if ! colima start --cpu 2 --memory 4 --disk 20 --vm-type=qemu; then
-            echo "::group::lima hostagent stderr"
-            tail -80 "$HOME/.colima/_lima/colima/ha.stderr.log" 2>&1 || true
-            echo "::endgroup::"
-            echo "::group::lima serial log"
-            tail -40 "$HOME/.colima/_lima/colima/serial"*.log 2>&1 || true
-            echo "::endgroup::"
-            echo "::error::colima could not start — see the logs above"
-            exit 1
-          fi
-
-          # The Supabase CLI talks to the daemon through DOCKER_HOST; it does
-          # not read docker contexts, so exporting the socket is required.
-          echo "DOCKER_HOST=unix://$HOME/.colima/default/docker.sock" >> "$GITHUB_ENV"
-
-      # Separate step on purpose: it runs with DOCKER_HOST coming from
-      # GITHUB_ENV, so it proves the export the Supabase step depends on.
-      - name: Docker diagnostics
-        run: |
-          echo "DOCKER_HOST=$DOCKER_HOST"
-          colima status
-          docker version
-          docker info --format 'server={{.ServerVersion}} cpus={{.NCPU}} mem={{.MemTotal}}'
-
-      - name: Start local Supabase stack
+      # Deliberately thin: scripts/e2e/run.mjs already resolves the simulator,
+      # boots it tolerating an already-booted device, and preflights the
+      # Supabase API, Mailpit, Postgres and idb with actionable messages. Doing
+      # any of that again here would only add a second place to keep in sync.
+      - name: Ensure the local Supabase stack is up
         env:
           SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: local_test_token
         run: |
+          # A no-op that prints "already running" when the developer's stack is
+          # already up, which on this machine is the normal case.
           pnpm dlx supabase@latest --workdir infra start
-          # The seed and the suite read these from the repo-root .env.
+          # This checkout is the runner's own workspace, not the developer's
+          # clone, so it starts with no .env — the seed and the suite read the
+          # service-role key from the repo root.
           pnpm dlx supabase@latest --workdir infra status -o env \
             | sed -e 's/^API_URL=/SUPABASE_URL=/' \
                   -e 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' \
@@ -156,8 +91,11 @@ jobs:
             echo "EXPO_PUBLIC_APP_ENV=development"
           } > apps/mobile/.env
 
+      # --wait rather than fail-fast: the developer may be running the suite by
+      # hand on this same machine, and queueing behind them is friendlier than
+      # a red nightly that only means "the lock was held".
       - name: Run E2E suites
-        run: node scripts/e2e/run.mjs ${{ inputs.suite && format('--suite {0}', inputs.suite) || '' }}
+        run: node scripts/e2e/run.mjs --wait ${{ inputs.suite && format('--suite {0}', inputs.suite) || '' }}
 
       - name: Upload failure artifacts
         if: failure()
@@ -167,6 +105,6 @@ jobs:
           path: apps/mobile/e2e/artifacts/
           retention-days: 7
 
-      - name: Stop Supabase stack
-        if: always()
-        run: pnpm dlx supabase@latest --workdir infra stop || true
+      # No teardown step on purpose. `supabase stop` would take down the stack
+      # the developer works against, and each suite already calls resetDb() at
+      # the start, so leaving it running costs nothing and surprises no one.
