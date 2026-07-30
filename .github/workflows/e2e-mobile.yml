@@ -11,8 +11,15 @@ on:
         description: 'Suite prefix to run (e.g. 04). Empty runs all.'
         required: false
         default: ''
-  schedule:
-    - cron: '0 3 * * *' # nightly, 03:00 UTC
+  # The nightly is PAUSED, and deliberately so: on a hosted runner this
+  # workflow cannot pass, for a reason no amount of retrying fixes (see the
+  # container-runtime note below). It failed silently every night for two
+  # nights before anyone looked, and a cron that provably cannot go green is
+  # worse than no cron — it trains you to ignore the one signal that matters.
+  # Restore this the moment the suite runs on a machine that can virtualize.
+  #
+  # schedule:
+  #   - cron: '0 3 * * *' # nightly, 03:00 UTC
   pull_request:
     types: [labeled, synchronize]
 
@@ -73,63 +80,64 @@ jobs:
           pipx install fb-idb || python3 -m pip install --user fb-idb
           echo "E2E_IDB_PATH=$(command -v idb || echo "$HOME/Library/Python/3.9/bin/idb")" >> "$GITHUB_ENV"
 
-      # TEMPORARY PROBE — not the shipping configuration.
+      # macOS runners ship no container runtime — `docker` is simply not on
+      # PATH — so `supabase start` had nothing to talk to. Colima supplies one
+      # via a Linux VM, and published ports forward to the host, so the
+      # simulator reaches the stack on 127.0.0.1 exactly as it does locally.
       #
-      # macOS runners ship no container runtime, so the Supabase stack had
-      # nothing to start on. Colima supplies one, and it does come up here: run
-      # 6 reached a working `docker info`. But it took 11.5 min and the stack
-      # then took 31 min without finishing, which is the signature of qemu
-      # software emulation rather than hardware-accelerated vz — and vz did
-      # fail, in 17 s, in run 5.
+      # THE CATCH, measured rather than assumed. A hosted macos-15 runner
+      # cannot virtualize at all:
       #
-      # Whether vz is unavailable on a hosted arm64 runner or merely tripped
-      # over one flag decides everything downstream, and run 5's failure landed
-      # precisely on the separate data disk that `--disk` creates:
+      #   kern.hv_support             → sysctl: unknown oid
+      #   colima start --vm-type=vz   → VZErrorDomain Code=2
+      #                                 "Virtualization is not available on
+      #                                  this hardware."
       #
-      #   [hostagent] Mounting disk `colima` on `/mnt/lima-colima`
-      #   [hostagent] Converting ".../_disks/colima/datadisk" (raw) to a raw disk
-      #   error starting vm: error at 'creating and starting': exit status 1
+      # Tested with and without the extra data disk; both fail identically, so
+      # it is the hardware, not a flag. qemu therefore runs as pure TCG
+      # software emulation, which does work end to end — `docker info`
+      # succeeded — but at a speed that cannot host this suite:
       #
-      # So test the two candidates against each other and stop, rather than
-      # paying ~40 min per round-trip to learn one bit. Logs for a cancelled
-      # job cannot be downloaded, which is why this exits on its own terms.
-      - name: PROBE — which vz configuration works
+      #   colima start     11.5 min
+      #   supabase start   31 min and still going (2-3 min locally)
+      #
+      # So this step is correct and will be fast on any host with hardware
+      # virtualization (a self-hosted Mac, or an Intel runner where qemu gets
+      # HVF). It is left in place, with the nightly paused above, rather than
+      # deleted — the missing piece is the runner, not the configuration.
+      - name: Set up Docker (Colima)
         run: |
-          brew install docker colima
+          brew install docker colima qemu
 
-          echo "::group::host facts"
-          sw_vers
-          uname -m
-          # The decisive one: 0 means no Hypervisor.framework, i.e. no
-          # virtualization of any kind on this runner.
           echo "kern.hv_support=$(sysctl -n kern.hv_support 2>&1)"
           df -h / | tail -1
-          echo "::endgroup::"
 
-          dump() {
-            echo "::group::lima logs"
-            tail -60 "$HOME/.colima/_lima/colima/ha.stderr.log" 2>&1 || true
-            echo "--- serial ---"
+          # vz is Apple-Silicon-only and unavailable on hosted runners, so ask
+          # for qemu explicitly: it is the one driver available on both an
+          # Intel host (where HVF makes it fast) and here.
+          if ! colima start --cpu 2 --memory 4 --disk 20 --vm-type=qemu; then
+            echo "::group::lima hostagent stderr"
+            tail -80 "$HOME/.colima/_lima/colima/ha.stderr.log" 2>&1 || true
+            echo "::endgroup::"
+            echo "::group::lima serial log"
             tail -40 "$HOME/.colima/_lima/colima/serial"*.log 2>&1 || true
             echo "::endgroup::"
-          }
+            echo "::error::colima could not start — see the logs above"
+            exit 1
+          fi
 
-          echo "=== A: vz WITH the separate 20G data disk (run 5's config) ==="
-          if colima start --cpu 2 --memory 4 --disk 20 --vm-type=vz; then A=ok; else A=fail; fi
-          echo "A=$A"
-          dump
-          colima delete -f || true
+          # The Supabase CLI talks to the daemon through DOCKER_HOST; it does
+          # not read docker contexts, so exporting the socket is required.
+          echo "DOCKER_HOST=unix://$HOME/.colima/default/docker.sock" >> "$GITHUB_ENV"
 
-          echo "=== B: vz with NO extra data disk ==="
-          if colima start --cpu 2 --memory 4 --vm-type=vz; then B=ok; else B=fail; fi
-          echo "B=$B"
-          dump
-          colima delete -f || true
-
-          echo "PROBE RESULT: A(with --disk)=$A  B(without --disk)=$B"
-          # Deliberate: this is a probe, so stop before the 40-minute stack and
-          # build rather than let a red run look like a broken pipeline.
-          exit 1
+      # Separate step on purpose: it runs with DOCKER_HOST coming from
+      # GITHUB_ENV, so it proves the export the Supabase step depends on.
+      - name: Docker diagnostics
+        run: |
+          echo "DOCKER_HOST=$DOCKER_HOST"
+          colima status
+          docker version
+          docker info --format 'server={{.ServerVersion}} cpus={{.NCPU}} mem={{.MemTotal}}'
 
       - name: Start local Supabase stack
         env:
