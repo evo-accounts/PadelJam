@@ -31,6 +31,11 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 90
 
+    env:
+      # Three brew invocations here, each of which would otherwise spend ~1 min
+      # updating an index the runner image already ships fresh.
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+
     steps:
       - uses: actions/checkout@v4
 
@@ -57,9 +62,41 @@ jobs:
       - name: Install idb
         run: |
           brew tap facebook/fb
+          # Homebrew now refuses formulae from third-party taps until the tap is
+          # trusted, which broke this step (and every nightly) once the runner
+          # image picked up that version. Older Homebrew has no `trust` command
+          # at all, so probe for it rather than hard-failing on either side.
+          if brew trust --help >/dev/null 2>&1; then
+            brew trust facebook/fb
+          fi
           brew install idb-companion
           pipx install fb-idb || python3 -m pip install --user fb-idb
           echo "E2E_IDB_PATH=$(command -v idb || echo "$HOME/Library/Python/3.9/bin/idb")" >> "$GITHUB_ENV"
+
+      # macOS runners ship no container runtime — `docker` is simply not on PATH
+      # — so the Supabase stack had nothing to start on. Colima supplies one via
+      # a Linux VM; published ports are forwarded to the host, so the simulator
+      # still reaches the stack on 127.0.0.1 exactly as it does locally.
+      - name: Set up Docker (Colima)
+        run: |
+          brew install docker colima
+          # The runner has 3 vCPU / 7 GB, and the Xcode Release build plus the
+          # simulator run on the host alongside this VM — hence the headroom.
+          # vz (Virtualization.framework) is colima's default on macOS 13+
+          # arm64; named explicitly so a failure names the reason.
+          colima start --cpu 2 --memory 4 --disk 20 --vm-type=vz
+          # The Supabase CLI talks to the daemon through DOCKER_HOST; it does
+          # not read docker contexts, so exporting the socket is required.
+          echo "DOCKER_HOST=unix://$HOME/.colima/default/docker.sock" >> "$GITHUB_ENV"
+
+      # Separate step on purpose: it runs with DOCKER_HOST coming from
+      # GITHUB_ENV, so it proves the export the Supabase step depends on.
+      - name: Docker diagnostics
+        run: |
+          echo "DOCKER_HOST=$DOCKER_HOST"
+          colima status
+          docker version
+          docker info --format 'server={{.ServerVersion}} cpus={{.NCPU}} mem={{.MemTotal}}'
 
       - name: Start local Supabase stack
         env:
