@@ -212,20 +212,47 @@ export async function backGesture(): Promise<void> {
   await sleep(600);
 }
 
-/** Scroll (default up-swipe = scroll down) until the selector appears. */
+/**
+ * Scroll (default up-swipe = scroll down) until the selector is on screen.
+ *
+ * Two DIFFERENT thresholds here, deliberately:
+ *
+ * - `restsComfortably` is the loop's stop rule — keep swiping until the element sits
+ *   well clear of the status bar and the bottom edge. It is a heuristic for when to
+ *   stop scrolling, and it is intentionally conservative.
+ * - `onScreen` is the exit assertion — is the element actually usable? Anything
+ *   within the viewport is; idb only drops taps that fall OUTSIDE it.
+ *
+ * Conflating the two is a bug in both directions. Asserting the strict band rejects
+ * elements at y≈802-810 that are perfectly tappable (measured: doing so broke 12
+ * tests across 7 suites). Asserting mere existence — the original behaviour — lets
+ * an element scrolled far off-screen (measured: y=-477) report success, and the
+ * caller then taps a coordinate idb silently discards, so the run fails later
+ * somewhere unrelated. That misleading-timeout shape is the same one behind the
+ * ensureTabs give-up fixed in #19.
+ */
+const restsComfortably = (el: { frame: { y: number } } | undefined | null): boolean =>
+  !!el && el.frame.y > 60 && el.frame.y < 800;
+
+const onScreen = (el: { frame: { y: number } } | undefined | null): boolean =>
+  !!el && el.frame.y >= 0 && el.frame.y < SCREEN.height;
+
 export async function scrollUntilVisible(
   sel: Selector,
   opts: { direction?: 'up' | 'down'; maxSwipes?: number } = {},
 ): Promise<void> {
   const { direction = 'up', maxSwipes = 8 } = opts;
   for (let i = 0; i < maxSwipes; i++) {
-    const el = query(await snapshot(), sel);
-    if (el && el.frame.y > 60 && el.frame.y < 800) return;
+    if (restsComfortably(query(await snapshot(), sel))) return;
     await swipe(direction);
   }
   const el = query(await snapshot(), sel);
-  if (!el) {
-    const dir = await captureFailure(`scrollUntilVisible exhausted ${maxSwipes} swipes: ${JSON.stringify(sel)}`);
-    throw new Error(`scrollUntilVisible failed for ${JSON.stringify(sel)}\nartifacts: ${dir}`);
-  }
+  if (onScreen(el)) return;
+  const where = el
+    ? `found at y=${Math.round(el.frame.y)}, off screen (viewport 0..${SCREEN.height})`
+    : 'never appeared';
+  const dir = await captureFailure(
+    `scrollUntilVisible exhausted ${maxSwipes} swipes: ${JSON.stringify(sel)} — ${where}`,
+  );
+  throw new Error(`scrollUntilVisible failed for ${JSON.stringify(sel)}: ${where}\nartifacts: ${dir}`);
 }
