@@ -41,6 +41,13 @@ describe('10 groups', () => {
   });
 
   it('members screen lists real names', async () => {
+    // Re-open rather than inherit the previous test's scroll position: that test
+    // scrolls down to reach "ranking", which leaves "Members" ABOVE the viewport
+    // (measured at y=-478), and scrollUntilVisible's default direction scrolls
+    // further down — away from it. It only used to pass because the driver clamps
+    // tap coordinates back into the viewport and happened to land on something
+    // that navigated. Every sibling test here already opens the group first.
+    await openGroup(/tuesday night league/i);
     await scrollUntilVisible({ text: /members/i }, { maxSwipes: 8 });
     await tap({ text: /^members$/i }).catch(() => tap({ text: /members/i }));
     await expectVisible({ text: /maria santos|joão pereira|sofia costa/i }, { timeout: 20_000 });
