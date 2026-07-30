@@ -80,11 +80,40 @@ jobs:
       - name: Set up Docker (Colima)
         run: |
           brew install docker colima
+
+          # Whether a hosted arm64 runner can host a VM at all is the open
+          # question, so record the two things that decide it before trying.
+          echo "kern.hv_support=$(sysctl -n kern.hv_support 2>&1)"
+          df -h / | tail -1
+
           # The runner has 3 vCPU / 7 GB, and the Xcode Release build plus the
           # simulator run on the host alongside this VM — hence the headroom.
+          dump_lima_logs() {
+            echo "::group::lima hostagent stderr"
+            tail -80 "$HOME/.colima/_lima/colima/ha.stderr.log" 2>&1 || true
+            echo "::endgroup::"
+            echo "::group::lima serial log"
+            tail -40 "$HOME/.colima/_lima/colima/serial"*.log 2>&1 || true
+            echo "::endgroup::"
+          }
+
           # vz (Virtualization.framework) is colima's default on macOS 13+
-          # arm64; named explicitly so a failure names the reason.
-          colima start --cpu 2 --memory 4 --disk 20 --vm-type=vz
+          # arm64. If it is unavailable here, qemu is the only other driver, so
+          # try both in one run rather than learning one bit per 5-minute CI
+          # round-trip — and dump the log colima only points at, so a failure
+          # names its cause instead of leaving us to guess at it.
+          if ! colima start --cpu 2 --memory 4 --disk 20 --vm-type=vz; then
+            echo "::warning::colima vz driver failed; retrying with qemu"
+            dump_lima_logs
+            colima delete -f || true
+            brew install qemu
+            if ! colima start --cpu 2 --memory 4 --disk 20 --vm-type=qemu; then
+              dump_lima_logs
+              echo "::error::no usable VM driver on this runner — see the logs above"
+              exit 1
+            fi
+          fi
+
           # The Supabase CLI talks to the daemon through DOCKER_HOST; it does
           # not read docker contexts, so exporting the socket is required.
           echo "DOCKER_HOST=unix://$HOME/.colima/default/docker.sock" >> "$GITHUB_ENV"
