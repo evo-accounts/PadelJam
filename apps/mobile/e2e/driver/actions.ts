@@ -1,4 +1,4 @@
-import { center, snapshot, query, type Selector } from './a11y';
+import { center, snapshot, query, type AxElement, type Selector } from './a11y';
 import { idbKey, idbSwipe, idbTap, idbText } from './idb';
 import { captureFailure, waitFor, type WaitOpts } from './expect';
 
@@ -47,9 +47,47 @@ export async function tap(target: Selector | { x: number; y: number }, opts?: Wa
     await idbTap(p.x, p.y);
     return;
   }
+  // NOT gated on el.enabled, though it is tempting: a gated "Continue" really
+  // does report `{"type":"Button","enabled":false}`. But this app reports that
+  // for controls that work perfectly well — refusing to tap disabled elements
+  // broke 5 passing tests across suites 01/05/09 ("Create account" and the
+  // create-wizard buttons), so the flag is unreliable in both directions and
+  // cannot be used to decide whether a tap is worth delivering.
   const el = await waitFor(target as Selector, opts);
-  const p = avoidStatusBar(clampToScreen(center(el).x, center(el).y), el);
+  const settled = await settleFrame(target as Selector, el);
+  const p = avoidStatusBar(clampToScreen(center(settled).x, center(settled).y), settled);
   await idbTap(p.x, p.y);
+}
+
+/**
+ * Wait until the element stops moving before tapping it.
+ *
+ * A tap that lands mid-transition is swallowed: the view is still animating in,
+ * the touch never reaches the settled Pressable, and NOTHING reports an error —
+ * the tap simply had no effect. It surfaces much later as a screen that refused
+ * to advance, or as a gated CTA that never enables.
+ *
+ * Assertions make this easy to hit, because they are satisfied by the first
+ * frame that contains the text: `expectVisible({text: /preferred side/i})`
+ * returns while the screen is still sliding in, and the next tap goes out
+ * immediately. It is timing-dependent, so it hides on a slower host and appears
+ * on a faster one — this suite runs under x64 Node locally and arm64 Node on the
+ * CI runner, which is exactly that gap.
+ *
+ * Comparing the element's own frame across snapshots detects the animation
+ * directly, and costs one extra snapshot for the common already-stable case.
+ */
+async function settleFrame(sel: Selector, first: AxElement): Promise<AxElement> {
+  let prev = first;
+  for (let i = 0; i < 10; i++) {
+    await sleep(120);
+    const next = query(await snapshot(), sel);
+    if (!next) return prev; // vanished mid-transition — let the tap fail on the stale point
+    const still = Math.abs(next.frame.y - prev.frame.y) < 1 && Math.abs(next.frame.x - prev.frame.x) < 1;
+    if (still) return next;
+    prev = next;
+  }
+  return prev;
 }
 
 /**
