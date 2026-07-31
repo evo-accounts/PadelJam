@@ -1,9 +1,9 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
-import { scrollUntilVisible, tap, toggleSwitch } from '../driver/actions';
+import { scrollUntilVisible, tap, toggleSwitch, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
-import { loginAs, tabTo } from '../driver/flows';
+import { loginAs, tabTo, tapAlertButton } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
@@ -153,6 +153,67 @@ describe('11 community admin', () => {
       () => select('community_permissions', `community_id=eq.${m.communities.C}&select=invite_members`),
       (r) => (r as { invite_members: boolean }[])[0]?.invite_members !== before?.invite_members,
       { label: 'invite_members flipped', timeoutMs: 20_000 },
+    );
+  });
+
+  it('inviting a non-member records the invitation', async () => {
+    const m = manifest();
+    // sofia belongs to community A, not C, and holds no invitation here — so a
+    // row appearing is necessarily this test's doing.
+    const existing = await select(
+      'community_invitations',
+      `community_id=eq.${m.communities.C}&invitee_id=eq.${m.users.sofia}&select=id`,
+    );
+    if ((existing as unknown[]).length !== 0) {
+      throw new Error('fixture drift: sofia already has an invitation to community C');
+    }
+
+    await openManage();
+    await openSection(/invite members/i);
+    await typeText({ type: 'TextField' }, 'Sofia');
+    await expectVisible({ text: /sofia costa/i }, { timeout: 20_000 });
+    await tap({ text: /sofia costa/i });
+    // The CTA counts the selection — "Invite 1 person", not "Invite" — so an
+    // anchored /^invite$/ never matches it.
+    await tap({ text: /^invite \d+ (person|people)$/i });
+    // Two alerts, and BOTH must be answered: a confirm, then a success notice
+    // whose OK calls router.back(). Leaving the second up blocks the next test —
+    // a system alert makes the app's AX tree empty, so the following navigation
+    // fails with an unrelated-looking "backGesture did not change the screen".
+    await tapAlertButton(/^invite$/i);
+    await tapAlertButton(/^ok$/i);
+
+    await pollUntil(
+      () => select('community_invitations', `community_id=eq.${m.communities.C}&invitee_id=eq.${m.users.sofia}&select=status`),
+      (r) => (r as unknown[]).length === 1,
+      { label: 'invitation recorded for sofia', timeoutMs: 20_000 },
+    );
+  });
+
+  it('editing the community name persists', async () => {
+    const m = manifest();
+    const [before] = (await select('communities', `id=eq.${m.communities.C}&select=name`)) as { name: string }[];
+    if (!before?.name) throw new Error('fixture drift: community C has no name to edit');
+    const renamed = `${before.name} Renamed`;
+
+    await openManage();
+    await openSection(/community settings/i);
+    // The name is the first text field on the screen. typeText handles the
+    // pre-filled value: its first pass appends, settled() rejects that, and the
+    // retry clears the field before retyping.
+    await typeText({ type: 'TextField' }, renamed);
+    // Save sits BELOW the fold on this screen, and tap() clamps an off-screen
+    // coordinate into the viewport rather than refusing — measured, that clamp
+    // lands inside the "Cover image" picker (y=689..888) and opens the iOS photo
+    // library, after which the app's AX tree is empty and the failure surfaces
+    // 80s later as an unrelated-looking timeout. Scroll it into view first.
+    await scrollUntilVisible({ text: /^save$/i }, { maxSwipes: 8 });
+    await tap({ text: /^save$/i });
+
+    await pollUntil(
+      () => select('communities', `id=eq.${m.communities.C}&select=name`),
+      (r) => (r as { name: string }[])[0]?.name === renamed,
+      { label: 'community renamed', timeoutMs: 20_000 },
     );
   });
 });
