@@ -55,7 +55,16 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
     steps:
+      # clean: false because this runner's workspace is persistent and the build
+      # depends on two GITIGNORED trees: apps/mobile/ios (the prebuild output,
+      # which is what `xcodebuild -workspace` points at, plus its Pods) and
+      # apps/mobile/.e2e-derived (the Release build and the source-stamp that
+      # run.mjs reads to decide whether it can skip xcodebuild). The default
+      # `git clean -ffdx` deletes both, so the very first step would leave no
+      # workspace to build and every later run would be a cold rebuild.
       - uses: actions/checkout@v4
+        with:
+          clean: false
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -65,6 +74,21 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # apps/mobile/ios is gitignored, so a workspace that has never run this
+      # job has none — and run.mjs points xcodebuild straight at
+      # ios/PadelJam.xcworkspace. Generate it once here; `clean: false` above
+      # keeps it for later runs. --no-install deliberately skips pod install:
+      # run.mjs already installs Pods when they are missing, using an explicit
+      # /usr/local/bin/pod, and a second copy of that here would be a second
+      # thing to keep in sync.
+      - name: Prebuild the iOS project if absent
+        run: |
+          if [ -d apps/mobile/ios ]; then
+            echo "apps/mobile/ios present — skipping prebuild"
+          else
+            pnpm --filter mobile exec expo prebuild --platform ios --no-install
+          fi
 
       # Deliberately thin: scripts/e2e/run.mjs already resolves the simulator,
       # boots it tolerating an already-booted device, and preflights the
