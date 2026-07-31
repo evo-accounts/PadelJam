@@ -77,23 +77,6 @@ describe('07 event live scoring', () => {
     if (!hasRows && !empty) throw new Error('leaderboard rendered neither standings nor its empty state');
   });
 
-  // TODO(e2e): the live screen only renders a Timer tab for time-scored events
-  // (E3 is points-scored, so its tabs are just Matches/Leaderboard even though
-  // the seed starts a timer on it). Needs a fixture with scoring_mode 'time'.
-  it.skip('controls the timer', async () => {
-    await tap({ text: /timer/i });
-    await expectVisible({ text: /pause|start|resume/i }, { timeout: 15_000 });
-    const control = query(await snapshot(), { text: /^(pause|resume|start)$/i, type: 'Button' });
-    if (!control) throw new Error('no timer control found');
-    await tap({ label: control.AXLabel! });
-    await sleep(1500);
-    // The control must flip to its opposite state.
-    const after = query(await snapshot(), { text: /^(pause|resume|start)$/i, type: 'Button' });
-    if (after?.AXLabel === control.AXLabel) {
-      throw new Error(`timer control did not change state (still "${control.AXLabel}")`);
-    }
-  });
-
   it('finishes the event and records the ranking choice', async () => {
     const m = manifest();
     await tap({ text: /matches/i });
@@ -108,5 +91,44 @@ describe('07 event live scoring', () => {
       (rows) => (rows as { status: string }[])[0]?.status === 'completed',
       { label: 'event completed', timeoutMs: 25_000 },
     );
+  });
+});
+
+/**
+ * The Timer tab only exists for TIME-scored events — app/event/[id]/live.tsx
+ * gates it on `scoring_mode === 'time'` — and E3 is points-scored, so its tabs
+ * are only Matches/Leaderboard even though the seed starts a timer on it. E11
+ * "Timed Americano" is the fixture for this and nothing else.
+ *
+ * Deliberately a separate block: the one above ends by FINISHING E3, so a timer
+ * test placed among those tests would either interrupt that flow or navigate it
+ * onto the wrong event. This runs afterwards and re-navigates from the Events
+ * tab; it inherits the signed-in session (alex, who organizes E11) from the
+ * beforeAll above, which vitest has already run in this same file and process.
+ */
+describe('07b live timer (time-scored event)', () => {
+  const openTimedLive = async () => {
+    await tabTo('Events');
+    await scrollUntilVisible({ text: /timed americano/i }, { maxSwipes: 8 });
+    await tap({ text: /timed americano/i });
+    await expectVisible({ text: /timed americano/i }, { timeout: 20_000 });
+    await scrollUntilVisible({ text: /view matches/i }, { maxSwipes: 8 });
+    await tap({ text: /view matches/i });
+    await expectVisible({ text: /matches/i }, { timeout: 20_000 });
+  };
+
+  it('controls the timer', async () => {
+    await openTimedLive();
+    await tap({ text: /timer/i });
+    await expectVisible({ text: /pause|start|resume/i }, { timeout: 15_000 });
+    const control = query(await snapshot(), { text: /^(pause|resume|start)$/i, type: 'Button' });
+    if (!control) throw new Error('no timer control found');
+    await tap({ label: control.AXLabel! });
+    await sleep(1500);
+    // The control must flip to its opposite state.
+    const after = query(await snapshot(), { text: /^(pause|resume|start)$/i, type: 'Button' });
+    if (after?.AXLabel === control.AXLabel) {
+      throw new Error(`timer control did not change state (still "${control.AXLabel}")`);
+    }
   });
 });

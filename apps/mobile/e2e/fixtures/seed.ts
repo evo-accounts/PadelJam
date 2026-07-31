@@ -12,7 +12,13 @@ export interface SeedManifest {
   users: Record<string, string>;
   communities: { A: string; C: string; P: string; R: string; S: string };
   groups: { g1: string; g2: string; g3: string; gR: string; gS: string };
-  events: { e1: string; e2: string; e3: string; e4: string; e5: string; e6: string; e7: string; e8: string };
+  events: {
+    e1: string; e2: string; e3: string; e4: string; e5: string; e6: string; e7: string; e8: string;
+    // Fixtures the RPCs cannot express on their own — see suppressInvitations()
+    // in infra/seed/seed-e2e.mjs. e9/e10/e12 carry NO invitations; e11 is the
+    // only time-scored event, which is what gates the live screen's Timer tab.
+    e9: string; e10: string; e11: string; e12: string;
+  };
 }
 
 let cached: SeedManifest | null = null;

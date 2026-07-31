@@ -57,29 +57,21 @@ describe('08 partner requests', () => {
     );
   });
 
-  // TODO(e2e): could not find the entry point to partner selection from the
-  // event detail screen. Public group events auto-invite every member, so a
-  // seeded player arrives holding an invitation; accepting it leaves them
-  // "You're going" with a Leave CTA and no partner prompt. The
-  // /event/[id]/partner-requests route clearly exists (the inbox tests above
-  // exercise it) — this needs either a non-invited player fixture or the
-  // in-app path that surfaces "Ask to partner". Core flow is covered above.
-  it.skip('a team-spec event routes a new player to partner selection', async () => {
-    // joao is not yet paired on E2; a team event asks for a partner rather than
-    // offering a plain Join.
+  it('a team-spec event routes a new player to partner selection', async () => {
+    // E12 "Duo Selection" is team-spec and carries NO invitations, so joao
+    // arrives with nothing to accept. On E2 "Team Cup" he is auto-invited, and
+    // accepting leaves him "You're going" with a Leave CTA and no partner
+    // prompt — which is why this needed its own fixture rather than E2.
     await switchUser('joao');
     await tabTo('Home');
     await tap({ text: /find event/i });
-    await scrollUntilVisible({ text: /team cup/i }, { maxSwipes: 10 });
-    await tap({ text: /team cup/i });
-    await expectVisible({ text: /team cup/i }, { timeout: 20_000 });
-    // Public group events auto-invite every member, so joao arrives holding an
-    // invitation — accept it first; the partner path is what follows.
-    await scrollUntilVisible({ text: /^accept$/i }, { maxSwipes: 8 });
-    await tap({ text: /^accept$/i });
-    await new Promise((r) => setTimeout(r, 2500));
-    await scrollUntilVisible({ text: /partner/i }, { maxSwipes: 8 });
-    const cta = query(await snapshot(), { text: /ask to partner|choose a partner|partner request/i });
-    if (!cta) throw new Error('team event offered no partner-selection path after accepting');
+    await scrollUntilVisible({ text: /duo selection/i }, { maxSwipes: 10 });
+    await tap({ text: /duo selection/i });
+    await expectVisible({ text: /duo selection/i }, { timeout: 20_000 });
+    // The fixture's name deliberately excludes the word "partner", so this
+    // selector can only match an actual CTA and not the event title.
+    await scrollUntilVisible({ text: /join with a partner|ask to partner|choose a partner/i }, { maxSwipes: 8 });
+    const cta = query(await snapshot(), { text: /join with a partner|ask to partner|choose a partner/i });
+    if (!cta) throw new Error('team event offered no partner-selection path');
   });
 });
