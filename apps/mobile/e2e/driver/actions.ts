@@ -1,4 +1,4 @@
-import { center, snapshot, query, type AxElement, type Selector } from './a11y';
+import { snapshot, query, describeSelector, type AxElement, type Selector } from './a11y';
 import { idbKey, idbSwipe, idbTap, idbText } from './idb';
 import { captureFailure, waitFor, type WaitOpts } from './expect';
 
@@ -8,9 +8,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const SCREEN = { width: 402, height: 874 };
 
 /**
- * Elements inside horizontal rails report frames that extend past the screen,
- * so their centre can be off-device (a tap there is silently dropped). Clamp to
- * the visible area, keeping a small inset away from edge-gesture zones.
+ * Clamp an ABSOLUTE point into the tappable area.
+ *
+ * Only for caller-supplied coordinates (blind taps at system sheets, whose
+ * controls are invisible to the app's AX tree). Element taps must NOT go through
+ * this — see visibleTapPoint.
  */
 function clampToScreen(x: number, y: number): { x: number; y: number } {
   const inset = 8;
@@ -18,6 +20,36 @@ function clampToScreen(x: number, y: number): { x: number; y: number } {
     x: Math.min(Math.max(x, inset), SCREEN.width - inset),
     y: Math.min(Math.max(y, inset), SCREEN.height - inset),
   };
+}
+
+/**
+ * Where to tap an element: the centre of the part actually ON SCREEN.
+ *
+ * Elements routinely report frames extending past the viewport — cards in
+ * horizontal rails run off the right edge, and anything below the fold reports
+ * its true document position. The old code clamped the frame's centre into the
+ * viewport, which is only defensible when the element is partly visible: for a
+ * "Save" button at y≈1300 it produced y=866, a coordinate belonging to a
+ * DIFFERENT element. Measured on community manage/settings, that clamp landed
+ * inside the Cover-image picker and opened the iOS photo library; the run then
+ * failed 80s later against an empty AX tree with a message about something else.
+ *
+ * Intersecting with the viewport gets the rail case right too — the visible left
+ * portion of an overflowing card — and makes "nothing is on screen" a distinct,
+ * reportable state instead of a silently wrong tap.
+ *
+ * Returns null when the element is entirely off screen.
+ */
+function visibleTapPoint(el: AxElement): { x: number; y: number } | null {
+  const { x, y, width, height } = el.frame;
+  const x0 = Math.max(x, 0);
+  const x1 = Math.min(x + width, SCREEN.width);
+  const y0 = Math.max(y, 0);
+  const y1 = Math.min(y + height, SCREEN.height);
+  if (x1 - x0 < 1 || y1 - y0 < 1) return null;
+  // Keep the small inset off the edge-gesture zones, now that we know the point
+  // is genuinely within the element.
+  return clampToScreen((x0 + x1) / 2, (y0 + y1) / 2);
 }
 
 /**
@@ -55,7 +87,18 @@ export async function tap(target: Selector | { x: number; y: number }, opts?: Wa
   // cannot be used to decide whether a tap is worth delivering.
   const el = await waitFor(target as Selector, opts);
   const settled = await settleFrame(target as Selector, el);
-  const p = avoidStatusBar(clampToScreen(center(settled).x, center(settled).y), settled);
+  const visible = visibleTapPoint(settled);
+  if (!visible) {
+    const { x, y, width, height } = settled.frame;
+    const reason =
+      `tap target is entirely off screen: ${describeSelector(target as Selector)} at `
+      + `x=${Math.round(x)}..${Math.round(x + width)}, y=${Math.round(y)}..${Math.round(y + height)} `
+      + `(viewport ${SCREEN.width}x${SCREEN.height}). Scroll it into view first — `
+      + 'tapping anyway would clamp onto whatever occupies that coordinate.';
+    const dir = await captureFailure(reason);
+    throw new Error(`${reason}\nartifacts: ${dir}`);
+  }
+  const p = avoidStatusBar(visible, settled);
   await idbTap(p.x, p.y);
 }
 
@@ -166,8 +209,13 @@ export async function typeText(field: Selector, text: string, opts?: WaitOpts): 
   // picker, and the run ended in the iOS photo library with the app's AX tree
   // empty and a wholly unrelated-looking failure.
   const settledTarget = await settleFrame(field, target);
-  const c = center(settledTarget);
-  await tap({ x: c.x, y: c.y });
+  const focusPoint = visibleTapPoint(settledTarget);
+  if (!focusPoint) {
+    const reason = `typeText cannot focus ${describeSelector(field)}: the field is entirely off screen (y=${Math.round(settledTarget.frame.y)}). Scroll it into view first.`;
+    const dir = await captureFailure(reason);
+    throw new Error(`${reason}\nartifacts: ${dir}`);
+  }
+  await tap({ x: focusPoint.x, y: focusPoint.y });
   await sleep(500);
   await typeSlow();
   await sleep(400);
