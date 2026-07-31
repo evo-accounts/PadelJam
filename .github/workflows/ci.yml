@@ -50,14 +50,6 @@ jobs:
       # `!cancelled()` on the later steps rather than fail-fast: a red lint and a
       # red test are usually independent, and seeing both in one run beats
       # fixing them one push at a time.
-      #
-      # NOTE: `pnpm lint` does NOT cover apps/mobile — that package has no `lint`
-      # script, so turbo skips it silently. It is the largest app in the repo and
-      # it currently reports 19 errors, all of them gaps in the flat config
-      # (react-hooks plugin unregistered, no node globals for the CJS metro
-      # config and stubs, `require()` for static assets) rather than real
-      # defects. Adding the script here would just paint this job red on day
-      # one; fix the config first, then add it.
       - name: Lint
         run: pnpm lint
 
