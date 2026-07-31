@@ -52,6 +52,40 @@ dump, app log tail) land in `e2e/artifacts/<run>/<test>/`.
 Env knobs: `E2E_UDID` (simulator), `E2E_IDB_PATH`, `E2E_STREAM=1` / `E2E_OAUTH=1` /
 `E2E_PUSH_DELIVERY=1` (enable locally-blocked areas), `E2E_WAIT_TIMEOUT_MS`.
 
+## In CI: a self-hosted macOS runner, not a hosted one
+
+[`e2e-mobile.yml`](../../../.github/workflows/e2e-mobile.yml) targets
+`[self-hosted, macOS, ARM64]`. **A hosted macOS runner cannot run this suite**, and
+not for want of trying: hosted runners ship no container runtime, and they cannot
+virtualize to add one —
+
+```
+kern.hv_support            → sysctl: unknown oid 'kern.hv_support'
+colima start --vm-type=vz  → VZErrorDomain Code=2
+                             "Virtualization is not available on this hardware."
+```
+
+Colima's qemu driver does work there, as pure software emulation, and it is far too
+slow to be useful: **11.5 min** to boot the VM and **31 min** for `supabase start`
+(2–3 min locally). Measured, not assumed — don't spend another day on it.
+
+The runner machine needs exactly the **Prerequisites** above (Docker + the local
+stack, Xcode, idb), because the workflow deliberately does not install or configure
+any of them — `run.mjs` already resolves the simulator, boots it, and preflights the
+stack and idb with actionable messages. The workflow only installs dependencies,
+ensures the stack is up, writes the two `.env` files into its own workspace, and runs
+the orchestrator with `--wait` so it queues behind a hand-run suite instead of going
+red over a held lock. It does **not** run `supabase stop` afterwards, since that
+would take down the stack you develop against.
+
+Two things to know before enabling the nightly on your own machine:
+
+- **A run wipes the local database.** `resetDb()` rotates every seeded id, so pick an
+  hour when the machine is on but idle. A run started while you are using the app
+  locally will pull the data out from under it.
+- **A sleeping Mac queues the job rather than failing it**, so a 03:00 cron can
+  actually start whenever the runner next comes online.
+
 ## Test data
 
 `infra/seed/seed-e2e.mjs` (fork of seed-demo with **NOW-relative dates**) seeds 12

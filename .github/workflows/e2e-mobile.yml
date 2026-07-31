@@ -1,9 +1,17 @@
 name: E2E (mobile)
 
-# The iOS E2E suite needs a macOS runner with Xcode, a booted simulator, Docker
-# for the local Supabase stack, and idb for input injection. It is heavy
-# (~10 min build + ~15 min run), so it is NOT part of the default PR checks by
-# default — trigger it manually, nightly, or on demand with the `e2e` label.
+# The iOS E2E suite needs Xcode, a simulator, idb, and Docker running the local
+# Supabase stack. It runs on a SELF-HOSTED macOS runner, because a hosted one
+# cannot host the stack: hosted macOS runners have no container runtime and
+# cannot virtualize to add one — `colima start --vm-type=vz` returns
+# VZErrorDomain Code=2 "Virtualization is not available on this hardware", and
+# `kern.hv_support` does not even exist as a sysctl OID. qemu falls back to
+# software emulation, which does work but took 11.5 min to boot the VM and
+# 31 min to start the stack (2-3 min locally) — no use for a 13-suite nightly.
+#
+# That also matches the suite's own design: it owns ONE simulator and ONE local
+# database exclusively (see the lock in scripts/e2e/run.mjs), which describes a
+# machine, not a disposable runner.
 on:
   workflow_dispatch:
     inputs:
@@ -12,7 +20,15 @@ on:
         required: false
         default: ''
   schedule:
+    # A run WIPES the local database (resetDb rotates every seeded id), so this
+    # wants an hour when the machine is on but nobody is working. If the Mac is
+    # asleep the job simply queues and starts when the runner next comes
+    # online — which may be mid-morning, so move this if that bites.
     - cron: '0 3 * * *' # nightly, 03:00 UTC
+  # NOTE: `pull_request` on a self-hosted runner executes the PR's code on your
+  # machine. The `e2e` label gate below means only someone who can label a PR
+  # can trigger it, which on a private repo is collaborators only — but do not
+  # widen this trigger without thinking about that.
   pull_request:
     types: [labeled, synchronize]
 
@@ -28,11 +44,27 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'e2e')
-    runs-on: macos-15
+    # Swap in a dedicated label (e.g. `padeljam-e2e`) if you ever add a second
+    # self-hosted macOS runner that must not pick this up.
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 90
 
+    env:
+      # Point at Xcode without `sudo xcode-select`, which would change the
+      # setting globally on someone's own machine (and need a sudo password).
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+
     steps:
+      # clean: false because this runner's workspace is persistent and the build
+      # depends on two GITIGNORED trees: apps/mobile/ios (the prebuild output,
+      # which is what `xcodebuild -workspace` points at, plus its Pods) and
+      # apps/mobile/.e2e-derived (the Release build and the source-stamp that
+      # run.mjs reads to decide whether it can skip xcodebuild). The default
+      # `git clean -ffdx` deletes both, so the very first step would leave no
+      # workspace to build and every later run would be a cold rebuild.
       - uses: actions/checkout@v4
+        with:
+          clean: false
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -43,30 +75,35 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-
-      - name: Boot iOS simulator
+      # apps/mobile/ios is gitignored, so a workspace that has never run this
+      # job has none — and run.mjs points xcodebuild straight at
+      # ios/PadelJam.xcworkspace. Generate it once here; `clean: false` above
+      # keeps it for later runs. --no-install deliberately skips pod install:
+      # run.mjs already installs Pods when they are missing, using an explicit
+      # /usr/local/bin/pod, and a second copy of that here would be a second
+      # thing to keep in sync.
+      - name: Prebuild the iOS project if absent
         run: |
-          UDID=$(xcrun simctl list devices available -j \
-            | python3 -c "import json,sys;ds=[d for v in json.load(sys.stdin)['devices'].values() for d in v if d['isAvailable'] and 'iPhone' in d['name']];print(ds[0]['udid'])")
-          echo "E2E_UDID=$UDID" >> "$GITHUB_ENV"
-          xcrun simctl boot "$UDID"
-          xcrun simctl bootstatus "$UDID" -b
+          if [ -d apps/mobile/ios ]; then
+            echo "apps/mobile/ios present — skipping prebuild"
+          else
+            pnpm --filter mobile exec expo prebuild --platform ios --no-install
+          fi
 
-      - name: Install idb
-        run: |
-          brew tap facebook/fb
-          brew install idb-companion
-          pipx install fb-idb || python3 -m pip install --user fb-idb
-          echo "E2E_IDB_PATH=$(command -v idb || echo "$HOME/Library/Python/3.9/bin/idb")" >> "$GITHUB_ENV"
-
-      - name: Start local Supabase stack
+      # Deliberately thin: scripts/e2e/run.mjs already resolves the simulator,
+      # boots it tolerating an already-booted device, and preflights the
+      # Supabase API, Mailpit, Postgres and idb with actionable messages. Doing
+      # any of that again here would only add a second place to keep in sync.
+      - name: Ensure the local Supabase stack is up
         env:
           SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: local_test_token
         run: |
+          # A no-op that prints "already running" when the developer's stack is
+          # already up, which on this machine is the normal case.
           pnpm dlx supabase@latest --workdir infra start
-          # The seed and the suite read these from the repo-root .env.
+          # This checkout is the runner's own workspace, not the developer's
+          # clone, so it starts with no .env — the seed and the suite read the
+          # service-role key from the repo root.
           pnpm dlx supabase@latest --workdir infra status -o env \
             | sed -e 's/^API_URL=/SUPABASE_URL=/' \
                   -e 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' \
@@ -78,8 +115,11 @@ jobs:
             echo "EXPO_PUBLIC_APP_ENV=development"
           } > apps/mobile/.env
 
+      # --wait rather than fail-fast: the developer may be running the suite by
+      # hand on this same machine, and queueing behind them is friendlier than
+      # a red nightly that only means "the lock was held".
       - name: Run E2E suites
-        run: node scripts/e2e/run.mjs ${{ inputs.suite && format('--suite {0}', inputs.suite) || '' }}
+        run: node scripts/e2e/run.mjs --wait ${{ inputs.suite && format('--suite {0}', inputs.suite) || '' }}
 
       - name: Upload failure artifacts
         if: failure()
@@ -89,6 +129,6 @@ jobs:
           path: apps/mobile/e2e/artifacts/
           retention-days: 7
 
-      - name: Stop Supabase stack
-        if: always()
-        run: pnpm dlx supabase@latest --workdir infra stop || true
+      # No teardown step on purpose. `supabase stop` would take down the stack
+      # the developer works against, and each suite already calls resetDb() at
+      # the start, so leaving it running costs nothing and surprises no one.
