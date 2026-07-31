@@ -246,8 +246,78 @@ export async function toggleSwitch(sel: Selector, opts: { attempts?: number } = 
 
 /** iOS interactive-pop back gesture: swipe from the left screen edge. */
 export async function backGesture(): Promise<void> {
-  await idbSwipe(2, 420, 240, 420, 350);
-  await sleep(600);
+  // Swipe through the HEADER, not the middle of the screen.
+  //
+  // This used to swipe at y=420, which on a community `[id]/(home)` screen lands
+  // inside the top-tabs pager — measured: its tab strip sits at y=302..350 and
+  // the pager's own content Group at y=350..874. A horizontal pan there is
+  // claimed by the pager, so the stack never popped. #19 papered over it inside
+  // ensureTabs() with a relaunch() fallback; this fixes the primitive, which is
+  // what every other caller uses.
+  //
+  // The y is DERIVED, not fixed, because a fixed one does not exist. Measured:
+  //
+  //   community home       tab strip y=302..350, pager content y=350..874
+  //   finished live event  "Round 1"/"Round 2" side by side at y=120..380
+  //
+  // A band above the community pager (y=150) lands inside the live screen's
+  // round rail, and vice versa — the first attempt at this fixed y=150/250 and
+  // broke suite 07 exactly that way.
+  //
+  // What steals the pan is always a horizontally-arranged group, and that has a
+  // reliable signature in the tree: two or more elements sharing a y. So swipe
+  // just above the topmost one. On the live screen that yields ~108 (above the
+  // round rail); on the community screen ~258 (header, above the tab strip).
+  const tree = await snapshot();
+  const before = treeSignature(tree);
+  const y0 = safeBackY(tree);
+  for (const y of [y0, Math.max(STATUS_BAND + 12, y0 - 10)]) {
+    await idbSwipe(2, y, 240, y, 350);
+    await sleep(600);
+    if (treeSignature(await snapshot()) !== before) return;
+  }
+  // Deliberately NOT retrying at the old y=420, and this is MEASURED rather than
+  // assumed: restoring that coordinate makes the pager flip to its next tab, so
+  // the tree changes and the check below reads it as a pop — the guard in suite
+  // 09 then fails on the tab bar never coming back, not on this throw. A wrong
+  // success is the exact failure mode this driver keeps being bitten by (#19,
+  // #26, the swallowed tap above), so give up loudly instead.
+  //
+  // Note the honest limit: a changed tree is a PROXY for "popped", not proof.
+  // It holds here because the header is not a pager — a swipe there either pops
+  // or does nothing. The real assertion lives in suite 09's guard.
+  const reason = 'backGesture did not change the screen at y=150 or y=250 — the stack did not pop';
+  const dir = await captureFailure(reason);
+  throw new Error(`${reason}\nartifacts: ${dir}`);
+}
+
+/** Cheap stable summary of a screen, for "did anything change?" checks. */
+function treeSignature(tree: AxElement[]): string {
+  return tree.map((e) => `${e.type}:${e.AXLabel ?? ''}`).join('|');
+}
+
+/**
+ * A y to swipe across that no horizontal scroller is likely to claim.
+ *
+ * Two or more elements sharing a y means they sit side by side — a pager tab
+ * strip, a card rail, a segmented control — which is exactly what consumes a
+ * horizontal pan. Swiping above the topmost such row keeps the gesture in
+ * header/nav space, where only the stack's own pop recogniser is listening.
+ */
+function safeBackY(tree: AxElement[]): number {
+  const rows = new Map<number, number>();
+  for (const el of tree) {
+    const y = Math.round(el.frame.y);
+    if (y <= STATUS_BAND || y >= SCREEN.height) continue;
+    rows.set(y, (rows.get(y) ?? 0) + 1);
+  }
+  const topRow = [...rows.entries()]
+    .filter(([, count]) => count >= 2)
+    .map(([y]) => y)
+    .sort((a, b) => a - b)[0];
+  // No rail at all (a plain scrolling screen): mid-header is fine.
+  if (topRow === undefined) return 150;
+  return Math.max(STATUS_BAND + 12, topRow - 12);
 }
 
 /**
