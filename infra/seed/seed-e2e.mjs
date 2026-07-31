@@ -451,8 +451,12 @@ async function main() {
   };
   console.log(`\nE2E_MANIFEST ${JSON.stringify(manifest)}`);
 
+  // `select=*` rather than `select=id`: not every table has an id column —
+  // `follows` is keyed on (follower_id, followee_id) — and PostgREST answers
+  // `select=id` there with a 400, which this swallowed into a bare "?" in the
+  // output. The count comes from the content-range header either way.
   const count = async (t) => {
-    const r = await fetch(`${URL}/rest/v1/${t}?select=id`, { headers: { ...svc, Prefer: 'count=exact', Range: '0-0' } });
+    const r = await fetch(`${URL}/rest/v1/${t}?select=*`, { headers: { ...svc, Prefer: 'count=exact', Range: '0-0' } });
     return (r.headers.get('content-range') || '/?').split('/')[1];
   };
   console.log('Counts:');
