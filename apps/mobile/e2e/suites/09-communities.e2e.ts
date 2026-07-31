@@ -1,6 +1,6 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
-import { scrollUntilVisible, tap, typeText } from '../driver/actions';
+import { backGesture, scrollUntilVisible, tap, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall, relaunch } from '../driver/app';
 import { loginAs, switchUser, tabTo } from '../driver/flows';
@@ -134,5 +134,31 @@ describe('09 communities', () => {
     // Either the request CTA or the already-requested state.
     const cta = query(tree, { text: /request to join|request sent|admins must approve/i });
     if (!cta) throw new Error('request-to-join community offered no request path');
+  });
+
+  /**
+   * Guards the primitive that this whole suite had to work around.
+   *
+   * The community home's body is a top-tabs PAGER, and `backGesture()` used to
+   * swipe at y=420 — inside the pager's own content (measured on this screen:
+   * tab strip y=302..350, pager content y=350..874). The pager claimed the pan,
+   * the stack never popped, and `ensureTabs()` exhausted its pops and returned
+   * SILENTLY, so the real failure surfaced later as an unrelated timeout. #19
+   * made ensureTabs fall back to relaunch() and throw; that hid the breakage
+   * rather than fixing it, and every other caller still got the broken gesture.
+   *
+   * This asserts the gesture itself, from the exact screen that used to defeat
+   * it. `returnToTabs()` above (a relaunch) stays as the suite's own escape
+   * hatch — it is deliberately independent of the thing under test here.
+   */
+  it('the back gesture pops the stack from the tabs pager', async () => {
+    await returnToTabs();
+    await switchUser('alex');
+    await openCommunity(/lisbon padel club/i);
+    await expectVisible({ text: /^posts$/i }, { timeout: 15_000 });
+    await backGesture();
+    // The pushed community screen carries no bottom tab bar (its tree is header
+    // + tab strip + pager), so the tab bar reappearing IS the pop.
+    await expectVisible({ text: /community, tab, \d+ of \d+/i }, { timeout: 15_000 });
   });
 });
