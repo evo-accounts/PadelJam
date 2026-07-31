@@ -16,7 +16,7 @@
  */
 import { execFileSync, execSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -188,6 +188,15 @@ function sourceHash() {
       // Sorted: readdir order is not guaranteed, and an unstable order would make
       // the stamp differ between runs over identical sources.
       for (const f of readdirSync(p).sort()) walk(join(p, f));
+    } else if (p.endsWith('.env')) {
+      // CONTENT, not mtime. CI regenerates apps/mobile/.env from `supabase
+      // status` on every run, so its mtime always differs and an mtime-based
+      // stamp can never match — measured: three consecutive CI runs, including
+      // reruns of the SAME commit, all logged "Building Release" and never
+      // "Build is fresh", paying a full xcodebuild for nothing. The file's
+      // contents are what actually get inlined into the bundle.
+      h.update(p);
+      h.update(readFileSync(p));
     } else {
       h.update(p);
       h.update(String(st.mtimeMs));
@@ -198,6 +207,19 @@ function sourceHash() {
   // Package versions affect the bundle too.
   h.update(readFileSync(join(MOBILE, 'package.json')));
   return h.digest('hex');
+}
+
+/** Delete all but the newest `keep` timestamped artifact dirs. */
+function pruneArtifacts(root, keep) {
+  if (!existsSync(root)) return;
+  const dirs = readdirSync(root)
+    .filter((n) => statSync(join(root, n)).isDirectory())
+    .sort() // ISO-8601 names sort chronologically
+    .slice(0, -keep);
+  for (const d of dirs) {
+    try { rmSync(join(root, d), { recursive: true, force: true }); } catch { /* best-effort */ }
+  }
+  if (dirs.length) log(`Pruned ${dirs.length} old artifact dir(s)`);
 }
 
 function buildIfStale(udid) {
@@ -284,6 +306,15 @@ if (flag('--build-only')) { log('Build done.'); process.exit(0); }
 log('Installing app…');
 sh('xcrun', ['simctl', 'install', udid, APP_PATH]);
 
+// Keep only the most recent runs. Artifact dirs are never cleaned otherwise
+// (157 had piled up here), and on the self-hosted runner actions/checkout uses
+// clean:false, so upload-artifact bundles every past run's failures alongside
+// this one's — dirs from days ago, for tests that passed today.
+//
+// 10 rather than a tighter number on purpose: these are the only record of what
+// a screen looked like when something failed, and a two-day-old one was what
+// pinned down the pager geometry behind the backGesture fix. Bounded, not scarce.
+pruneArtifacts(join(MOBILE, 'e2e', 'artifacts'), 10);
 const artifacts = join(MOBILE, 'e2e', 'artifacts', new Date().toISOString().replace(/[:.]/g, '-'));
 mkdirSync(artifacts, { recursive: true });
 
