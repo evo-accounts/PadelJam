@@ -1,0 +1,70 @@
+name: CI
+
+# Lint, typecheck and the unit suites, on every pull request.
+#
+# Deliberately a HOSTED runner, unlike the E2E workflow next door: none of these
+# tasks need Xcode, a simulator, or the Supabase stack, so none of the reasons
+# that pin E2E to a self-hosted Mac apply here. That also means this workflow is
+# safe to run on every PR — it executes the PR's code on a disposable VM, not on
+# someone's laptop.
+#
+# The whole set takes well under a minute of actual work (test ~35s across 9
+# packages, typecheck ~15s, lint ~5s), so it is a fail-fast gate rather than
+# something to defer or sample.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  # Per-ref, and cancellable: superseded pushes to a PR are simply stale here.
+  # (The E2E workflow deliberately does the opposite — it owns shared hardware.)
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No version pinned: pnpm/action-setup reads `packageManager` from the
+      # root package.json, so the lockfile and CI cannot drift apart.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `!cancelled()` on the later steps rather than fail-fast: a red lint and a
+      # red test are usually independent, and seeing both in one run beats
+      # fixing them one push at a time.
+      #
+      # NOTE: `pnpm lint` does NOT cover apps/mobile — that package has no `lint`
+      # script, so turbo skips it silently. It is the largest app in the repo and
+      # it currently reports 19 errors, all of them gaps in the flat config
+      # (react-hooks plugin unregistered, no node globals for the CJS metro
+      # config and stubs, `require()` for static assets) rather than real
+      # defects. Adding the script here would just paint this job red on day
+      # one; fix the config first, then add it.
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        if: '!cancelled()'
+        run: pnpm typecheck
+
+      - name: Test
+        if: '!cancelled()'
+        run: pnpm test
