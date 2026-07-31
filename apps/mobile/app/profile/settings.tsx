@@ -23,7 +23,6 @@ export default function SettingsScreen() {
   const update = useUpdateProfile();
   const [langOpen, setLangOpen] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const current = (LANGS.find((l) => l.code === i18n.language) ?? LANGS[0])!;
 
   const onSelectLang = (code: string) => {
