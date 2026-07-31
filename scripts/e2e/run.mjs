@@ -14,7 +14,7 @@
  * Env: E2E_UDID, E2E_IDB_PATH, E2E_STREAM=1, E2E_OAUTH=1, E2E_PUSH_DELIVERY=1.
  * Requires: Docker + local Supabase stack running, Xcode installed.
  */
-import { execFileSync, execSync, spawnSync } from 'node:child_process';
+import { execFileSync, execSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -233,7 +233,41 @@ function disableExpoUpdates() {
   log('expo-updates disabled in E2E build');
 }
 
+/**
+ * Hold a power assertion for the lifetime of this run.
+ *
+ * A full suite takes ~25 minutes and spends most of it waiting — polling the
+ * accessibility tree, sleeping between taps — so it holds no CPU assertion and
+ * macOS is free to idle-sleep straight through it. Nothing here keeps the
+ * machine awake either: `pmset -g assertions` during a run shows
+ * PreventSystemSleep 0, and the only thing holding the Mac up is powerd's
+ * "Prevent sleep while display is on". Which is exactly why this never
+ * reproduces while you are sitting in front of it, and bites the unattended
+ * nightly.
+ *
+ * The damage is not the pause. On wake, Docker Desktop corrects the Linux VM's
+ * clock BACKWARD, and any JWT minted either side of that correction is then
+ * "issued at future" to a validator sharing that clock — so GoTrue hands out a
+ * token PostgREST refuses. It surfaces as an auth failure on the OTP screen of
+ * whichever suite happened to be signing in at that moment, which is why it
+ * looked random: three consecutive CI runs failed this way in suites 01, 04 and
+ * 06, each one green on its own.
+ *
+ * `-w <pid>` ties caffeinate's lifetime to ours, so it cannot outlive a crash
+ * and leave the machine awake for good.
+ */
+function preventSleep() {
+  if (process.platform !== 'darwin') return;
+  try {
+    spawn('caffeinate', ['-dimsu', '-w', String(process.pid)], { detached: true, stdio: 'ignore' }).unref();
+    log('Holding a power assertion for this run (caffeinate)');
+  } catch {
+    log('WARNING: could not start caffeinate — a mid-run sleep may cause "JWT issued at future"');
+  }
+}
+
 // --- main -------------------------------------------------------------------
+preventSleep();
 const udid = resolveUdid();
 log(`Simulator: ${udid}`);
 await preflight();
