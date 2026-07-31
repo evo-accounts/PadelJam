@@ -159,7 +159,14 @@ export async function typeText(field: Selector, text: string, opts?: WaitOpts): 
     if ((await settled()) === true) return;
   }
 
-  const c = center(target);
+  // Re-settle before tapping. `target` was resolved at the top of this function
+  // and the raw-coordinate tap below bypasses the settling that tap(selector)
+  // does — so on a screen still animating in, the touch lands wherever moved
+  // into that spot. Measured: on community manage/settings that is an image
+  // picker, and the run ended in the iOS photo library with the app's AX tree
+  // empty and a wholly unrelated-looking failure.
+  const settledTarget = await settleFrame(field, target);
+  const c = center(settledTarget);
   await tap({ x: c.x, y: c.y });
   await sleep(500);
   await typeSlow();
@@ -286,7 +293,14 @@ export async function backGesture(): Promise<void> {
   // Note the honest limit: a changed tree is a PROXY for "popped", not proof.
   // It holds here because the header is not a pager — a swipe there either pops
   // or does nothing. The real assertion lives in suite 09's guard.
-  const reason = 'backGesture did not change the screen at y=150 or y=250 — the stack did not pop';
+  // Report the coordinates ACTUALLY tried. These are derived per screen, so a
+  // hardcoded message here goes stale the moment safeBackY changes — and it
+  // did: it kept naming y=150/250 long after the derivation replaced them.
+  // A common cause of landing here is a system alert: it makes the app's AX
+  // tree empty, so nothing can change and no swipe can pop anything.
+  const reason =
+    `backGesture did not change the screen at y=${y0} or y=${Math.max(STATUS_BAND + 12, y0 - 10)} — `
+    + 'the stack did not pop (a system alert left up will do this: it empties the app AX tree)';
   const dir = await captureFailure(reason);
   throw new Error(`${reason}\nartifacts: ${dir}`);
 }
