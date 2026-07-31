@@ -26,6 +26,17 @@ export async function captureFailure(reason: string): Promise<string> {
   try {
     writeFileSync(join(dir, `${stamp}-app.log`), await appLogTail(30));
   } catch { /* best-effort */ }
+  // Gateway log only for auth-shaped failures (or on demand). captureFailure
+  // runs on EVERY failure and this shells out to docker, so a plain waitFor
+  // timeout must not pay for it. The app log cannot answer "which request got
+  // the 401" — CFNetwork logs a status with no URL — which is precisely how the
+  // PGRST303 stale-clock failure was misread as an HTTP 500.
+  if (process.env.E2E_CAPTURE_GATEWAY === '1' || /JWT|PGRST3|401|unauthor/i.test(reason)) {
+    try {
+      const { gatewayLogTail } = await import('./gateway');
+      writeFileSync(join(dir, `${stamp}-gateway.log`), await gatewayLogTail(120));
+    } catch { /* best-effort */ }
+  }
   writeFileSync(join(dir, `${stamp}-reason.txt`), reason);
   return dir;
 }

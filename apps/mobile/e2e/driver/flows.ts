@@ -1,6 +1,6 @@
 import { snapshot, query } from './a11y';
 import { scrollUntilVisible, tap, typeText } from './actions';
-import { expectVisible, waitFor } from './expect';
+import { captureFailure, expectVisible, waitFor } from './expect';
 import { latestOtp } from '../fixtures/mailpit';
 import { PERSONAS, type PersonaKey } from '../fixtures/personas';
 
@@ -49,10 +49,14 @@ export async function loginAs(key: PersonaKey): Promise<void> {
     bounced = Boolean(query(await snapshot(), { label: 'Login or Sign Up' }));
   }
   if (bounced) {
-    throw new Error(
-      `loginAs: bounced to sign-in after a successful OTP verify for ${persona.email} — ` +
-        'regression of the StreamChatProvider subtree-remount bug; fix the app, do not add retries here',
-    );
+    const reason =
+      `loginAs: bounced to sign-in after a successful OTP verify for ${persona.email} — `
+      + 'regression of the StreamChatProvider subtree-remount bug; fix the app, do not add retries here';
+    // Capture BEFORE throwing. This used to throw bare, so the one failure mode
+    // that most needs a screenshot and a gateway log produced neither — and
+    // sign-in happens in beforeAll, where it is least attributable.
+    const dir = await captureFailure(reason).catch(() => null);
+    throw new Error(dir ? `${reason}\nartifacts: ${dir}` : reason);
   }
 }
 
