@@ -3,6 +3,33 @@ import type { Database } from './database.types';
 
 export type TypedClient = SupabaseClient<Database>;
 
+/**
+ * The fetch signature supabase-js actually expects, derived from its own option
+ * type rather than written as `typeof fetch`.
+ *
+ * `typeof fetch` is NOT portable here: under the Expo/React Native lib the DOM
+ * `fetch` takes `RequestInfo`, while supabase-js declares `RequestInfo | URL`.
+ * A wrapper typed as `typeof fetch` therefore compiles on macOS/node types and
+ * fails under apps/mobile's tsconfig with "Type 'URL' is not assignable to type
+ * 'RequestInfo'". Deriving it means there is exactly one source of truth.
+ */
+type SupabaseFetch = NonNullable<
+  NonNullable<Parameters<typeof createSupabaseClient>[2]>['global']
+>['fetch'];
+
+/**
+ * The global fetch, kept bound and typed only as supabase-js sees it.
+ *
+ * This package's own tsconfig has no DOM lib, so `RequestInfo` does not exist
+ * here at all; apps/mobile has RN's, where it exists but excludes `URL`. Naming
+ * either one breaks the other build, so the assertion is made once, here, and
+ * nothing downstream mentions a DOM type. The wrapper (rather than passing
+ * `globalThis.fetch` directly) keeps `this` bound — an unbound fetch throws
+ * "Illegal invocation" in some runtimes.
+ */
+const passthroughFetch = ((...args: Parameters<NonNullable<SupabaseFetch>>) =>
+  (globalThis.fetch as unknown as NonNullable<SupabaseFetch>)(...args)) as NonNullable<SupabaseFetch>;
+
 /** Delay before the single retry, so the refreshed clock is in play. */
 const JWT_CLOCK_RETRY_DELAY_MS = 300;
 
@@ -31,8 +58,8 @@ const JWT_CLOCK_RETRY_DELAY_MS = 300;
  * an expired token or a network error passes straight through. Retrying more
  * broadly would mask real auth failures.
  */
-export function withJwtClockRetry(fetchImpl: typeof fetch): typeof fetch {
-  return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+export function withJwtClockRetry(fetchImpl: NonNullable<SupabaseFetch>): NonNullable<SupabaseFetch> {
+  return async (input, init) => {
     const res = await fetchImpl(input, init);
     if (res.status !== 401) return res;
 
@@ -60,8 +87,6 @@ export const createClient = (
     ...options,
     global: {
       ...options?.global,
-      fetch: withJwtClockRetry(
-        options?.global?.fetch ?? ((...args: Parameters<typeof fetch>) => fetch(...args)),
-      ),
+      fetch: withJwtClockRetry(options?.global?.fetch ?? passthroughFetch),
     },
   });
