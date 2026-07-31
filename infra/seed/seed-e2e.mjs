@@ -121,6 +121,21 @@ async function scoreRound(jwt, eventId, { all = true, leavePending = 0 } = {}) {
 
 // Back-date an event after the fact (joins are blocked ≤6h before starts_at, so past
 // events must be created in the future, populated, then re-dated via service role).
+/**
+ * Delete every auto-created invitation on an event.
+ *
+ * Public group events invite every member of the group, so through the RPCs
+ * alone a group member can only ever arrive at an event HOLDING an invitation —
+ * and an invitee is shown Accept/Decline, never the waiting-list, join-cutoff or
+ * partner-selection CTAs the app shows everyone else. Those states are real and
+ * reachable in the app (a member who joined the group after the invitations went
+ * out, an invitation already declined) but unreachable in a seed built purely
+ * from RPCs. Removing the rows afterwards is the same shape as the back-dating
+ * patch below: construct through the RPC, then undo what the RPC necessarily did.
+ */
+const suppressInvitations = (eventId) =>
+  req(`/rest/v1/event_invitations?event_id=eq.${eventId}`, { method: 'DELETE' });
+
 const patchEvent = (id, fields) =>
   req(`/rest/v1/events?id=eq.${id}`, { method: 'PATCH', body: fields, prefer: 'return=minimal' });
 
@@ -298,7 +313,10 @@ async function main() {
     invitees: [{ invitee_id: id('pedro'), name: null, email: null, phone: null }],
   }) });
   for (const k of ['alex', 'joao', 'sofia']) await rpc(jwt(k), 'join_event', { p_event_id: e1 });
-  await rpc(jwt('bruno'), 'join_event', { p_event_id: e1 }); // waiting_list (cap 4)
+  // NOT waiting_list: capacity is num_courts*4 + standby_spots = 6 here, so
+  // bruno lands confirmed with is_standby set. E9 below is the fixture that
+  // actually reaches waiting_list.
+  await rpc(jwt('bruno'), 'join_event', { p_event_id: e1 }); // confirmed, is_standby
   console.log(`  E1 scheduled americano = ${e1}`);
 
   // E2 — team event (+5d), organizer maria (organizing_only); sofia+bruno paired; rita→alex pending partner request.
@@ -364,6 +382,59 @@ async function main() {
   }) });
   console.log(`  E8 private standalone = ${e8}`);
 
+  // The four fixtures below exist because the RPCs cannot express what they set
+  // up. E7/E6/E2 deliberately KEEP their auto-invitations — tests rely on the
+  // invitee path too — so these are additions rather than edits.
+
+  // E9 — full, with NO invitations and NO standby (+2d). Two things make the
+  // waiting list reachable here, and both are needed:
+  //   - invitations removed, so a group member arrives as a plain outsider
+  //     rather than an invitee holding Accept/Decline (E7 is the same shape WITH
+  //     them, deliberately);
+  //   - allow_standby false, because event_capacity() is
+  //     `num_courts * 4 + (allow_standby ? standby_spots : 0)`. With the default
+  //     2 standby spots the cap is 6, so a 5th player joins CONFIRMED (flagged
+  //     is_standby) and only a 7th would ever be waitlisted.
+  const e9 = await rpc(jwt('maria'), 'create_event', { p_payload: baseEvent({
+    name: 'Waitlist Only', starts_at: isoIn(2), allow_standby: false, standby_spots: null,
+  }) });
+  for (const k of ['joao', 'sofia', 'rita']) await rpc(jwt(k), 'join_event', { p_event_id: e9 });
+  await suppressInvitations(e9);
+  console.log(`  E9 full, invitations suppressed = ${e9}`);
+
+  // E10 — inside the 6h join cutoff with NO invitations: E6 shows Accept/Decline
+  // to every g1 member, so "Joining closed" needs a viewer holding no invitation.
+  const e10 = await rpc(jwt('alex'), 'create_event', { p_payload: baseEvent({
+    name: 'Cutoff No Invites', starts_at: hoursFromNow(3),
+  }) });
+  await suppressInvitations(e10);
+  console.log(`  E10 cutoff, invitations suppressed = ${e10}`);
+
+  // E11 — in-progress TIME-scored event: the live screen only renders its Timer
+  // tab when scoring_mode is 'time' (app/event/[id]/live.tsx), and every other
+  // seeded event is 'points', so the timer UI had no fixture at all.
+  const e11 = await rpc(jwt('alex'), 'create_event', { p_payload: baseEvent({
+    name: 'Timed Americano', scoring_mode: 'time', scoring_value: 10, starts_at: hoursFromNow(8),
+  }) });
+  for (const k of ['joao', 'sofia', 'bruno']) await rpc(jwt(k), 'join_event', { p_event_id: e11 });
+  await rpc(jwt('alex'), 'start_event', { p_event_id: e11 });
+  await patchEvent(e11, { starts_at: hoursFromNow(-1) });
+  console.log(`  E11 in-progress time-scored = ${e11}`);
+
+  // E12 — team-spec with NO invitations (+6d): accepting an invitation leaves a
+  // player "You're going" with a Leave CTA and no partner prompt, so the
+  // partner-selection entry point only appears for a player who arrives without
+  // one. E2 keeps its invitations for the inbox tests.
+  //
+  // Named to avoid the word "partner": the test looks for a partner CTA with a
+  // /partner/i selector, and an event TITLE containing it would satisfy that
+  // match on any screen and pass without the CTA ever rendering.
+  const e12 = await rpc(jwt('maria'), 'create_event', { p_payload: baseEvent({
+    name: 'Duo Selection', specification: 'team', organizer_role: 'organizing_only', starts_at: isoIn(6),
+  }) });
+  await suppressInvitations(e12);
+  console.log(`  E12 team, invitations suppressed = ${e12}`);
+
   // 8) Review Club: three completed events so can_review_community unlocks (reviewer: joao).
   for (let i = 0; i < 3; i++) {
     await completedEvent('tiago', gR, `Review League #${i + 1}`, 14 - i * 3, ['joao', 'sofia', 'bruno']);
@@ -376,7 +447,7 @@ async function main() {
     users: Object.fromEntries(Object.entries(U).map(([k, v]) => [k, v.id])),
     communities: { A: commA, C: commC, P: commP, R: commR, S: commS },
     groups: { g1, g2, g3, gR, gS },
-    events: { e1, e2, e3, e4, e5, e6, e7, e8 },
+    events: { e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12 },
   };
   console.log(`\nE2E_MANIFEST ${JSON.stringify(manifest)}`);
 

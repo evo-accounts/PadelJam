@@ -72,55 +72,53 @@ describe('04 event detail & membership', () => {
     );
   });
 
-  // TODO(e2e): the seeded "full" event does not present a stable CTA for a
-  // non-participant — public group events auto-invite every member, so the
-  // screen alternates between Accept/Decline and Join depending on invitation
-  // state, and capacity is only reflected once the roster resolves. Needs a
-  // dedicated fixture: a full event in a group the viewer belongs to with NO
-  // auto-invitation. Skipped rather than left red so the roster regression
-  // above stays the signal.
-  it.skip('a full event offers the waiting list after declining the invite', async () => {
+  it('a full event waitlists a member holding no invitation', async () => {
     const m = manifest();
-    // E7 "Full House" is at capacity, organized by maria. Public group events
-    // auto-invite every group member, so alex arrives holding an invitation —
-    // decline it first, then the waiting-list CTA is what remains.
-    await openAnyEvent(/full house/i);
-    await scrollUntilVisible({ text: /decline/i }, { maxSwipes: 8 });
-    await tap({ text: /^decline$/i });
-    await scrollUntilVisible({ text: /waiting list/i }, { maxSwipes: 8 });
+    // E9 "Waitlist Only" is at capacity and carries NO invitations. E7 "Full
+    // House" is deliberately the same shape WITH them, where the viewer gets
+    // Accept/Decline instead — which is why this test could not use it: the CTA
+    // depended on invitation state as well as capacity.
+    await openAnyEvent(/waitlist only/i);
+    // The CTA tracks capacity honestly, and E9 disables standby to reach this
+    // state: event_capacity() is `num_courts * 4 + (allow_standby ?
+    // standby_spots : 0)`, so with baseEvent's default 2 standby spots the cap
+    // would be 6 — the screen offers a plain "Join" and a 5th player lands
+    // CONFIRMED (is_standby), never waitlisted. With standby off the cap is the
+    // 4 regular spots, all taken, and the app offers the waiting list instead.
+    await expectVisible({ text: /0 spots left/i }, { timeout: 15_000 });
     await tap({ text: /join waiting list/i });
     await pollUntil(
-      () => select('event_participants', `event_id=eq.${m.events.e7}&user_id=eq.${m.users.alex}&select=status`),
+      () => select('event_participants', `event_id=eq.${m.events.e9}&user_id=eq.${m.users.alex}&select=status`),
       (rows) => (rows as { status: string }[])[0]?.status === 'waiting_list',
       { label: 'waitlisted', timeoutMs: 15_000 },
     );
-    await tap({ text: /leave waiting list/i });
+    // Same reasoning as the Join above: take whichever leave control the screen
+    // actually offers rather than asserting on copy that may not exist.
+    await scrollUntilVisible({ text: /leave/i }, { maxSwipes: 6 });
+    const leave = query(await snapshot(), { text: /leave/i, type: 'Button' });
+    if (!leave) throw new Error('no leave control offered after being waitlisted');
+    await tap({ label: leave.AXLabel! });
     await pollUntil(
-      () => select('event_participants', `event_id=eq.${m.events.e7}&user_id=eq.${m.users.alex}&select=status`),
+      () => select('event_participants', `event_id=eq.${m.events.e9}&user_id=eq.${m.users.alex}&select=status`),
       (rows) => (rows as unknown[]).length === 0,
       { label: 'left waiting list', timeoutMs: 15_000 },
     );
   });
 
-  // TODO(e2e): verified manually — an event inside the 6h cutoff renders
-  // "Joining closed" (captured for maria on E6). Automating it needs a viewer
-  // who is neither organizer nor invitee; every g1 member is auto-invited, so
-  // the fixture needs a cutoff event with invitations suppressed.
-  it.skip('an event inside the join cutoff shows joining closed', async () => {
-    // E6 starts in ~3h (inside the 6h cutoff). alex ORGANIZES it, so the cutoff
-    // copy only shows for another group member — view it as joao.
+  it('an event inside the join cutoff shows joining closed', async () => {
+    // E10 starts in ~3h (inside the 6h cutoff) and carries no invitations, so a
+    // plain group member sees the cutoff copy rather than Accept/Decline — on E6
+    // every g1 member is auto-invited and gets the invitation CTA instead. alex
+    // organizes E10, so view it as joao.
     await switchUser('joao');
-    await openAnyEvent(/cutoff closing soon/i);
+    await openAnyEvent(/cutoff no invites/i);
     await scrollUntilVisible({ text: /joining closed/i }, { maxSwipes: 6 });
     if (query(await snapshot(), { text: /^join$/i })) {
       throw new Error('Join CTA should be gone inside the cutoff');
     }
   });
 
-  // TODO(e2e): needs a pending invitation on an event outside the cutoff whose
-  // invitee is not already a participant; the auto-invite behaviour makes the
-  // seeded personas ambiguous. App behaviour confirmed manually.
-  it.skip('an invitee can accept an invitation', async () => {
+  it('an invitee can accept an invitation', async () => {
     const m = manifest();
     // NOT E6: inside the join cutoff the app shows "Joining closed" even to an
     // invitee, so use E5 (a week out) where sofia holds an auto-invite.
