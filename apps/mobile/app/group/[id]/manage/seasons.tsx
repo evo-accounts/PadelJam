@@ -8,6 +8,7 @@ import {
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors, palette } from '../../../../theme';
 
 const START_ERROR_KEYS = new Set(['forbidden', 'not_a_member', 'group_not_found']);
 const ARCHIVE_ERROR_KEYS = new Set(['forbidden', 'groups_per_community', 'group_not_found']);
@@ -27,7 +28,7 @@ export default function GroupManageSeasonsScreen() {
   if (!group) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -109,7 +110,7 @@ export default function GroupManageSeasonsScreen() {
         accessibilityRole="button"
       >
         {startSeason.isPending ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.card} />
         ) : (
           <Text style={styles.buttonText}>{t('startSeasonCta')}</Text>
         )}
@@ -137,7 +138,7 @@ export default function GroupManageSeasonsScreen() {
         accessibilityRole="button"
       >
         {archivePending ? (
-          <ActivityIndicator color="#c0392b" />
+          <ActivityIndicator color={colors.destructive} />
         ) : (
           <Text style={styles.archiveText}>{isArchived ? t('unarchiveCta') : t('archiveCta')}</Text>
         )}
@@ -147,42 +148,42 @@ export default function GroupManageSeasonsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
   inner: { padding: 16 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8A95A5',
+    color: palette.slate[400],
     textTransform: 'uppercase',
     marginBottom: 8,
     marginLeft: 4,
   },
   sectionSpacing: { marginTop: 20 },
-  card: { backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' },
+  card: { backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
   row: {
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  rowLabel: { fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
+  rowLabel: { fontSize: 16, color: colors.foreground, fontWeight: '500' },
   button: {
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 16,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
   archiveButton: {
     marginTop: 32,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#c0392b',
+    borderColor: colors.destructive,
   },
-  archiveText: { color: '#c0392b', fontSize: 16, fontWeight: '600' },
+  archiveText: { color: colors.destructive, fontSize: 16, fontWeight: '600' },
 });

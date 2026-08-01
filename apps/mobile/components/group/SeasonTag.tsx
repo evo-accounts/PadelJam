@@ -1,5 +1,6 @@
 import { useT } from '@padel/i18n';
 import { StyleSheet, Text, View } from 'react-native';
+import { colors } from '../../theme';
 
 /** Small pill rendering the current season number, e.g. "Season 2". */
 export function SeasonTag({ number }: { number: number }) {
@@ -13,11 +14,11 @@ export function SeasonTag({ number }: { number: number }) {
 
 const styles = StyleSheet.create({
   pill: {
-    backgroundColor: '#EEF2F7',
+    backgroundColor: colors.accent,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 4,
     alignSelf: 'flex-start',
   },
-  text: { fontSize: 13, fontWeight: '600', color: '#3A4A60' },
+  text: { fontSize: 13, fontWeight: '600', color: colors.mutedForeground },
 });

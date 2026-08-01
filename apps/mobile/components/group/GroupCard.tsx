@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { thumbnailUrl } from '@/lib/community-images';
+import { colors, palette } from '../../theme';
 
 /** Minimal group row shape used to render a card in a list. */
 export type GroupCardGroup = {
@@ -75,21 +76,21 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 12,
     gap: 12,
   },
-  thumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: '#E6EAF0' },
-  thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  thumbInitial: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  thumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.muted },
+  thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  thumbInitial: { color: colors.card, fontSize: 22, fontWeight: '700' },
   body: { flex: 1, gap: 4 },
-  name: { fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
+  name: { fontSize: 16, fontWeight: '700', color: colors.foreground },
   tags: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
-  tag: { backgroundColor: '#EEF2F7', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
-  tagMuted: { backgroundColor: '#F2F5FA' },
-  tagText: { fontSize: 11, fontWeight: '600', color: '#3A4A60' },
-  tagTextMuted: { color: '#8A95A5' },
-  members: { fontSize: 12, color: '#8A95A5', fontWeight: '600' },
-  chevron: { fontSize: 24, color: '#8A95A5', marginLeft: 4 },
+  tag: { backgroundColor: colors.accent, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  tagMuted: { backgroundColor: colors.background },
+  tagText: { fontSize: 11, fontWeight: '600', color: colors.mutedForeground },
+  tagTextMuted: { color: palette.slate[400] },
+  members: { fontSize: 12, color: palette.slate[400], fontWeight: '600' },
+  chevron: { fontSize: 24, color: palette.slate[400], marginLeft: 4 },
 });

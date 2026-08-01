@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { streamClient } from '@/lib/streamClient';
+import { colors } from '../../theme';
 
 type Person = { id: string; full_name: string | null; avatar_url: string | null };
 
@@ -47,7 +48,7 @@ export default function NewChatScreen() {
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {following.isLoading ? (
-        <ActivityIndicator color="#0B1F3A" style={{ marginTop: 32 }} />
+        <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : rows.length === 0 ? (
         <Text style={styles.empty}>{t('noFollows')}</Text>
       ) : (
@@ -71,11 +72,11 @@ export default function NewChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
-  search: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, margin: 12, fontSize: 15 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 6, borderRadius: 12, padding: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E2E8F0' },
-  name: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  empty: { textAlign: 'center', marginTop: 48, color: '#6B7685', fontSize: 15 },
-  error: { color: '#D7263D', fontSize: 13, marginHorizontal: 12, marginBottom: 4 },
+  container: { flex: 1, backgroundColor: colors.background },
+  search: { backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, margin: 12, fontSize: 15 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, marginHorizontal: 12, marginBottom: 6, borderRadius: 12, padding: 12 },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
+  name: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
+  error: { color: colors.destructive, fontSize: 13, marginHorizontal: 12, marginBottom: 4 },
 });

@@ -21,6 +21,7 @@ import { detectKind, setAuthTarget } from '@/lib/auth-flow';
 import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { supabase } from '@/lib/supabase';
+import { colors, palette } from '../../theme';
 
 export default function SignInScreen() {
   const TERMS_URL = 'https://padeljam.app/terms';
@@ -118,7 +119,7 @@ export default function SignInScreen() {
           accessibilityRole="button"
         >
           {busy ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.card} />
           ) : (
             <Text style={styles.buttonText}>{t('continue')}</Text>
           )}
@@ -171,34 +172,34 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   inner: { flex: 1, paddingHorizontal: 24, justifyContent: 'flex-start' },
   title: { fontSize: 26, fontWeight: '700', marginBottom: 32 },
-  label: { fontSize: 14, color: '#444', marginBottom: 8 },
+  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
     marginBottom: 16,
   },
-  error: { color: '#c0392b', marginBottom: 16 },
+  error: { color: colors.destructive, marginBottom: 16 },
   button: {
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 },
-  divider: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#ccc' },
-  dividerText: { fontSize: 13, color: '#888' },
-  googleButton: { borderWidth: 1, borderColor: '#ccc', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  googleButtonText: { color: '#0B1F3A', fontSize: 16, fontWeight: '600' },
+  divider: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.muted },
+  dividerText: { fontSize: 13, color: palette.slate[400] },
+  googleButton: { borderWidth: 1, borderColor: colors.border, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  googleButtonText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
   appleButton: { height: 48, marginTop: 12 },
-  disclosure: { fontSize: 11, color: '#9AA7B6', textAlign: 'center', marginTop: 16, lineHeight: 16 },
-  disclosureLink: { color: '#0B7BFF', fontWeight: '600' },
+  disclosure: { fontSize: 11, color: palette.slate[400], textAlign: 'center', marginTop: 16, lineHeight: 16 },
+  disclosureLink: { color: colors.primary, fontWeight: '600' },
 });

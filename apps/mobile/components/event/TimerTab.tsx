@@ -3,6 +3,7 @@ import { useT } from '@padel/i18n';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useNow } from '@/lib/useNow';
+import { colors } from '../../theme';
 
 function fmt(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -43,7 +44,7 @@ export function TimerTab({ eventId, isOrganizer }: { eventId: string; isOrganize
       {isOrganizer ? (
         <View style={styles.controls}>
           {setTimer.isPending ? (
-            <ActivityIndicator color="#0B1F3A" />
+            <ActivityIndicator color={colors.foreground} />
           ) : (
             <>
               {status === 'idle' ? (
@@ -76,12 +77,12 @@ export function TimerTab({ eventId, isOrganizer }: { eventId: string; isOrganize
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', paddingVertical: 48, gap: 16 },
-  clock: { fontSize: 72, fontWeight: '800', color: '#0B1F3A', fontVariant: ['tabular-nums'] },
-  state: { fontSize: 15, color: '#6B7685', minHeight: 20 },
+  clock: { fontSize: 72, fontWeight: '800', color: colors.foreground, fontVariant: ['tabular-nums'] },
+  state: { fontSize: 15, color: colors.mutedForeground, minHeight: 20 },
   controls: { flexDirection: 'row', gap: 12, marginTop: 16 },
   btn: { minHeight: 48, paddingHorizontal: 28, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  primary: { backgroundColor: '#0B7BFF' },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  secondary: { backgroundColor: '#F0F3F8' },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
+  primary: { backgroundColor: colors.primary },
+  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
+  secondary: { backgroundColor: colors.muted },
+  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
 });

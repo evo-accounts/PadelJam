@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { colors } from '../theme';
 
 /**
  * Entry route ("/"). Renders nothing visible — the Splash overlay in the root
@@ -6,5 +7,5 @@ import { View } from 'react-native';
  * correct route group. Having this route avoids landing on +not-found at start.
  */
 export default function Index() {
-  return <View style={{ flex: 1, backgroundColor: '#0B1F3A' }} />;
+  return <View style={{ flex: 1, backgroundColor: colors.primary }} />;
 }

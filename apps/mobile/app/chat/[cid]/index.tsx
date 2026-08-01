@@ -8,6 +8,7 @@ import type { Channel as ChannelType } from 'stream-chat';
 import { Channel, MessageComposer, MessageList } from 'stream-chat-expo';
 
 import { streamClient } from '@/lib/streamClient';
+import { colors } from '../../../theme';
 
 export default function ConversationScreen() {
   const { t } = useT('chat');
@@ -34,8 +35,8 @@ export default function ConversationScreen() {
 
   if (!channel) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
-        <ActivityIndicator color="#0B1F3A" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card }}>
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -54,7 +55,7 @@ export default function ConversationScreen() {
         options={{
           headerTitle: () => (
             <Pressable onPress={() => router.push(('/chat/' + cid + '/details') as never)} accessibilityRole="button">
-              <Text style={{ fontSize: 17, fontWeight: '700', color: '#0B1F3A' }}>{title}</Text>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.foreground }}>{title}</Text>
             </Pressable>
           ),
         }}

@@ -17,6 +17,7 @@ import {
 } from '@/components/community/CommunitySwitcher';
 import { EmptyState } from '@/components/community/EmptyState';
 import type { SuggestedCommunity } from '@/components/community/SuggestedCommunityCard';
+import { colors } from '../../../theme';
 
 export default function CommunityHomeScreen() {
   const { t } = useT('community');
@@ -52,7 +53,7 @@ export default function CommunityHomeScreen() {
   if (communitiesQuery.isLoading) {
     return (
       <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -87,6 +88,6 @@ export default function CommunityHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center' },
 });

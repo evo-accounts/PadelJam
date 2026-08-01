@@ -1,6 +1,7 @@
 import { useGroupEvents } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, palette } from '../../theme';
 
 /** The element type of the group-events hook data: the `events` table Row. */
 type EventRow = NonNullable<ReturnType<typeof useGroupEvents>['data']>[number];
@@ -93,26 +94,26 @@ const styled = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     padding: 12,
     gap: 12,
   },
-  thumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: '#F0F3F8' },
+  thumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.muted },
   body: { flex: 1, gap: 4 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  name: { flex: 1, fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
-  meta: { fontSize: 13, color: '#6B7685', fontWeight: '600' },
-  when: { fontSize: 13, color: '#0B1F3A', fontWeight: '500' },
-  distance: { fontSize: 12, color: '#6B7685', marginTop: 2 },
+  name: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.foreground },
+  meta: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
+  when: { fontSize: 13, color: colors.foreground, fontWeight: '500' },
+  distance: { fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
   badge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontSize: 11, fontWeight: '700' },
-  badgeScheduled: { backgroundColor: '#E6F0FF' },
-  badgeTextScheduled: { color: '#0B7BFF' },
-  badgeLive: { backgroundColor: '#E3F5EA' },
-  badgeTextLive: { color: '#1A7F4B' },
-  badgeDone: { backgroundColor: '#F0F3F8' },
-  badgeTextDone: { color: '#6B7685' },
+  badgeScheduled: { backgroundColor: palette.purple[100] },
+  badgeTextScheduled: { color: colors.primary },
+  badgeLive: { backgroundColor: palette.green[100] },
+  badgeTextLive: { color: colors.success },
+  badgeDone: { backgroundColor: colors.muted },
+  badgeTextDone: { color: colors.mutedForeground },
 });

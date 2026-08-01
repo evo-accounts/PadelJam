@@ -6,6 +6,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { unregisterForPush } from '@/lib/push';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
+import { colors } from '../../theme';
 
 export default function DeleteAccountScreen() {
   const { t } = useT('profile');
@@ -71,13 +72,13 @@ export default function DeleteAccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 8 },
-  title: { fontSize: 20, fontWeight: '700', color: '#0B1F3A' },
-  body: { fontSize: 14, color: '#3A4757' },
-  item: { fontSize: 14, color: '#3A4757' },
-  error: { color: '#D7263D', fontSize: 13 },
-  delete: { backgroundColor: '#D7263D', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
+  title: { fontSize: 20, fontWeight: '700', color: colors.foreground },
+  body: { fontSize: 14, color: colors.mutedForeground },
+  item: { fontSize: 14, color: colors.mutedForeground },
+  error: { color: colors.destructive, fontSize: 13 },
+  delete: { backgroundColor: colors.destructive, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
   deleteDisabled: { opacity: 0.6 },
-  deleteText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  deleteText: { color: colors.card, fontWeight: '700', fontSize: 16 },
 });

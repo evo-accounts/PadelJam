@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { thumbnailUrl } from '@/lib/community-images';
 
 import { SeasonTag } from './SeasonTag';
+import { colors } from '../../theme';
 
 /**
  * Group page hero (mirrors CommunityHero): thumbnail, name, optional
@@ -64,25 +65,25 @@ export function GroupHeader({
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#fff', paddingBottom: 16, paddingTop: 16, alignItems: 'center' },
+  container: { backgroundColor: colors.card, paddingBottom: 16, paddingTop: 16, alignItems: 'center' },
   thumbWrap: {
     borderRadius: 44,
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.card,
     overflow: 'hidden',
   },
-  thumb: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#E6EAF0' },
-  thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  thumbInitial: { color: '#fff', fontSize: 30, fontWeight: '700' },
-  name: { marginTop: 10, fontSize: 22, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
+  thumb: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.muted },
+  thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  thumbInitial: { color: colors.card, fontSize: 30, fontWeight: '700' },
+  name: { marginTop: 10, fontSize: 22, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
   description: {
     marginTop: 6,
     fontSize: 14,
-    color: '#3A4A60',
+    color: colors.mutedForeground,
     textAlign: 'center',
     paddingHorizontal: 24,
   },
   pills: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  pill: { backgroundColor: '#EEF2F7', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4 },
-  pillText: { fontSize: 13, fontWeight: '600', color: '#3A4A60' },
+  pill: { backgroundColor: colors.accent, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4 },
+  pillText: { fontSize: 13, fontWeight: '600', color: colors.mutedForeground },
 });

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { colors } from '../../theme';
 
 export default function ChangeEmailScreen() {
   const { t } = useT('profile');
@@ -79,13 +80,13 @@ export default function ChangeEmailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 8 },
-  hint: { color: '#6B7685', fontSize: 14 },
-  label: { fontSize: 13, fontWeight: '600', color: '#0B1F3A', marginTop: 8 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff' },
-  error: { color: '#D7263D', fontSize: 13 },
-  btn: { backgroundColor: '#0B7BFF', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
+  hint: { color: colors.mutedForeground, fontSize: 14 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
+  error: { color: colors.destructive, fontSize: 13 },
+  btn: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  btnText: { color: colors.card, fontWeight: '700', fontSize: 16 },
 });

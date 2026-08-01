@@ -8,6 +8,7 @@ import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'rea
 
 import { avatarUrl } from '@/lib/community-images';
 import { BlockModal, ReportModal } from './BlockReportModals';
+import { colors, palette } from '../../theme';
 
 export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolean }) {
   const { t } = useT('profile');
@@ -21,7 +22,7 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
   const [reportOpen, setReportOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  if (query.isLoading) return <ActivityIndicator color="#0B1F3A" style={{ marginTop: 48 }} />;
+  if (query.isLoading) return <ActivityIndicator color={colors.foreground} style={{ marginTop: 48 }} />;
   const p = query.data;
   if (!p) return <Text style={styles.unavailable}>{t('unavailable')}</Text>;
 
@@ -42,7 +43,7 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
               <Text style={styles.editText}>{t('edit')}</Text>
             </Pressable>
             <Pressable style={styles.gear} onPress={() => router.push('/profile/settings')} accessibilityRole="button" accessibilityLabel={t('settings')}>
-              <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor="#0B1F3A" size={22} />
+              <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.foreground} size={22} />
             </Pressable>
           </View>
         )}
@@ -67,7 +68,7 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
               </Text>
             </Pressable>
             <Pressable style={styles.kebab} onPress={() => setMenuOpen((v) => !v)} accessibilityRole="button" accessibilityLabel="More">
-              <SymbolView name={{ ios: 'ellipsis', android: 'more_vert', web: 'more_vert' }} tintColor="#0B1F3A" size={22} />
+              <SymbolView name={{ ios: 'ellipsis', android: 'more_vert', web: 'more_vert' }} tintColor={colors.foreground} size={22} />
             </Pressable>
           </View>
         )}
@@ -112,32 +113,32 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
-  unavailable: { textAlign: 'center', color: '#6B7685', marginTop: 48, paddingHorizontal: 24 },
+  container: { flex: 1, backgroundColor: colors.background },
+  unavailable: { textAlign: 'center', color: colors.mutedForeground, marginTop: 48, paddingHorizontal: 24 },
   header: { alignItems: 'center', paddingTop: 24, paddingHorizontal: 16, gap: 10 },
-  avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#E6F0FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: palette.purple[100], alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarImg: { width: 96, height: 96 },
-  initials: { fontSize: 30, fontWeight: '700', color: '#0B7BFF' },
-  name: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
-  bio: { fontSize: 14, color: '#3A4757', textAlign: 'center', paddingHorizontal: 24 },
+  initials: { fontSize: 30, fontWeight: '700', color: colors.primary },
+  name: { fontSize: 22, fontWeight: '700', color: colors.foreground },
+  bio: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', paddingHorizontal: 24 },
   selfActions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   gear: { padding: 8 },
-  editBtn: { borderWidth: 1, borderColor: '#0B7BFF', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 8 },
-  editText: { color: '#0B7BFF', fontWeight: '700' },
+  editBtn: { borderWidth: 1, borderColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 8 },
+  editText: { color: colors.primary, fontWeight: '700' },
   counts: { flexDirection: 'row', gap: 32 },
-  countNum: { fontSize: 18, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
-  countLabel: { fontSize: 12, color: '#6B7685', textAlign: 'center' },
+  countNum: { fontSize: 18, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  countLabel: { fontSize: 12, color: colors.mutedForeground, textAlign: 'center' },
   actions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  followBtn: { backgroundColor: '#0B7BFF', borderRadius: 20, paddingHorizontal: 28, paddingVertical: 10 },
-  followingBtn: { backgroundColor: '#E7ECF3' },
-  followText: { color: '#fff', fontWeight: '700' },
-  followingText: { color: '#0B1F3A' },
+  followBtn: { backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 28, paddingVertical: 10 },
+  followingBtn: { backgroundColor: colors.muted },
+  followText: { color: colors.card, fontWeight: '700' },
+  followingText: { color: colors.foreground },
   kebab: { padding: 8 },
-  menu: { alignSelf: 'stretch', backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' },
-  menuItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#E7ECF3' },
-  menuText: { fontSize: 15, color: '#0B1F3A' },
+  menu: { alignSelf: 'stretch', backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
+  menuItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  menuText: { fontSize: 15, color: colors.foreground },
   stats: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 24, marginTop: 16 },
   stat: { alignItems: 'center' },
-  statNum: { fontSize: 24, fontWeight: '700', color: '#0B1F3A' },
-  statLabel: { fontSize: 13, color: '#6B7685', marginTop: 4 },
+  statNum: { fontSize: 24, fontWeight: '700', color: colors.foreground },
+  statLabel: { fontSize: 13, color: colors.mutedForeground, marginTop: 4 },
 });

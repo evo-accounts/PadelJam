@@ -13,6 +13,7 @@ import {
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
+import { colors } from '../../theme';
 
 export type GroupComposerValues = {
   name: string;
@@ -156,7 +157,7 @@ export function GroupComposer({
         accessibilityRole="button"
       >
         {submitting ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.card} />
         ) : (
           <Text style={styles.buttonText}>{mode === 'create' ? t('createCta') : t('saveCta')}</Text>
         )}
@@ -167,10 +168,10 @@ export function GroupComposer({
 
 const styles = StyleSheet.create({
   container: { gap: 0 },
-  label: { fontSize: 14, color: '#444', marginBottom: 8 },
+  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -182,21 +183,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
   },
   privacyText: { flex: 1, paddingRight: 12 },
-  privacyTitle: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  privacyHelp: { fontSize: 13, color: '#666', marginTop: 2 },
-  error: { color: '#c0392b', marginBottom: 16 },
+  privacyTitle: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  privacyHelp: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
+  error: { color: colors.destructive, marginBottom: 16 },
   button: {
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
 });

@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { GroupMemberRow, type GroupMember } from '@/components/group/GroupMemberRow';
+import { colors } from '../../../../theme';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -45,7 +46,7 @@ export default function GroupManageMembersScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -84,14 +85,14 @@ export default function GroupManageMembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center' },
   invite: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  inviteText: { fontSize: 16, fontWeight: '700', color: '#0B7BFF' },
-  remove: { fontSize: 13, fontWeight: '600', color: '#c0392b' },
+  inviteText: { fontSize: 16, fontWeight: '700', color: colors.primary },
+  remove: { fontSize: 13, fontWeight: '600', color: colors.destructive },
 });

@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../../theme';
 
 type Group = { id: string; name: string };
 
@@ -14,7 +15,7 @@ export function GroupCard({ group, onOpen }: { group: Group; onOpen: () => void 
 }
 
 const styles = StyleSheet.create({
-  card: { width: 160, backgroundColor: '#fff', borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6EAF0', padding: 12, gap: 6 },
-  thumb: { height: 72, borderRadius: 10, backgroundColor: '#F0F3F8' },
-  name: { fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
+  card: { width: 160, backgroundColor: colors.card, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12, gap: 6 },
+  thumb: { height: 72, borderRadius: 10, backgroundColor: colors.muted },
+  name: { fontSize: 15, fontWeight: '700', color: colors.foreground },
 });

@@ -7,6 +7,7 @@ import { Linking, Pressable, ScrollView, Share, StyleSheet, Text } from 'react-n
 
 import { unregisterForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
+import { colors } from '../../theme';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
@@ -71,7 +72,7 @@ export default function SettingsScreen() {
         <Text style={styles.rowLabel}>{t('changeEmail')}</Text>
       </Pressable>
       <Pressable style={styles.row} onPress={() => router.push('/profile/delete-account')} accessibilityRole="button">
-        <Text style={[styles.rowLabel, { color: '#D7263D' }]}>{t('deleteAccount')}</Text>
+        <Text style={[styles.rowLabel, { color: colors.destructive }]}>{t('deleteAccount')}</Text>
       </Pressable>
 
       <Text style={styles.section}>{t('support')}</Text>
@@ -101,15 +102,15 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 4 },
-  section: { fontSize: 13, fontWeight: '700', color: '#6B7685', textTransform: 'uppercase', marginTop: 16, marginBottom: 4 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 6 },
-  rowLabel: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
-  rowValue: { fontSize: 14, color: '#6B7685' },
-  option: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12, marginBottom: 4 },
-  optionText: { fontSize: 15, color: '#0B1F3A' },
-  optionActive: { color: '#0B7BFF', fontWeight: '700' },
+  section: { fontSize: 13, fontWeight: '700', color: colors.mutedForeground, textTransform: 'uppercase', marginTop: 16, marginBottom: 4 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 6 },
+  rowLabel: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
+  rowValue: { fontSize: 14, color: colors.mutedForeground },
+  option: { backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12, marginBottom: 4 },
+  optionText: { fontSize: 15, color: colors.foreground },
+  optionActive: { color: colors.primary, fontWeight: '700' },
   logout: { marginTop: 24, alignItems: 'center', paddingVertical: 14 },
-  logoutText: { color: '#D7263D', fontWeight: '700', fontSize: 16 },
+  logoutText: { color: colors.destructive, fontWeight: '700', fontSize: 16 },
 });

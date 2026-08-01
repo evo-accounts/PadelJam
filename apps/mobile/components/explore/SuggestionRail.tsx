@@ -1,5 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../../theme';
 
 type Props<T> = {
   title: string;
@@ -35,7 +36,7 @@ export function SuggestionRail<T>({
         </Pressable>
       </View>
       {isLoading ? (
-        <ActivityIndicator color="#0B1F3A" style={styles.state} />
+        <ActivityIndicator color={colors.foreground} style={styles.state} />
       ) : isError ? (
         <Text style={styles.stateText}>{errorLabel}</Text>
       ) : data.length === 0 ? (
@@ -58,9 +59,9 @@ export function SuggestionRail<T>({
 const styles = StyleSheet.create({
   section: { gap: 12, paddingVertical: 8 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 },
-  title: { fontSize: 18, fontWeight: '700', color: '#0B1F3A' },
-  seeAll: { fontSize: 14, fontWeight: '600', color: '#0B7BFF' },
+  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
+  seeAll: { fontSize: 14, fontWeight: '600', color: colors.primary },
   listContent: { paddingHorizontal: 16 },
   state: { paddingVertical: 16 },
-  stateText: { paddingHorizontal: 16, paddingVertical: 12, color: '#6B7685', fontSize: 14 },
+  stateText: { paddingHorizontal: 16, paddingVertical: 12, color: colors.mutedForeground, fontSize: 14 },
 });

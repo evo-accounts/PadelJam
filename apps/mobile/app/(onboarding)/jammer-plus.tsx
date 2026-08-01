@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
+import { colors, palette } from '../../theme';
 
 const BENEFIT_KEYS = [
   'jammerPlusBenefit1',
@@ -143,7 +144,7 @@ export default function JammerPlusStep() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
   },
   closeRow: {
     paddingHorizontal: 20,
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     fontSize: 18,
-    color: '#0B1F3A',
+    color: colors.foreground,
     fontWeight: '600',
   },
   scroll: {
@@ -163,25 +164,25 @@ const styles = StyleSheet.create({
   headline: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#0B1F3A',
+    color: colors.foreground,
     marginBottom: 6,
     marginTop: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7685',
+    color: colors.mutedForeground,
     marginBottom: 20,
   },
   progressTrack: {
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.muted,
     borderRadius: 2,
     marginBottom: 28,
     overflow: 'hidden',
   },
   progressFill: {
     height: 4,
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   benefitsList: {
@@ -195,13 +196,13 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 16,
-    color: '#0B1F3A',
+    color: colors.foreground,
     fontWeight: '700',
     marginTop: 1,
   },
   benefitText: {
     fontSize: 15,
-    color: '#0B1F3A',
+    color: colors.foreground,
     flex: 1,
     lineHeight: 22,
   },
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
   planCard: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: '#D1D5DB',
+    borderColor: colors.border,
     borderRadius: 14,
     paddingVertical: 18,
     paddingHorizontal: 12,
@@ -222,13 +223,13 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   planCardActive: {
-    borderColor: '#0B1F3A',
-    backgroundColor: '#0B1F3A',
+    borderColor: colors.foreground,
+    backgroundColor: colors.primary,
   },
   badge: {
     position: 'absolute',
     top: -12,
-    backgroundColor: '#F59E0B',
+    backgroundColor: colors.warning,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -236,23 +237,23 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.card,
   },
   planLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0B1F3A',
+    color: colors.foreground,
     marginBottom: 4,
   },
   planLabelActive: {
-    color: '#fff',
+    color: colors.card,
   },
   planPrice: {
     fontSize: 13,
-    color: '#6B7685',
+    color: colors.mutedForeground,
   },
   planPriceActive: {
-    color: '#CBD5E1',
+    color: palette.slate[300],
   },
   freeLinkWrapper: {
     alignItems: 'center',
@@ -260,18 +261,18 @@ const styles = StyleSheet.create({
   },
   freeLink: {
     fontSize: 14,
-    color: '#6B7685',
+    color: colors.mutedForeground,
     textDecorationLine: 'underline',
   },
   ctaWrapper: {
     paddingHorizontal: 24,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: '#fff',
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
   },
   ctaBtn: {
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   ctaText: {
-    color: '#fff',
+    color: colors.card,
     fontSize: 16,
     fontWeight: '600',
   },

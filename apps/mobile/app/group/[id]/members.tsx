@@ -7,6 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GroupMemberRow, type GroupMember } from '@/components/group/GroupMemberRow';
+import { colors } from '../../../theme';
 
 export default function GroupMembersScreen() {
   const { t } = useT('group');
@@ -46,7 +47,7 @@ export default function GroupMembersScreen() {
 
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#0B1F3A" />
+          <ActivityIndicator color={colors.foreground} />
         </View>
       ) : (
         <FlashList
@@ -65,7 +66,7 @@ export default function GroupMembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -73,20 +74,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  back: { fontSize: 32, color: '#0B1F3A', lineHeight: 32 },
+  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
   backSpacer: { width: 24 },
-  title: { fontSize: 17, fontWeight: '700', color: '#0B1F3A' },
+  title: { fontSize: 17, fontWeight: '700', color: colors.foreground },
   searchWrap: { padding: 16 },
   search: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
   },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: '#3A4A60' },
+  empty: { fontSize: 15, color: colors.mutedForeground },
 });

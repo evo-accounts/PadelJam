@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors, palette } from '../../../../theme';
 
 export default function GroupManageIndexScreen() {
   const { t } = useT('group');
@@ -28,9 +29,9 @@ function NavRow({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   inner: { padding: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' },
+  card: { backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -38,8 +39,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  rowLabel: { fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
-  chevron: { fontSize: 22, color: '#C2CAD6' },
+  rowLabel: { fontSize: 16, color: colors.foreground, fontWeight: '500' },
+  chevron: { fontSize: 22, color: palette.slate[400] },
 });

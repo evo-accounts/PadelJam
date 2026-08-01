@@ -65,6 +65,28 @@ export const textColors: Record<string, Token> = {
   // `warning`: a favourite is not a warning state, and using the semantic token
   // here would make a later change to warning silently repaint these stars.
   '#c9a227': t('palette.yellow[500]', palette.yellow[500], 'favourite star gold'),
+
+  // Added while migrating the remaining app/ screens.
+  '#3a4a5e': t('colors.mutedForeground', colors.mutedForeground, 'secondary text'),
+  '#3a4757': t('colors.mutedForeground', colors.mutedForeground),
+  '#999': t('colors.mutedForeground', colors.mutedForeground),
+  '#9aa7b6': t('palette.slate[400]', palette.slate[400], 'tertiary text'),
+  '#cbd5e1': t('palette.slate[300]', palette.slate[300]),
+  '#2e78b7': t('colors.primary', colors.primary, 'link blue'),
+  // Amber text on an amber tint — a warning MESSAGE, so it takes the semantic
+  // pair rather than a raw ramp step.
+  '#8a5a00': t('palette.yellow[900]', palette.yellow[900], 'text on a warning tint'),
+  '#c77700': t('palette.yellow[800]', palette.yellow[800], 'amber status text'),
+  '#3a4452': t('colors.mutedForeground', colors.mutedForeground),
+
+  // ResultCard's three text colours, and the clearest example of why this is a
+  // REDESIGN and not a recolour. That card's fill is `primary`, which used to be
+  // dark navy and is now a LIGHT purple — so its text, all light blues picked to
+  // sit on a dark surface, has to invert. Mapping them to the nearest light
+  // purple would leave the card technically migrated and completely unreadable.
+  '#eaf2ff': t('colors.foreground', colors.foreground, 'was near-white ON NAVY — now dark on light'),
+  '#9db6e0': t('colors.mutedForeground', colors.mutedForeground, 'was muted-light on navy'),
+  '#5a7ab0': t('colors.mutedForeground', colors.mutedForeground, 'was mid-blue on navy'),
   // Two different golds were in use for the same idea. Both become one token.
   '#f5a623': t('palette.yellow[500]', palette.yellow[500], 'rating star gold'),
   '#c5cdd8': t('palette.slate[300]', palette.slate[300], 'empty rating star'),
@@ -102,6 +124,19 @@ export const backgroundColors: Record<string, Token> = {
   '#a9c7ee': t('palette.purple[200]', palette.purple[200], 'disabled CTA fill'),
   '#eaf1fb': t('palette.purple[100]', palette.purple[100]),
   '#edf1f6': t('colors.accent', colors.accent),
+  '#eef1f5': t('colors.accent', colors.accent),
+  '#eef4ff': t('palette.purple[100]', palette.purple[100]),
+  '#ccc': t('colors.muted', colors.muted, 'grey fill'),
+  '#e2e8f0': t('colors.muted', colors.muted),
+  '#e5e7eb': t('colors.muted', colors.muted),
+  '#e7ecf3': t('colors.muted', colors.muted),
+  // Tailwind's amber-500 as a solid fill — this IS `warning`.
+  '#f59e0b': t('colors.warning', colors.warning, 'warning fill'),
+  '#fff4e5': t('palette.yellow[100]', palette.yellow[100], 'warning tint'),
+  // A true black backdrop, not a surface. `palette.black` rather than
+  // `foreground`, which is slate and would wash it out.
+  '#000': t('palette.black', palette.black, 'black backdrop'),
+  '#000000': t('palette.black', palette.black),
 
   // Added while migrating app/event/[id]/**. Each was a one- or two-use tint
   // that no existing entry covered; they are listed rather than folded into the
@@ -127,6 +162,15 @@ export const borderColors: Record<string, Token> = {
   '#d7dee8': t('colors.border', colors.border),
   '#d7dee6': t('colors.border', colors.border, 'one digit from the line above — same border'),
   '#d0d8e4': t('colors.border', colors.border),
+  '#d1d5db': t('colors.border', colors.border),
+  '#e5e7eb': t('colors.border', colors.border),
+  '#f4f6fa': t('colors.border', colors.border),
+  '#f7f9fc': t('colors.border', colors.border),
+  '#d9e0ea': t('colors.border', colors.border),
+  '#c0392b': t('colors.destructive', colors.destructive, 'error outline'),
+  // A mid-grey border is an OUTLINE, not a hairline: `ring` is the token for
+  // something meant to be seen, `border` for something meant to separate.
+  '#9aa7b6': t('colors.ring', colors.ring, 'visible outline'),
   '#c2cad6': t('colors.border', colors.border, 'same hex as a text grey — hence the property key'),
   '#fff': t('colors.card', colors.card, 'white hairline on a tinted surface'),
   '#ccc': t('colors.border', colors.border, 'grey hairline (28)'),

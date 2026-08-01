@@ -13,6 +13,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { GroupCard } from '@/components/explore/GroupCard';
+import { colors, palette } from '../../theme';
 
 const QUICK_ACTIONS = [
   { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: '/event/create' },
@@ -50,14 +51,14 @@ export default function HomeScreen() {
             onPress={() => router.push(a.href as never)}
             accessibilityRole="button"
           >
-            <SymbolView name={{ ios: a.icon, android: a.android, web: a.android }} size={24} tintColor="#0B7BFF" />
+            <SymbolView name={{ ios: a.icon, android: a.android, web: a.android }} size={24} tintColor={colors.primary} />
             <Text style={styles.quickLabel}>{t(a.key)}</Text>
           </Pressable>
         ))}
       </ScrollView>
 
       {loading ? (
-        <ActivityIndicator color="#0B1F3A" style={{ marginTop: 40 }} />
+        <ActivityIndicator color={colors.foreground} style={{ marginTop: 40 }} />
       ) : errored ? (
         <Text style={styles.empty}>{t('loadError')}</Text>
       ) : hasActivity ? (
@@ -196,7 +197,7 @@ function EmptyState({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 8, paddingBottom: 100 },
   quickScrollWrapper: { marginHorizontal: -16, marginBottom: 8 },
   quickScroll: { paddingHorizontal: 16, gap: 10 },
@@ -205,47 +206,47 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     minWidth: 80,
-    shadowColor: '#000',
+    shadowColor: colors.foreground,
     shadowOpacity: 0.04,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
-  quickLabel: { fontSize: 11, color: '#0B1F3A', fontWeight: '600', textAlign: 'center' },
+  quickLabel: { fontSize: 11, color: colors.foreground, fontWeight: '600', textAlign: 'center' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 8 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: '#0B1F3A', marginTop: 16, marginBottom: 8 },
-  seeAll: { fontSize: 14, color: '#0B7BFF', fontWeight: '600' },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginTop: 16, marginBottom: 8 },
+  seeAll: { fontSize: 14, color: colors.primary, fontWeight: '600' },
   rail: { gap: 12, paddingRight: 16 },
   railItem: { width: 260 },
   groupRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 6,
+    backgroundColor: colors.card, borderRadius: 12, padding: 14, marginBottom: 6,
   },
-  groupName: { fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  groupSub: { fontSize: 13, color: '#6B7685', marginTop: 2 },
-  groupCount: { fontSize: 13, color: '#6B7685' },
-  banner: { backgroundColor: '#EAF2FF', borderRadius: 12, padding: 16, marginTop: 8, gap: 4 },
-  bannerTitle: { fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  bannerBody: { fontSize: 13, color: '#3A4A5E' },
-  bannerCta: { fontSize: 14, color: '#0B7BFF', fontWeight: '700', marginTop: 6 },
-  empty: { color: '#6B7685', fontSize: 14, paddingVertical: 8 },
+  groupName: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  groupSub: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
+  groupCount: { fontSize: 13, color: colors.mutedForeground },
+  banner: { backgroundColor: palette.purple[100], borderRadius: 12, padding: 16, marginTop: 8, gap: 4 },
+  bannerTitle: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  bannerBody: { fontSize: 13, color: colors.mutedForeground },
+  bannerCta: { fontSize: 14, color: colors.primary, fontWeight: '700', marginTop: 6 },
+  empty: { color: colors.mutedForeground, fontSize: 14, paddingVertical: 8 },
   emptyCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
     gap: 12,
     marginVertical: 8,
   },
-  emptyCardText: { fontSize: 14, color: '#6B7685', textAlign: 'center' },
+  emptyCardText: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },
   emptyCardBtn: {
-    backgroundColor: '#0B7BFF',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
-  emptyCardBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  emptyCardBtnText: { color: colors.card, fontWeight: '700', fontSize: 14 },
 });

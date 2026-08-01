@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { streamClient } from '@/lib/streamClient';
+import { colors, palette } from '../../../theme';
 
 const COLS = 3;
 const GAP = 2;
@@ -62,7 +63,7 @@ export default function ChatDetailsScreen() {
       <Stack.Screen options={{ title: t('details') }} />
       <Text style={styles.section}>{t('media')}</Text>
       {!initialised ? (
-        <ActivityIndicator color="#0B1F3A" style={{ marginTop: 32 }} />
+        <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : images.length === 0 && !hasMore ? (
         <Text style={styles.empty}>{t('noPhotos')}</Text>
       ) : (
@@ -74,7 +75,7 @@ export default function ChatDetailsScreen() {
           contentContainerStyle={{ gap: GAP }}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={loading && images.length > 0 ? <ActivityIndicator color="#0B1F3A" style={{ marginVertical: 16 }} /> : null}
+          ListFooterComponent={loading && images.length > 0 ? <ActivityIndicator color={colors.foreground} style={{ marginVertical: 16 }} /> : null}
           renderItem={({ item, index }) => (
             <Pressable onPress={() => setViewer(index)} accessibilityRole="imagebutton">
               <Image source={{ uri: item }} style={{ width: size, height: size }} contentFit="cover" />
@@ -108,10 +109,10 @@ export default function ChatDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  section: { fontSize: 13, fontWeight: '700', color: '#6B7685', textTransform: 'uppercase', paddingHorizontal: 12, paddingVertical: 10 },
-  empty: { textAlign: 'center', marginTop: 48, color: '#6B7685', fontSize: 15 },
-  viewer: { flex: 1, backgroundColor: '#000', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: colors.card },
+  section: { fontSize: 13, fontWeight: '700', color: colors.mutedForeground, textTransform: 'uppercase', paddingHorizontal: 12, paddingVertical: 10 },
+  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
+  viewer: { flex: 1, backgroundColor: palette.black, justifyContent: 'center' },
   close: { position: 'absolute', top: 48, right: 20, zIndex: 1, padding: 8 },
-  closeText: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  closeText: { color: colors.card, fontSize: 22, fontWeight: '700' },
 });

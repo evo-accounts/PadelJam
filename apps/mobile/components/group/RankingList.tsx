@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { avatarUrl } from '@/lib/community-images';
 
 import { RankingPlaceholder } from './RankingPlaceholder';
+import { colors, palette } from '../../theme';
 
 /** A single leaderboard row. Fed empty for now; populated once Events lands. */
 export type RankingRow = {
@@ -73,27 +74,27 @@ export function RankingList({ rows }: { rows: RankingRow[] }) {
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 8 },
+  card: { backgroundColor: colors.card, borderRadius: 14, paddingVertical: 8 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  headerText: { fontSize: 12, fontWeight: '700', color: '#8A95A5', textTransform: 'uppercase' },
+  headerText: { fontSize: 12, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
   rankCol: { width: 32 },
   playerCol: { flex: 1 },
   pointsCol: { width: 56, textAlign: 'right' },
-  rank: { fontSize: 16, fontWeight: '700', color: '#0B7BFF' },
+  rank: { fontSize: 16, fontWeight: '700', color: colors.primary },
   player: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E6EAF0' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
   playerText: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  events: { fontSize: 12, color: '#8A95A5', marginTop: 2 },
-  points: { fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
+  name: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  events: { fontSize: 12, color: palette.slate[400], marginTop: 2 },
+  points: { fontSize: 16, fontWeight: '700', color: colors.foreground },
 });

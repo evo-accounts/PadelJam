@@ -25,6 +25,7 @@ import { RulesToggle } from '@/components/community/RulesToggle';
 import { SegmentedType } from '@/components/community/SegmentedType';
 import { setPendingCommunityImages } from '@/lib/community-image-handoff';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
+import { colors } from '../../../theme';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
@@ -173,7 +174,7 @@ export default function CreateCommunityScreen() {
           accessibilityRole="button"
         >
           {pending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.card} />
           ) : (
             <Text style={styles.buttonText}>{t('create')}</Text>
           )}
@@ -184,13 +185,13 @@ export default function CreateCommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   inner: { paddingHorizontal: 24 },
   title: { fontSize: 26, fontWeight: '700', marginBottom: 24 },
-  label: { fontSize: 14, color: '#444', marginBottom: 8 },
+  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -198,13 +199,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   multiline: { minHeight: 88, textAlignVertical: 'top' },
-  error: { color: '#c0392b', marginBottom: 16 },
+  error: { color: colors.destructive, marginBottom: 16 },
   button: {
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
 });

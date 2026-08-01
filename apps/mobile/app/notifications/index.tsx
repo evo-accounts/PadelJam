@@ -13,6 +13,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, palette } from '../../theme';
 
 const CTA_TYPES = ['event_invite', 'group_invite', 'community_invite'];
 
@@ -65,7 +66,7 @@ export default function NotificationsScreen() {
       )}
 
       {list.isLoading ? (
-        <ActivityIndicator color="#0B1F3A" style={{ marginTop: 32 }} />
+        <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : list.isError ? (
         <Text style={styles.empty}>{t('loadError')}</Text>
       ) : rows.length === 0 ? (
@@ -125,7 +126,7 @@ export default function NotificationsScreen() {
               }}
               accessibilityRole="button"
             >
-              <Text style={[styles.sheetText, { color: '#D7263D' }]}>{t('clearAll')}</Text>
+              <Text style={[styles.sheetText, { color: colors.destructive }]}>{t('clearAll')}</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -135,26 +136,26 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
-  menuDots: { fontSize: 18, color: '#0B1F3A', paddingHorizontal: 8, fontWeight: '700' },
+  container: { flex: 1, backgroundColor: colors.background },
+  menuDots: { fontSize: 18, color: colors.foreground, paddingHorizontal: 8, fontWeight: '700' },
   pinned: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#fff', margin: 12, borderRadius: 12, padding: 16,
+    backgroundColor: colors.card, margin: 12, borderRadius: 12, padding: 16,
   },
-  pinnedLabel: { fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  pinnedCount: { fontSize: 14, color: '#0B7BFF', fontWeight: '600' },
+  pinnedLabel: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  pinnedCount: { fontSize: 14, color: colors.primary, fontWeight: '600' },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 6, borderRadius: 12, padding: 14,
+    backgroundColor: colors.card, marginHorizontal: 12, marginBottom: 6, borderRadius: 12, padding: 14,
   },
-  rowUnread: { backgroundColor: '#EAF2FF' },
-  rowText: { fontSize: 14, color: '#0B1F3A' },
-  joinBtn: { backgroundColor: '#0B7BFF', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  joinText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  joined: { color: '#6B7685', fontWeight: '700', fontSize: 13 },
-  empty: { textAlign: 'center', marginTop: 48, color: '#6B7685', fontSize: 15 },
+  rowUnread: { backgroundColor: palette.purple[100] },
+  rowText: { fontSize: 14, color: colors.foreground },
+  joinBtn: { backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  joinText: { color: colors.card, fontWeight: '700', fontSize: 13 },
+  joined: { color: colors.mutedForeground, fontWeight: '700', fontSize: 13 },
+  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-start', alignItems: 'flex-end' },
-  sheet: { backgroundColor: '#fff', borderRadius: 12, margin: 12, marginTop: 48, minWidth: 200, overflow: 'hidden' },
-  sheetRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
-  sheetText: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
+  sheet: { backgroundColor: colors.card, borderRadius: 12, margin: 12, marginTop: 48, minWidth: 200, overflow: 'hidden' },
+  sheetRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
+  sheetText: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
 });

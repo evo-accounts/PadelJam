@@ -15,6 +15,7 @@ import { CommunityCard } from '@/components/explore/CommunityCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
 import { SuggestionRail } from '@/components/explore/SuggestionRail';
+import { colors } from '../../theme';
 
 export default function ExploreScreen() {
   const { t } = useT('discovery');
@@ -95,6 +96,6 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { paddingTop: 8, gap: 8 },
 });

@@ -23,6 +23,7 @@ import { registerForPush } from '@/lib/push';
 import { usePushTapRouting } from '@/lib/usePushTapRouting';
 import { initSentry } from '@/lib/sentry';
 import { supabase } from '@/lib/supabase';
+import { colors } from '../theme';
 
 // DSN-guarded; no-op locally / without a DSN. Safe at module scope.
 initSentry();
@@ -231,7 +232,7 @@ function SplashView() {
   return (
     <View style={styles.splash} pointerEvents="none">
       <Text style={styles.brand}>{t('appName')}</Text>
-      <ActivityIndicator color="#fff" style={styles.spinner} />
+      <ActivityIndicator color={colors.card} style={styles.spinner} />
     </View>
   );
 }
@@ -248,10 +249,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
   },
   brand: {
-    color: '#fff',
+    color: colors.card,
     fontSize: 32,
     fontWeight: '700',
     letterSpacing: 0.5,

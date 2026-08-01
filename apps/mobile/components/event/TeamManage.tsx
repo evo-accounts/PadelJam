@@ -10,6 +10,7 @@ import {
 import { useT } from '@padel/i18n';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors, palette } from '../../theme';
 
 type Participant = {
   id: string;
@@ -117,7 +118,7 @@ export function TeamManage({
     }
   };
 
-  if (isLoading) return <ActivityIndicator color="#0B1F3A" style={{ marginTop: 24 }} />;
+  if (isLoading) return <ActivityIndicator color={colors.foreground} style={{ marginTop: 24 }} />;
 
   const assignable = participants.filter((p) => !occupied.has(p.id));
   const confirmedCount = participants.filter((p) => p.status === 'confirmed' && !p.is_standby).length;
@@ -301,48 +302,48 @@ function PlayerView({
 }
 
 const styles = StyleSheet.create({
-  toggle: { flexDirection: 'row', backgroundColor: '#EEF1F6', borderRadius: 10, padding: 3, marginHorizontal: 16, marginTop: 16 },
+  toggle: { flexDirection: 'row', backgroundColor: colors.accent, borderRadius: 10, padding: 3, marginHorizontal: 16, marginTop: 16 },
   toggleItem: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  toggleItemActive: { backgroundColor: '#fff' },
-  toggleText: { fontSize: 14, fontWeight: '600', color: '#6B7685' },
-  toggleTextActive: { color: '#0B1F3A' },
+  toggleItemActive: { backgroundColor: colors.card },
+  toggleText: { fontSize: 14, fontWeight: '600', color: colors.mutedForeground },
+  toggleTextActive: { color: colors.foreground },
 
   grid: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
-  teamBlock: { backgroundColor: '#fff', borderRadius: 12, padding: 12, gap: 8 },
+  teamBlock: { backgroundColor: colors.card, borderRadius: 12, padding: 12, gap: 8 },
   teamHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  teamTitle: { fontSize: 14, fontWeight: '700', color: '#0B1F3A' },
-  unpaired: { fontSize: 12, fontWeight: '600', color: '#C77700' },
+  teamTitle: { fontSize: 14, fontWeight: '700', color: colors.foreground },
+  unpaired: { fontSize: 12, fontWeight: '600', color: palette.yellow[800] },
   slot: { minHeight: 44, borderRadius: 10, justifyContent: 'center', paddingHorizontal: 12 },
-  slotFilled: { backgroundColor: '#EEF4FF' },
-  slotEmpty: { backgroundColor: '#F4F6FA', borderWidth: StyleSheet.hairlineWidth, borderColor: '#D9E0EA', borderStyle: 'dashed' },
-  slotName: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  slotEmptyText: { fontSize: 14, color: '#8A95A5' },
+  slotFilled: { backgroundColor: palette.purple[100] },
+  slotEmpty: { backgroundColor: colors.background, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, borderStyle: 'dashed' },
+  slotName: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  slotEmptyText: { fontSize: 14, color: palette.slate[400] },
 
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 16 },
-  tab: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#EEF1F6', alignItems: 'center' },
-  tabActive: { backgroundColor: '#0B7BFF' },
-  tabText: { fontSize: 12, fontWeight: '700', color: '#6B7685' },
-  tabTextActive: { color: '#fff' },
+  tab: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center' },
+  tabActive: { backgroundColor: colors.primary },
+  tabText: { fontSize: 12, fontWeight: '700', color: colors.mutedForeground },
+  tabTextActive: { color: colors.card },
   pvRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
-  pvName: { flex: 1, fontSize: 15, color: '#0B1F3A', fontWeight: '500' },
-  pvRemove: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: '#F0F3F8' },
-  pvRemoveText: { fontSize: 13, fontWeight: '600', color: '#D7263D' },
+  pvName: { flex: 1, fontSize: 15, color: colors.foreground, fontWeight: '500' },
+  pvRemove: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: colors.muted },
+  pvRemoveText: { fontSize: 13, fontWeight: '600', color: colors.destructive },
 
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
   backdropCenter: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', paddingHorizontal: 24 },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '70%' },
-  sheetTitle: { fontSize: 17, fontWeight: '700', color: '#0B1F3A', marginBottom: 12 },
-  sheetEmpty: { fontSize: 15, color: '#6B7685', paddingVertical: 12 },
-  sheetRow: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EEF1F6' },
-  sheetRowText: { fontSize: 16, color: '#0B1F3A' },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '70%' },
+  sheetTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
+  sheetEmpty: { fontSize: 15, color: colors.mutedForeground, paddingVertical: 12 },
+  sheetRow: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  sheetRowText: { fontSize: 16, color: colors.foreground },
 
-  dialog: { backgroundColor: '#fff', borderRadius: 16, padding: 20, gap: 12 },
-  dialogTitle: { fontSize: 18, fontWeight: '700', color: '#0B1F3A' },
-  dialogBody: { fontSize: 15, color: '#3A4452', lineHeight: 21 },
+  dialog: { backgroundColor: colors.card, borderRadius: 16, padding: 20, gap: 12 },
+  dialogTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground },
+  dialogBody: { fontSize: 15, color: colors.mutedForeground, lineHeight: 21 },
   dialogRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
   dialogBtn: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  dialogCancel: { backgroundColor: '#F0F3F8' },
-  dialogCancelText: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  dialogOk: { backgroundColor: '#0B7BFF' },
-  dialogOkText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  dialogCancel: { backgroundColor: colors.muted },
+  dialogCancelText: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  dialogOk: { backgroundColor: colors.primary },
+  dialogOkText: { fontSize: 15, fontWeight: '700', color: colors.card },
 });

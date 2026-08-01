@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, palette } from '../../theme';
 
 type Player = {
   id: string;
@@ -29,7 +30,7 @@ export function PlayerCard({ player, onPress }: { player: Player; onPress?: () =
 
 const styles = StyleSheet.create({
   card: { width: 110, alignItems: 'center', gap: 8, paddingVertical: 8 },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E6F0FF', alignItems: 'center', justifyContent: 'center' },
-  initials: { fontSize: 20, fontWeight: '700', color: '#0B7BFF' },
-  name: { fontSize: 13, fontWeight: '600', color: '#0B1F3A', textAlign: 'center' },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: palette.purple[100], alignItems: 'center', justifyContent: 'center' },
+  initials: { fontSize: 20, fontWeight: '700', color: colors.primary },
+  name: { fontSize: 13, fontWeight: '600', color: colors.foreground, textAlign: 'center' },
 });

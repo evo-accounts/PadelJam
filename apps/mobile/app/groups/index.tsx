@@ -4,6 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../../theme';
 
 export default function YourGroupsScreen() {
   const { t } = useT('home');
@@ -43,7 +44,7 @@ export default function YourGroupsScreen() {
         ))}
       </View>
       {groups.isLoading ? (
-        <ActivityIndicator color="#0B1F3A" style={{ marginTop: 32 }} />
+        <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : groups.isError ? (
         <Text style={styles.empty}>{t('loadError')}</Text>
       ) : rows.length === 0 ? (
@@ -81,29 +82,29 @@ export default function YourGroupsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
-  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
+  container: { flex: 1, backgroundColor: colors.background },
+  tabs: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: '#0B7BFF' },
-  tabText: { fontSize: 14, color: '#6B7685', fontWeight: '600' },
-  tabTextActive: { color: '#0B7BFF', fontWeight: '700' },
+  tabActive: { borderBottomColor: colors.primary },
+  tabText: { fontSize: 14, color: colors.mutedForeground, fontWeight: '600' },
+  tabTextActive: { color: colors.primary, fontWeight: '700' },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', marginHorizontal: 12, marginTop: 8, borderRadius: 12, padding: 14,
+    backgroundColor: colors.card, marginHorizontal: 12, marginTop: 8, borderRadius: 12, padding: 14,
   },
-  name: { fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  sub: { fontSize: 13, color: '#6B7685', marginTop: 2 },
-  count: { fontSize: 13, color: '#6B7685' },
-  empty: { textAlign: 'center', marginTop: 48, color: '#6B7685', fontSize: 15 },
+  name: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  sub: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
+  count: { fontSize: 13, color: colors.mutedForeground },
+  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
   emptyCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 24,
+    backgroundColor: colors.card, borderRadius: 12, padding: 24,
     alignItems: 'center', gap: 12, margin: 16,
   },
-  emptyCardText: { fontSize: 14, color: '#6B7685', textAlign: 'center' },
+  emptyCardText: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },
   emptyCardBtn: {
-    backgroundColor: '#0B7BFF', borderRadius: 8,
+    backgroundColor: colors.primary, borderRadius: 8,
     paddingHorizontal: 20, paddingVertical: 10,
   },
-  emptyCardBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  headerBtn: { color: '#0B7BFF', fontWeight: '700', fontSize: 15 },
+  emptyCardBtnText: { color: colors.card, fontWeight: '700', fontSize: 14 },
+  headerBtn: { color: colors.primary, fontWeight: '700', fontSize: 15 },
 });

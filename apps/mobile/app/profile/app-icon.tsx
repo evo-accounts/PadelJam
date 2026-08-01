@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../../theme';
 
 const ICONS = [
   // 'primary' (not 'default'): Android resource names can't be Java keywords,
@@ -72,13 +73,13 @@ export default function AppIconScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 12 },
-  error: { color: '#D7263D', fontSize: 13 },
+  error: { color: colors.destructive, fontSize: 13 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 16 },
   tile: { width: '31%', alignItems: 'center', gap: 8, paddingVertical: 12, borderRadius: 16, borderWidth: 2, borderColor: 'transparent' },
-  tileActive: { borderColor: '#0B7BFF', backgroundColor: '#fff' },
-  preview: { width: 64, height: 64, borderRadius: 14, backgroundColor: '#fff' },
-  label: { fontSize: 13, color: '#0B1F3A', fontWeight: '600' },
-  labelActive: { color: '#0B7BFF', fontWeight: '700' },
+  tileActive: { borderColor: colors.primary, backgroundColor: colors.card },
+  preview: { width: 64, height: 64, borderRadius: 14, backgroundColor: colors.card },
+  label: { fontSize: 13, color: colors.foreground, fontWeight: '600' },
+  labelActive: { color: colors.primary, fontWeight: '700' },
 });

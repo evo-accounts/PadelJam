@@ -9,6 +9,7 @@ import { GroupComposer, type GroupComposerValues } from '@/components/group/Grou
 import { thumbnailUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { uploadCommunityImage } from '@/lib/storage';
+import { colors } from '../../../../theme';
 
 const KNOWN_ERROR_KEYS = new Set(['forbidden', 'name_required', 'group_not_found']);
 
@@ -26,7 +27,7 @@ export default function GroupManageSettingsScreen() {
   if (!group) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -83,7 +84,7 @@ export default function GroupManageSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center' },
   inner: { paddingHorizontal: 24, paddingTop: 16 },
 });

@@ -3,6 +3,7 @@ import { useT } from '@padel/i18n';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { colors } from '../../theme';
 
 export default function SupportScreen() {
   const { t } = useT('profile');
@@ -47,13 +48,13 @@ export default function SupportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: '#0B1F3A', marginTop: 8 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff' },
+  label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
-  error: { color: '#D7263D', fontSize: 13 },
-  send: { backgroundColor: '#0B7BFF', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
+  error: { color: colors.destructive, fontSize: 13 },
+  send: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
   sendDisabled: { opacity: 0.6 },
-  sendText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  sendText: { color: colors.card, fontWeight: '700', fontSize: 16 },
 });

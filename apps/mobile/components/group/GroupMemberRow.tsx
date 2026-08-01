@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
+import { colors } from '../../theme';
 
 /** Group member shape returned by `useGroupMembers`. */
 export type GroupMember = {
@@ -57,9 +58,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E6EAF0' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  name: { flex: 1, fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.muted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 18, fontWeight: '700' },
+  name: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.foreground },
   trailing: { marginLeft: 'auto' },
 });

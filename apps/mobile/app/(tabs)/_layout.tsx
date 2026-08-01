@@ -11,6 +11,7 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { registerForPush } from '@/lib/push';
+import { colors } from '../../theme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -45,7 +46,7 @@ export default function TabLayout() {
               >
                 <SymbolView
                   name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
-                  tintColor="#0B1F3A"
+                  tintColor={colors.foreground}
                   size={22}
                 />
               </Pressable>
