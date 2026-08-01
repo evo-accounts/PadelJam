@@ -91,7 +91,7 @@ export function ShareResultsModal({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 12 },
   title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 14, fontWeight: '600' },

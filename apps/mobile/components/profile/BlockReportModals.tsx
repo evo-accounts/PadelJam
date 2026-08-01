@@ -64,7 +64,7 @@ export function ReportModal({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 24 },
   sheet: { backgroundColor: colors.card, borderRadius: 16, padding: 20, gap: 10 },
   title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
   body: { fontSize: 14, color: colors.mutedForeground },

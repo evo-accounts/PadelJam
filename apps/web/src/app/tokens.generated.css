@@ -163,6 +163,7 @@
   --border: #f1f5f9;
   --input: #f1f5f9;
   --ring: #94a3b8;
+  --overlay: rgba(0, 0, 0, 0.4);
   --chart-1: #ca572a;
   --chart-2: #0d9488;
   --chart-3: #0284c7;
@@ -208,6 +209,7 @@
   --border: #6d4a99;
   --input: rgba(255, 255, 255, 0.15);
   --ring: #64748b;
+  --overlay: rgba(0, 0, 0, 0.6);
   --chart-1: #1d4ed8;
   --chart-2: #134e4a;
   --chart-3: #0c4a6e;

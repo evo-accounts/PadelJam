@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   joinText: { color: colors.card, fontWeight: '700', fontSize: 13 },
   joined: { color: colors.mutedForeground, fontWeight: '700', fontSize: 13 },
   empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-start', alignItems: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-start', alignItems: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderRadius: 12, margin: 12, marginTop: 48, minWidth: 200, overflow: 'hidden' },
   sheetRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
   sheetText: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
