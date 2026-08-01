@@ -13,7 +13,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "seed:demo": "node infra/seed/seed-demo.mjs",
-    "seed:e2e": "node infra/seed/seed-e2e.mjs"
+    "seed:e2e": "node infra/seed/seed-e2e.mjs",
+    "tokens:build": "node scripts/tokens.mjs --write",
+    "tokens:check": "node scripts/tokens.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
