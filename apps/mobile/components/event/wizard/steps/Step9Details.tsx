@@ -5,6 +5,7 @@ import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { pickAndValidateImage } from '@/lib/storage';
 
 import type { WizardStepProps } from '../draft';
+import { colors, palette } from '../../../../theme';
 
 export function Step9Details({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
@@ -27,7 +28,7 @@ export function Step9Details({ draft, patch }: WizardStepProps) {
           value={draft.name}
           onChangeText={(name) => patch({ name })}
           placeholder={t('namePlaceholder')}
-          placeholderTextColor="#9AA4B2"
+          placeholderTextColor={palette.slate[400]}
           maxLength={80}
           accessibilityLabel={t('nameLabel')}
         />
@@ -40,7 +41,7 @@ export function Step9Details({ draft, patch }: WizardStepProps) {
           value={draft.description ?? ''}
           onChangeText={(text) => patch({ description: text || undefined })}
           placeholder={t('descriptionPlaceholder')}
-          placeholderTextColor="#9AA4B2"
+          placeholderTextColor={palette.slate[400]}
           maxLength={500}
           multiline
           textAlignVertical="top"
@@ -63,18 +64,18 @@ export function Step9Details({ draft, patch }: WizardStepProps) {
 
 const styles = StyleSheet.create({
   container: { gap: 16 },
-  title: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
+  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   field: { gap: 8 },
-  label: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
+  label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   input: {
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#0B1F3A',
-    backgroundColor: '#fff',
+    color: colors.foreground,
+    backgroundColor: colors.card,
   },
   multiline: { minHeight: 120 },
 });

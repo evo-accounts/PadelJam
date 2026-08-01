@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import type { EventInvitee } from './draft';
 import { SelectableCard } from './SelectableCard';
+import { colors, palette } from '../../../theme';
 
 export function InvitePicker({
   groupId,
@@ -128,7 +129,7 @@ function ManualInvitees({
         value={name}
         onChangeText={setName}
         placeholder={t('manualNameLabel')}
-        placeholderTextColor="#9AA4B2"
+        placeholderTextColor={palette.slate[400]}
         accessibilityLabel={t('manualNameLabel')}
       />
       <TextInput
@@ -136,7 +137,7 @@ function ManualInvitees({
         value={email}
         onChangeText={setEmail}
         placeholder={t('manualEmailLabel')}
-        placeholderTextColor="#9AA4B2"
+        placeholderTextColor={palette.slate[400]}
         keyboardType="email-address"
         autoCapitalize="none"
         accessibilityLabel={t('manualEmailLabel')}
@@ -146,7 +147,7 @@ function ManualInvitees({
         value={phone}
         onChangeText={setPhone}
         placeholder={t('manualPhoneLabel')}
-        placeholderTextColor="#9AA4B2"
+        placeholderTextColor={palette.slate[400]}
         keyboardType="phone-pad"
         accessibilityLabel={t('manualPhoneLabel')}
       />
@@ -182,29 +183,29 @@ function ManualInvitees({
 const styles = StyleSheet.create({
   container: { gap: 20 },
   section: { gap: 10 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
-  hint: { fontSize: 14, color: '#6B7685' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground },
+  hint: { fontSize: 14, color: colors.mutedForeground },
   list: { gap: 10 },
   loading: { paddingVertical: 24, alignItems: 'center' },
   input: {
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#0B1F3A',
-    backgroundColor: '#fff',
+    color: colors.foreground,
+    backgroundColor: colors.card,
   },
   addButton: {
     minHeight: 48,
     borderRadius: 12,
-    backgroundColor: '#F0F3F8',
+    backgroundColor: colors.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addButtonDisabled: { opacity: 0.4 },
-  addButtonLabel: { fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
+  addButtonLabel: { fontSize: 16, fontWeight: '700', color: colors.foreground },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row',
@@ -213,10 +214,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#EAF3FF',
+    backgroundColor: palette.purple[100],
     borderWidth: 1,
-    borderColor: '#0B7BFF',
+    borderColor: colors.primary,
   },
-  chipText: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
-  chipRemove: { fontSize: 16, fontWeight: '700', color: '#0B7BFF' },
+  chipText: { fontSize: 14, fontWeight: '600', color: colors.foreground },
+  chipRemove: { fontSize: 16, fontWeight: '700', color: colors.primary },
 });

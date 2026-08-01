@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../../../theme';
 
 export function Stepper({
   label,
@@ -52,17 +53,17 @@ export function Stepper({
 
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
-  label: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
+  label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   row: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   button: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F0F3F8',
+    backgroundColor: colors.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonDisabled: { opacity: 0.4 },
-  buttonLabel: { fontSize: 24, fontWeight: '700', color: '#0B1F3A' },
-  value: { fontSize: 22, fontWeight: '700', color: '#0B1F3A', minWidth: 32, textAlign: 'center' },
+  buttonLabel: { fontSize: 24, fontWeight: '700', color: colors.foreground },
+  value: { fontSize: 22, fontWeight: '700', color: colors.foreground, minWidth: 32, textAlign: 'center' },
 });

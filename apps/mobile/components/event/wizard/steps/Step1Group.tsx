@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useEventWizard } from '../CreateEventContext';
 import type { WizardStepProps } from '../draft';
 import { SelectableCard } from '../SelectableCard';
+import { colors } from '../../../../theme';
 
 export function Step1Group({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
@@ -71,9 +72,9 @@ function GroupList({
 
 const styles = StyleSheet.create({
   container: { gap: 8 },
-  title: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
-  subtitle: { fontSize: 15, color: '#6B7685', marginBottom: 8 },
+  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
+  subtitle: { fontSize: 15, color: colors.mutedForeground, marginBottom: 8 },
   list: { gap: 10 },
   loading: { paddingVertical: 24, alignItems: 'center' },
-  hint: { fontSize: 13, color: '#6B7685', marginTop: 2 },
+  hint: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
 });

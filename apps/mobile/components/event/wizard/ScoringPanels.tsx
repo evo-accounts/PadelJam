@@ -1,6 +1,7 @@
 import type { ScoringMode } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { colors } from '../../../theme';
 
 export function ScoringPanels({
   mode,
@@ -38,15 +39,15 @@ export function ScoringPanels({
 
 const styles = StyleSheet.create({
   panel: { marginTop: 16, gap: 8 },
-  label: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
+  label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   input: {
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#0B1F3A',
-    backgroundColor: '#fff',
+    color: colors.foreground,
+    backgroundColor: colors.card,
   },
 });
