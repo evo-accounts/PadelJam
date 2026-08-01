@@ -57,6 +57,15 @@ jobs:
         if: '!cancelled()'
         run: pnpm typecheck
 
+      # Design tokens live once, in packages/ui, and the CSS web consumes is
+      # generated from them. This asserts the artifact is fresh AND that nobody
+      # declared a token outside it — without that second check, a value added
+      # straight to globals.css would silently desync mobile, which is exactly
+      # the drift that left the two apps sharing only 3 incidental hex values.
+      - name: Design tokens
+        if: '!cancelled()'
+        run: pnpm tokens:check
+
       - name: Test
         if: '!cancelled()'
         run: pnpm test
