@@ -6,7 +6,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "--dir",
-        ".claude/worktrees/web-storybook/apps/web",
+        "apps/web",
         "storybook",
         "--no-open"
       ],
