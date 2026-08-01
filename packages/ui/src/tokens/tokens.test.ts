@@ -3,10 +3,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { RADIUS_BASE_PX, radius } from './radius.ts';
-import { SPACE_STEP_PX, space, text, weight } from './scale.ts';
-import { dark, light } from './semantic.ts';
-import { palette } from './palette.ts';
+import { RADIUS_BASE_PX, radius } from './radius';
+import { SPACE_STEP_PX, space, text, weight } from './scale';
+import { dark, light } from './semantic';
+import { palette } from './palette';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../../..');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
