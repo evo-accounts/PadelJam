@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Storybook's build output. Flat-config ESLint does NOT read .gitignore, so
+    // ignoring it there is not enough — without this line `pnpm lint` walks the
+    // minified bundle and reports rules-of-hooks errors from inside React
+    // itself, at column 85897 of a generated file.
+    "storybook-static/**",
   ]),
   {
     rules: {
