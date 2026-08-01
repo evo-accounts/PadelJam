@@ -22,17 +22,15 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamManage } from '@/components/event/TeamManage';
 import { colors, palette } from '../../../theme';
+import { Button, Chip, Field, Text, TopBar } from '../../../components/ui';
 
 /** Display name for a participant row: profile name, then guest name, then dash. */
 function rowName(p: { profiles?: { full_name: string | null } | null; guest_name: string | null }): string {
@@ -79,14 +77,8 @@ export default function EventManageScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <View style={styles.guard}>
-          <Text style={styles.guardTitle}>{t('forbidden')}</Text>
-          <Pressable
-            style={[styles.btn, styles.secondaryBtn]}
-            accessibilityRole="button"
-            onPress={() => router.back()}
-          >
-            <Text style={styles.secondaryLabel}>{t('back')}</Text>
-          </Pressable>
+          <Text variant="sectionTitle" style={styles.guardTitle}>{t('forbidden')}</Text>
+          <Button label={t('back')} variant="outline" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
     );
@@ -230,44 +222,38 @@ export default function EventManageScreen() {
     return (
       <View key={p.id} style={styles.row}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarInitial}>{(name.charAt(0) || '?').toUpperCase()}</Text>
+          <Text variant="hint" tone="inverse">{(name.charAt(0) || '?').toUpperCase()}</Text>
         </View>
-        <Text style={styles.rowName} numberOfLines={1}>
+        <Text variant="body" numberOfLines={1} style={styles.rowName}>
           {name}
         </Text>
         <View style={styles.rowActions}>
           {feeEnabled ? (
-            <Pressable
-              style={[styles.pill, p.has_paid ? styles.pillPaid : styles.pillUnpaid]}
-              accessibilityRole="button"
+            <Chip
+              label={p.has_paid ? t('paidBadge') : t('unpaidBadge')}
+              selected={p.has_paid}
               disabled={busy}
               onPress={() =>
                 onTogglePaid(p.id, !p.has_paid, p.profiles?.full_name ?? p.guest_name ?? undefined)
               }
-            >
-              <Text style={[styles.pillText, p.has_paid ? styles.pillTextPaid : styles.pillTextUnpaid]}>
-                {p.has_paid ? t('paidBadge') : t('unpaidBadge')}
-              </Text>
-            </Pressable>
+            />
           ) : null}
           {showConfirm ? (
-            <Pressable
-              style={[styles.smallBtn, styles.confirmBtn]}
-              accessibilityRole="button"
+            <Button
+              label={t('markConfirmedCta')}
+              size="sm"
+              variant="secondary"
               disabled={busy}
               onPress={() => onConfirm(p.id, p.profiles?.full_name ?? p.guest_name ?? undefined)}
-            >
-              <Text style={styles.confirmLabel}>{t('markConfirmedCta')}</Text>
-            </Pressable>
+            />
           ) : null}
-          <Pressable
-            style={[styles.smallBtn, styles.removeBtn]}
-            accessibilityRole="button"
+          <Button
+            label={t('removeCta')}
+            size="sm"
+            variant="destructive"
             disabled={busy}
             onPress={() => onRemove(p.id, p.profiles?.full_name ?? p.guest_name ?? undefined)}
-          >
-            <Text style={styles.removeLabel}>{t('removeCta')}</Text>
-          </Pressable>
+          />
         </View>
       </View>
     );
@@ -278,24 +264,16 @@ export default function EventManageScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}>
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-        <Text style={styles.topTitle} numberOfLines={1}>
-          {t('manageTitle')}
-        </Text>
-        <View style={styles.topSpacer} />
-      </View>
+      <TopBar title={t('manageTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header stats */}
         <View style={styles.stats}>
-          <Text style={styles.statLine}>
+          <Text variant="bodyStrong">
             {t('statConfirmed', { confirmed: confirmed.length, capacity })}
           </Text>
           {feeEnabled ? (
-            <Text style={styles.statLine}>
+            <Text variant="bodyStrong">
               {t('statPaid', { paid: paidCount, total: participants.length })}
             </Text>
           ) : null}
@@ -304,32 +282,29 @@ export default function EventManageScreen() {
         {/* TODO(Phase 6f): edit Location & Courts (deferred). */}
         {event.status === 'scheduled' ? (
           <View style={styles.section}>
-            <Pressable
-              style={[styles.btn, styles.secondaryBtn]}
-              accessibilityRole="button"
+            <Button
+              label={t('editEventCta')}
+              variant="outline"
               onPress={() => router.push(`/event/${id}/edit` as never)}
-            >
-              <Text style={styles.secondaryLabel}>{t('editEventCta')}</Text>
-            </Pressable>
+            />
           </View>
         ) : null}
 
         <View style={styles.section}>
-          <Pressable
-            style={[styles.btn, styles.cancelBtn]}
-            accessibilityRole="button"
+          <Button
+            label={t('cancelEventCta')}
+            variant="destructive"
             disabled={busy}
             onPress={onCancelEvent}
-          >
-            <Text style={styles.cancelLabel}>{t('cancelEventCta')}</Text>
-          </Pressable>
+          />
+
         </View>
 
         {/* Add player manually */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('addManualCta')}</Text>
-          <TextInput
-            style={styles.input}
+          <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('addManualCta')}</Text>
+          <Field
+            containerStyle={styles.fieldSpacing}
             value={manualName}
             onChangeText={setManualName}
             placeholder={t('manualNameLabel')}
@@ -338,36 +313,25 @@ export default function EventManageScreen() {
           />
           {isMixed ? (
             <View style={styles.genderRow}>
-              <Text style={styles.genderLabel}>{t('manualGenderLabel')}</Text>
+              <Text variant="hint" tone="muted">{t('manualGenderLabel')}</Text>
               <View style={styles.genderOptions}>
                 {(['male', 'female'] as const).map((g) => (
-                  <Pressable
+                  <Chip
                     key={g}
-                    style={[styles.genderPill, manualGender === g ? styles.genderPillActive : null]}
-                    accessibilityRole="button"
+                    label={t(g === 'male' ? 'genderMale' : 'genderFemale')}
+                    selected={manualGender === g}
                     onPress={() => setManualGender(g)}
-                  >
-                    <Text
-                      style={[
-                        styles.genderPillText,
-                        manualGender === g ? styles.genderPillTextActive : null,
-                      ]}
-                    >
-                      {t(g === 'male' ? 'genderMale' : 'genderFemale')}
-                    </Text>
-                  </Pressable>
+                  />
                 ))}
               </View>
             </View>
           ) : null}
-          <Pressable
-            style={[styles.btn, styles.primaryBtn, manualName.trim().length === 0 ? styles.btnDisabled : null]}
-            accessibilityRole="button"
+          <Button
+            label={t('addManualCta')}
+            fullWidth
             disabled={busy || manualName.trim().length === 0}
             onPress={onAddManual}
-          >
-            <Text style={styles.primaryLabel}>{t('addManualCta')}</Text>
-          </Pressable>
+          />
         </View>
 
         {/* Roster */}
@@ -375,22 +339,22 @@ export default function EventManageScreen() {
           <TeamManage eventId={id} numCourts={event.num_courts} participants={participants} />
         ) : !hasRoster ? (
           <View style={styles.section}>
-            <Text style={styles.empty}>{t('noRoster')}</Text>
+            <Text variant="caption" tone="muted">{t('noRoster')}</Text>
           </View>
         ) : (
           <>
             {confirmed.length > 0 ? (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>{t('rosterConfirmedSection')}</Text>
+                  <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('rosterConfirmedSection')}</Text>
                   {feeEnabled ? (
-                    <Pressable
-                      accessibilityRole="button"
+                    <Button
+                      label={t('markAllPaidCta')}
+                      variant="ghost"
+                      size="sm"
                       disabled={busy}
                       onPress={onMarkAllPaid}
-                    >
-                      <Text style={styles.linkAction}>{t('markAllPaidCta')}</Text>
-                    </Pressable>
+                    />
                   ) : null}
                 </View>
                 {confirmed.map(renderRow)}
@@ -399,17 +363,17 @@ export default function EventManageScreen() {
 
             {invitations.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('rosterInvitedSection')}</Text>
+                <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('rosterInvitedSection')}</Text>
                 {invitations.map((inv) => {
                   const name = inv.invitee?.full_name ?? inv.invitee_name ?? '—';
                   return (
                     <View key={inv.id} style={styles.row}>
                       <View style={styles.avatar}>
-                        <Text style={styles.avatarInitial}>
+                        <Text variant="hint" tone="inverse">
                           {(name.charAt(0) || '?').toUpperCase()}
                         </Text>
                       </View>
-                      <Text style={styles.rowName} numberOfLines={1}>
+                      <Text variant="body" numberOfLines={1} style={styles.rowName}>
                         {name}
                       </Text>
                     </View>
@@ -420,14 +384,14 @@ export default function EventManageScreen() {
 
             {waiting.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('rosterWaitingSection')}</Text>
+                <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('rosterWaitingSection')}</Text>
                 {waiting.map(renderRow)}
               </View>
             ) : null}
 
             {standby.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('rosterStandbySection')}</Text>
+                <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('rosterStandbySection')}</Text>
                 {standby.map(renderRow)}
               </View>
             ) : null}
@@ -436,50 +400,40 @@ export default function EventManageScreen() {
 
         {/* Activity log */}
         <View style={styles.section}>
-          <Pressable
-            style={[styles.btn, styles.secondaryBtn]}
-            accessibilityRole="button"
+          <Button
+            label={t('activityLogCta')}
+            variant="outline"
             onPress={() => router.push(`/event/${id}/activity` as never)}
-          >
-            <Text style={styles.secondaryLabel}>{t('activityLogCta')}</Text>
-          </Pressable>
+          />
         </View>
 
         {/* Send a blast (community events only) */}
         {event.group_id != null ? (
           <View style={styles.section}>
-            <Pressable
-              style={[styles.btn, styles.secondaryBtn]}
-              accessibilityRole="button"
+            <Button
+              label={t('sendBlastCta')}
+              variant="outline"
               onPress={() => router.push(`/event/${id}/blast` as never)}
-            >
-              <Text style={styles.secondaryLabel}>{t('sendBlastCta')}</Text>
-            </Pressable>
+            />
           </View>
         ) : null}
 
         {/* Export attendance CSV */}
         <View style={styles.section}>
-          <Pressable
-            style={[styles.btn, styles.secondaryBtn]}
-            accessibilityRole="button"
-            disabled={busy}
+          <Button
+            label={t('exportCsvCta')}
+            variant="outline"
             onPress={onExport}
-          >
-            <Text style={styles.secondaryLabel}>{t('exportCsvCta')}</Text>
-          </Pressable>
+          />
         </View>
 
         {/* Duplicate */}
         <View style={styles.section}>
-          <Pressable
-            style={[styles.btn, styles.secondaryBtn]}
-            accessibilityRole="button"
-            disabled={busy}
+          <Button
+            label={t('duplicateCta')}
+            variant="outline"
             onPress={onDuplicate}
-          >
-            <Text style={styles.secondaryLabel}>{t('duplicateCta')}</Text>
-          </Pressable>
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -487,6 +441,7 @@ export default function EventManageScreen() {
 }
 
 const styles = StyleSheet.create({
+  fieldSpacing: { marginBottom: 8 },
   container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
 
@@ -495,21 +450,10 @@ const styles = StyleSheet.create({
   guardTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
 
   // Top bar
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.card,
-  },
-  back: { fontSize: 32, color: colors.foreground, lineHeight: 32, width: 32 },
-  topTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
-  topSpacer: { width: 32 },
   content: { paddingBottom: 40 },
 
   // Stats
   stats: { backgroundColor: colors.card, paddingHorizontal: 16, paddingVertical: 16, gap: 4 },
-  statLine: { fontSize: 16, fontWeight: '600', color: colors.foreground },
 
   // Sections
   section: { paddingHorizontal: 16, paddingTop: 20 },
@@ -526,37 +470,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
   },
-  linkAction: { fontSize: 14, fontWeight: '700', color: colors.primary, marginBottom: 8 },
-  empty: { fontSize: 15, color: colors.mutedForeground },
 
   // Input
-  input: {
-    minHeight: 48,
-    borderRadius: 12,
-    backgroundColor: colors.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    color: colors.foreground,
-    marginBottom: 12,
-  },
 
   // Gender selector
   genderRow: { marginBottom: 12, gap: 8 },
-  genderLabel: { fontSize: 13, fontWeight: '600', color: colors.mutedForeground },
   genderOptions: { flexDirection: 'row', gap: 8 },
-  genderPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
-  genderPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  genderPillText: { fontSize: 14, fontWeight: '600', color: colors.foreground },
-  genderPillTextActive: { color: colors.card },
 
   // Roster rows
   row: {
@@ -573,38 +492,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitial: { color: colors.card, fontSize: 13, fontWeight: '700' },
   rowName: { flex: 1, fontSize: 15, color: colors.foreground, fontWeight: '500' },
   rowActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 
   // Paid pill
-  pill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-  pillPaid: { backgroundColor: palette.green[100] },
-  pillUnpaid: { backgroundColor: palette.red[100] },
-  pillText: { fontSize: 12, fontWeight: '700' },
-  pillTextPaid: { color: colors.successStrong },
-  pillTextUnpaid: { color: colors.destructive },
 
   // Small action buttons
-  smallBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8 },
-  confirmBtn: { backgroundColor: colors.primary },
-  confirmLabel: { fontSize: 13, fontWeight: '700', color: colors.card },
-  removeBtn: { backgroundColor: colors.muted },
-  removeLabel: { fontSize: 13, fontWeight: '600', color: colors.destructive },
 
   // Buttons
-  btn: {
-    minHeight: 48,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnDisabled: { opacity: 0.5 },
-  primaryBtn: { backgroundColor: colors.primary },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
-  secondaryBtn: { backgroundColor: colors.muted },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
-  cancelBtn: { backgroundColor: palette.red[100] },
-  cancelLabel: { fontSize: 16, fontWeight: '700', color: colors.destructive },
 });

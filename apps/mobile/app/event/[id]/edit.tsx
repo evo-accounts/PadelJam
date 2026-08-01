@@ -4,7 +4,7 @@ import { useT } from '@padel/i18n';
 import { geocodeQuery } from '@padel/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
@@ -19,6 +19,7 @@ import { geocodeAddress } from '@/lib/geocode';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { colors, palette } from '../../../theme';
+import { Button, Text, TopBar } from '../../../components/ui';
 
 export default function EditEventScreen() {
   const { t } = useT('event');
@@ -147,20 +148,14 @@ export default function EditEventScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}>
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-        <Text style={styles.topTitle}>{t('editTitle')}</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <TopBar title={t('editTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Details */}
-        <Text style={styles.section}>{t('editDetailsSection')}</Text>
-        <Text style={styles.label}>{t('editNameLabel')}</Text>
+        <Text variant="label" tone="muted" style={styles.section}>{t('editDetailsSection')}</Text>
+        <Text variant="hint" tone="muted" style={styles.label}>{t('editNameLabel')}</Text>
         <TextInput style={styles.input} value={d.name} onChangeText={(name) => patch({ name })} maxLength={80} />
-        <Text style={styles.label}>{t('editDescriptionLabel')}</Text>
+        <Text variant="hint" tone="muted" style={styles.label}>{t('editDescriptionLabel')}</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
           value={d.description ?? ''}
@@ -170,7 +165,7 @@ export default function EditEventScreen() {
         />
 
         {/* Date & time */}
-        <Text style={styles.section}>{t('editDateTimeSection')}</Text>
+        <Text variant="label" tone="muted" style={styles.section}>{t('editDateTimeSection')}</Text>
         <DateTimePicker value={d.startsAt} onChange={(startsAt) => patch({ startsAt })} />
         <Stepper
           label={t('durationLabel')}
@@ -186,15 +181,15 @@ export default function EditEventScreen() {
         <Step8Preferences draft={d} patch={patch} />
 
         {/* Location */}
-        <Text style={styles.section}>{t('editLocationSection')}</Text>
+        <Text variant="label" tone="muted" style={styles.section}>{t('editLocationSection')}</Text>
         <Step5Location draft={d} patch={patch} />
 
         {/* Courts */}
-        <Text style={styles.section}>{t('editCourtsSection')}</Text>
+        <Text variant="label" tone="muted" style={styles.section}>{t('editCourtsSection')}</Text>
         <Step6Courts draft={d} patch={patch} />
 
         {/* Thumbnail */}
-        <Text style={styles.section}>{t('editThumbnailSection')}</Text>
+        <Text variant="label" tone="muted" style={styles.section}>{t('editThumbnailSection')}</Text>
         <ImagePickerRow
           label={t('editThumbnailLabel')}
           variant="cover"
@@ -203,15 +198,8 @@ export default function EditEventScreen() {
           disabled={busy}
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Pressable
-          style={[styles.btn, busy && styles.btnDisabled]}
-          disabled={busy}
-          onPress={onSave}
-          accessibilityRole="button"
-        >
-          {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.btnText}>{t('saveCta')}</Text>}
-        </Pressable>
+        {error ? <Text variant="label" tone="destructive" style={styles.error}>{error}</Text> : null}
+        <Button label={t('saveCta')} loading={busy} fullWidth onPress={onSave} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -220,16 +208,10 @@ export default function EditEventScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.card },
-  back: { fontSize: 32, color: colors.foreground, lineHeight: 32, width: 32 },
-  topTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
   content: { padding: 16, gap: 16 },
   section: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase', marginTop: 8 },
   label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: colors.foreground, backgroundColor: colors.card },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
   error: { color: colors.destructive, fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  btn: { minHeight: 50, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  btnDisabled: { opacity: 0.5 },
-  btnText: { color: colors.card, fontSize: 16, fontWeight: '700' },
 });
