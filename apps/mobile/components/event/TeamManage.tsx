@@ -329,8 +329,8 @@ const styles = StyleSheet.create({
   pvRemove: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: colors.muted },
   pvRemoveText: { fontSize: 13, fontWeight: '600', color: colors.destructive },
 
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
-  backdropCenter: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', paddingHorizontal: 24 },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  backdropCenter: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', paddingHorizontal: 24 },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '70%' },
   sheetTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
   sheetEmpty: { fontSize: 15, color: colors.mutedForeground, paddingVertical: 12 },

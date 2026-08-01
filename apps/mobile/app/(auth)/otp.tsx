@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   linkButton: { paddingVertical: 14, alignItems: 'center' },
   link: { color: colors.foreground, fontSize: 15, fontWeight: '600' },
   linkMuted: { color: colors.mutedForeground },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 8 },
   sheetRow: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
   sheetText: { fontSize: 16, color: colors.foreground, fontWeight: '600' },

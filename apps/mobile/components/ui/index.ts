@@ -8,8 +8,8 @@
  * every one of these is a token-consuming leaf.
  *
  * They take colours, radii, type and spacing ONLY from `apps/mobile/theme`;
- * `scripts/check-hex-budget.mjs` scans this directory, so a raw hex here fails
- * CI exactly as it would in a screen.
+ * the `no-restricted-syntax` rule in `apps/mobile/eslint.config.mjs` rejects a
+ * raw hex here exactly as it would in a screen.
  */
 export { Avatar, initialsOf, type AvatarSize } from './Avatar';
 export { Badge, type BadgeTone } from './Badge';

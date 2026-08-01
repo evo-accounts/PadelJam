@@ -83,4 +83,35 @@ export default [
       '@typescript-eslint/no-require-imports': 'off',
     },
   },
+
+  {
+    // No raw colours. This replaces scripts/check-hex-budget.mjs, which ratcheted
+    // 1316 hardcoded colours down to 0 across five PRs and has now been deleted.
+    //
+    // The ratchet could not have started here: at `error` it would have failed on
+    // all 1316 from day one, and at `warn` it would not have gated CI at all. A
+    // decreasing integer got the count to zero; the rule is what keeps it there.
+    //
+    // One deliberate difference in coverage: the budget scanned TEXT, so it also
+    // caught hexes inside comments — it once failed on a doc comment explaining
+    // which colour a token replaced. This works on the AST, so prose about
+    // colours is fine and only real values are rejected. That is the better
+    // behaviour, and worth knowing if a comment ever "should" have been flagged.
+    files: ['**/*.{ts,tsx}'],
+    ignores: ['theme/**'], // where colours are ALLOWED to be spelled out
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value=/^#(?:[0-9a-fA-F]{3,4}){1,2}$/]',
+          message: 'Use a token from apps/mobile/theme instead of a raw hex colour.',
+        },
+        {
+          // The scrims that blocked the last 21: `overlay` covers them now.
+          selector: 'Literal[value=/^rgba?\\(/]',
+          message: 'Use colors.overlay (or a theme token) instead of a raw rgba() colour.',
+        },
+      ],
+    },
+  },
 ];

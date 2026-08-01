@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   input: { minHeight: 48, borderRadius: 12, backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 14, paddingTop: 12, fontSize: 16, color: colors.foreground },
   inputMulti: { minHeight: 100, textAlignVertical: 'top' },
 
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.background, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 10, maxHeight: '90%' },
   sheetTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground },
 

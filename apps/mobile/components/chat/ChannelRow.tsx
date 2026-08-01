@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   badgeText: { color: colors.card, fontSize: 11, fontWeight: '700' },
   kebab: { paddingHorizontal: 8, paddingVertical: 8 },
   kebabDots: { fontSize: 16, color: colors.mutedForeground, fontWeight: '700' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center' },
   sheet: { backgroundColor: colors.card, borderRadius: 12, minWidth: 220, overflow: 'hidden' },
   sheetRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
   sheetText: { fontSize: 15, color: colors.foreground, fontWeight: '600' },

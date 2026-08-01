@@ -38,6 +38,19 @@ export const light = {
   border: p.slate[100],
   input: p.slate[100],
   ring: p.slate[400],
+  /**
+   * The scrim behind a modal or sheet.
+   *
+   * Mobile had FOUR alphas for this one idea — 0.25, 0.35, 0.4 and 0.6 — with
+   * no evidence any of them was chosen rather than copied from the last file.
+   * They collapse onto 0.4, the darkest of the three common values, so a modal
+   * reads unambiguously as modal. Some sheets get a slightly dimmer backdrop
+   * than before; that IS the consolidation, not a side effect of it.
+   *
+   * Deliberately not a ramp step: a scrim has to be translucent, or it hides
+   * the content it is meant to be dimming.
+   */
+  overlay: 'rgba(0, 0, 0, 0.4)',
   chart1: p.orange[600],
   chart2: p.teal[600],
   chart3: p.sky[600],
@@ -92,6 +105,9 @@ export const dark = {
   border: p.purple[700],
   input: 'rgba(255, 255, 255, 0.15)',
   ring: p.slate[500],
+  // Heavier in dark mode: the same alpha over an already-dark page does not
+  // separate the sheet from what is behind it.
+  overlay: 'rgba(0, 0, 0, 0.6)',
   chart1: p.blue[700],
   chart2: p.teal[900],
   chart3: p.sky[900],

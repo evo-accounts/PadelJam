@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   periodChipOn: { backgroundColor: colors.primary },
   periodChipText: { fontSize: 12, color: colors.mutedForeground, fontWeight: '600' },
   periodChipTextOn: { color: colors.card },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center' },
   sheet: { backgroundColor: colors.card, borderRadius: 14, margin: 24, padding: 20, gap: 8 },
   sheetTitle: { fontSize: 16, fontWeight: '800', color: colors.foreground },
   sheetBody: { fontSize: 13, color: colors.mutedForeground },

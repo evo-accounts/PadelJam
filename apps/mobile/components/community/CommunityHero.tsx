@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(11,31,58,0.55)',
+    backgroundColor: colors.overlay,
   },
   manageIcon: { color: colors.card, fontSize: 18, lineHeight: 20 },
   coverFallback: { backgroundColor: colors.primary },

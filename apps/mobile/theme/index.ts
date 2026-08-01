@@ -12,9 +12,11 @@
  *   type.body              not { fontSize: 16 }
  *   space[4]               not 16
  *
- * `scripts/check-hex-budget.mjs` fails CI if the number of raw hex literals in
- * apps/mobile ever RISES, so new code has to come here. Once the count reaches
- * zero the budget is replaced by an ESLint rule and deleted.
+ * THIS DIRECTORY IS THE ONLY PLACE A COLOUR MAY BE SPELLED OUT. Everywhere else
+ * in apps/mobile, `no-restricted-syntax` rejects a raw hex or rgba outright —
+ * see `apps/mobile/eslint.config.mjs`. That rule replaced a ratchet script which
+ * took the count from 1316 to 0; the script is gone, and the rule is what keeps
+ * it there.
  *
  * LIGHT ONLY, deliberately. `@padel/ui` also exports a `dark` scheme, but
  * nothing renders it yet and it carries a known defect (its background and
