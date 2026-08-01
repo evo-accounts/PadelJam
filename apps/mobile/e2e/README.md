@@ -89,21 +89,55 @@ Two things to know before enabling the nightly on your own machine:
 ## Test data
 
 `infra/seed/seed-e2e.mjs` (fork of seed-demo with **NOW-relative dates**) seeds 12
-personas (password `demo1234`), 5 communities, groups, and events E1–E8 covering
+personas (password `demo1234`), 5 communities, groups, and events E1–E12 covering
 scheduled/team/in-progress/completed/recurring plus error fixtures (join-cutoff, full,
 private, review-gated, sole-owner). Suites call `resetDb('minimal'|'full')` in
 `beforeAll`; the wipe preserves migration-seeded reference tables (`plans`,
 `plan_features`). Email OTPs are read from Mailpit (`:55324`); the phone test number
 `+351912345678` verifies with `123456`.
 
+**Some states are unreachable through the RPCs alone.** Public group events
+auto-invite every member, so a group member can only ever arrive at an event
+*holding an invitation* — and an invitee sees Accept/Decline, never the
+waiting-list, join-cutoff or partner-selection CTAs. `suppressInvitations()`
+deletes those rows after the fact (same shape as the existing back-dating patch:
+build through the RPC, then undo what it necessarily did). E9/E10/E12 use it;
+E7/E6/E2 deliberately KEEP their invitations so the invitee path is covered too.
+E9 also disables standby, because `event_capacity()` is
+`num_courts * 4 + (allow_standby ? standby_spots : 0)` — with the default 2
+standby spots a 5th player joins CONFIRMED (`is_standby`), never waitlisted.
+
 ## Writing tests
 
 - Selectors: `{ label }` exact, `{ text }` substring/regex (against label+value),
   `{ type }` (`Button`, `TextField`, `Heading`…), `{ id }` (testID), `{ nth }`.
 - Always assert via `waitFor`/`expectVisible` (they poll the AX tree); never sleep-and-hope.
-- `typeText` verifies the field value and retypes slowly on RN's fast-typing character drops.
+- **Assert against the database, not the pixel**, wherever a test changes state.
+  A control that animates but never writes looks identical on screen. Use
+  `select()` from `fixtures/db.ts` with `pollUntil` from `fixtures/poll.ts`.
+- **Assert the precondition too.** "X is a member after I tap Accept" passes
+  vacuously if X was already a member — check they were not, and fail with
+  "fixture drift" rather than green.
+- **Read copy off a captured a11y tree, never from the source.** The i18n file
+  interleaves language blocks per namespace, so grepping a key finds whichever
+  namespace comes last (`nameLabel` resolves to the *event* namespace's "Event
+  name"). Several tests have been written against strings that do not exist.
+- `typeText` verifies the field value and retypes slowly on RN's fast-typing
+  character drops; it clears a pre-filled field on its retry pass.
+- **`tap()` fails on an element that is entirely off screen** rather than
+  clamping onto whatever occupies that coordinate — `scrollUntilVisible` first.
+  Partly-visible elements are tapped on their visible part, which is what makes
+  cards in horizontal rails work.
+- **RN `Switch` surfaces as an UNLABELED `CheckBox`** with AXValue `"0"`/`"1"` —
+  not as type `Switch`, and with no text to match on, so address it by ordinal.
+  Use `toggleSwitch`, which cycles tap positions/durations: a zero-duration tap
+  at dead centre often does not actuate one.
 - System dialogs: permission alerts are tappable via the normal selectors; the iOS
   "Save Password" sheet leaves an EMPTY AX tree — use `dismissSavePasswordSheetIfPresent()`.
+- **Dismiss every alert you raise.** A system alert empties the app's AX tree, so
+  one left up does not fail the test that raised it — it breaks the NEXT test,
+  with a navigation error that names nothing relevant. Some flows raise two (a
+  confirm *and* a success notice).
 - `freshInstall()` also resets the **keychain** (SecureStore sessions survive uninstall).
 
 ## Known issues encoded in the suite
@@ -113,3 +147,46 @@ private, review-gated, sole-owner). Suites call `resetDb('minimal'|'full')` in
   remounted the whole subtree, re-running Boot's splash routing. `loginAs` is
   single-attempt and fails loudly if a bounce ever reappears — do not add retries.
 - QR/share deep links use `padeljam://` while the app scheme is `mobile://`.
+
+## When a failure names something unrelated, suspect this
+
+This harness's signature bug is an action that goes **silently wrong** and
+detonates somewhere else entirely. Five instances, all fixed — each by making the
+primitive fail loudly, and each deliberately refusing the "retry harder" variant
+that would have reintroduced it:
+
+| | went wrong silently | fixed in |
+|---|---|---|
+| `ensureTabs` | exhausted its pops and returned success | #19 |
+| `scrollUntilVisible` | reported an off-screen element as visible | #26 |
+| `tap` | swallowed mid-animation, on a still-moving view | #32 |
+| `backGesture` | swiped into pager content, never popped | #34 |
+| `tap` | clamped an off-screen element onto a *different* one | #40 |
+
+The last is the clearest illustration: a Save button at `y=1213` was clamped to
+`y=866`, which sat inside an image picker. The tap opened the iOS photo library,
+and the run failed **80 seconds later** on an unrelated assertion. So: when a
+failure message does not match the last action, look for a mis-landed
+interaction before believing the message.
+
+## Resolved: "JWT issued at future" — do not re-diagnose it
+
+This failed roughly one run in three, always a different suite, always green on
+re-run, and was misdiagnosed three times.
+
+PostgREST validates `iat` against a **cached clock** that goes stale while idle.
+It allows exactly 30s of skew (measured: `iat=now+30s` → 200, `now+31s` → 401)
+and v14.15 exposes no knob to widen it. The condition is **self-healing** —
+serving a request refreshes the clock — so `withJwtClockRetry` in
+`packages/db/src/client.ts` retries once on `401` + `PGRST303` and absorbs it.
+A full suite has since run green with 5 such rejections absorbed.
+
+`scripts/e2e/probe-jwt-clock.mjs` reproduces it in minutes instead of 25-minute
+runs. It needs a genuinely **idle** stack — any request refreshes the clock — and
+refuses to start while a suite holds the lock.
+
+Two things it disproved, recorded so they are not retried: the `Date` response
+header does **not** track the JWT clock (a 327s-stale header while every token
+was accepted), and PostgREST has **more than one** cached clock (concurrent
+requests return alternating lags), so "staleness = failing k + 30" reasoning is
+void.
