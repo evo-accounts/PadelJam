@@ -12,17 +12,14 @@ import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   Modal,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, palette } from '../../../theme';
+import { colors, palette, space } from '../../../theme';
+import { Button, Card, Chip, Field, Loading, Text, TopBar } from '../../../components/ui';
 
 type Channel = 'email' | 'whatsapp';
 
@@ -91,11 +88,9 @@ export default function BlastScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <View style={styles.sentBox}>
-          <Text style={styles.sentTitle}>{t('blastSentTitle')}</Text>
-          <Text style={styles.sentBody}>{t('blastSentBody', { count: sentCount })}</Text>
-          <Pressable style={[styles.btn, styles.primaryBtn]} onPress={() => router.back()} accessibilityRole="button">
-            <Text style={styles.primaryLabel}>{t('back')}</Text>
-          </Pressable>
+          <Text variant="title">{t('blastSentTitle')}</Text>
+          <Text variant="body" tone="muted" style={styles.centerText}>{t('blastSentBody', { count: sentCount })}</Text>
+          <Button label={t('back')} onPress={() => router.back()} />
         </View>
       </SafeAreaView>
     );
@@ -104,7 +99,7 @@ export default function BlastScreen() {
   if (loadingTier) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color={colors.foreground} />
+        <Loading />
       </SafeAreaView>
     );
   }
@@ -112,83 +107,73 @@ export default function BlastScreen() {
   const channelRow = (
     <View style={styles.channelRow}>
       {(['email', 'whatsapp'] as const).map((c) => (
-        <Pressable
+        <Chip
           key={c}
-          style={[styles.channel, channels.includes(c) ? styles.channelOn : null]}
+          label={t(c === 'email' ? 'blastChannelEmail' : 'blastChannelWhatsapp')}
+          selected={channels.includes(c)}
           onPress={() => toggleChannel(c)}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.channelText, channels.includes(c) ? styles.channelTextOn : null]}>
-            {t(c === 'email' ? 'blastChannelEmail' : 'blastChannelWhatsapp')}
-          </Text>
-        </Pressable>
+        />
       ))}
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}>
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-        <Text style={styles.topTitle}>{t('blastTitle')}</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <TopBar title={t('blastTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text variant="label" tone="destructive" style={styles.error}>{error}</Text> : null}
 
       {!canCustomize ? (
         // --- Starter: read-only default template + channels + send ---
         <ScrollView contentContainerStyle={styles.content}>
           {defaultTemplate ? (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>{defaultTemplate.title}</Text>
-              <Text style={styles.cardBody}>{defaultTemplate.description}</Text>
+              <Text variant="bodyStrong">{defaultTemplate.title}</Text>
+              <Text variant="caption" tone="muted">{defaultTemplate.description}</Text>
             </View>
           ) : null}
-          <Text style={styles.label}>{t('blastSendToLabel')}</Text>
-          <Text style={styles.readonly}>{t('blastSendToAll')}</Text>
+          <Text variant="hint" tone="subtle" style={styles.label}>{t('blastSendToLabel')}</Text>
+          <Text variant="bodyStrong">{t('blastSendToAll')}</Text>
           {channelRow}
-          <Pressable
-            style={[styles.btn, styles.primaryBtn, (busy || !defaultTemplate || channels.length === 0) && styles.btnDisabled]}
-            disabled={busy || !defaultTemplate || channels.length === 0}
+          <Button
+            label={t('blastSendCta')}
+            loading={busy}
+            disabled={!defaultTemplate || channels.length === 0}
+            fullWidth
             onPress={() =>
               defaultTemplate &&
               submit({ template: defaultTemplate, title: defaultTemplate.title, description: defaultTemplate.description })
             }
-            accessibilityRole="button"
-          >
-            {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.primaryLabel}>{t('blastSendCta')}</Text>}
-          </Pressable>
+          />
         </ScrollView>
       ) : (
         // --- Basic/Pro: tabs + customize modal ---
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.tabs}>
             {(['templates', 'yours'] as const).map((tb) => (
-              <Pressable key={tb} style={[styles.tab, tab === tb ? styles.tabOn : null]} onPress={() => setTab(tb)} accessibilityRole="button">
-                <Text style={[styles.tabText, tab === tb ? styles.tabTextOn : null]}>
-                  {t(tb === 'templates' ? 'blastTemplatesTab' : 'blastYourBlastsTab')}
-                </Text>
-              </Pressable>
+              <Chip
+                key={tb}
+                label={t(tb === 'templates' ? 'blastTemplatesTab' : 'blastYourBlastsTab')}
+                selected={tab === tb}
+                onPress={() => setTab(tb)}
+              />
             ))}
           </View>
 
           {tab === 'templates' ? (
             (templates ?? []).map((tpl) => (
-              <Pressable key={tpl.id} style={styles.card} onPress={() => openCustomize(tpl)} accessibilityRole="button">
-                <Text style={styles.cardTitle}>{tpl.title}</Text>
-                <Text style={styles.cardBody} numberOfLines={2}>{tpl.description}</Text>
-              </Pressable>
+              <Card key={tpl.id} style={styles.cardSpacing} onPress={() => openCustomize(tpl)}>
+                <Text variant="bodyStrong">{tpl.title}</Text>
+                <Text variant="caption" tone="muted" numberOfLines={2}>{tpl.description}</Text>
+              </Card>
             ))
           ) : (yourBlasts ?? []).length === 0 ? (
-            <Text style={styles.empty}>{t('blastYourEmpty')}</Text>
+            <Text variant="caption" tone="muted" style={styles.empty}>{t('blastYourEmpty')}</Text>
           ) : (
             (yourBlasts ?? []).map((b) => (
-              <Pressable
+              <Card
                 key={b.id}
-                style={styles.card}
+                style={styles.cardSpacing}
                 onPress={() =>
                   setEditing({
                     template: b.source_template_id
@@ -198,31 +183,29 @@ export default function BlastScreen() {
                     description: b.description,
                   })
                 }
-                accessibilityRole="button"
               >
-                <Text style={styles.cardTitle}>{b.title}</Text>
-                <Text style={styles.cardBody} numberOfLines={1}>{b.description}</Text>
+                <Text variant="bodyStrong">{b.title}</Text>
+                <Text variant="caption" tone="muted" numberOfLines={1}>{b.description}</Text>
                 {(() => {
                   const d = deliveries?.[b.id];
                   const label = !d ? t('deliveryPending') : d.status === 'sent' ? t('deliveryDelivered') : t('deliveryFailed');
-                  return <Text style={styles.cardMeta}>{label}</Text>;
+                  return <Text variant="hint" tone="muted" style={styles.cardMeta}>{label}</Text>;
                 })()}
                 {deliveries?.[b.id]?.status === 'failed' ? (
-                  <Pressable
-                    style={styles.retryBtn}
-                    disabled={retrying === b.id}
+                  <Button
+                    label={retrying === b.id ? t('blastSendCta') : t('retryBlastCta')}
+                    variant="ghost"
+                    size="sm"
+                    loading={retrying === b.id}
                     onPress={() => {
                       setRetrying(b.id);
                       retryBlast.mutateAsync(b.id)
                         .catch((e) => setError(t(e instanceof Error ? e.message : 'unknown_error')))
                         .finally(() => setRetrying(null));
                     }}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.retryLabel}>{retrying === b.id ? t('blastSendCta') : t('retryBlastCta')}</Text>
-                  </Pressable>
+                  />
                 ) : null}
-              </Pressable>
+              </Card>
             ))
           )}
         </ScrollView>
@@ -232,37 +215,39 @@ export default function BlastScreen() {
       <Modal visible={editing != null} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>{t('blastCustomizeTitle')}</Text>
-            <Text style={styles.label}>{t('blastTitleLabel')}</Text>
-            <TextInput
-              style={styles.input}
+            <Text variant="sectionTitle">{t('blastCustomizeTitle')}</Text>
+            <Field
+              label={t('blastTitleLabel')}
               value={editing?.title ?? ''}
               maxLength={80}
-              onChangeText={(v) => setEditing((s) => (s ? { ...s, title: v } : s))}
+              containerStyle={styles.cardSpacing}
+              onChangeText={(v) => setEditing((st) => (st ? { ...st, title: v } : st))}
             />
-            <Text style={styles.label}>{t('blastDescLabel')}</Text>
-            <TextInput
-              style={[styles.input, styles.inputMulti]}
+            <Field
+              label={t('blastDescLabel')}
               value={editing?.description ?? ''}
               maxLength={1000}
               multiline
-              onChangeText={(v) => setEditing((s) => (s ? { ...s, description: v } : s))}
+              containerStyle={styles.cardSpacing}
+              onChangeText={(v) => setEditing((st) => (st ? { ...st, description: v } : st))}
             />
-            <Text style={styles.label}>{t('blastSendToLabel')}</Text>
-            <Text style={styles.readonly}>{t('blastSendToAll')}</Text>
+            <Text variant="hint" tone="subtle" style={styles.label}>{t('blastSendToLabel')}</Text>
+            <Text variant="bodyStrong">{t('blastSendToAll')}</Text>
             {channelRow}
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            <Pressable
-              style={[styles.btn, styles.primaryBtn, busy && styles.btnDisabled]}
-              disabled={busy}
+            {error ? <Text variant="label" tone="destructive" style={styles.error}>{error}</Text> : null}
+            <Button
+              label={t('blastSendCta')}
+              loading={busy}
+              fullWidth
+              style={styles.cardSpacing}
               onPress={() => editing && submit(editing)}
-              accessibilityRole="button"
-            >
-              {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.primaryLabel}>{t('blastSendCta')}</Text>}
-            </Pressable>
-            <Pressable style={[styles.btn, styles.secondaryBtn]} onPress={() => setEditing(null)} accessibilityRole="button">
-              <Text style={styles.secondaryLabel}>{t('cancel')}</Text>
-            </Pressable>
+            />
+            <Button
+              label={t('cancel')}
+              variant="outline"
+              fullWidth
+              onPress={() => setEditing(null)}
+            />
           </View>
         </View>
       </Modal>
@@ -273,49 +258,27 @@ export default function BlastScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.card },
   back: { fontSize: 32, color: colors.foreground, lineHeight: 32, width: 32 },
-  topTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
   content: { padding: 16, gap: 12 },
   error: { color: colors.destructive, fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 16, paddingTop: 8 },
 
   tabs: { flexDirection: 'row', backgroundColor: colors.accent, borderRadius: 10, padding: 3 },
   tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  tabOn: { backgroundColor: colors.card },
-  tabText: { fontSize: 14, fontWeight: '600', color: colors.mutedForeground },
-  tabTextOn: { color: colors.foreground },
 
+  cardSpacing: { marginBottom: space[3] },
+  centerText: { textAlign: 'center' },
   card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 4 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground },
-  cardBody: { fontSize: 14, color: colors.mutedForeground },
   cardMeta: { fontSize: 12, color: colors.mutedForeground, marginTop: 4 },
-  retryBtn: { marginTop: 8, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: palette.purple[100] },
-  retryLabel: { color: colors.primary, fontWeight: '700', fontSize: 13 },
   empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', paddingVertical: 24 },
 
   label: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
-  readonly: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
   channelRow: { flexDirection: 'row', gap: 10 },
   channel: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  channelOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  channelText: { fontSize: 15, fontWeight: '600', color: colors.foreground },
-  channelTextOn: { color: colors.card },
 
-  input: { minHeight: 48, borderRadius: 12, backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 14, paddingTop: 12, fontSize: 16, color: colors.foreground },
-  inputMulti: { minHeight: 100, textAlignVertical: 'top' },
 
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.background, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 10, maxHeight: '90%' },
-  sheetTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground },
 
   sentBox: { paddingHorizontal: 32, alignItems: 'center', gap: 12 },
-  sentTitle: { fontSize: 22, fontWeight: '700', color: colors.foreground },
-  sentBody: { fontSize: 16, color: colors.mutedForeground, textAlign: 'center' },
 
-  btn: { minHeight: 48, paddingHorizontal: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  btnDisabled: { opacity: 0.5 },
-  primaryBtn: { backgroundColor: colors.primary },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
-  secondaryBtn: { backgroundColor: colors.muted },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
 });

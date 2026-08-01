@@ -67,9 +67,12 @@ describe('00 design system', () => {
       { file: '04-button.png', heading: /^button$/i },
       { file: '05-avatar.png', heading: /^avatar$/i },
       { file: '06-badge-chip.png', heading: /^chip$/i },
-      { file: '07-card.png', heading: /^card$/i },
-      { file: '08-field.png', heading: /^field$/i },
-      { file: '09-empty-loading.png', heading: /^loading$/i },
+      { file: '07-topbar.png', heading: /^topbar$/i },
+      { file: '08-iconbutton.png', heading: /^iconbutton$/i },
+      { file: '09-listrow.png', heading: /^listrow$/i },
+      { file: '10-card.png', heading: /^card$/i },
+      { file: '11-field.png', heading: /^field$/i },
+      { file: '12-empty-loading.png', heading: /^loading$/i },
     ];
 
     for (const section of sections) {
