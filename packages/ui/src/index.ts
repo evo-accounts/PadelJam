@@ -10,18 +10,24 @@
  * Everything is exported from the package ROOT rather than through subpath
  * exports, so Metro (Expo SDK 56), Turbopack and vitest all resolve it with no
  * extra configuration.
+ *
+ * The CSS GENERATOR is deliberately NOT exported here. It is build tooling for
+ * scripts/tokens.mjs, and it imports with explicit `.ts` extensions so Node can
+ * resolve it without a build step. Re-exporting it would drag those extensions
+ * into every consumer's typecheck — apps/mobile's tsconfig has no
+ * allowImportingTsExtensions, so `import '@padel/ui'` failed with TS5097 until
+ * this boundary existed. Import it by path if you need it.
  */
-export { palette, type Palette, type RampName } from './tokens/palette.ts';
+export { palette, type Palette, type RampName } from './tokens/palette';
 export {
   semantic,
   light,
   dark,
   type SemanticName,
   type SemanticScheme,
-} from './tokens/semantic.ts';
-export { radius, RADIUS_BASE_PX, type Radius, type RadiusName } from './tokens/radius.ts';
+} from './tokens/semantic';
+export { radius, RADIUS_BASE_PX, type Radius, type RadiusName } from './tokens/radius';
 export {
   text, space, weight, SPACE_STEP_PX,
   type Text, type TextName, type Space, type SpaceStep, type Weight, type WeightName,
-} from './tokens/scale.ts';
-export { renderCss, cssVarName } from './generate/css.ts';
+} from './tokens/scale';
