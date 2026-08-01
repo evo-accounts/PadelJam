@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { PostCard, type CommunityPost } from '@/components/community/PostCard';
+import { colors } from '../../../../theme';
 
 export default function CommunityPostsScreen() {
   const { t } = useT('community');
@@ -23,7 +24,7 @@ export default function CommunityPostsScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -67,10 +68,10 @@ export default function CommunityPostsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F6F8FB' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: '#3A4A60' },
-  error: { color: '#C0392B', fontWeight: '600' },
+  empty: { fontSize: 15, color: colors.mutedForeground },
+  error: { color: colors.destructive, fontWeight: '600' },
   list: { paddingVertical: 8 },
   fab: {
     position: 'absolute',
@@ -79,14 +80,14 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#0B7BFF',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.foreground,
     shadowOpacity: 0.2,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     elevation: 4,
   },
-  fabText: { color: '#fff', fontSize: 28, fontWeight: '700', marginTop: -2 },
+  fabText: { color: colors.card, fontSize: 28, fontWeight: '700', marginTop: -2 },
 });

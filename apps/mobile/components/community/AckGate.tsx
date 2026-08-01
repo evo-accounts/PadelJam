@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { RulesModal } from '@/components/community/RulesModal';
+import { colors } from '../../theme';
 
 /**
  * Acknowledgement gate for cancellation rules: a toggle plus a brand-coloured link
@@ -37,6 +38,6 @@ export function AckGate({
 const styles = StyleSheet.create({
   container: { gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  label: { flex: 1, fontSize: 14, color: '#222', lineHeight: 20 },
-  link: { fontSize: 14, fontWeight: '700', color: '#0B7BFF', marginLeft: 52 },
+  label: { flex: 1, fontSize: 14, color: colors.foreground, lineHeight: 20 },
+  link: { fontSize: 14, fontWeight: '700', color: colors.primary, marginLeft: 52 },
 });

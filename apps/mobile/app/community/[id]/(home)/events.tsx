@@ -8,6 +8,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { EventCard } from '@/components/event/EventCard';
+import { colors } from '../../../../theme';
 
 type Filter = 'all' | 'organizing';
 
@@ -22,7 +23,7 @@ export default function CommunityEventsScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -95,10 +96,10 @@ function FilterPill({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: '#3A4A60' },
-  error: { color: '#C0392B', fontWeight: '600' },
+  empty: { fontSize: 15, color: colors.mutedForeground },
+  error: { color: colors.destructive, fontWeight: '600' },
   listContent: { paddingHorizontal: 12, paddingVertical: 8 },
   separator: { height: 8 },
   filters: { flexDirection: 'row', gap: 8, paddingTop: 8, paddingBottom: 4 },
@@ -106,9 +107,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    backgroundColor: '#F0F3F8',
+    backgroundColor: colors.muted,
   },
-  pillActive: { backgroundColor: '#0B1F3A' },
-  pillText: { fontSize: 13, fontWeight: '700', color: '#6B7685' },
-  pillTextActive: { color: '#fff' },
+  pillActive: { backgroundColor: colors.primary },
+  pillText: { fontSize: 13, fontWeight: '700', color: colors.mutedForeground },
+  pillTextActive: { color: colors.card },
 });

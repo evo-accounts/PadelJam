@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PostImage } from '@/components/community/PostImage';
 import { avatarUrl } from '@/lib/community-images';
+import { colors } from '../../theme';
 
 export type CommunityPost = {
   id: string;
@@ -125,28 +126,28 @@ export function PostCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     marginHorizontal: 16,
     marginVertical: 6,
     borderRadius: 14,
     padding: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E6EAF0' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  author: { flex: 1, fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  body: { fontSize: 15, color: '#222', lineHeight: 21 },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.muted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 15, fontWeight: '700' },
+  author: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.foreground },
+  body: { fontSize: 15, color: colors.foreground, lineHeight: 21 },
   image: { marginTop: 10 },
-  result: { backgroundColor: '#F4F6FA', borderRadius: 12, padding: 12, gap: 4 },
-  resultTitle: { fontSize: 12, fontWeight: '800', color: '#6B4EFF', textTransform: 'uppercase' },
-  resultRow: { fontSize: 15, color: '#0B1F3A', fontWeight: '500' },
-  resultLink: { fontSize: 14, fontWeight: '700', color: '#0B7BFF', marginTop: 4 },
+  result: { backgroundColor: colors.background, borderRadius: 12, padding: 12, gap: 4 },
+  resultTitle: { fontSize: 12, fontWeight: '800', color: colors.primary, textTransform: 'uppercase' },
+  resultRow: { fontSize: 15, color: colors.foreground, fontWeight: '500' },
+  resultLink: { fontSize: 14, fontWeight: '700', color: colors.primary, marginTop: 4 },
   actions: { flexDirection: 'row', gap: 20, marginTop: 12 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionIcon: { fontSize: 18, color: '#3A4A60' },
-  liked: { color: '#E0245E' },
-  actionText: { fontSize: 14, color: '#3A4A60', fontWeight: '600' },
+  actionIcon: { fontSize: 18, color: colors.mutedForeground },
+  liked: { color: colors.destructive },
+  actionText: { fontSize: 14, color: colors.mutedForeground, fontWeight: '600' },
 });

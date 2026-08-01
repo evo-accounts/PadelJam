@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommentList, type PostComment } from '@/components/community/CommentList';
 import { PostImage } from '@/components/community/PostImage';
 import { avatarUrl } from '@/lib/community-images';
+import { colors, palette } from '../../../../theme';
 
 const KNOWN_ERROR_KEYS = new Set(['unknown_error']);
 
@@ -47,7 +48,7 @@ export default function PostDetailScreen() {
   if (isLoading || !post) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </SafeAreaView>
     );
   }
@@ -141,7 +142,7 @@ export default function PostDetailScreen() {
               value={body}
               onChangeText={setBody}
               placeholder={t('addCommentPlaceholder')}
-              placeholderTextColor="#8896A8"
+              placeholderTextColor={colors.mutedForeground}
               multiline
             />
             <Pressable
@@ -151,7 +152,7 @@ export default function PostDetailScreen() {
               accessibilityRole="button"
             >
               {addComment.isPending ? (
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color={colors.card} size="small" />
               ) : (
                 <Text style={styles.sendText}>{t('send')}</Text>
               )}
@@ -164,35 +165,35 @@ export default function PostDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F6F8FB' },
+  container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   navbar: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
-    backgroundColor: '#fff',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.card,
   },
-  back: { fontSize: 16, fontWeight: '600', color: '#0B7BFF' },
+  back: { fontSize: 16, fontWeight: '600', color: colors.primary },
   scroll: { padding: 16 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E6EAF0' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  author: { flex: 1, fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
-  body: { fontSize: 16, color: '#222', lineHeight: 23 },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
+  author: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.foreground },
+  body: { fontSize: 16, color: colors.foreground, lineHeight: 23 },
   image: { marginTop: 12 },
   actions: { flexDirection: 'row', gap: 24, marginTop: 14 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionIcon: { fontSize: 20, color: '#3A4A60' },
-  liked: { color: '#E0245E' },
-  actionText: { fontSize: 15, color: '#3A4A60', fontWeight: '600' },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E6EAF0', marginVertical: 16 },
+  actionIcon: { fontSize: 20, color: colors.mutedForeground },
+  liked: { color: colors.destructive },
+  actionText: { fontSize: 15, color: colors.mutedForeground, fontWeight: '600' },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.muted, marginVertical: 16 },
   composer: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E6EAF0',
-    backgroundColor: '#fff',
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
     padding: 12,
     gap: 8,
   },
@@ -202,23 +203,23 @@ const styles = StyleSheet.create({
     maxHeight: 120,
     minHeight: 44,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#D7DEE8',
+    borderColor: colors.border,
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#0B1F3A',
-    backgroundColor: '#F6F8FB',
+    color: colors.foreground,
+    backgroundColor: colors.background,
   },
   send: {
-    backgroundColor: '#0B7BFF',
+    backgroundColor: colors.primary,
     borderRadius: 22,
     paddingHorizontal: 18,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendDisabled: { backgroundColor: '#A9C7EE' },
-  sendText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  error: { fontSize: 13, color: '#C0392B', fontWeight: '600' },
+  sendDisabled: { backgroundColor: palette.purple[200] },
+  sendText: { color: colors.card, fontSize: 15, fontWeight: '700' },
+  error: { fontSize: 13, color: colors.destructive, fontWeight: '600' },
 });

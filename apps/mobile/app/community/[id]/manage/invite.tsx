@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
+import { colors, palette } from '../../../../theme';
 
 type Profile = { id: string; full_name: string | null; avatar_url: string | null };
 type Group = { id: string; name: string; is_general: boolean };
@@ -171,7 +172,7 @@ export default function ManageInviteScreen() {
         ListEmptyComponent={
           searching ? (
             <View style={styles.center}>
-              <ActivityIndicator color="#0B1F3A" />
+              <ActivityIndicator color={colors.foreground} />
             </View>
           ) : query.trim().length > 0 ? (
             <View style={styles.center}>
@@ -236,7 +237,7 @@ export default function ManageInviteScreen() {
         accessibilityRole="button"
       >
         {invite.isPending ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.card} />
         ) : (
           <Text style={styles.ctaText}>
             {t('inviteCta', { count: selectedList.length })}
@@ -248,11 +249,11 @@ export default function ManageInviteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   searchWrap: { padding: 16 },
   search: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -260,15 +261,15 @@ const styles = StyleSheet.create({
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 },
   chip: {
-    backgroundColor: '#EEF2F7',
+    backgroundColor: colors.accent,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
     maxWidth: 180,
   },
-  chipText: { fontSize: 13, fontWeight: '600', color: '#0B1F3A' },
+  chipText: { fontSize: 13, fontWeight: '600', color: colors.foreground },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: '#3A4A60', textAlign: 'center' },
+  empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -276,39 +277,39 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E6EAF0' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  name: { flex: 1, fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
+  name: { flex: 1, fontSize: 16, color: colors.foreground, fontWeight: '500' },
   check: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#C2CAD6',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkOn: { backgroundColor: '#0B7BFF', borderColor: '#0B7BFF' },
-  checkMark: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  groupsSection: { padding: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E6EAF0' },
-  groupsTitle: { fontSize: 13, fontWeight: '700', color: '#8A95A5', textTransform: 'uppercase', marginBottom: 8 },
+  checkOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  checkMark: { color: colors.card, fontSize: 14, fontWeight: '700' },
+  groupsSection: { padding: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  groupsTitle: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase', marginBottom: 8 },
   groupRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
   },
-  groupLabel: { fontSize: 16, color: '#0B1F3A' },
+  groupLabel: { fontSize: 16, color: colors.foreground },
   cta: {
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     margin: 16,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   ctaDisabled: { opacity: 0.5 },
-  ctaText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  ctaText: { color: colors.card, fontSize: 16, fontWeight: '700' },
 });

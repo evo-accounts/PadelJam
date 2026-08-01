@@ -1,5 +1,6 @@
 import { useT } from '@padel/i18n';
 import { Stack } from 'expo-router';
+import { colors } from '../../../../theme';
 
 /**
  * Reviews sub-stack.
@@ -11,8 +12,8 @@ export default function ReviewsLayout() {
     <Stack
       screenOptions={{
         headerShown: true,
-        headerTintColor: '#0B1F3A',
-        headerTitleStyle: { color: '#0B1F3A' },
+        headerTintColor: colors.foreground,
+        headerTitleStyle: { color: colors.foreground },
       }}
     >
       <Stack.Screen name="index" options={{ title: t('reviewsTitle') }} />

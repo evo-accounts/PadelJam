@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
 import { StarRating } from './StarRating';
+import { colors, palette } from '../../theme';
 
 export type ReviewRow = {
   id: string;
@@ -75,16 +76,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
-    backgroundColor: '#fff',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.card,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E6EAF0' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
   meta: { flex: 1, gap: 2 },
-  name: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
+  name: { fontSize: 15, fontWeight: '600', color: colors.foreground },
   starsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  time: { fontSize: 12, color: '#8A95A5' },
-  body: { fontSize: 14, color: '#3A4A60', lineHeight: 20, marginTop: 8 },
+  time: { fontSize: 12, color: palette.slate[400] },
+  body: { fontSize: 14, color: colors.mutedForeground, lineHeight: 20, marginTop: 8 },
 });

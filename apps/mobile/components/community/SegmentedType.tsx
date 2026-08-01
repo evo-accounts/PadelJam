@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { COMMUNITY_TYPES } from '@padel/api';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../../theme';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 
@@ -47,13 +48,13 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 16,
   },
-  segment: { flex: 1, paddingVertical: 12, alignItems: 'center', backgroundColor: '#fff' },
-  segmentSelected: { backgroundColor: '#0B1F3A' },
-  label: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
-  labelSelected: { color: '#fff' },
+  segment: { flex: 1, paddingVertical: 12, alignItems: 'center', backgroundColor: colors.card },
+  segmentSelected: { backgroundColor: colors.primary },
+  label: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
+  labelSelected: { color: colors.card },
 });

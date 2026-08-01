@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PostComposer } from '@/components/community/PostComposer';
+import { colors } from '../../../theme';
 
 export default function CommunityComposeModal() {
   const { t } = useT('community');
@@ -29,7 +30,7 @@ export default function CommunityComposeModal() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F6F8FB' },
+  container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -38,8 +39,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#0B1F3A' },
-  close: { fontSize: 16, fontWeight: '600', color: '#0B7BFF' },
+  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
+  close: { fontSize: 16, fontWeight: '600', color: colors.primary },
 });

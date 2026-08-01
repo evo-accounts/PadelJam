@@ -3,6 +3,7 @@ import { useT } from '@padel/i18n';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from 'react-native';
+import { colors, palette } from '../../../../theme';
 
 type PermKey = 'invite_members' | 'approve_join_requests' | 'create_posts';
 
@@ -46,7 +47,7 @@ export default function ManagePermissionsScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -84,10 +85,10 @@ export default function ManagePermissionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA', padding: 16 },
+  container: { flex: 1, backgroundColor: colors.background, padding: 16 },
   center: { alignItems: 'center', justifyContent: 'center' },
-  intro: { fontSize: 14, color: '#3A4A60', marginBottom: 12, lineHeight: 20 },
-  card: { backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' },
+  intro: { fontSize: 14, color: colors.mutedForeground, marginBottom: 12, lineHeight: 20 },
+  card: { backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -96,9 +97,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
   rowText: { flex: 1 },
-  rowLabel: { fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
-  rowDesc: { fontSize: 13, color: '#8A95A5', marginTop: 2 },
+  rowLabel: { fontSize: 16, color: colors.foreground, fontWeight: '500' },
+  rowDesc: { fontSize: 13, color: palette.slate[400], marginTop: 2 },
 });

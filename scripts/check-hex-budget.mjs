@@ -35,10 +35,11 @@ const SELF = fileURLToPath(import.meta.url);
  *         slightly different directory boundaries)
  *   1079  app/event/[id]/** migrated — 237 colours
  *    968  components/event/wizard/** migrated — 111 colours
+ *    645  community (app/ + components/) migrated — 323 colours
  *
  * At 0 this script is deleted and `no-restricted-syntax` takes over.
  */
-const BASELINE = 968;
+const BASELINE = 645;
 
 const HEX = /#(?:[0-9a-fA-F]{3,4}){1,2}\b/g;
 const RGBA = /\brgba?\(/g;

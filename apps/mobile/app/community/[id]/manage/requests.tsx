@@ -10,6 +10,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
+import { colors } from '../../../../theme';
 
 type JoinRequest = {
   id: string;
@@ -54,7 +55,7 @@ export default function ManageRequestsScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -111,9 +112,9 @@ export default function ManageRequestsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: '#3A4A60' },
+  empty: { fontSize: 15, color: colors.mutedForeground },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -121,16 +122,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E6EAF0' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  name: { flex: 1, fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
+  name: { flex: 1, fontSize: 16, color: colors.foreground, fontWeight: '500' },
   actions: { flexDirection: 'row', gap: 8 },
   btn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  accept: { backgroundColor: '#0B7BFF' },
-  acceptText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  decline: { backgroundColor: '#EEF2F7' },
-  declineText: { color: '#3A4A60', fontWeight: '700', fontSize: 14 },
+  accept: { backgroundColor: colors.primary },
+  acceptText: { color: colors.card, fontWeight: '700', fontSize: 14 },
+  decline: { backgroundColor: colors.accent },
+  declineText: { color: colors.mutedForeground, fontWeight: '700', fontSize: 14 },
 });

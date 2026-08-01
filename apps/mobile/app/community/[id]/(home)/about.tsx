@@ -10,6 +10,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { RulesModal } from '@/components/community/RulesModal';
+import { colors, palette } from '../../../../theme';
 
 const TYPE_KEY: Record<string, string> = {
   club: 'typeClub',
@@ -154,21 +155,21 @@ export default function CommunityAboutScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  error: { fontSize: 15, color: '#C0392B', fontWeight: '600', textAlign: 'center' },
+  error: { fontSize: 15, color: colors.destructive, fontWeight: '600', textAlign: 'center' },
   content: { padding: 16, gap: 4 },
-  description: { fontSize: 15, color: '#222', lineHeight: 22, marginBottom: 8 },
+  description: { fontSize: 15, color: colors.foreground, lineHeight: 22, marginBottom: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
-  label: { fontSize: 14, color: '#8A95A5', fontWeight: '600' },
-  value: { fontSize: 14, color: '#0B1F3A', fontWeight: '600', flexShrink: 1, textAlign: 'right' },
-  summary: { fontSize: 13, color: '#3A4A60', lineHeight: 19, marginTop: 2, marginBottom: 4 },
+  label: { fontSize: 14, color: palette.slate[400], fontWeight: '600' },
+  value: { fontSize: 14, color: colors.foreground, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
+  summary: { fontSize: 13, color: colors.mutedForeground, lineHeight: 19, marginTop: 2, marginBottom: 4 },
   section: { marginTop: 16 },
-  sectionTitle: { fontSize: 13, color: '#8A95A5', fontWeight: '700', marginBottom: 8, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 13, color: palette.slate[400], fontWeight: '700', marginBottom: 8, textTransform: 'uppercase' },
   adminRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  adminName: { fontSize: 15, color: '#0B1F3A', fontWeight: '600', flexShrink: 1 },
-  adminRole: { fontSize: 13, color: '#3A4A60', fontWeight: '600' },
-  link: { fontSize: 15, fontWeight: '700', color: '#0B7BFF' },
+  adminName: { fontSize: 15, color: colors.foreground, fontWeight: '600', flexShrink: 1 },
+  adminRole: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
+  link: { fontSize: 15, fontWeight: '700', color: colors.primary },
   reviews: { marginTop: 20, paddingVertical: 8 },
-  reviewsText: { fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
+  reviewsText: { fontSize: 15, fontWeight: '700', color: colors.foreground },
 });

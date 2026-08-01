@@ -27,6 +27,7 @@ import { SegmentedType } from '@/components/community/SegmentedType';
 import { coverUrl, thumbnailUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
+import { colors, palette } from '../../../../theme';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
@@ -222,7 +223,7 @@ export default function ManageSettingsScreen() {
           accessibilityRole="button"
         >
           {pending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.card} />
           ) : (
             <Text style={styles.buttonText}>{t('save')}</Text>
           )}
@@ -233,13 +234,13 @@ export default function ManageSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   inner: { paddingHorizontal: 24, paddingTop: 16 },
-  label: { fontSize: 14, color: '#444', marginBottom: 8 },
-  hint: { fontSize: 12, color: '#8A95A5', marginTop: 4, marginBottom: 16 },
+  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
+  hint: { fontSize: 12, color: palette.slate[400], marginTop: 4, marginBottom: 16 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -247,13 +248,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   multiline: { minHeight: 88, textAlignVertical: 'top' },
-  error: { color: '#c0392b', marginBottom: 16 },
+  error: { color: colors.destructive, marginBottom: 16 },
   button: {
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
 });

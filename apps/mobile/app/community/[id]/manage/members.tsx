@@ -11,6 +11,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
+import { colors, palette } from '../../../../theme';
 
 const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 };
 
@@ -95,7 +96,7 @@ export default function ManageMembersScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -121,7 +122,7 @@ export default function ManageMembersScreen() {
           <Pressable
             onPress={() => openActions(item)}
             disabled={!actionable(item) || busy}
-            android_ripple={actionable(item) ? { color: '#E6EAF0' } : undefined}
+            android_ripple={actionable(item) ? { color: colors.muted } : undefined}
           >
             <View style={styles.rowWrap}>
               <View style={styles.rowFill}>
@@ -137,10 +138,10 @@ export default function ManageMembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: '#3A4A60' },
+  empty: { fontSize: 15, color: colors.mutedForeground },
   rowWrap: { flexDirection: 'row', alignItems: 'center' },
   rowFill: { flex: 1 },
-  dots: { fontSize: 24, color: '#8A95A5', paddingHorizontal: 16 },
+  dots: { fontSize: 24, color: palette.slate[400], paddingHorizontal: 16 },
 });

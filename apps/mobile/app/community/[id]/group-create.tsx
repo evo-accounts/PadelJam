@@ -16,6 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { GroupComposer, type GroupComposerValues } from '@/components/group/GroupComposer';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
+import { colors } from '../../../theme';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -108,7 +109,7 @@ export default function GroupCreateModal() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -117,9 +118,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#0B1F3A' },
-  close: { fontSize: 16, fontWeight: '600', color: '#0B7BFF' },
+  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
+  close: { fontSize: 16, fontWeight: '600', color: colors.primary },
   inner: { paddingHorizontal: 24, paddingTop: 16 },
 });

@@ -3,6 +3,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SuggestedCommunityCard, type SuggestedCommunity } from './SuggestedCommunityCard';
+import { colors } from '../../theme';
 
 type Props = {
   suggested: SuggestedCommunity[];
@@ -55,21 +56,21 @@ export function EmptyState({ suggested, canCreate, onPressSuggested, onCreate }:
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24 },
-  title: { fontSize: 28, fontWeight: '700', color: '#0B1F3A', marginBottom: 24 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#0B1F3A', marginBottom: 6 },
-  emptySubtitle: { fontSize: 15, color: '#666', marginBottom: 24 },
+  title: { fontSize: 28, fontWeight: '700', color: colors.foreground, marginBottom: 24 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.foreground, marginBottom: 6 },
+  emptySubtitle: { fontSize: 15, color: colors.mutedForeground, marginBottom: 24 },
   section: { marginBottom: 28 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#0B1F3A', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
   rail: { height: 130 },
   createCard: {
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 20,
-    backgroundColor: '#F7F9FC',
+    backgroundColor: colors.background,
   },
-  createCardTitle: { fontSize: 18, fontWeight: '700', color: '#0B1F3A', marginBottom: 6 },
-  createCardBody: { fontSize: 15, color: '#666', marginBottom: 16 },
-  cta: { backgroundColor: '#0B1F3A', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  ctaText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  createCardTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, marginBottom: 6 },
+  createCardBody: { fontSize: 15, color: colors.mutedForeground, marginBottom: 16 },
+  cta: { backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  ctaText: { color: colors.card, fontSize: 16, fontWeight: '600' },
 });

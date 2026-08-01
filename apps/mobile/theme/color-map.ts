@@ -50,6 +50,24 @@ export const textColors: Record<string, Token> = {
   '#666': t('colors.mutedForeground', colors.mutedForeground),
   '#888': t('palette.slate[400]', palette.slate[400]),
   '#1a7f4b': t('colors.success', colors.success, 'success text'),
+
+  // Added while migrating community.
+  '#222': t('colors.foreground', colors.foreground, 'near-black body text'),
+  '#333': t('colors.foreground', colors.foreground),
+  '#667': t('colors.mutedForeground', colors.mutedForeground),
+  '#8896a8': t('colors.mutedForeground', colors.mutedForeground),
+  '#8a93a0': t('colors.mutedForeground', colors.mutedForeground),
+  '#c2cad6': t('palette.slate[400]', palette.slate[400], 'tertiary text'),
+  '#c9cfd8': t('palette.slate[400]', palette.slate[400]),
+  '#e0245e': t('colors.destructive', colors.destructive, 'like/heart pink'),
+  '#e53935': t('colors.destructive', colors.destructive, 'third error red'),
+  // The gold on a "default community" star. Mapped to the yellow RAMP, not to
+  // `warning`: a favourite is not a warning state, and using the semantic token
+  // here would make a later change to warning silently repaint these stars.
+  '#c9a227': t('palette.yellow[500]', palette.yellow[500], 'favourite star gold'),
+  // Two different golds were in use for the same idea. Both become one token.
+  '#f5a623': t('palette.yellow[500]', palette.yellow[500], 'rating star gold'),
+  '#c5cdd8': t('palette.slate[300]', palette.slate[300], 'empty rating star'),
   '#1f9d55': t('colors.success', colors.success),
   '#2e9e5b': t('colors.success', colors.success),
 };
@@ -79,6 +97,11 @@ export const backgroundColors: Record<string, Token> = {
   // The step-indicator's inactive dot. slate-300, NOT `muted` (slate-200):
   // muted is a surface tint and the dot would disappear against the card.
   '#d5dbe3': t('palette.slate[300]', palette.slate[300], 'inactive step dot'),
+  // The disabled state of the primary CTA — a washed-out version of the old
+  // blue, so it becomes a washed-out version of the new purple.
+  '#a9c7ee': t('palette.purple[200]', palette.purple[200], 'disabled CTA fill'),
+  '#eaf1fb': t('palette.purple[100]', palette.purple[100]),
+  '#edf1f6': t('colors.accent', colors.accent),
 
   // Added while migrating app/event/[id]/**. Each was a one- or two-use tint
   // that no existing entry covered; they are listed rather than folded into the
@@ -103,6 +126,9 @@ export const borderColors: Record<string, Token> = {
   '#e2e8f0': t('colors.muted', colors.muted, 'already a Tailwind slate-200'),
   '#d7dee8': t('colors.border', colors.border),
   '#d7dee6': t('colors.border', colors.border, 'one digit from the line above — same border'),
+  '#d0d8e4': t('colors.border', colors.border),
+  '#c2cad6': t('colors.border', colors.border, 'same hex as a text grey — hence the property key'),
+  '#fff': t('colors.card', colors.card, 'white hairline on a tinted surface'),
   '#ccc': t('colors.border', colors.border, 'grey hairline (28)'),
   '#0b7bff': t('colors.primary', colors.primary, 'selected outline (13)'),
   '#0b1f3a': t('colors.foreground', colors.foreground, 'strong outline (8)'),
@@ -125,10 +151,28 @@ export const overlays: Record<string, Token> = {
   '#000000': t('colors.foreground', colors.foreground, 'shadow colour'),
 };
 
+/**
+ * React Navigation tints.
+ *
+ * `tabBarActiveTintColor` is the one entry that must NOT go through
+ * `textColors`. The old value is the same navy as body text, but its ROLE is
+ * "this tab is selected" — an accent. Routing it through the text ramp would
+ * make the selected tab indistinguishable from every label around it, which is
+ * exactly the class of bug that keying on the property is meant to prevent.
+ */
+export const activeTints: Record<string, Token> = {
+  '#0b1f3a': t('colors.primary', colors.primary, 'selected tab — accent, not text'),
+  '#0b7bff': t('colors.primary', colors.primary),
+};
+
 /** Lookup used by a codemod: property first, then hex. */
 export const colorMap = {
   color: textColors,
   tintColor: textColors,
+  // Header text and the INACTIVE tab tint are both just text.
+  headerTintColor: textColors,
+  tabBarInactiveTintColor: textColors,
+  tabBarActiveTintColor: activeTints,
   // Placeholder text is text: it takes the same ramp, just a lighter step.
   placeholderTextColor: textColors,
   backgroundColor: backgroundColors,

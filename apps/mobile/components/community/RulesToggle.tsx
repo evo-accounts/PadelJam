@@ -1,5 +1,6 @@
 import { useT } from '@padel/i18n';
 import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { colors } from '../../theme';
 
 export function RulesToggle({
   enabled,
@@ -48,12 +49,12 @@ const styles = StyleSheet.create({
   container: { marginBottom: 16 },
   row: { flexDirection: 'row', alignItems: 'center' },
   textCol: { flex: 1, paddingRight: 12 },
-  title: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  desc: { fontSize: 13, color: '#666', marginTop: 2 },
-  label: { fontSize: 14, color: '#444', marginTop: 14, marginBottom: 8 },
+  title: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  desc: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
+  label: { fontSize: 14, color: colors.mutedForeground, marginTop: 14, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -61,5 +62,5 @@ const styles = StyleSheet.create({
     minHeight: 88,
     textAlignVertical: 'top',
   },
-  error: { color: '#c0392b', marginTop: 8 },
+  error: { color: colors.destructive, marginTop: 8 },
 });

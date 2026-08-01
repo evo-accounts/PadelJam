@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, palette } from '../../../theme';
 
 export default function CommunityQrModal() {
   const { t } = useT('community');
@@ -57,28 +58,28 @@ export default function CommunityQrModal() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   body: { padding: 24, gap: 16, alignItems: 'center' },
-  communityName: { fontSize: 18, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
-  title: { fontSize: 22, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
-  subtitle: { fontSize: 15, color: '#3A4A60', lineHeight: 21, textAlign: 'center' },
+  communityName: { fontSize: 18, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  title: { fontSize: 22, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  subtitle: { fontSize: 15, color: colors.mutedForeground, lineHeight: 21, textAlign: 'center' },
   qrWrapper: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
   },
-  link: { fontSize: 13, color: '#8A95A5', textAlign: 'center' },
+  link: { fontSize: 13, color: palette.slate[400], textAlign: 'center' },
   actions: { alignSelf: 'stretch', gap: 12, marginTop: 8 },
-  button: { backgroundColor: '#0B1F3A', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
   secondary: {
     borderWidth: 1,
-    borderColor: '#0B1F3A',
+    borderColor: colors.foreground,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  secondaryText: { color: '#0B1F3A', fontSize: 16, fontWeight: '600' },
+  secondaryText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
 });
