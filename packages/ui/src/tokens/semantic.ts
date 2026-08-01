@@ -49,11 +49,14 @@ export const light = {
    * So the fills keep their approved values and text gets its own step:
    * green-700 (4.77) and yellow-700 (4.80).
    *
-   * `info` is the same class of problem at 3.91 and has no `infoStrong` yet —
-   * it was left out deliberately rather than overlooked, pending a decision.
+   * `info` is included for completeness at sky-700 (5.67). Unlike the other two
+   * it fixes nothing today — no call site uses `info` as text, and mobile's
+   * `Text` has no `info` tone. It exists so the next person who needs it reaches
+   * for a token that already works, instead of the fill token that does not.
    */
   successStrong: p.green[700],
   warningStrong: p.yellow[700],
+  infoStrong: p.sky[700],
   border: p.slate[100],
   input: p.slate[100],
   ring: p.slate[400],
@@ -143,6 +146,7 @@ export const dark = {
   // Mirrored: on a dark page the legible step is a LIGHT one, not a dark one.
   successStrong: p.green[300],
   warningStrong: p.yellow[300],
+  infoStrong: p.sky[300],
   border: p.purple[700],
   input: 'rgba(255, 255, 255, 0.15)',
   ring: p.slate[500],
