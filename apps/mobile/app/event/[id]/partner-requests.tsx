@@ -20,6 +20,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, palette } from '../../../theme';
 
 type Runner = (fn: () => Promise<unknown>) => void;
 
@@ -58,7 +59,7 @@ export default function PartnerRequestsScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </SafeAreaView>
     );
   }
@@ -237,7 +238,7 @@ function CandidateList({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
   topBar: {
     flexDirection: 'row',
@@ -245,38 +246,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
   },
-  back: { fontSize: 32, color: '#0B1F3A', lineHeight: 32 },
-  topTitle: { fontSize: 17, fontWeight: '700', color: '#0B1F3A' },
+  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
+  topTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground },
   topSpacer: { width: 24 },
   content: { paddingBottom: 32, paddingHorizontal: 16, paddingTop: 8 },
 
   // No-access
   noAccess: { paddingHorizontal: 32, alignItems: 'center', gap: 12 },
-  noAccessTitle: { fontSize: 20, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
-  noAccessBody: { fontSize: 15, color: '#6B7685', textAlign: 'center' },
+  noAccessTitle: { fontSize: 20, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  noAccessBody: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
 
   // Sections
   section: { paddingTop: 20, gap: 10 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8A95A5',
+    color: palette.slate[400],
     textTransform: 'uppercase',
     marginBottom: 2,
   },
 
   // Incoming card
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     padding: 14,
     gap: 12,
   },
-  cardText: { fontSize: 15, color: '#0B1F3A', fontWeight: '500' },
+  cardText: { fontSize: 15, color: colors.foreground, fontWeight: '500' },
   actionRow: { flexDirection: 'row', gap: 12 },
 
   // Generic rows
@@ -284,19 +285,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 12,
   },
-  rowName: { flex: 1, fontSize: 15, color: '#0B1F3A', fontWeight: '500' },
-  pendingLabel: { fontSize: 14, color: '#6B7685', fontWeight: '600' },
+  rowName: { flex: 1, fontSize: 15, color: colors.foreground, fontWeight: '500' },
+  pendingLabel: { fontSize: 14, color: colors.mutedForeground, fontWeight: '600' },
 
-  emptyText: { fontSize: 15, color: '#6B7685', textAlign: 'center', marginTop: 32 },
-  error: { fontSize: 14, fontWeight: '600', color: '#D7263D', marginTop: 12, textAlign: 'center' },
+  emptyText: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', marginTop: 32 },
+  error: { fontSize: 14, fontWeight: '600', color: colors.destructive, marginTop: 12, textAlign: 'center' },
 
   // Buttons
   btn: {
@@ -308,8 +309,8 @@ const styles = StyleSheet.create({
   },
   btnFlex: { flex: 1 },
   btnSmall: { minHeight: 40, paddingHorizontal: 16 },
-  primaryBtn: { backgroundColor: '#0B7BFF' },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  secondaryBtn: { backgroundColor: '#F0F3F8' },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
+  primaryBtn: { backgroundColor: colors.primary },
+  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
+  secondaryBtn: { backgroundColor: colors.muted },
+  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
 });

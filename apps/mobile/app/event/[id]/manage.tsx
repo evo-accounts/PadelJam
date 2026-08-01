@@ -32,6 +32,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamManage } from '@/components/event/TeamManage';
+import { colors, palette } from '../../../theme';
 
 /** Display name for a participant row: profile name, then guest name, then dash. */
 function rowName(p: { profiles?: { full_name: string | null } | null; guest_name: string | null }): string {
@@ -67,7 +68,7 @@ export default function EventManageScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </SafeAreaView>
     );
   }
@@ -486,12 +487,12 @@ export default function EventManageScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
 
   // Guard
   guard: { paddingHorizontal: 32, alignItems: 'center', gap: 16 },
-  guardTitle: { fontSize: 18, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
+  guardTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
 
   // Top bar
   topBar: {
@@ -499,16 +500,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
   },
-  back: { fontSize: 32, color: '#0B1F3A', lineHeight: 32, width: 32 },
-  topTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
+  back: { fontSize: 32, color: colors.foreground, lineHeight: 32, width: 32 },
+  topTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
   topSpacer: { width: 32 },
   content: { paddingBottom: 40 },
 
   // Stats
-  stats: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 16, gap: 4 },
-  statLine: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
+  stats: { backgroundColor: colors.card, paddingHorizontal: 16, paddingVertical: 16, gap: 4 },
+  statLine: { fontSize: 16, fontWeight: '600', color: colors.foreground },
 
   // Sections
   section: { paddingHorizontal: 16, paddingTop: 20 },
@@ -521,41 +522,41 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8A95A5',
+    color: palette.slate[400],
     textTransform: 'uppercase',
     marginBottom: 8,
   },
-  linkAction: { fontSize: 14, fontWeight: '700', color: '#0B7BFF', marginBottom: 8 },
-  empty: { fontSize: 15, color: '#6B7685' },
+  linkAction: { fontSize: 14, fontWeight: '700', color: colors.primary, marginBottom: 8 },
+  empty: { fontSize: 15, color: colors.mutedForeground },
 
   // Input
   input: {
     minHeight: 48,
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     paddingHorizontal: 14,
     fontSize: 16,
-    color: '#0B1F3A',
+    color: colors.foreground,
     marginBottom: 12,
   },
 
   // Gender selector
   genderRow: { marginBottom: 12, gap: 8 },
-  genderLabel: { fontSize: 13, fontWeight: '600', color: '#6B7685' },
+  genderLabel: { fontSize: 13, fontWeight: '600', color: colors.mutedForeground },
   genderOptions: { flexDirection: 'row', gap: 8 },
   genderPill: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
   },
-  genderPillActive: { backgroundColor: '#0B7BFF', borderColor: '#0B7BFF' },
-  genderPillText: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
-  genderPillTextActive: { color: '#fff' },
+  genderPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  genderPillText: { fontSize: 14, fontWeight: '600', color: colors.foreground },
+  genderPillTextActive: { color: colors.card },
 
   // Roster rows
   row: {
@@ -568,28 +569,28 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  rowName: { flex: 1, fontSize: 15, color: '#0B1F3A', fontWeight: '500' },
+  avatarInitial: { color: colors.card, fontSize: 13, fontWeight: '700' },
+  rowName: { flex: 1, fontSize: 15, color: colors.foreground, fontWeight: '500' },
   rowActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 
   // Paid pill
   pill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-  pillPaid: { backgroundColor: '#E3F5EA' },
-  pillUnpaid: { backgroundColor: '#FCEBEC' },
+  pillPaid: { backgroundColor: palette.green[100] },
+  pillUnpaid: { backgroundColor: palette.red[100] },
   pillText: { fontSize: 12, fontWeight: '700' },
-  pillTextPaid: { color: '#1A7F4B' },
-  pillTextUnpaid: { color: '#D7263D' },
+  pillTextPaid: { color: colors.success },
+  pillTextUnpaid: { color: colors.destructive },
 
   // Small action buttons
   smallBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8 },
-  confirmBtn: { backgroundColor: '#0B7BFF' },
-  confirmLabel: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  removeBtn: { backgroundColor: '#F0F3F8' },
-  removeLabel: { fontSize: 13, fontWeight: '600', color: '#D7263D' },
+  confirmBtn: { backgroundColor: colors.primary },
+  confirmLabel: { fontSize: 13, fontWeight: '700', color: colors.card },
+  removeBtn: { backgroundColor: colors.muted },
+  removeLabel: { fontSize: 13, fontWeight: '600', color: colors.destructive },
 
   // Buttons
   btn: {
@@ -600,10 +601,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtn: { backgroundColor: '#0B7BFF' },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  secondaryBtn: { backgroundColor: '#F0F3F8' },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
-  cancelBtn: { backgroundColor: '#FCEBEC' },
-  cancelLabel: { fontSize: 16, fontWeight: '700', color: '#D7263D' },
+  primaryBtn: { backgroundColor: colors.primary },
+  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
+  secondaryBtn: { backgroundColor: colors.muted },
+  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
+  cancelBtn: { backgroundColor: palette.red[100] },
+  cancelLabel: { fontSize: 16, fontWeight: '700', color: colors.destructive },
 });

@@ -30,6 +30,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, palette } from '../../../theme';
 
 /** Capitalize the first character of a raw enum value (rest left untouched). */
 function cap(value: string): string {
@@ -105,7 +106,7 @@ export default function EventDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </SafeAreaView>
     );
   }
@@ -263,7 +264,7 @@ export default function EventDetailScreen() {
         onPress={onMessageOrganizer}
       >
         {busy ? (
-          <ActivityIndicator color="#0B1F3A" />
+          <ActivityIndicator color={colors.foreground} />
         ) : (
           <Text style={styles.secondaryLabel}>{t('messageOrganizerCta')}</Text>
         )}
@@ -278,7 +279,7 @@ export default function EventDetailScreen() {
         onPress={onLeave}
       >
         {busy ? (
-          <ActivityIndicator color="#0B1F3A" />
+          <ActivityIndicator color={colors.foreground} />
         ) : (
           <Text style={styles.secondaryLabel}>{t('leaveCta')}</Text>
         )}
@@ -334,7 +335,7 @@ export default function EventDetailScreen() {
           }
         >
           {busy ? (
-            <ActivityIndicator color="#0B1F3A" />
+            <ActivityIndicator color={colors.foreground} />
           ) : (
             <Text style={styles.secondaryLabel}>{t('joinAsPlayerCta')}</Text>
           )}
@@ -350,7 +351,7 @@ export default function EventDetailScreen() {
             onPress={onLeave}
           >
             {busy ? (
-              <ActivityIndicator color="#0B1F3A" />
+              <ActivityIndicator color={colors.foreground} />
             ) : (
               <Text style={styles.secondaryLabel}>{t('leaveAsPlayerCta')}</Text>
             )}
@@ -378,7 +379,7 @@ export default function EventDetailScreen() {
           onPress={onStart}
         >
           {busy ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.card} />
           ) : (
             <Text style={styles.primaryLabel}>{t('startCta')}</Text>
           )}
@@ -407,7 +408,7 @@ export default function EventDetailScreen() {
               onPress={onLeaveWaitlist}
             >
               {busy ? (
-                <ActivityIndicator color="#0B1F3A" />
+                <ActivityIndicator color={colors.foreground} />
               ) : (
                 <Text style={styles.secondaryLabel}>{t('leaveWaitlistCta')}</Text>
               )}
@@ -452,7 +453,7 @@ export default function EventDetailScreen() {
               onPress={onDecline}
             >
               {busy ? (
-                <ActivityIndicator color="#0B1F3A" />
+                <ActivityIndicator color={colors.foreground} />
               ) : (
                 <Text style={styles.secondaryLabel}>{t('declineCta')}</Text>
               )}
@@ -464,7 +465,7 @@ export default function EventDetailScreen() {
               onPress={onAccept}
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.card} />
               ) : (
                 <Text style={styles.primaryLabel}>{t('acceptCta')}</Text>
               )}
@@ -502,7 +503,7 @@ export default function EventDetailScreen() {
             onPress={onJoin}
           >
             {busy ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.card} />
             ) : (
               <Text style={styles.primaryLabel}>{joinLabel}</Text>
             )}
@@ -652,12 +653,12 @@ export default function EventDetailScreen() {
               onPress={openEventChat}
               disabled={ensureChannel.isPending}
               accessibilityRole="button"
-              style={{ paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#0B7BFF', borderRadius: 12, alignItems: 'center', marginTop: 8 }}
+              style={{ paddingVertical: 12, paddingHorizontal: 16, backgroundColor: colors.primary, borderRadius: 12, alignItems: 'center', marginTop: 8 }}
             >
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{t('openChat', { ns: 'chat' })}</Text>
+              <Text style={{ color: colors.card, fontWeight: '700', fontSize: 15 }}>{t('openChat', { ns: 'chat' })}</Text>
             </Pressable>
             {ensureChannel.isError ? (
-              <Text style={{ color: '#D7263D', fontSize: 13, marginTop: 6 }}>{t('chatUnavailable', { ns: 'chat' })}</Text>
+              <Text style={{ color: colors.destructive, fontSize: 13, marginTop: 6 }}>{t('chatUnavailable', { ns: 'chat' })}</Text>
             ) : null}
           </View>
         ) : null}
@@ -675,7 +676,7 @@ export default function EventDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
   topBar: {
     flexDirection: 'row',
@@ -683,48 +684,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
   },
-  back: { fontSize: 32, color: '#0B1F3A', lineHeight: 32 },
+  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
   content: { paddingBottom: 32 },
 
   // No-access
   noAccess: { paddingHorizontal: 32, alignItems: 'center', gap: 12 },
-  noAccessTitle: { fontSize: 20, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
-  noAccessBody: { fontSize: 15, color: '#6B7685', textAlign: 'center' },
+  noAccessTitle: { fontSize: 20, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  noAccessBody: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
 
   // Hero
-  hero: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 20 },
-  thumb: { height: 140, borderRadius: 14, backgroundColor: '#F0F3F8', marginBottom: 16 },
+  hero: { backgroundColor: colors.card, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 20 },
+  thumb: { height: 140, borderRadius: 14, backgroundColor: colors.muted, marginBottom: 16 },
   heroHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  name: { flex: 1, fontSize: 24, fontWeight: '700', color: '#0B1F3A' },
+  name: { flex: 1, fontSize: 24, fontWeight: '700', color: colors.foreground },
 
   // Badge (mirrors EventCard palette)
   badge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontSize: 11, fontWeight: '700' },
-  badgeScheduled: { backgroundColor: '#E6F0FF' },
-  badgeTextScheduled: { color: '#0B7BFF' },
-  badgeLive: { backgroundColor: '#E3F5EA' },
-  badgeTextLive: { color: '#1A7F4B' },
-  badgeDone: { backgroundColor: '#F0F3F8' },
-  badgeTextDone: { color: '#6B7685' },
+  badgeScheduled: { backgroundColor: palette.purple[100] },
+  badgeTextScheduled: { color: colors.primary },
+  badgeLive: { backgroundColor: palette.green[100] },
+  badgeTextLive: { color: colors.success },
+  badgeDone: { backgroundColor: colors.muted },
+  badgeTextDone: { color: colors.mutedForeground },
 
   // Recurring (5G-6)
-  recurrentTag: { backgroundColor: '#EDE7FF', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  recurrentTagText: { fontSize: 11, fontWeight: '700', color: '#6B4EFF' },
-  nextCard: { marginTop: 12, backgroundColor: '#fff', borderRadius: 12, padding: 12 },
+  recurrentTag: { backgroundColor: palette.purple[100], borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  recurrentTagText: { fontSize: 11, fontWeight: '700', color: colors.primary },
+  nextCard: { marginTop: 12, backgroundColor: colors.card, borderRadius: 12, padding: 12 },
 
   // Sections
   section: { paddingHorizontal: 16, paddingTop: 20 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8A95A5',
+    color: palette.slate[400],
     textTransform: 'uppercase',
     marginBottom: 8,
   },
-  body: { fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
-  bodyMuted: { fontSize: 14, color: '#6B7685', marginTop: 2 },
+  body: { fontSize: 16, color: colors.foreground, fontWeight: '500' },
+  bodyMuted: { fontSize: 14, color: colors.mutedForeground, marginTop: 2 },
 
   // Players
   playerList: { marginTop: 12, gap: 10 },
@@ -733,12 +734,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  playerName: { fontSize: 15, color: '#0B1F3A', fontWeight: '500' },
+  avatarInitial: { color: colors.card, fontSize: 13, fontWeight: '700' },
+  playerName: { fontSize: 15, color: colors.foreground, fontWeight: '500' },
 
   // Details
   detailRow: {
@@ -747,8 +748,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
   },
-  detailLabel: { fontSize: 15, color: '#6B7685' },
-  detailValue: { fontSize: 15, color: '#0B1F3A', fontWeight: '600', flexShrink: 1, textAlign: 'right' },
+  detailLabel: { fontSize: 15, color: colors.mutedForeground },
+  detailValue: { fontSize: 15, color: colors.foreground, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
 
   // CTA bar
   ctaBar: {
@@ -756,22 +757,22 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 24,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E6EAF0',
-    backgroundColor: '#fff',
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
   },
   ctaCol: { gap: 10 },
   ctaRow: { flexDirection: 'row', gap: 12 },
-  ctaBadge: { fontSize: 15, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
-  countdown: { fontSize: 14, fontWeight: '600', color: '#0B7BFF', textAlign: 'center' },
+  ctaBadge: { fontSize: 15, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  countdown: { fontSize: 14, fontWeight: '600', color: colors.primary, textAlign: 'center' },
   deadlineNotice: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7685',
+    color: colors.mutedForeground,
     textAlign: 'center',
     paddingVertical: 8,
   },
-  leaveHint: { fontSize: 13, color: '#6B7685', textAlign: 'center' },
-  error: { fontSize: 14, fontWeight: '600', color: '#D7263D', marginBottom: 10, textAlign: 'center' },
+  leaveHint: { fontSize: 13, color: colors.mutedForeground, textAlign: 'center' },
+  error: { fontSize: 14, fontWeight: '600', color: colors.destructive, marginBottom: 10, textAlign: 'center' },
 
   // Buttons
   btn: {
@@ -782,11 +783,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnFlex: { flex: 1 },
-  primaryBtn: { backgroundColor: '#0B7BFF' },
-  startBtn: { backgroundColor: '#1A7F4B' },
+  primaryBtn: { backgroundColor: colors.primary },
+  startBtn: { backgroundColor: colors.success },
   btnDisabled: { opacity: 0.5 },
-  startHint: { fontSize: 13, color: '#6B7685', textAlign: 'center' },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  secondaryBtn: { backgroundColor: '#F0F3F8' },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
+  startHint: { fontSize: 13, color: colors.mutedForeground, textAlign: 'center' },
+  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
+  secondaryBtn: { backgroundColor: colors.muted },
+  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
 });

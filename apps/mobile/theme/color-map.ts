@@ -23,7 +23,7 @@
  * Not machinery: this is a reviewed decision table that a codemod (or a person)
  * reads. Every entry is a judgement about what a colour MEANT.
  */
-import { colors, palette } from './index';
+import { colors, palette } from './index.ts';
 
 /** A token reference, as it should appear at the call site. */
 type Token = { readonly token: string; readonly value: string; readonly note?: string };
@@ -42,6 +42,7 @@ export const textColors: Record<string, Token> = {
   '#fff': t('colors.card', colors.card, 'text on a dark fill (98)'),
   '#ffffff': t('colors.card', colors.card, 'text on a dark fill'),
   '#0b7bff': t('colors.primary', colors.primary, 'link / accent text (50)'),
+  '#6b4eff': t('colors.primary', colors.primary, 'second accent blue-purple'),
   '#d7263d': t('colors.destructive', colors.destructive, 'error text (28)'),
   '#c0392b': t('colors.destructive', colors.destructive, 'second error red (19)'),
   '#444': t('colors.mutedForeground', colors.mutedForeground, 'grey text (12)'),
@@ -74,6 +75,14 @@ export const backgroundColors: Record<string, Token> = {
   '#eaf3ff': t('palette.purple[100]', palette.purple[100]),
   '#e3f5ea': t('palette.green[100]', palette.green[100], 'success tint'),
   '#d7263d': t('colors.destructive', colors.destructive),
+
+  // Added while migrating app/event/[id]/**. Each was a one- or two-use tint
+  // that no existing entry covered; they are listed rather than folded into the
+  // nearest neighbour so the judgement stays visible.
+  '#fcebec': t('palette.red[100]', palette.red[100], 'error banner tint'),
+  '#ede7ff': t('palette.purple[100]', palette.purple[100], 'accent tint, already purple'),
+  '#eef1f6': t('colors.accent', colors.accent, 'subtle surface — also a border elsewhere'),
+  '#1a7f4b': t('colors.success', colors.success, 'solid success FILL, not the text green'),
 };
 
 /**
@@ -103,12 +112,20 @@ export const borderColors: Record<string, Token> = {
 export const overlays: Record<string, Token> = {
   'rgba(0,0,0,0.35)': t('(unmapped)', 'rgba(0,0,0,0.35)', 'modal scrim — needs an `overlay` token in packages/ui'),
   'rgba(11,31,58,0.55)': t('(unmapped)', 'rgba(11,31,58,0.55)', 'navy scrim — re-express against the new palette'),
+
+  // A shadow is not a surface: `#000` here means "cast a shadow", and every
+  // shadow in the app should agree on its colour. `foreground` is what Card
+  // already uses, so shadows converge on it rather than on pure black.
+  '#000': t('colors.foreground', colors.foreground, 'shadow colour'),
+  '#000000': t('colors.foreground', colors.foreground, 'shadow colour'),
 };
 
 /** Lookup used by a codemod: property first, then hex. */
 export const colorMap = {
   color: textColors,
   tintColor: textColors,
+  // Placeholder text is text: it takes the same ramp, just a lighter step.
+  placeholderTextColor: textColors,
   backgroundColor: backgroundColors,
   borderColor: borderColors,
   borderBottomColor: borderColors,

@@ -18,16 +18,16 @@
  * allowImportingTsExtensions, so `import '@padel/ui'` failed with TS5097 until
  * this boundary existed. Import it by path if you need it.
  */
-export { palette, type Palette, type RampName } from './tokens/palette';
+export { palette, type Palette, type RampName } from './tokens/palette.ts';
 export {
   semantic,
   light,
   dark,
   type SemanticName,
   type SemanticScheme,
-} from './tokens/semantic';
-export { radius, RADIUS_BASE_PX, type Radius, type RadiusName } from './tokens/radius';
+} from './tokens/semantic.ts';
+export { radius, RADIUS_BASE_PX, type Radius, type RadiusName } from './tokens/radius.ts';
 export {
   text, space, weight, SPACE_STEP_PX,
   type Text, type TextName, type Space, type SpaceStep, type Weight, type WeightName,
-} from './tokens/scale';
+} from './tokens/scale.ts';

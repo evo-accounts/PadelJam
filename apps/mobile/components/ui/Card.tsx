@@ -1,12 +1,17 @@
 /**
  * Card — a bordered surface. `card:` appears 21 times plus 31 `card*` keys.
  *
- * NOTE FOR THE SCREENSHOT REVIEW: this is where the border change is most
- * visible. The canonical `--border` is markedly lighter than the hairline
- * mobile uses today, so card edges will look flatter than they do now. That
- * follows from the strict-canon decision — if it reads as washed out on device,
- * this is the component to look at first. See `apps/mobile/theme/color-map.ts`
- * for the before/after values.
+ * THE FAINT BORDER IS INTENTIONAL — REVIEWED AND ACCEPTED, 2026-08-01.
+ *
+ * The canonical `--border` is markedly lighter than the hairline mobile used
+ * before, so a bordered card sits very close to its background and is hard to
+ * tell from the elevated variant. That was flagged at the design-system
+ * screenshot gate, with a proposal to darken the token by one step, and the
+ * decision was to keep strict canon: both platforms use the same value, no
+ * per-platform exceptions.
+ *
+ * So this is not a bug to fix in passing. If it needs revisiting, the change
+ * belongs in `packages/ui` where web gets it too — not a local override here.
  */
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
