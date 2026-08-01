@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { DateTimePicker } from '../DateTimePicker';
 import type { EventDraft, WizardStepProps } from '../draft';
 import { Stepper } from '../Stepper';
+import { colors, palette } from '../../../../theme';
 
 const LEAD_OPTIONS = [3, 5, 7] as const;
 type LeadDays = (typeof LEAD_OPTIONS)[number];
@@ -113,10 +114,10 @@ export function Step7Schedule({ draft, patch }: WizardStepProps) {
 
 const styles = StyleSheet.create({
   container: { gap: 20 },
-  title: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
+  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   section: { gap: 12 },
-  label: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
-  hint: { fontSize: 13, color: '#6B7685', marginTop: 2 },
+  label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
+  hint: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   switchText: { flex: 1 },
   chipRow: { flexDirection: 'row', gap: 10 },
@@ -126,11 +127,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E6EAF0',
-    backgroundColor: '#fff',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
   },
-  chipSelected: { borderColor: '#0B7BFF', backgroundColor: '#EAF3FF' },
-  chipText: { fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
-  chipTextSelected: { color: '#0B7BFF' },
+  chipSelected: { borderColor: colors.primary, backgroundColor: palette.purple[100] },
+  chipText: { fontSize: 16, fontWeight: '700', color: colors.foreground },
+  chipTextSelected: { color: colors.primary },
 });

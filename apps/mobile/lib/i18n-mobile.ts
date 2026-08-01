@@ -1343,7 +1343,7 @@ const mobileEvent = {
     not_cancellable: 'Este evento já não pode ser cancelado.',
     invalid_scope: 'Algo correu mal. Tenta novamente.',
 
-    step: 'Passo {{current}} de {{total}}',
+    stepProgress: 'Passo {{current}} de {{total}}',
     discardTitle: 'Descartar evento?',
     discardBody: 'Todas as tuas escolhas serão perdidas e voltarás ao ecrã anterior.',
     discardConfirm: 'Descartar',
@@ -1778,7 +1778,7 @@ const mobileEvent = {
     not_cancellable: 'Este evento não pode mais ser cancelado.',
     invalid_scope: 'Algo deu errado. Tente novamente.',
 
-    step: 'Etapa {{current}} de {{total}}',
+    stepProgress: 'Etapa {{current}} de {{total}}',
     discardTitle: 'Descartar evento?',
     discardBody: 'Todas as suas escolhas serão perdidas e você voltará à tela anterior.',
     discardConfirm: 'Descartar',
@@ -2213,7 +2213,7 @@ const mobileEvent = {
     not_cancellable: 'This event can no longer be cancelled.',
     invalid_scope: 'Something went wrong. Please try again.',
 
-    step: 'Step {{current}} of {{total}}',
+    stepProgress: 'Step {{current}} of {{total}}',
     discardTitle: 'Discard event?',
     discardBody: 'All your choices will be lost and you\'ll return to the previous screen.',
     discardConfirm: 'Discard',

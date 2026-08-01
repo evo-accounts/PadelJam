@@ -39,6 +39,7 @@ export const textColors: Record<string, Token> = {
   '#3a4a60': t('colors.mutedForeground', colors.mutedForeground, 'secondary text (33)'),
   '#6b7685': t('colors.mutedForeground', colors.mutedForeground, 'muted text (91)'),
   '#8a95a5': t('palette.slate[400]', palette.slate[400], 'tertiary text (33)'),
+  '#9aa4b2': t('palette.slate[400]', palette.slate[400], 'placeholder text (10, wizard)'),
   '#fff': t('colors.card', colors.card, 'text on a dark fill (98)'),
   '#ffffff': t('colors.card', colors.card, 'text on a dark fill'),
   '#0b7bff': t('colors.primary', colors.primary, 'link / accent text (50)'),
@@ -75,6 +76,9 @@ export const backgroundColors: Record<string, Token> = {
   '#eaf3ff': t('palette.purple[100]', palette.purple[100]),
   '#e3f5ea': t('palette.green[100]', palette.green[100], 'success tint'),
   '#d7263d': t('colors.destructive', colors.destructive),
+  // The step-indicator's inactive dot. slate-300, NOT `muted` (slate-200):
+  // muted is a surface tint and the dot would disappear against the card.
+  '#d5dbe3': t('palette.slate[300]', palette.slate[300], 'inactive step dot'),
 
   // Added while migrating app/event/[id]/**. Each was a one- or two-use tint
   // that no existing entry covered; they are listed rather than folded into the
@@ -98,6 +102,7 @@ export const borderColors: Record<string, Token> = {
   '#edf1f6': t('colors.border', colors.border),
   '#e2e8f0': t('colors.muted', colors.muted, 'already a Tailwind slate-200'),
   '#d7dee8': t('colors.border', colors.border),
+  '#d7dee6': t('colors.border', colors.border, 'one digit from the line above — same border'),
   '#ccc': t('colors.border', colors.border, 'grey hairline (28)'),
   '#0b7bff': t('colors.primary', colors.primary, 'selected outline (13)'),
   '#0b1f3a': t('colors.foreground', colors.foreground, 'strong outline (8)'),

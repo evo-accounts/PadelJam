@@ -6,6 +6,7 @@ import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { WizardStepProps } from '../draft';
 import { SelectableCard } from '../SelectableCard';
 import { Stepper } from '../Stepper';
+import { colors, palette } from '../../../../theme';
 
 const FEE_METHOD_KEYS: Record<(typeof ENTRANCE_FEE_METHODS)[number], string> = {
   cash: 'feeCashLabel',
@@ -96,7 +97,7 @@ export function Step8Preferences({ draft, patch }: WizardStepProps) {
                 }}
                 keyboardType="decimal-pad"
                 placeholder={t('feeAmountLabel')}
-                placeholderTextColor="#9AA4B2"
+                placeholderTextColor={palette.slate[400]}
                 accessibilityLabel={t('feeAmountLabel')}
               />
             </View>
@@ -128,7 +129,7 @@ export function Step8Preferences({ draft, patch }: WizardStepProps) {
                   }
                   keyboardType="phone-pad"
                   placeholder={t('feeMbaNumberLabel')}
-                  placeholderTextColor="#9AA4B2"
+                  placeholderTextColor={palette.slate[400]}
                   accessibilityLabel={t('feeMbaNumberLabel')}
                 />
               </View>
@@ -166,22 +167,22 @@ export function Step8Preferences({ draft, patch }: WizardStepProps) {
 
 const styles = StyleSheet.create({
   container: { gap: 20 },
-  title: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
+  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   section: { gap: 12 },
   field: { gap: 8 },
   list: { gap: 10 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  label: { fontSize: 16, fontWeight: '600', color: '#0B1F3A', flex: 1 },
-  fieldLabel: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
-  hint: { fontSize: 13, color: '#6B7685' },
+  label: { fontSize: 16, fontWeight: '600', color: colors.foreground, flex: 1 },
+  fieldLabel: { fontSize: 14, fontWeight: '600', color: colors.foreground },
+  hint: { fontSize: 13, color: colors.mutedForeground },
   input: {
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#0B1F3A',
-    backgroundColor: '#fff',
+    color: colors.foreground,
+    backgroundColor: colors.card,
   },
 });

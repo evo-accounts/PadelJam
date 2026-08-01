@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { WizardStepProps } from '../draft';
 import { ScoringPanels } from '../ScoringPanels';
 import { SelectableCard } from '../SelectableCard';
+import { colors } from '../../../../theme';
 
 export function Step4Scoring({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
@@ -19,7 +20,7 @@ export function Step4Scoring({ draft, patch }: WizardStepProps) {
             <SelectableCard
               key={value}
               title={t(`${cap}Label`)}
-              description={t(`${cap}Desc`)}
+              subtitle={t(`${cap}Desc`)}
               selected={draft.scoringMode === value}
               onPress={() =>
                 patch({
@@ -42,6 +43,6 @@ export function Step4Scoring({ draft, patch }: WizardStepProps) {
 
 const styles = StyleSheet.create({
   container: { gap: 12 },
-  title: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
+  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   list: { gap: 10 },
 });

@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors, palette } from '../../../theme';
 
 const MINUTE_OPTIONS = [0, 15, 30, 45] as const;
 const DAY_COUNT = 30;
@@ -181,37 +182,37 @@ export function DateTimePicker({
 
 const styles = StyleSheet.create({
   container: { gap: 12 },
-  label: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
+  label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   dayRow: { gap: 8, paddingVertical: 2 },
   dayChip: {
     width: 56,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E6EAF0',
-    backgroundColor: '#fff',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
     gap: 2,
   },
-  dayChipSelected: { borderColor: '#0B7BFF', backgroundColor: '#EAF3FF' },
-  dayWeekday: { fontSize: 12, fontWeight: '600', color: '#6B7685' },
-  dayNumber: { fontSize: 18, fontWeight: '700', color: '#0B1F3A' },
-  dayTextSelected: { color: '#0B7BFF' },
+  dayChipSelected: { borderColor: colors.primary, backgroundColor: palette.purple[100] },
+  dayWeekday: { fontSize: 12, fontWeight: '600', color: colors.mutedForeground },
+  dayNumber: { fontSize: 18, fontWeight: '700', color: colors.foreground },
+  dayTextSelected: { color: colors.primary },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   hourButton: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F0F3F8',
+    backgroundColor: colors.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   hourButtonDisabled: { opacity: 0.4 },
-  hourButtonLabel: { fontSize: 24, fontWeight: '700', color: '#0B1F3A' },
+  hourButtonLabel: { fontSize: 24, fontWeight: '700', color: colors.foreground },
   hourValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#0B1F3A',
+    color: colors.foreground,
     minWidth: 36,
     textAlign: 'center',
   },
@@ -222,11 +223,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E6EAF0',
-    backgroundColor: '#fff',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
   },
-  minuteChipSelected: { borderColor: '#0B7BFF', backgroundColor: '#EAF3FF' },
-  minuteText: { fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  minuteTextSelected: { color: '#0B7BFF' },
+  minuteChipSelected: { borderColor: colors.primary, backgroundColor: palette.purple[100] },
+  minuteText: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  minuteTextSelected: { color: colors.primary },
 });

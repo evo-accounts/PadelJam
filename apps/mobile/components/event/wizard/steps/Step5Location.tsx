@@ -8,6 +8,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { geocodeAddress } from '@/lib/geocode';
 
 import type { WizardStepProps } from '../draft';
+import { colors, palette } from '../../../../theme';
 
 export function Step5Location({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
@@ -94,12 +95,12 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         value={venueQuery}
         onChangeText={setVenueQuery}
         placeholder={t('searchVenuePlaceholder')}
-        placeholderTextColor="#9AA4B2"
+        placeholderTextColor={palette.slate[400]}
         autoCapitalize="none"
       />
       {venueQuery.trim().length > 0 ? (
         venues.isLoading ? (
-          <ActivityIndicator color="#0B1F3A" style={{ marginTop: 8 }} />
+          <ActivityIndicator color={colors.foreground} style={{ marginTop: 8 }} />
         ) : results.length === 0 ? (
           <Text style={styles.empty}>{t('venueResultsEmpty')}</Text>
         ) : (
@@ -124,7 +125,7 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         value={draft.manualLocationName ?? ''}
         onChangeText={setManualName}
         placeholder={t('locationNamePlaceholder')}
-        placeholderTextColor="#9AA4B2"
+        placeholderTextColor={palette.slate[400]}
       />
       <Text style={styles.label}>{t('locationAddressLabel')}</Text>
       <TextInput
@@ -132,7 +133,7 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         value={draft.manualLocationAddress ?? ''}
         onChangeText={setManualAddress}
         placeholder={t('locationAddressPlaceholder')}
-        placeholderTextColor="#9AA4B2"
+        placeholderTextColor={palette.slate[400]}
       />
 
       <Pressable
@@ -156,16 +157,16 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
 
 const styles = StyleSheet.create({
   container: { gap: 8 },
-  title: { fontSize: 20, fontWeight: '800', color: '#0B1F3A', marginBottom: 4 },
-  label: { fontSize: 13, fontWeight: '600', color: '#0B1F3A', marginTop: 8 },
-  input: { borderWidth: 1, borderColor: '#D7DEE6', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff' },
-  empty: { color: '#6B7685', fontSize: 13, paddingVertical: 8 },
-  denied: { color: '#D7263D', fontSize: 12, marginTop: 6, textAlign: 'center' },
-  venueRow: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginTop: 6, borderWidth: 1, borderColor: '#E2E8F0' },
-  venueRowOn: { borderColor: '#0B7BFF', backgroundColor: '#EAF2FF' },
-  venueName: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
-  or: { textAlign: 'center', color: '#6B7685', fontSize: 13, marginVertical: 12 },
-  locBtn: { backgroundColor: '#EAF2FF', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
-  locBtnText: { color: '#0B7BFF', fontWeight: '700', fontSize: 15 },
-  coords: { color: '#1F9D55', fontSize: 12, marginTop: 6, textAlign: 'center' },
+  title: { fontSize: 20, fontWeight: '800', color: colors.foreground, marginBottom: 4 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
+  empty: { color: colors.mutedForeground, fontSize: 13, paddingVertical: 8 },
+  denied: { color: colors.destructive, fontSize: 12, marginTop: 6, textAlign: 'center' },
+  venueRow: { backgroundColor: colors.card, borderRadius: 10, padding: 12, marginTop: 6, borderWidth: 1, borderColor: colors.muted },
+  venueRowOn: { borderColor: colors.primary, backgroundColor: palette.purple[100] },
+  venueName: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
+  or: { textAlign: 'center', color: colors.mutedForeground, fontSize: 13, marginVertical: 12 },
+  locBtn: { backgroundColor: palette.purple[100], borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
+  locBtnText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
+  coords: { color: colors.success, fontSize: 12, marginTop: 6, textAlign: 'center' },
 });
