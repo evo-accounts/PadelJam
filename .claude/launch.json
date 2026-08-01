@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-storybook",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        ".claude/worktrees/web-storybook/apps/web",
+        "storybook",
+        "--no-open"
+      ],
+      "port": 6006
+    }
+  ]
+}
