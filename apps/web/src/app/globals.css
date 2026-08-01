@@ -42,6 +42,7 @@
      body size (success 2.89, warning 2.05). See packages/ui semantic.ts. */
   --color-success-strong: var(--success-strong);
   --color-warning-strong: var(--warning-strong);
+  --color-info-strong: var(--info-strong);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

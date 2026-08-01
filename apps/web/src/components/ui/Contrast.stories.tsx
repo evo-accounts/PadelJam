@@ -96,9 +96,15 @@ function ContrastSheet() {
           bg={light.background}
         />
         <Row
-          label="text-info on background — same class of problem, NO infoStrong yet (deliberately, pending a decision)"
+          label="BEFORE — text-info (the fill token) used as text"
           sample={<p className="text-sm text-info">Six players confirmed</p>}
           fg={light.info}
+          bg={light.background}
+        />
+        <Row
+          label="AFTER — text-info-strong. Preventive: nothing uses info as text today, so this fixes no live screen — it exists so the next one starts correct."
+          sample={<p className="text-sm text-info-strong">Six players confirmed</p>}
+          fg={light.infoStrong}
           bg={light.background}
         />
         <Row
