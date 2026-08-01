@@ -1,4 +1,11 @@
-import { light, radius as radiusScale, space as spaceScale, text as textScale } from '@padel/ui';
+import type { SemanticScheme } from '@padel/ui';
+import {
+  dark,
+  light,
+  radius as radiusScale,
+  space as spaceScale,
+  text as textScale,
+} from '@padel/ui';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 /**
@@ -38,7 +45,10 @@ function cssVar(name: string): string {
 
 const NAMES = Object.keys(light) as (keyof typeof light)[];
 
-function Swatch({ name }: { name: keyof typeof light }) {
+// `SemanticScheme` rather than `typeof light`: both schemes are `as const`, so
+// their values are literal types and `dark` is not assignable to `typeof light`.
+// The package exports the widened shape for exactly this reason.
+function Swatch({ name, scheme }: { name: keyof typeof light; scheme: SemanticScheme }) {
   const v = cssVar(name);
   return (
     <div className="flex flex-col gap-1">
@@ -53,9 +63,9 @@ function Swatch({ name }: { name: keyof typeof light }) {
             the block above is exactly the drift this page exists to reveal. */}
         <span
           className="inline-block size-3 rounded-sm border border-border"
-          style={{ background: light[name] }}
+          style={{ background: scheme[name] }}
         />
-        <code className="text-xs text-muted-foreground">{light[name]}</code>
+        <code className="text-xs text-muted-foreground">{scheme[name]}</code>
       </div>
     </div>
   );
@@ -70,9 +80,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function TokenSheet() {
+function TokenSheet({ mode = 'light' }: { mode?: 'light' | 'dark' }) {
+  const scheme = mode === 'dark' ? dark : light;
   return (
-    <div className="p-6">
+    // The `dark` class is what flips the CSS variables — the same switch the app
+    // would use. So the swatches above and below stay honest: the top half reads
+    // whatever `.dark` resolved, the bottom half reads the TS scheme by name.
+    <div className={`${mode === 'dark' ? 'dark ' : ''}bg-background p-6`}>
       <h1 className="mb-1 text-3xl font-bold text-foreground">Design tokens</h1>
       <p className="mb-8 text-sm text-muted-foreground">
         Generated from <code>packages/ui/src/tokens/*.ts</code>. Mobile reads the same
@@ -83,7 +97,7 @@ function TokenSheet() {
       <Section title="Colour">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
           {NAMES.map((n) => (
-            <Swatch key={n} name={n} />
+            <Swatch key={n} name={n} scheme={scheme} />
           ))}
         </div>
       </Section>
@@ -155,3 +169,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Tokens: Story = {};
+
+/**
+ * The dark scheme, repaired.
+ *
+ * Before this, `primary` was the SAME colour as `background` (contrast 1.00), so
+ * a primary button was invisible on the page — plus four more defects a WCAG
+ * pass turned up. Rendering both schemes side by side in the same place is what
+ * makes that checkable by eye rather than only by script.
+ */
+export const TokensDark: Story = {
+  args: { mode: 'dark' },
+};
