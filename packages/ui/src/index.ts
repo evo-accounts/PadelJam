@@ -19,4 +19,9 @@ export {
   type SemanticName,
   type SemanticScheme,
 } from './tokens/semantic.ts';
+export { radius, RADIUS_BASE_PX, type Radius, type RadiusName } from './tokens/radius.ts';
+export {
+  text, space, weight, SPACE_STEP_PX,
+  type Text, type TextName, type Space, type SpaceStep, type Weight, type WeightName,
+} from './tokens/scale.ts';
 export { renderCss, cssVarName } from './generate/css.ts';
