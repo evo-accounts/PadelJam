@@ -67,39 +67,58 @@ export const light = {
 } as const;
 
 /**
- * Dark mode — the "-dark" variants of the source collection.
+ * Dark mode — repaired from the "-dark" variants of the source collection.
  *
- * NOT SHIPPED. Nothing adds the `.dark` class today (no next-themes, no
- * ThemeProvider on web; mobile's inline styles bypass its navigation theme), so
- * this has never rendered.
+ * STILL NOT WIRED UP. Nothing adds the `.dark` class (no next-themes, no
+ * ThemeProvider on web; mobile's `theme` is light-only), so this does not render
+ * yet. It is now correct when something does.
  *
- * KNOWN DEFECT, carried over verbatim rather than silently "fixed": `background`
- * and `primary` are both purple-900. A primary button would be invisible on the
- * page background. Transcribing it faithfully keeps this step a pure refactor —
- * the generated CSS must match the file it replaces byte for byte. Fix it as its
- * own change, with a screenshot, when dark mode is actually adopted.
+ * The original was transcribed verbatim during the token migration, defects
+ * included, so that step could be a pure refactor. Those defects are fixed here,
+ * as their own change. A WCAG audit of every pair the token NAMES promise —
+ * each `xForeground` against its `x`, plus "can you see this element on the
+ * page at all" — found five, not the one that was known:
+ *
+ *   primary was purple-900, IDENTICAL to background   1.00  invisible button
+ *   destructive-foreground was white on red-400       2.77  fails AA
+ *   sidebar-primary-foreground was slate-900 on blue  2.66  fails AA
+ *   card was slate-900 on a purple-900 page           1.07  invisible card
+ *   secondary was green-900 on a purple-900 page      1.36  invisible button
+ *
+ * The repair follows one rule, the same one light already obeys: a FILL is
+ * light and carries dark text, or dark and carries light text — never the same
+ * lightness as the surface behind it. So the solid accents (primary, secondary,
+ * success) move to their 400 step with a 950 foreground, and the surfaces stay
+ * dark and keep light text.
+ *
+ * Every text pair now clears AA (4.5) and nothing is invisible. `card` on
+ * `background` is deliberately still subtle at 1.18 — dark-mode cards separate
+ * by their border, not by fill, and the border sits at 2.08 against it.
+ *
+ * LIGHT IS UNCHANGED. It ships, and its values are the agreed canon — including
+ * the deliberately faint border. Nothing here touches it.
  */
 export const dark = {
   background: p.purple[900],
   foreground: p.slate[50],
-  card: p.slate[900],
+  card: p.purple[800],
   cardForeground: p.slate[50],
   popover: p.black,
   popoverForeground: p.slate[50],
-  primary: p.purple[900], // see the defect note above
-  primaryForeground: p.purple[100],
-  secondary: p.green[900],
-  secondaryForeground: p.green[100],
+  primary: p.purple[400],
+  primaryForeground: p.purple[950],
+  secondary: p.green[400],
+  secondaryForeground: p.green[950],
   muted: p.slate[600],
   mutedForeground: p.slate[100],
   accent: p.slate[800],
   accentForeground: p.slate[50],
   destructive: p.red[400],
-  destructiveForeground: p.white,
+  destructiveForeground: p.red[950],
   info: p.sky[800],
   infoForeground: p.white,
-  success: p.green[600],
-  successForeground: p.white,
+  success: p.green[400],
+  successForeground: p.green[950],
   warning: p.yellow[600],
   warningForeground: p.black,
   border: p.purple[700],
@@ -116,7 +135,7 @@ export const dark = {
   sidebar: p.slate[900],
   sidebarForeground: p.slate[50],
   sidebarPrimary: p.blue[700],
-  sidebarPrimaryForeground: p.slate[900],
+  sidebarPrimaryForeground: p.slate[50],
   sidebarAccent: p.slate[800],
   sidebarAccentForeground: p.slate[50],
   sidebarBorder: 'rgba(255, 255, 255, 0.1)',
