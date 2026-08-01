@@ -6,6 +6,7 @@ import { useT } from '@padel/i18n';
 import { signOut, type TypedClient } from '@padel/auth';
 import { useUpdateProfile } from '@padel/api';
 import { supabase } from '@/lib/supabase/client';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -87,6 +88,13 @@ export default function SettingsPage() {
                 <SelectItem value="pt-BR">Português (BR)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <Separator />
+          {/* Appearance sits with language: both are how the app presents
+              itself, and neither touches account data. */}
+          <div className={rowClass}>
+            <span>{t('appearance')}</span>
+            <ThemeToggle />
           </div>
         </CardContent>
       </Card>
