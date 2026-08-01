@@ -26,39 +26,46 @@ config.resolver.unstable_enableSymlinks = true;
 const SINGLETONS = ['react', 'react-dom', 'react-native', '@tanstack/react-query', 'react-i18next', 'i18next'];
 const resolveSingleton = (name) => path.resolve(projectRoot, 'node_modules', name);
 
-const defaultResolveRequest = config.resolver.resolveRequest;
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // stream-chat-expo pulls in react-native native codegen internals that don't
-  // exist on web. Redirect them to a no-op stub so the web bundle doesn't fail.
-  if (platform === 'web' && moduleName.includes('codegenNativeComponent')) {
-    return { type: 'sourceFile', filePath: path.resolve(projectRoot, 'stubs/nativeComponent.web.js') };
-  }
+/**
+ * Install the singleton forcing on top of whatever resolver `cfg` already has,
+ * delegating to it for everything else.
+ *
+ * Written as a wrapper rather than an assignment because it has to be applied
+ * LAST — see the composition note below.
+ */
+function withSingletons(cfg) {
+  const inner = cfg.resolver.resolveRequest;
 
-  const singleton = SINGLETONS.find((m) => moduleName === m || moduleName.startsWith(m + '/'));
-  if (singleton) {
-    const rest = moduleName.slice(singleton.length); // '' or '/subpath'
-    return context.resolveRequest(context, resolveSingleton(singleton) + rest, platform);
-  }
-  return (defaultResolveRequest ?? context.resolveRequest)(context, moduleName, platform);
-};
+  cfg.resolver.resolveRequest = (context, moduleName, platform) => {
+    // stream-chat-expo pulls in react-native native codegen internals that don't
+    // exist on web. Redirect them to a no-op stub so the web bundle doesn't fail.
+    if (platform === 'web' && moduleName.includes('codegenNativeComponent')) {
+      return { type: 'sourceFile', filePath: path.resolve(projectRoot, 'stubs/nativeComponent.web.js') };
+    }
 
-// SPIKE: withStorybook REPLACES resolver.resolveRequest, which would drop the
-// singleton forcing above. Wrap it first, then re-apply ours on top of its.
-const sb = withStorybook(config, {
-  enabled: process.env.EXPO_PUBLIC_STORYBOOK === '1',
-  configPath: path.resolve(projectRoot, '.rnstorybook'),
-});
-const sbResolveRequest = sb.resolver.resolveRequest;
-sb.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (platform === 'web' && moduleName.includes('codegenNativeComponent')) {
-    return { type: 'sourceFile', filePath: path.resolve(projectRoot, 'stubs/nativeComponent.web.js') };
-  }
-  const singleton = SINGLETONS.find((m) => moduleName === m || moduleName.startsWith(m + '/'));
-  if (singleton) {
-    const rest = moduleName.slice(singleton.length);
-    return context.resolveRequest(context, resolveSingleton(singleton) + rest, platform);
-  }
-  return (sbResolveRequest ?? context.resolveRequest)(context, moduleName, platform);
-};
+    const singleton = SINGLETONS.find((m) => moduleName === m || moduleName.startsWith(m + '/'));
+    if (singleton) {
+      const rest = moduleName.slice(singleton.length); // '' or '/subpath'
+      return context.resolveRequest(context, resolveSingleton(singleton) + rest, platform);
+    }
+    return (inner ?? context.resolveRequest)(context, moduleName, platform);
+  };
 
-module.exports = sb;
+  return cfg;
+}
+
+// ORDER IS LOAD-BEARING. `withStorybook` REPLACES resolver.resolveRequest rather
+// than composing with it, so applying it after the singleton forcing silently
+// deletes that forcing — and the symptom is not a resolver error but a runtime
+// "No QueryClient set", a long way from this file. Storybook goes on first; the
+// singletons wrap whatever it produced.
+//
+// `enabled` gates the ~2.9 MB Storybook runtime out of ordinary builds. The E2E
+// harness turns it on for every build so suite 00 can screenshot the gallery
+// (see scripts/e2e/run.mjs).
+module.exports = withSingletons(
+  withStorybook(config, {
+    enabled: process.env.EXPO_PUBLIC_STORYBOOK === '1',
+    configPath: path.resolve(projectRoot, '.rnstorybook'),
+  }),
+);

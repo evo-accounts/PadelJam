@@ -9,7 +9,7 @@
  * WHAT TO USE:
  *   colors.foreground      not '#0b1f3a'
  *   radius.lg              not 12
- *   type.body.size         not 16
+ *   type.body              not { fontSize: 16 }
  *   space[4]               not 16
  *
  * `scripts/check-hex-budget.mjs` fails CI if the number of raw hex literals in
@@ -20,6 +20,8 @@
  * nothing renders it yet and it carries a known defect (its background and
  * primary are the same colour). Wiring a theme switch is its own change.
  */
+import type { TextStyle } from 'react-native';
+
 import {
   light,
   palette,
@@ -50,17 +52,26 @@ export const weight = sharedWeight;
  * the role rather than the number is what stops an 18th appearing. Each maps
  * onto the shared Tailwind step, so `title` here and `text-2xl` on web are the
  * same type.
+ *
+ * These are REACT NATIVE TEXT STYLES, not raw scale entries: the shared scale
+ * calls the field `size`, RN calls it `fontSize`. Translating here is the whole
+ * reason this module exists — it means a role can be dropped straight into a
+ * stylesheet (`display: type.display`) or spread (`{...type.body, color}`)
+ * instead of every call site rewriting the same three keys.
  */
+const role = (step: { size: number; lineHeight: number }, fontWeight: TextStyle['fontWeight']) =>
+  ({ fontSize: step.size, lineHeight: step.lineHeight, fontWeight }) satisfies TextStyle;
+
 export const type = {
-  display: { ...sharedText['3xl'], fontWeight: sharedWeight.bold },
-  title: { ...sharedText['2xl'], fontWeight: sharedWeight.bold },
-  heading: { ...sharedText.xl, fontWeight: sharedWeight.semibold },
-  sectionTitle: { ...sharedText.lg, fontWeight: sharedWeight.semibold },
-  body: { ...sharedText.base, fontWeight: sharedWeight.normal },
-  bodyStrong: { ...sharedText.base, fontWeight: sharedWeight.semibold },
-  label: { ...sharedText.sm, fontWeight: sharedWeight.semibold },
-  caption: { ...sharedText.sm, fontWeight: sharedWeight.normal },
-  hint: { ...sharedText.xs, fontWeight: sharedWeight.normal },
+  display: role(sharedText['3xl'], sharedWeight.bold),
+  title: role(sharedText['2xl'], sharedWeight.bold),
+  heading: role(sharedText.xl, sharedWeight.semibold),
+  sectionTitle: role(sharedText.lg, sharedWeight.semibold),
+  body: role(sharedText.base, sharedWeight.normal),
+  bodyStrong: role(sharedText.base, sharedWeight.semibold),
+  label: role(sharedText.sm, sharedWeight.semibold),
+  caption: role(sharedText.sm, sharedWeight.normal),
+  hint: role(sharedText.xs, sharedWeight.normal),
 } as const;
 
 export type TypeRole = keyof typeof type;

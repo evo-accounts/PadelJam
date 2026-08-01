@@ -64,4 +64,23 @@ export default [
       ],
     },
   },
+
+  {
+    // Storybook writes this file and stamps it "do not change". It uses
+    // `require.context` to discover stories, which has no ESM equivalent Metro
+    // understands — the bundler needs that call site to stay a literal so it can
+    // expand the glob at build time.
+    //
+    // MUST STAY LAST. Flat config applies matching blocks in order, so this has
+    // to come after the `**/*.{ts,tsx}` block above or that block turns the rule
+    // back on for this file. (The metro.config.js exemption near the top is safe
+    // where it is only because it targets .js, which that block never matches.)
+    //
+    // Scoped to the single generated file, not the whole .rnstorybook directory,
+    // so main.ts / preview.tsx / index.tsx beside it are still linted normally.
+    files: ['.rnstorybook/storybook.requires.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 ];
