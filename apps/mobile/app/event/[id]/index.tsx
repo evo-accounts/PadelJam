@@ -23,7 +23,6 @@ import { streamClient } from '@/lib/streamClient';
 import { useNow } from '@/lib/useNow';
 import {
   ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -31,6 +30,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, palette } from '../../../theme';
+import { Button, Card, TopBar } from '../../../components/ui';
 
 /** Capitalize the first character of a raw enum value (rest left untouched). */
 function cap(value: string): string {
@@ -118,13 +118,11 @@ export default function EventDetailScreen() {
         <View style={styles.noAccess}>
           <Text style={styles.noAccessTitle}>{t('noAccessTitle')}</Text>
           <Text style={styles.noAccessBody}>{t('noAccessBody')}</Text>
-          <Pressable
-            style={[styles.btn, styles.secondaryBtn]}
-            accessibilityRole="button"
+          <Button
+            label={t('back')}
+            variant="outline"
             onPress={() => router.back()}
-          >
-            <Text style={styles.secondaryLabel}>{t('back')}</Text>
-          </Pressable>
+          />
         </View>
       </SafeAreaView>
     );
@@ -257,33 +255,21 @@ export default function EventDetailScreen() {
   const leaveOrContact = leaveLocked ? (
     <View style={styles.ctaCol}>
       <Text style={styles.deadlineNotice}>{t('leaveLockedBody')}</Text>
-      <Pressable
-        style={[styles.btn, styles.secondaryBtn]}
-        accessibilityRole="button"
-        disabled={busy}
+      <Button
+        label={t('messageOrganizerCta')}
+        variant="outline"
+        loading={busy}
         onPress={onMessageOrganizer}
-      >
-        {busy ? (
-          <ActivityIndicator color={colors.foreground} />
-        ) : (
-          <Text style={styles.secondaryLabel}>{t('messageOrganizerCta')}</Text>
-        )}
-      </Pressable>
+      />
     </View>
   ) : (
     <>
-      <Pressable
-        style={[styles.btn, styles.secondaryBtn]}
-        accessibilityRole="button"
-        disabled={busy}
+      <Button
+        label={t('leaveCta')}
+        variant="outline"
+        loading={busy}
         onPress={onLeave}
-      >
-        {busy ? (
-          <ActivityIndicator color={colors.foreground} />
-        ) : (
-          <Text style={styles.secondaryLabel}>{t('leaveCta')}</Text>
-        )}
-      </Pressable>
+      />
       <Text style={styles.leaveHint}>{t('leaveByHint', { when: leaveByText })}</Text>
     </>
   );
@@ -307,16 +293,11 @@ export default function EventDetailScreen() {
     cta = (
       <View style={styles.ctaCol}>
         {roleBadge != null ? <Text style={styles.ctaBadge}>{roleBadge}</Text> : null}
-        <Pressable
-          style={[styles.btn, styles.primaryBtn]}
-          accessibilityRole="button"
+        <Button
+          label={status === 'completed' ? t('viewResultsCta') : t('viewMatchesCta')}
           disabled={busy}
           onPress={() => router.push(`/event/${id}/live` as Href)}
-        >
-          <Text style={styles.primaryLabel}>
-            {status === 'completed' ? t('viewResultsCta') : t('viewMatchesCta')}
-          </Text>
-        </Pressable>
+        />
       </View>
     );
   } else if (isOrganizer) {
@@ -324,38 +305,26 @@ export default function EventDetailScreen() {
     // or after they Join as a player). Join/Leave respect the same 6h/12h cutoffs as players.
     const organizerJoin =
       me == null && !joinClosed ? (
-        <Pressable
-          style={[styles.btn, styles.secondaryBtn]}
-          accessibilityRole="button"
-          disabled={busy}
+        <Button
+          label={t('joinAsPlayerCta')}
+          variant="outline"
+          loading={busy}
           onPress={
             event.specification === 'team'
               ? () => router.push(`/event/${id}/partner-requests` as Href)
               : onJoin
           }
-        >
-          {busy ? (
-            <ActivityIndicator color={colors.foreground} />
-          ) : (
-            <Text style={styles.secondaryLabel}>{t('joinAsPlayerCta')}</Text>
-          )}
-        </Pressable>
+        />
       ) : null;
     const organizerLeave =
       me != null && !leaveLocked ? (
         <>
-          <Pressable
-            style={[styles.btn, styles.secondaryBtn]}
-            accessibilityRole="button"
-            disabled={busy}
+          <Button
+            label={t('leaveAsPlayerCta')}
+            variant="outline"
+            loading={busy}
             onPress={onLeave}
-          >
-            {busy ? (
-              <ActivityIndicator color={colors.foreground} />
-            ) : (
-              <Text style={styles.secondaryLabel}>{t('leaveAsPlayerCta')}</Text>
-            )}
-          </Pressable>
+          />
           <Text style={styles.leaveHint}>{t('leaveByHint', { when: leaveByText })}</Text>
         </>
       ) : null;
@@ -364,26 +333,17 @@ export default function EventDetailScreen() {
         <Text style={styles.ctaBadge}>
           {me != null ? t('organizerPlayingBadge') : t('organizerBadge')}
         </Text>
-        <Pressable
-          style={[styles.btn, styles.primaryBtn]}
-          accessibilityRole="button"
+        <Button
+          label={t('manageCta')}
           disabled={busy}
           onPress={() => router.push(`/event/${id}/manage` as Href)}
-        >
-          <Text style={styles.primaryLabel}>{t('manageCta')}</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.btn, styles.startBtn, !setupComplete && styles.btnDisabled]}
-          accessibilityRole="button"
-          disabled={busy || !setupComplete}
+        />
+        <Button
+          label={t('startCta')}
+          loading={busy}
+          disabled={!setupComplete}
           onPress={onStart}
-        >
-          {busy ? (
-            <ActivityIndicator color={colors.card} />
-          ) : (
-            <Text style={styles.primaryLabel}>{t('startCta')}</Text>
-          )}
-        </Pressable>
+        />
         {!setupComplete ? (
           <Text style={styles.startHint}>
             {t('startSetupIncomplete', { needed: event.num_courts * 4 })}
@@ -401,18 +361,12 @@ export default function EventDetailScreen() {
             {t('waitlistBadge', { pos: me.waiting_list_position ?? 0 })}
           </Text>
           {showJoinLeave ? (
-            <Pressable
-              style={[styles.btn, styles.secondaryBtn]}
-              accessibilityRole="button"
-              disabled={busy}
+            <Button
+              label={t('leaveWaitlistCta')}
+              variant="outline"
+              loading={busy}
               onPress={onLeaveWaitlist}
-            >
-              {busy ? (
-                <ActivityIndicator color={colors.foreground} />
-              ) : (
-                <Text style={styles.secondaryLabel}>{t('leaveWaitlistCta')}</Text>
-              )}
-            </Pressable>
+            />
           ) : null}
         </View>
       );
@@ -446,30 +400,17 @@ export default function EventDetailScreen() {
               : t('invitedBannerGeneric')}
           </Text>
           <View style={styles.ctaRow}>
-            <Pressable
-              style={[styles.btn, styles.secondaryBtn, styles.btnFlex]}
-              accessibilityRole="button"
-              disabled={busy}
+            <Button
+              label={t('declineCta')}
+              variant="outline"
+              loading={busy}
               onPress={onDecline}
-            >
-              {busy ? (
-                <ActivityIndicator color={colors.foreground} />
-              ) : (
-                <Text style={styles.secondaryLabel}>{t('declineCta')}</Text>
-              )}
-            </Pressable>
-            <Pressable
-              style={[styles.btn, styles.primaryBtn, styles.btnFlex]}
-              accessibilityRole="button"
-              disabled={busy}
+            />
+            <Button
+              label={t('acceptCta')}
+              loading={busy}
               onPress={onAccept}
-            >
-              {busy ? (
-                <ActivityIndicator color={colors.card} />
-              ) : (
-                <Text style={styles.primaryLabel}>{t('acceptCta')}</Text>
-              )}
-            </Pressable>
+            />
           </View>
         </View>
       );
@@ -481,14 +422,11 @@ export default function EventDetailScreen() {
       cta = (
         <View style={styles.ctaCol}>
           <Text style={styles.countdown}>{t('joinCountdown', { time: joinCountdownText })}</Text>
-          <Pressable
-            style={[styles.btn, styles.primaryBtn]}
-            accessibilityRole="button"
+          <Button
+            label={t('teamJoinCta')}
             disabled={busy}
             onPress={() => router.push(`/event/${id}/partner-requests` as Href)}
-          >
-            <Text style={styles.primaryLabel}>{t('teamJoinCta')}</Text>
-          </Pressable>
+          />
         </View>
       );
     } else {
@@ -496,18 +434,11 @@ export default function EventDetailScreen() {
       cta = (
         <View style={styles.ctaCol}>
           <Text style={styles.countdown}>{t('joinCountdown', { time: joinCountdownText })}</Text>
-          <Pressable
-            style={[styles.btn, styles.primaryBtn]}
-            accessibilityRole="button"
-            disabled={busy}
+          <Button
+            label={joinLabel}
+            loading={busy}
             onPress={onJoin}
-          >
-            {busy ? (
-              <ActivityIndicator color={colors.card} />
-            ) : (
-              <Text style={styles.primaryLabel}>{joinLabel}</Text>
-            )}
-          </Pressable>
+          />
         </View>
       );
     }
@@ -515,11 +446,7 @@ export default function EventDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}>
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-      </View>
+      <TopBar onBack={() => router.back()} backLabel={t('back')} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Hero */}
@@ -557,17 +484,16 @@ export default function EventDetailScreen() {
           </Text>
           {nextOccurrenceIso ? (
             isOrganizer ? (
-              <Pressable
+              <Card
                 style={styles.nextCard}
                 onPress={onOpenNextOccurrence}
-                disabled={materialize.isPending}
               >
                 <Text style={styles.sectionTitle}>{t('nextOccurrenceTitle')}</Text>
                 <Text style={styles.body}>{formatWhen(nextOccurrenceIso)}</Text>
                 <Text style={styles.bodyMuted}>
                   {materialize.isPending ? t('materializeOccurrenceLoading') : t('materializeOccurrenceHint')}
                 </Text>
-              </Pressable>
+              </Card>
             ) : (
               <View style={styles.nextCard}>
                 <Text style={styles.sectionTitle}>{t('nextOccurrenceTitle')}</Text>
@@ -649,14 +575,13 @@ export default function EventDetailScreen() {
         {/* Chat */}
         {hasOwnChat ? (
           <View style={styles.section}>
-            <Pressable
+            <Button
+              label={t('openChat', { ns: 'chat' })}
+              fullWidth
+              loading={ensureChannel.isPending}
+              style={styles.chatButton}
               onPress={openEventChat}
-              disabled={ensureChannel.isPending}
-              accessibilityRole="button"
-              style={{ paddingVertical: 12, paddingHorizontal: 16, backgroundColor: colors.primary, borderRadius: 12, alignItems: 'center', marginTop: 8 }}
-            >
-              <Text style={{ color: colors.card, fontWeight: '700', fontSize: 15 }}>{t('openChat', { ns: 'chat' })}</Text>
-            </Pressable>
+            />
             {ensureChannel.isError ? (
               <Text style={{ color: colors.destructive, fontSize: 13, marginTop: 6 }}>{t('chatUnavailable', { ns: 'chat' })}</Text>
             ) : null}
@@ -676,17 +601,9 @@ export default function EventDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  chatButton: { marginTop: 8 },
   container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.card,
-  },
-  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
   content: { paddingBottom: 32 },
 
   // No-access
@@ -775,19 +692,5 @@ const styles = StyleSheet.create({
   error: { fontSize: 14, fontWeight: '600', color: colors.destructive, marginBottom: 10, textAlign: 'center' },
 
   // Buttons
-  btn: {
-    minHeight: 48,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnFlex: { flex: 1 },
-  primaryBtn: { backgroundColor: colors.primary },
-  startBtn: { backgroundColor: colors.success },
-  btnDisabled: { opacity: 0.5 },
   startHint: { fontSize: 13, color: colors.mutedForeground, textAlign: 'center' },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
-  secondaryBtn: { backgroundColor: colors.muted },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
 });

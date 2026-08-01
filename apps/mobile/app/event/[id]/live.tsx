@@ -19,7 +19,6 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
-  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -32,6 +31,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShareResultsModal } from '@/components/event/ShareResultsModal';
 import { TimerTab } from '@/components/event/TimerTab';
 import { colors, palette } from '../../../theme';
+import { Button, Card, Chip, TopBar } from '../../../components/ui';
 
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
 type MatchPlayer = MatchRow['match_players'][number];
@@ -122,13 +122,11 @@ export default function EventLiveScreen() {
         <View style={styles.centerBox}>
           <Text style={styles.noAccessTitle}>{t('noAccessTitle')}</Text>
           <Text style={styles.noAccessBody}>{t('noAccessBody')}</Text>
-          <Pressable
-            style={[styles.btn, styles.secondaryBtn]}
-            accessibilityRole="button"
+          <Button
+            label={t('back')}
+            variant="outline"
             onPress={() => router.back()}
-          >
-            <Text style={styles.secondaryLabel}>{t('back')}</Text>
-          </Pressable>
+          />
         </View>
       </SafeAreaView>
     );
@@ -140,13 +138,11 @@ export default function EventLiveScreen() {
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <View style={styles.centerBox}>
           <Text style={styles.noAccessBody}>{t('waitingToStart')}</Text>
-          <Pressable
-            style={[styles.btn, styles.secondaryBtn]}
-            accessibilityRole="button"
+          <Button
+            label={t('back')}
+            variant="outline"
             onPress={() => router.back()}
-          >
-            <Text style={styles.secondaryLabel}>{t('back')}</Text>
-          </Pressable>
+          />
         </View>
       </SafeAreaView>
     );
@@ -323,15 +319,11 @@ export default function EventLiveScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}>
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-        <Text style={styles.title} numberOfLines={1}>
-          {event.status === 'completed' ? t('completedTitle') : t('liveTitle')}
-        </Text>
-        <View style={styles.backSpacer} />
-      </View>
+      <TopBar
+        title={event.status === 'completed' ? t('completedTitle') : t('liveTitle')}
+        onBack={() => router.back()}
+        backLabel={t('back')}
+      />
 
       {/* Round tabs */}
       {rounds.length > 0 ? (
@@ -343,16 +335,12 @@ export default function EventLiveScreen() {
           {rounds.map((r) => {
             const active = r.id === activeRoundId;
             return (
-              <Pressable
+              <Chip
                 key={r.id}
-                style={[styles.roundTab, active && styles.roundTabActive]}
-                accessibilityRole="button"
+                label={t('roundLabel', { number: r.round_number })}
+                selected={active}
                 onPress={() => setSelectedRoundId(r.id)}
-              >
-                <Text style={[styles.roundTabText, active && styles.roundTabTextActive]}>
-                  {t('roundLabel', { number: r.round_number })}
-                </Text>
-              </Pressable>
+              />
             );
           })}
         </ScrollView>
@@ -384,13 +372,12 @@ export default function EventLiveScreen() {
               </View>
             ) : null}
 
-            <Pressable
-              style={[styles.btn, styles.shareBtn]}
-              accessibilityRole="button"
+            <Button
+              label={t('shareResultsCta')}
+              variant="secondary"
               onPress={() => setShareOpen(true)}
-            >
-              <Text style={styles.shareLabel}>{t('shareResultsCta')}</Text>
-            </Pressable>
+            />
+
           </View>
         ) : effectiveTab === 'matches' ? (
           orderedMatches.length === 0 ? (
@@ -401,14 +388,16 @@ export default function EventLiveScreen() {
                 const isMine = m.id === myMatchId;
                 const tappable = canSubmit(m);
                 const showHint = tappable && m.status !== 'played';
-                const Card = tappable ? Pressable : View;
                 return (
+                  // Card takes an OPTIONAL onPress and renders a Pressable or a
+                  // View accordingly — which is exactly what the local
+                  // `tappable ? Pressable : View` was hand-rolling here, minus
+                  // the conditional accessibilityRole spread.
                   <Card
                     key={m.id}
-                    style={[styles.matchCard, isMine && styles.matchCardMine]}
-                    {...(tappable
-                      ? { accessibilityRole: 'button' as const, onPress: () => openScoreModal(m) }
-                      : {})}
+                    padding="none"
+                    style={StyleSheet.flatten([styles.matchCard, isMine && styles.matchCardMine])}
+                    {...(tappable ? { onPress: () => openScoreModal(m) } : {})}
                   >
                     <View style={styles.matchHeader}>
                       <Text style={styles.courtLabel}>
@@ -438,14 +427,11 @@ export default function EventLiveScreen() {
               })}
 
               {canAddRound ? (
-                <Pressable
-                  style={[styles.btn, styles.primaryBtn, busy && styles.btnDisabled]}
-                  accessibilityRole="button"
+                <Button
+                  label={t('addRoundCta')}
                   disabled={busy}
                   onPress={onAddRound}
-                >
-                  <Text style={styles.primaryLabel}>{t('addRoundCta')}</Text>
-                </Pressable>
+                />
               ) : null}
 
               {resting.length > 0 ? (
@@ -493,76 +479,44 @@ export default function EventLiveScreen() {
 
       {/* Floating finish button (organizer, in-progress) */}
       {isOrganizer && isInProgress ? (
-        <Pressable
-          style={[styles.finishBtn, busy && styles.btnDisabled]}
-          accessibilityRole="button"
+        <Button
+          label={t('finishCta')}
+          fullWidth
           disabled={busy}
           onPress={() => {
             setError(null);
             setFinishMessage(event.finish_message ?? '');
             setFinishOpen(true);
           }}
-        >
-          <Text style={styles.finishLabel}>{t('finishCta')}</Text>
-        </Pressable>
+        />
       ) : null}
 
       {/* Bottom segmented tabs */}
       <View style={styles.segmentBar}>
         {isCompleted ? (
-          <Pressable
-            style={[styles.segment, effectiveTab === 'overview' && styles.segmentActive]}
-            accessibilityRole="button"
+          <Chip
+            label={t('overviewTab')}
+            selected={effectiveTab === 'overview'}
             onPress={() => setTab('overview')}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                effectiveTab === 'overview' && styles.segmentTextActive,
-              ]}
-            >
-              {t('overviewTab')}
-            </Text>
-          </Pressable>
+          />
         ) : null}
-        <Pressable
-          style={[styles.segment, effectiveTab === 'matches' && styles.segmentActive]}
-          accessibilityRole="button"
+        <Chip
+          label={t('matchesTab')}
+          selected={effectiveTab === 'matches'}
           onPress={() => setTab('matches')}
-        >
-          <Text
-            style={[styles.segmentText, effectiveTab === 'matches' && styles.segmentTextActive]}
-          >
-            {t('matchesTab')}
-          </Text>
-        </Pressable>
+        />
         {isTimed ? (
-          <Pressable
-            style={[styles.segment, effectiveTab === 'timer' && styles.segmentActive]}
-            accessibilityRole="button"
+          <Chip
+            label={t('timerTab')}
+            selected={effectiveTab === 'timer'}
             onPress={() => setTab('timer')}
-          >
-            <Text
-              style={[styles.segmentText, effectiveTab === 'timer' && styles.segmentTextActive]}
-            >
-              {t('timerTab')}
-            </Text>
-          </Pressable>
+          />
         ) : null}
-        <Pressable
-          style={[styles.segment, effectiveTab === 'leaderboard' && styles.segmentActive]}
-          accessibilityRole="button"
+        <Chip
+          label={t('leaderboardTab')}
+          selected={effectiveTab === 'leaderboard'}
           onPress={() => setTab('leaderboard')}
-        >
-          <Text
-            style={[
-              styles.segmentText,
-              effectiveTab === 'leaderboard' && styles.segmentTextActive,
-            ]}
-          >
-            {t('leaderboardTab')}
-          </Text>
-        </Pressable>
+        />
       </View>
 
       {/* Score modal */}
@@ -632,22 +586,17 @@ export default function EventLiveScreen() {
                 {error != null ? <Text style={styles.error}>{t(error)}</Text> : null}
 
                 <View style={styles.modalActions}>
-                  <Pressable
-                    style={[styles.btn, styles.secondaryBtn, styles.flex1]}
-                    accessibilityRole="button"
+                  <Button
+                    label={t('cancel')}
+                    variant="outline"
                     disabled={busy}
                     onPress={closeScoreModal}
-                  >
-                    <Text style={styles.secondaryLabel}>{t('cancel')}</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.btn, styles.primaryBtn, styles.flex1, busy && styles.btnDisabled]}
-                    accessibilityRole="button"
+                  />
+                  <Button
+                    label={t('saveScoreCta')}
                     disabled={busy}
                     onPress={() => onSaveScore(scoringMatch)}
-                  >
-                    <Text style={styles.primaryLabel}>{t('saveScoreCta')}</Text>
-                  </Pressable>
+                  />
                 </View>
               </>
             ) : null}
@@ -686,42 +635,32 @@ export default function EventLiveScreen() {
 
             {isPublicGroup ? (
               <View style={styles.modalActions}>
-                <Pressable
-                  style={[styles.btn, styles.secondaryBtn, styles.flex1, busy && styles.btnDisabled]}
-                  accessibilityRole="button"
+                <Button
+                  label={t('rankingExcludeCta')}
+                  variant="outline"
                   disabled={busy}
                   onPress={() => onFinish(false)}
-                >
-                  <Text style={styles.secondaryLabel}>{t('rankingExcludeCta')}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.btn, styles.primaryBtn, styles.flex1, busy && styles.btnDisabled]}
-                  accessibilityRole="button"
+                />
+                <Button
+                  label={t('rankingIncludeCta')}
                   disabled={busy}
                   onPress={() => onFinish(true)}
-                >
-                  <Text style={styles.primaryLabel}>{t('rankingIncludeCta')}</Text>
-                </Pressable>
+                />
               </View>
             ) : (
-              <Pressable
-                style={[styles.btn, styles.primaryBtn, busy && styles.btnDisabled]}
-                accessibilityRole="button"
+              <Button
+                label={t('finishCta')}
                 disabled={busy}
                 onPress={() => onFinish(undefined)}
-              >
-                <Text style={styles.primaryLabel}>{t('finishCta')}</Text>
-              </Pressable>
+              />
             )}
 
-            <Pressable
-              style={styles.modalCancel}
-              accessibilityRole="button"
+            <Button
+              label={t('cancel')}
+              variant="outline"
               disabled={busy}
               onPress={() => setFinishOpen(false)}
-            >
-              <Text style={styles.secondaryLabel}>{t('cancel')}</Text>
-            </Pressable>
+            />
           </View>
         </View>
       </Modal>
@@ -745,16 +684,6 @@ const styles = StyleSheet.create({
   noAccessTitle: { fontSize: 20, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
   noAccessBody: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
 
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.card,
-  },
-  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
-  backSpacer: { width: 20 },
-  title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.foreground },
 
   // Round tabs
   roundTabs: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
@@ -764,9 +693,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.muted,
   },
-  roundTabActive: { backgroundColor: colors.primary },
-  roundTabText: { fontSize: 14, fontWeight: '600', color: colors.mutedForeground },
-  roundTabTextActive: { color: colors.card },
 
   content: { padding: 16, gap: 12 },
   empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', marginTop: 32 },
@@ -855,24 +781,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.muted,
   },
-  segmentActive: { backgroundColor: colors.primary },
-  segmentText: { fontSize: 15, fontWeight: '700', color: colors.mutedForeground },
-  segmentTextActive: { color: colors.card },
 
   // Buttons (shared with guard views)
-  btn: {
-    minHeight: 48,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryBtn: { backgroundColor: colors.muted },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
-  primaryBtn: { backgroundColor: colors.primary },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
-  btnDisabled: { opacity: 0.5 },
-  flex1: { flex: 1 },
 
   // Tap-to-score hint
   tapHint: {
@@ -885,23 +795,6 @@ const styles = StyleSheet.create({
   },
 
   // Floating finish button
-  finishBtn: {
-    position: 'absolute',
-    right: 16,
-    bottom: 84,
-    minHeight: 48,
-    paddingHorizontal: 22,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.foreground,
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  finishLabel: { fontSize: 15, fontWeight: '700', color: colors.card },
 
   // Overview
   overview: { gap: 16 },
@@ -914,8 +807,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   finishMessageText: { fontSize: 15, color: colors.foreground, lineHeight: 21 },
-  shareBtn: { backgroundColor: colors.primary },
-  shareLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
   completedHeading: {
     fontSize: 18,
     fontWeight: '700',
@@ -950,7 +841,6 @@ const styles = StyleSheet.create({
   modalBody: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', marginBottom: 4 },
   modalSide: { fontSize: 16, fontWeight: '600', color: colors.foreground, textAlign: 'center' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  modalCancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
 
   fieldLabel: {
     fontSize: 12,
