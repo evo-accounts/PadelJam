@@ -20,17 +20,41 @@ on:
         required: false
         default: ''
   schedule:
-    # A run WIPES the local database (resetDb rotates every seeded id), so this
-    # wants an hour when the machine is on but nobody is working. If the Mac is
-    # asleep the job simply queues and starts when the runner next comes
-    # online — which may be mid-morning, so move this if that bites.
-    - cron: '0 3 * * *' # nightly, 03:00 UTC
-  # NOTE: `pull_request` on a self-hosted runner executes the PR's code on your
-  # machine. The `e2e` label gate below means only someone who can label a PR
-  # can trigger it, which on a private repo is collaborators only — but do not
-  # widen this trigger without thinking about that.
+    # WEEKLY, not nightly. The two jobs this workflow does want different
+    # cadences, and running both every night served neither well:
+    #
+    #   "did MY change break it?"  -> the pull_request trigger below, which
+    #                                 answers when you change something
+    #   "did the WORLD break it?"  -> this cron
+    #
+    # The second is real here: the stack is genuinely unpinned — the workflow,
+    # scripts/e2e/run.mjs and e2e/global-setup.ts all run `supabase@latest`, so
+    # GoTrue/PostgREST/edge-runtime can change with no commit. This project has
+    # been bitten before (see the CLI ≤2.75 ES256/HS256 note in
+    # infra/supabase/config.toml). Weekly catches that.
+    #
+    # A run also WIPES the developer's local database (resetDb rotates every
+    # seeded id), so nightly was charging that cost 7× a week to answer a
+    # question that changes slowly. If the Mac is asleep the job queues and
+    # starts when the runner next wakes.
+    - cron: '0 3 * * 0' # weekly, Sunday 03:00 UTC
+  # Runs automatically on PRs that touch the code it actually exercises. The
+  # paths filter is the gate now, replacing the `e2e` label: relying on someone
+  # remembering to label meant main had no automated E2E at all.
+  #
+  # SECURITY NOTE, unchanged in substance: `pull_request` on a self-hosted runner
+  # executes the PR's code on your machine. Previously only someone who could
+  # label a PR could trigger that; now any PR touching these paths does. On a
+  # private repo that is collaborators only — the same people who could label.
+  # Revisit this if the repo ever becomes public or gains outside contributors.
   pull_request:
-    types: [labeled, synchronize]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/**'
+      - 'infra/**'
+      - 'scripts/e2e/**'
+      - '.github/workflows/e2e-mobile.yml'
 
 concurrency:
   # One run at a time: the simulator and the local database are shared
@@ -40,10 +64,13 @@ concurrency:
 
 jobs:
   e2e:
-    # Skip label-triggered runs unless the PR actually carries the `e2e` label.
-    if: >-
-      github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'e2e')
+    # No `if:` gate any more — the paths filter above decides what runs. A PR
+    # that does not touch those paths cannot reach the E2E code, so gating it
+    # twice only created a way to forget.
+    #
+    # To run the suite against something the filter excludes, use
+    # workflow_dispatch (it also takes a `suite` input for a single suite).
+    #
     # Swap in a dedicated label (e.g. `padeljam-e2e`) if you ever add a second
     # self-hosted macOS runner that must not pick this up.
     runs-on: [self-hosted, macOS, ARM64]

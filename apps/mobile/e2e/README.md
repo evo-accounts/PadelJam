@@ -78,11 +78,24 @@ the orchestrator with `--wait` so it queues behind a hand-run suite instead of g
 red over a held lock. It does **not** run `supabase stop` afterwards, since that
 would take down the stack you develop against.
 
-Two things to know before enabling the nightly on your own machine:
+### When it runs
 
-- **A run wipes the local database.** `resetDb()` rotates every seeded id, so pick an
-  hour when the machine is on but idle. A run started while you are using the app
-  locally will pull the data out from under it.
+- **Automatically on PRs** touching `apps/mobile/**`, `packages/**`, `infra/**`,
+  `scripts/e2e/**` or the workflow itself. A paths filter, not a label — relying on
+  someone remembering to add one meant `main` had no automated E2E at all.
+- **Weekly**, Sunday 03:00 UTC. This answers a different question from the PR run:
+  the stack is genuinely unpinned (the workflow, `run.mjs` and `global-setup.ts` all
+  use `supabase@latest`), so GoTrue/PostgREST/edge-runtime can change with no commit
+  on your side. This repo has been bitten by exactly that before — see the CLI ≤2.75
+  ES256/HS256 note in `infra/supabase/config.toml`.
+- **On demand** via `workflow_dispatch`, which also takes a `suite` input to run one
+  suite. Use this for anything the paths filter excludes.
+
+Two things to know, since the runner is a developer's own Mac:
+
+- **A run wipes the local database.** `resetDb()` rotates every seeded id. This is why
+  the cron is weekly rather than nightly: it charges that cost once a week to answer a
+  question that changes slowly.
 - **A sleeping Mac queues the job rather than failing it**, so a 03:00 cron can
   actually start whenever the runner next comes online.
 
