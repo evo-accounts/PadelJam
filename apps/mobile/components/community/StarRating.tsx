@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { palette } from '../../theme';
 
 const STAR_FILLED = '★';
 const STAR_EMPTY = '☆';
@@ -31,7 +32,7 @@ export function StarRating({ value, onChange, size = 22 }: StarRatingProps) {
               accessibilityLabel={String(star)}
               accessibilityRole="button"
             >
-              <Text style={[styles.star, { fontSize: size, color: filled ? '#F5A623' : '#C5CDD8' }]}>
+              <Text style={[styles.star, { fontSize: size, color: filled ? palette.yellow[500] : palette.slate[300] }]}>
                 {filled ? STAR_FILLED : STAR_EMPTY}
               </Text>
             </Pressable>
@@ -40,7 +41,7 @@ export function StarRating({ value, onChange, size = 22 }: StarRatingProps) {
         return (
           <Text
             key={star}
-            style={[styles.star, { fontSize: size, color: filled ? '#F5A623' : '#C5CDD8' }]}
+            style={[styles.star, { fontSize: size, color: filled ? palette.yellow[500] : palette.slate[300] }]}
           >
             {filled ? STAR_FILLED : STAR_EMPTY}
           </Text>

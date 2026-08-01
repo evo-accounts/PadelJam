@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { coverUrl, thumbnailUrl } from '@/lib/community-images';
+import { colors } from '../../theme';
 
 const PRIVACY_KEY: Record<string, string> = {
   public: 'privacyPublicTitle',
@@ -91,8 +92,8 @@ export function CommunityHero({ communityId }: { communityId: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#fff', paddingBottom: 12 },
-  cover: { width: '100%', height: 120, backgroundColor: '#E6EAF0' },
+  container: { backgroundColor: colors.card, paddingBottom: 12 },
+  cover: { width: '100%', height: 120, backgroundColor: colors.muted },
   manageButton: {
     position: 'absolute',
     top: 12,
@@ -104,22 +105,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(11,31,58,0.55)',
   },
-  manageIcon: { color: '#fff', fontSize: 18, lineHeight: 20 },
-  coverFallback: { backgroundColor: '#0B1F3A' },
-  coverPlaceholder: { width: '100%', height: 120, backgroundColor: '#E6EAF0' },
+  manageIcon: { color: colors.card, fontSize: 18, lineHeight: 20 },
+  coverFallback: { backgroundColor: colors.primary },
+  coverPlaceholder: { width: '100%', height: 120, backgroundColor: colors.muted },
   thumbWrap: {
     alignSelf: 'center',
     marginTop: -36,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.card,
     overflow: 'hidden',
   },
-  thumb: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#E6EAF0' },
-  thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  thumbInitial: { color: '#fff', fontSize: 28, fontWeight: '700' },
-  name: { marginTop: 8, fontSize: 22, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
+  thumb: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.muted },
+  thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  thumbInitial: { color: colors.card, fontSize: 28, fontWeight: '700' },
+  name: { marginTop: 8, fontSize: 22, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
   pills: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  pill: { backgroundColor: '#EEF2F7', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4 },
-  pillText: { fontSize: 13, fontWeight: '600', color: '#3A4A60' },
+  pill: { backgroundColor: colors.accent, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4 },
+  pillText: { fontSize: 13, fontWeight: '600', color: colors.mutedForeground },
 });

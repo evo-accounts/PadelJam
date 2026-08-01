@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AckGate } from '@/components/community/AckGate';
 import { CommunityHero } from '@/components/community/CommunityHero';
+import { colors, palette } from '../../../theme';
 
 const PRIVACY_SUMMARY_KEY: Record<string, string> = {
   public: 'privacySummaryPublic',
@@ -35,7 +36,7 @@ export default function CommunityJoinModal() {
   if (isLoading || !community) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </SafeAreaView>
     );
   }
@@ -99,7 +100,7 @@ export default function CommunityJoinModal() {
               accessibilityRole="button"
             >
               {join.isPending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.card} />
               ) : (
                 <Text style={styles.ctaText}>{t(ctaKey)}</Text>
               )}
@@ -112,22 +113,22 @@ export default function CommunityJoinModal() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center' },
   body: { padding: 20, gap: 16 },
-  summary: { fontSize: 15, color: '#3A4A60', lineHeight: 21, textAlign: 'center' },
-  error: { fontSize: 14, color: '#C0392B', textAlign: 'center', fontWeight: '600' },
+  summary: { fontSize: 15, color: colors.mutedForeground, lineHeight: 21, textAlign: 'center' },
+  error: { fontSize: 14, color: colors.destructive, textAlign: 'center', fontWeight: '600' },
   cta: {
-    backgroundColor: '#0B7BFF',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
   },
-  ctaDisabled: { backgroundColor: '#A9C7EE' },
-  ctaText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  ctaDisabled: { backgroundColor: palette.purple[200] },
+  ctaText: { color: colors.card, fontSize: 17, fontWeight: '700' },
   requested: { alignItems: 'center', gap: 12, paddingTop: 12 },
-  requestedTitle: { fontSize: 20, fontWeight: '700', color: '#0B1F3A' },
-  requestedBody: { fontSize: 15, color: '#3A4A60', textAlign: 'center', lineHeight: 21 },
+  requestedTitle: { fontSize: 20, fontWeight: '700', color: colors.foreground },
+  requestedBody: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', lineHeight: 21 },
   secondary: { marginTop: 8, paddingVertical: 12, paddingHorizontal: 24 },
-  secondaryText: { fontSize: 16, fontWeight: '600', color: '#0B7BFF' },
+  secondaryText: { fontSize: 16, fontWeight: '600', color: colors.primary },
 });

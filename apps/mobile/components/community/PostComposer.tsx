@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
+import { colors, palette } from '../../theme';
 
 const POST_IMAGE_BUCKET = 'community-post-images';
 const KNOWN_ERROR_KEYS = new Set([
@@ -89,7 +90,7 @@ export function PostComposer({
         value={body}
         onChangeText={setBody}
         placeholder={t('postPlaceholder')}
-        placeholderTextColor="#8896A8"
+        placeholderTextColor={colors.mutedForeground}
         multiline
         editable={!pending}
         textAlignVertical="top"
@@ -128,7 +129,7 @@ export function PostComposer({
         accessibilityRole="button"
       >
         {pending ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.card} />
         ) : (
           <Text style={styles.ctaText}>{t('postCta')}</Text>
         )}
@@ -142,23 +143,23 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 120,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#D7DEE8',
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
-    color: '#0B1F3A',
-    backgroundColor: '#fff',
+    color: colors.foreground,
+    backgroundColor: colors.card,
   },
   addPhoto: {
     alignSelf: 'flex-start',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 10,
-    backgroundColor: '#EAF1FB',
+    backgroundColor: palette.purple[100],
   },
-  addPhotoText: { color: '#0B7BFF', fontSize: 15, fontWeight: '600' },
+  addPhotoText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
   previewWrap: { position: 'relative' },
-  preview: { width: '100%', height: 200, borderRadius: 12, backgroundColor: '#E6EAF0' },
+  preview: { width: '100%', height: 200, borderRadius: 12, backgroundColor: colors.muted },
   removeImage: {
     position: 'absolute',
     top: 8,
@@ -170,9 +171,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  removeImageText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  error: { fontSize: 14, color: '#C0392B', fontWeight: '600' },
-  cta: { backgroundColor: '#0B7BFF', paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
-  ctaDisabled: { backgroundColor: '#A9C7EE' },
-  ctaText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  removeImageText: { color: colors.card, fontSize: 15, fontWeight: '700' },
+  error: { fontSize: 14, color: colors.destructive, fontWeight: '600' },
+  cta: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
+  ctaDisabled: { backgroundColor: palette.purple[200] },
+  ctaText: { color: colors.card, fontSize: 17, fontWeight: '700' },
 });

@@ -3,6 +3,7 @@ import { Image, type ImageStyle } from 'expo-image';
 import { StyleSheet, View, type StyleProp } from 'react-native';
 
 import { postImageUrl } from '@/lib/community-images';
+import { colors } from '../../theme';
 
 /**
  * Renders a private community-post image. The post-images bucket is member-gated,
@@ -32,6 +33,6 @@ export function PostImage({
 }
 
 const styles = StyleSheet.create({
-  image: { width: '100%', height: 200, borderRadius: 10, backgroundColor: '#E6EAF0' },
-  placeholder: { backgroundColor: '#E6EAF0' },
+  image: { width: '100%', height: 200, borderRadius: 10, backgroundColor: colors.muted },
+  placeholder: { backgroundColor: colors.muted },
 });

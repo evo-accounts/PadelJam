@@ -10,6 +10,7 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
+import { colors, palette } from '../../../../theme';
 import {
   ActivityIndicator,
   Alert,
@@ -233,24 +234,24 @@ function ActionRow({
   return (
     <Pressable style={styles.row} onPress={onPress} disabled={pending} accessibilityRole="button">
       <Text style={[styles.rowLabel, destructive && styles.destructive]}>{label}</Text>
-      {pending ? <ActivityIndicator color="#0B1F3A" /> : null}
+      {pending ? <ActivityIndicator color={colors.foreground} /> : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   inner: { padding: 16, gap: 8 },
   section: { marginBottom: 12 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8A95A5',
+    color: palette.slate[400],
     textTransform: 'uppercase',
     marginBottom: 8,
     marginLeft: 4,
   },
-  card: { backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' },
+  card: { backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -258,39 +259,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  rowLabel: { fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
-  destructive: { color: '#c0392b' },
+  rowLabel: { fontSize: 16, color: colors.foreground, fontWeight: '500' },
+  destructive: { color: colors.destructive },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  chevron: { fontSize: 22, color: '#C2CAD6' },
+  chevron: { fontSize: 22, color: palette.slate[400] },
   badge: {
     minWidth: 22,
     height: 22,
     borderRadius: 11,
     paddingHorizontal: 6,
-    backgroundColor: '#0B7BFF',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  badgeText: { color: colors.card, fontSize: 12, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     maxHeight: '70%',
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#0B1F3A', marginBottom: 12 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
   modalList: { flexGrow: 0 },
-  modalEmpty: { fontSize: 15, color: '#3A4A60', paddingVertical: 16 },
+  modalEmpty: { fontSize: 15, color: colors.mutedForeground, paddingVertical: 16 },
   modalRow: {
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  modalRowText: { fontSize: 16, color: '#0B1F3A' },
+  modalRowText: { fontSize: 16, color: colors.foreground },
   modalCancel: { paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  modalCancelText: { fontSize: 16, fontWeight: '600', color: '#0B7BFF' },
+  modalCancelText: { fontSize: 16, fontWeight: '600', color: colors.primary },
 });

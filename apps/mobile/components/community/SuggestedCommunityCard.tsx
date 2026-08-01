@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { coverUrl } from '@/lib/community-images';
+import { colors } from '../../theme';
 
 export type SuggestedCommunity = {
   id: string;
@@ -38,8 +39,8 @@ export function SuggestedCommunityCard({ community, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: { width: 140, marginRight: 12 },
-  cover: { width: 140, height: 90, borderRadius: 12, backgroundColor: '#E6EAF0' },
-  placeholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  placeholderText: { color: '#fff', fontSize: 28, fontWeight: '700' },
-  name: { marginTop: 8, fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
+  cover: { width: 140, height: 90, borderRadius: 12, backgroundColor: colors.muted },
+  placeholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  placeholderText: { color: colors.card, fontSize: 28, fontWeight: '700' },
+  name: { marginTop: 8, fontSize: 14, fontWeight: '600', color: colors.foreground },
 });

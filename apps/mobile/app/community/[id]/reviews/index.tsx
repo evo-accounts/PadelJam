@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ReviewCard, type ReviewRow } from '@/components/community/ReviewCard';
 import { StarRating } from '@/components/community/StarRating';
+import { colors, palette } from '../../../../theme';
 
 type SortKey = 'newest' | 'highest' | 'lowest';
 type RatingFilter = 0 | 1 | 2 | 3 | 4 | 5; // 0 = all
@@ -157,32 +158,32 @@ export default function ReviewsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   summaryBlock: {
     alignItems: 'center',
     paddingVertical: 20,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
     gap: 6,
   },
-  averageText: { fontSize: 36, fontWeight: '700', color: '#0B1F3A' },
-  countText: { fontSize: 14, color: '#8A95A5' },
+  averageText: { fontSize: 36, fontWeight: '700', color: colors.foreground },
+  countText: { fontSize: 14, color: palette.slate[400] },
   writeBtn: {
     marginHorizontal: 16,
     marginVertical: 12,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#0B7BFF',
+    backgroundColor: colors.primary,
     alignItems: 'center',
   },
-  writeBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  writeBtnText: { fontSize: 16, fontWeight: '700', color: colors.card },
   gateNotice: {
     marginHorizontal: 16,
     marginVertical: 12,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#8A95A5',
+    color: palette.slate[400],
     textAlign: 'center',
   },
   controlsRow: { paddingBottom: 4 },
@@ -191,11 +192,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: '#EEF2F7',
+    backgroundColor: colors.accent,
   },
-  chipActive: { backgroundColor: '#0B1F3A' },
-  chipText: { fontSize: 13, fontWeight: '600', color: '#3A4A60' },
-  chipTextActive: { color: '#fff' },
+  chipActive: { backgroundColor: colors.primary },
+  chipText: { fontSize: 13, fontWeight: '600', color: colors.mutedForeground },
+  chipTextActive: { color: colors.card },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyText: { fontSize: 16, color: '#8A95A5', textAlign: 'center' },
+  emptyText: { fontSize: 16, color: palette.slate[400], textAlign: 'center' },
 });

@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { PRIVACY } from '@padel/api';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../../theme';
 
 type Privacy = (typeof PRIVACY)[number];
 
@@ -51,22 +52,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 14,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
   },
-  cardSelected: { borderColor: '#0B1F3A', backgroundColor: '#F2F5FA' },
+  cardSelected: { borderColor: colors.foreground, backgroundColor: colors.background },
   radio: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     marginRight: 12,
   },
-  radioSelected: { borderColor: '#0B1F3A', borderWidth: 6 },
+  radioSelected: { borderColor: colors.foreground, borderWidth: 6 },
   cardText: { flex: 1 },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  cardDesc: { fontSize: 13, color: '#666', marginTop: 2 },
+  cardTitle: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  cardDesc: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
 });

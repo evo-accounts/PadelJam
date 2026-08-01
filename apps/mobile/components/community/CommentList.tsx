@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
+import { colors } from '../../theme';
 
 export type PostComment = {
   id: string;
@@ -68,14 +69,14 @@ export function CommentList({ comments }: { comments: PostComment[] }) {
 const styles = StyleSheet.create({
   list: { gap: 14, paddingVertical: 8 },
   empty: { paddingVertical: 24, alignItems: 'center' },
-  emptyText: { fontSize: 15, color: '#8896A8' },
+  emptyText: { fontSize: 15, color: colors.mutedForeground },
   row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E6EAF0' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  bubble: { flex: 1, backgroundColor: '#F2F5F9', borderRadius: 12, padding: 10, gap: 2 },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.muted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 13, fontWeight: '700' },
+  bubble: { flex: 1, backgroundColor: colors.background, borderRadius: 12, padding: 10, gap: 2 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  author: { flex: 1, fontSize: 14, fontWeight: '700', color: '#0B1F3A' },
-  time: { fontSize: 12, color: '#8896A8' },
-  body: { fontSize: 15, color: '#222', lineHeight: 20 },
+  author: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.foreground },
+  time: { fontSize: 12, color: colors.mutedForeground },
+  body: { fontSize: 15, color: colors.foreground, lineHeight: 20 },
 });

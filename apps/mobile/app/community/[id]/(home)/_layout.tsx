@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CommunityHero } from '@/components/community/CommunityHero';
 import { CommunityIdProvider } from '@/components/community/CommunityIdContext';
+import { colors, palette } from '../../../../theme';
 
 /**
  * Persistent community hero above Expo Router's SDK-56 Material Top Tabs
@@ -44,9 +45,9 @@ export default function CommunityHomeLayout() {
         <TopTabs
           screenOptions={{
             tabBarScrollEnabled: true,
-            tabBarActiveTintColor: '#0B1F3A',
-            tabBarInactiveTintColor: '#8A95A5',
-            tabBarIndicatorStyle: { backgroundColor: '#0B7BFF' },
+            tabBarActiveTintColor: colors.primary,
+            tabBarInactiveTintColor: palette.slate[400],
+            tabBarIndicatorStyle: { backgroundColor: colors.primary },
             tabBarLabelStyle: { fontSize: 13, fontWeight: '700', textTransform: 'none' },
             tabBarItemStyle: { width: 'auto', paddingHorizontal: 16 },
           }}
@@ -63,8 +64,8 @@ export default function CommunityHomeLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
-  notFoundTitle: { fontSize: 18, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
-  notFoundBody: { fontSize: 15, color: '#3A4A60', textAlign: 'center', lineHeight: 21 },
+  notFoundTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  notFoundBody: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', lineHeight: 21 },
 });

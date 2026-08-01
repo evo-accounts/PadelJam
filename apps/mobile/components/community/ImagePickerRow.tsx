@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, palette } from '../../theme';
 
 export function ImagePickerRow({
   label,
@@ -43,18 +44,18 @@ export function ImagePickerRow({
 
 const styles = StyleSheet.create({
   container: { marginBottom: 16 },
-  label: { fontSize: 14, color: '#444', marginBottom: 8 },
+  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
   preview: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#F2F5FA',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  previewEmpty: { borderWidth: 1, borderColor: '#ccc', borderStyle: 'dashed' },
+  previewEmpty: { borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed' },
   previewSquare: { width: 96, height: 96 },
   previewCover: { width: '100%', aspectRatio: 16 / 9 },
   image: { width: '100%', height: '100%' },
-  placeholder: { color: '#888', fontSize: 13 },
-  change: { color: '#0B1F3A', fontSize: 13, fontWeight: '600', marginTop: 8 },
+  placeholder: { color: palette.slate[400], fontSize: 13 },
+  change: { color: colors.foreground, fontSize: 13, fontWeight: '600', marginTop: 8 },
 });

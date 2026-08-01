@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { thumbnailUrl } from '@/lib/community-images';
+import { colors, palette } from '../../theme';
 
 export type CommunityRow = Tables<'communities'>;
 
@@ -157,23 +158,23 @@ export function CommunitySwitcher({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 24, paddingBottom: 32 },
-  title: { fontSize: 28, fontWeight: '700', color: '#0B1F3A', marginBottom: 20 },
+  title: { fontSize: 28, fontWeight: '700', color: colors.foreground, marginBottom: 20 },
   toggle: {
     flexDirection: 'row',
-    backgroundColor: '#EDF1F6',
+    backgroundColor: colors.accent,
     borderRadius: 12,
     padding: 4,
     marginBottom: 24,
   },
   toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
-  toggleBtnActive: { backgroundColor: '#fff' },
-  toggleText: { fontSize: 14, fontWeight: '600', color: '#667' },
-  toggleTextActive: { color: '#0B1F3A' },
+  toggleBtnActive: { backgroundColor: colors.card },
+  toggleText: { fontSize: 14, fontWeight: '600', color: colors.mutedForeground },
+  toggleTextActive: { color: colors.foreground },
   section: { marginBottom: 24 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8A93A0',
+    color: colors.mutedForeground,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 10,
@@ -184,21 +185,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 12,
   },
-  avatar: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#E6EAF0' },
-  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarText: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  avatar: { width: 48, height: 48, borderRadius: 12, backgroundColor: colors.muted },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarText: { color: colors.card, fontSize: 20, fontWeight: '700' },
   itemBody: { flex: 1 },
-  itemName: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
-  defaultBadge: { marginTop: 2, fontSize: 12, color: '#C9A227', fontWeight: '600' },
-  star: { fontSize: 22, color: '#C9CFD8' },
-  starActive: { color: '#C9A227' },
+  itemName: { fontSize: 16, fontWeight: '600', color: colors.foreground },
+  defaultBadge: { marginTop: 2, fontSize: 12, color: palette.yellow[500], fontWeight: '600' },
+  star: { fontSize: 22, color: palette.slate[400] },
+  starActive: { color: palette.yellow[500] },
   newBtn: {
     borderWidth: 1,
-    borderColor: '#0B1F3A',
+    borderColor: colors.foreground,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 4,
   },
-  newBtnText: { color: '#0B1F3A', fontSize: 16, fontWeight: '600' },
+  newBtnText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
 });

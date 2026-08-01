@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
+import { colors } from '../../../../theme';
 
 const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 };
 
@@ -22,7 +23,7 @@ export default function CommunityMembersScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </View>
     );
   }
@@ -61,15 +62,15 @@ export default function CommunityMembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: '#3A4A60' },
-  error: { color: '#C0392B', fontWeight: '600' },
+  empty: { fontSize: 15, color: colors.mutedForeground },
+  error: { color: colors.destructive, fontWeight: '600' },
   invite: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  inviteText: { fontSize: 16, fontWeight: '700', color: '#0B7BFF' },
+  inviteText: { fontSize: 16, fontWeight: '700', color: colors.primary },
 });
