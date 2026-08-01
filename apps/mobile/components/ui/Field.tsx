@@ -32,6 +32,7 @@ export function Field({
   required = false,
   containerStyle,
   editable = true,
+  multiline = false,
   ...rest
 }: Props) {
   const invalid = Boolean(error);
@@ -55,9 +56,15 @@ export function Field({
       <TextInput
         style={[
           styles.input,
+          // A multiline field sizes and aligns itself. Call sites used to pass a
+          // style for this, which meant every long-text field re-derived the
+          // same two rules — and `style` is deliberately not part of this
+          // component's API, because that is how inputs drift apart.
+          multiline && styles.inputMultiline,
           invalid && styles.inputInvalid,
           !editable && styles.inputDisabled,
         ]}
+        multiline={multiline}
         editable={editable}
         placeholderTextColor={colors.ring}
         accessibilityLabel={label}
@@ -89,6 +96,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     color: colors.foreground,
     fontSize: type.body.fontSize,
+  },
+  inputMultiline: {
+    minHeight: 100,
+    paddingTop: space[3],
+    // Without this, RN centres the first line vertically in a tall box on
+    // Android and looks broken next to iOS.
+    textAlignVertical: 'top',
   },
   inputInvalid: { borderColor: colors.destructive },
   inputDisabled: { backgroundColor: colors.muted },

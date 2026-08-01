@@ -18,5 +18,8 @@ export { Card, type CardPadding } from './Card';
 export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';
 export { Field } from './Field';
+export { IconButton, type IconButtonSize } from './IconButton';
+export { ListRow, type ListRowVariant } from './ListRow';
+export { TopBar } from './TopBar';
 export { Loading, Screen } from './Screen';
 export { Text, type TextTone, type TextVariant } from './Text';
