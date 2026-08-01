@@ -32,10 +32,21 @@ const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
 
+// Storybook is compiled into every E2E build so suite 00 can screenshot the
+// design-system gallery on a real device. It costs ~2.9 MB of bundle and adds
+// one route that nothing links to, so the other 13 suites exercise exactly the
+// app they did before. Enabled unconditionally rather than per-suite because the
+// build is shared: a per-suite flag would mean two builds and a stale-artifact
+// trap the first time someone ran them in the wrong order.
+//
+// STORYBOOK_DISABLE_TELEMETRY: Storybook phones home anonymously by default.
+// CI machines should not.
 const ENV = {
   ...process.env,
   DEVELOPER_DIR: process.env.DEVELOPER_DIR ?? '/Applications/Xcode.app/Contents/Developer',
   LANG: 'en_US.UTF-8',
+  EXPO_PUBLIC_STORYBOOK: '1',
+  STORYBOOK_DISABLE_TELEMETRY: '1',
 };
 
 const log = (msg) => console.log(`[e2e] ${msg}`);
@@ -206,6 +217,12 @@ function sourceHash() {
   roots.forEach(walk);
   // Package versions affect the bundle too.
   h.update(readFileSync(join(MOBILE, 'package.json')));
+  // EXPO_PUBLIC_* values are INLINED into the bundle at build time, so two
+  // builds from identical sources are different artifacts if the flag differs.
+  // Without this the stamp would call a pre-Storybook build "fresh" and suite 00
+  // would drive an app that has no /storybook route — a confusing failure a long
+  // way from its cause.
+  h.update(`EXPO_PUBLIC_STORYBOOK=${ENV.EXPO_PUBLIC_STORYBOOK ?? ''}`);
   return h.digest('hex');
 }
 

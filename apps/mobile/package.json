@@ -62,11 +62,13 @@
     "stream-chat-expo": "^9.3.1"
   },
   "devDependencies": {
+    "@storybook/react-native": "10.5.4",
     "@types/react": "~19.2.2",
     "@types/react-dom": "~19.2.1",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "^17.8.0",
     "jsdom": "^25.0.1",
+    "storybook": "^10.5.5",
     "typescript": "~6.0.3",
     "vitest": "^2.1.0"
   },
