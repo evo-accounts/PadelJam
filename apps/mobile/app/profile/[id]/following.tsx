@@ -4,6 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { colors } from '../../../theme';
 
 export default function FollowingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,9 +38,9 @@ export default function FollowingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
-  search: { margin: 16, marginBottom: 0, borderWidth: 1, borderColor: '#ccc', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
-  row: { backgroundColor: '#fff', borderRadius: 12, padding: 16 },
-  rowName: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  empty: { textAlign: 'center', color: '#6B7685', paddingVertical: 24 },
+  container: { flex: 1, backgroundColor: colors.background },
+  search: { margin: 16, marginBottom: 0, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  row: { backgroundColor: colors.card, borderRadius: 12, padding: 16 },
+  rowName: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  empty: { textAlign: 'center', color: colors.mutedForeground, paddingVertical: 24 },
 });

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ReactNode } from 'react';
+import { colors } from '../theme';
 
 export function OnboardingStep({
   title,
@@ -99,25 +100,25 @@ const choiceStyles = StyleSheet.create({
   chip: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  chipActive: { borderColor: '#0B1F3A', backgroundColor: '#0B1F3A' },
-  chipText: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
-  chipTextActive: { color: '#fff' },
+  chipActive: { borderColor: colors.foreground, backgroundColor: colors.primary },
+  chipText: { fontSize: 16, fontWeight: '600', color: colors.foreground },
+  chipTextActive: { color: colors.card },
 });
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 24 },
+  container: { flex: 1, backgroundColor: colors.card, paddingHorizontal: 24 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  back: { color: '#0B1F3A', fontSize: 22, fontWeight: '400' },
-  skip: { color: '#0B1F3A', fontSize: 15, fontWeight: '600' },
+  back: { color: colors.foreground, fontSize: 22, fontWeight: '400' },
+  skip: { color: colors.foreground, fontSize: 15, fontWeight: '600' },
   content: { flex: 1, justifyContent: 'center' },
   title: { fontSize: 28, fontWeight: '700', marginBottom: 12 },
-  body: { fontSize: 16, color: '#444', lineHeight: 22, marginBottom: 24 },
-  button: { backgroundColor: '#0B1F3A', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  body: { fontSize: 16, color: colors.mutedForeground, lineHeight: 22, marginBottom: 24 },
+  button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
 });

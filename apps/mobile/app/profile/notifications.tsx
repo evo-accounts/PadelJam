@@ -2,6 +2,7 @@ import { useMySettings, useUpdateSettings, type NotificationSettings } from '@pa
 import { useT } from '@padel/i18n';
 import { Stack } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { colors } from '../../theme';
 
 export default function NotificationsScreen() {
   const { t } = useT('profile');
@@ -9,7 +10,7 @@ export default function NotificationsScreen() {
   const update = useUpdateSettings();
 
   if (settings.isLoading || !settings.data) {
-    return <ActivityIndicator color="#0B1F3A" style={{ marginTop: 48 }} />;
+    return <ActivityIndicator color={colors.foreground} style={{ marginTop: 48 }} />;
   }
 
   const value = settings.data;
@@ -36,8 +37,8 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 6 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  rowLabel: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  rowLabel: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
 });

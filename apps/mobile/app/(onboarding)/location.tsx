@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import { OnboardingStep } from '@/components/OnboardingStep';
 import { supabase } from '@/lib/supabase';
+import { colors } from '../../theme';
 
 type Coords = { lat: number; lng: number };
 type Mode = 'pick' | 'manual';
@@ -104,7 +105,7 @@ export default function LocationStep() {
             accessibilityRole="button"
           >
             {locating ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.card} />
             ) : (
               <Text style={styles.pickPrimaryText}>{t('locationUseCurrentTitle')}</Text>
             )}
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   pickPrimary: {
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -160,22 +161,22 @@ const styles = StyleSheet.create({
   pickPrimaryDisabled: {
     opacity: 0.6,
   },
-  pickPrimaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  pickPrimaryText: { color: colors.card, fontSize: 16, fontWeight: '600' },
   pickSecondary: {
     borderWidth: 1,
-    borderColor: '#0B1F3A',
+    borderColor: colors.foreground,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  pickSecondaryText: { color: '#0B1F3A', fontSize: 16, fontWeight: '600' },
+  pickSecondaryText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
   },
-  notice: { marginTop: 10, color: '#6B7685', fontSize: 13 },
+  notice: { marginTop: 10, color: colors.mutedForeground, fontSize: 13 },
 });

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
+import { colors } from '../../theme';
 
 const FILTERS: MyEventsFilter[] = ['all', 'organizing', 'going'];
 
@@ -35,7 +36,7 @@ export default function EventsScreen() {
         ))}
       </View>
       {query.isLoading ? (
-        <ActivityIndicator color="#0B1F3A" style={styles.state} />
+        <ActivityIndicator color={colors.foreground} style={styles.state} />
       ) : (
         <FlashList
           data={rows}
@@ -46,7 +47,7 @@ export default function EventsScreen() {
             <Text style={styles.empty}>{query.isError ? t('loadError') : t('empty')}</Text>
           }
           ListFooterComponent={
-            query.isFetchingNextPage ? <ActivityIndicator color="#0B1F3A" style={styles.state} /> : null
+            query.isFetchingNextPage ? <ActivityIndicator color={colors.foreground} style={styles.state} /> : null
           }
           onEndReachedThreshold={0.5}
           onEndReached={() => {
@@ -63,12 +64,12 @@ export default function EventsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   chips: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E7ECF3' },
-  chipActive: { backgroundColor: '#0B1F3A' },
-  chipText: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
-  chipTextActive: { color: '#fff' },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.muted },
+  chipActive: { backgroundColor: colors.primary },
+  chipText: { fontSize: 14, fontWeight: '600', color: colors.foreground },
+  chipTextActive: { color: colors.card },
   state: { paddingVertical: 24 },
-  empty: { textAlign: 'center', color: '#6B7685', paddingVertical: 24 },
+  empty: { textAlign: 'center', color: colors.mutedForeground, paddingVertical: 24 },
 });

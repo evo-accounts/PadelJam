@@ -9,6 +9,7 @@ import type { Channel } from 'stream-chat';
 import { ChannelList } from 'stream-chat-expo';
 
 import { ChannelRow } from '@/components/chat/ChannelRow';
+import { colors, palette } from '../../theme';
 
 type Tab = 'active' | 'archived';
 
@@ -59,7 +60,7 @@ export default function ChatListScreen() {
             >
               <SymbolView
                 name={{ ios: 'square.and.pencil', android: 'edit', web: 'edit' }}
-                tintColor="#0B7BFF"
+                tintColor={colors.primary}
                 size={22}
               />
             </Pressable>
@@ -92,24 +93,24 @@ export default function ChatListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
+  container: { flex: 1, backgroundColor: colors.card },
+  tabs: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: '#0B7BFF' },
-  tabText: { fontSize: 15, color: '#6B7685', fontWeight: '600' },
-  tabTextActive: { color: '#0B7BFF', fontWeight: '700' },
-  banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFF4E5', paddingHorizontal: 16, paddingVertical: 10 },
-  bannerText: { color: '#8A5A00', fontSize: 13, flex: 1 },
-  bannerRetry: { color: '#0B7BFF', fontWeight: '700', fontSize: 13, paddingLeft: 12 },
+  tabActive: { borderBottomColor: colors.primary },
+  tabText: { fontSize: 15, color: colors.mutedForeground, fontWeight: '600' },
+  tabTextActive: { color: colors.primary, fontWeight: '700' },
+  banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: palette.yellow[100], paddingHorizontal: 16, paddingVertical: 10 },
+  bannerText: { color: palette.yellow[900], fontSize: 13, flex: 1 },
+  bannerRetry: { color: colors.primary, fontWeight: '700', fontSize: 13, paddingLeft: 12 },
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 24,
+    backgroundColor: colors.card, borderRadius: 16, padding: 24,
     alignItems: 'center', gap: 14, width: '100%',
   },
-  emptyText: { fontSize: 15, color: '#6B7685', textAlign: 'center' },
+  emptyText: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
   emptyBtn: {
-    backgroundColor: '#0B7BFF', borderRadius: 8,
+    backgroundColor: colors.primary, borderRadius: 8,
     paddingHorizontal: 24, paddingVertical: 12,
   },
-  emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  emptyBtnText: { color: colors.card, fontWeight: '700', fontSize: 14 },
 });

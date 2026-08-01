@@ -26,6 +26,7 @@ import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { decidePostVerifyRoute } from '@/lib/postVerifyRoute';
 import { supabase } from '@/lib/supabase';
+import { colors } from '../../theme';
 
 export default function OtpScreen() {
   const { t } = useT('auth');
@@ -166,7 +167,7 @@ export default function OtpScreen() {
         disabled={busy || otpState.locked || code.length < 6}
         accessibilityRole="button"
       >
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('verify')}</Text>}
+        {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('verify')}</Text>}
       </Pressable>
 
       <Pressable
@@ -215,13 +216,13 @@ export default function OtpScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 24 },
+  container: { flex: 1, backgroundColor: colors.card, paddingHorizontal: 24 },
   title: { fontSize: 26, fontWeight: '700', marginBottom: 12 },
-  help: { fontSize: 14, color: '#444', marginBottom: 32 },
-  label: { fontSize: 14, color: '#444', marginBottom: 8 },
+  help: { fontSize: 14, color: colors.mutedForeground, marginBottom: 32 },
+  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -230,15 +231,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
-  error: { color: '#c0392b', marginBottom: 16 },
-  button: { backgroundColor: '#0B1F3A', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  error: { color: colors.destructive, marginBottom: 16 },
+  button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
   linkButton: { paddingVertical: 14, alignItems: 'center' },
-  link: { color: '#0B1F3A', fontSize: 15, fontWeight: '600' },
-  linkMuted: { color: '#999' },
+  link: { color: colors.foreground, fontSize: 15, fontWeight: '600' },
+  linkMuted: { color: colors.mutedForeground },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 8 },
-  sheetRow: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
-  sheetText: { fontSize: 16, color: '#0B1F3A', fontWeight: '600' },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 8 },
+  sheetRow: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
+  sheetText: { fontSize: 16, color: colors.foreground, fontWeight: '600' },
 });

@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { colors } from '../../theme';
 
 const REASONS = ['harassment', 'inappropriate', 'spam', 'fake', 'other'] as const;
 
@@ -64,18 +65,18 @@ export function ReportModal({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 },
-  sheet: { backgroundColor: '#fff', borderRadius: 16, padding: 20, gap: 10 },
-  title: { fontSize: 18, fontWeight: '700', color: '#0B1F3A' },
-  body: { fontSize: 14, color: '#6B7685' },
-  label: { fontSize: 13, fontWeight: '600', color: '#0B1F3A', marginTop: 4 },
+  sheet: { backgroundColor: colors.card, borderRadius: 16, padding: 20, gap: 10 },
+  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
+  body: { fontSize: 14, color: colors.mutedForeground },
+  label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 4 },
   reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#E7ECF3' },
-  chipActive: { backgroundColor: '#0B1F3A' },
-  chipText: { fontSize: 13, color: '#0B1F3A' },
-  chipTextActive: { color: '#fff' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 12, padding: 12, minHeight: 64, textAlignVertical: 'top' },
-  danger: { backgroundColor: '#D7263D', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  dangerText: { color: '#fff', fontWeight: '700' },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: colors.muted },
+  chipActive: { backgroundColor: colors.primary },
+  chipText: { fontSize: 13, color: colors.foreground },
+  chipTextActive: { color: colors.card },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, minHeight: 64, textAlignVertical: 'top' },
+  danger: { backgroundColor: colors.destructive, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  dangerText: { color: colors.card, fontWeight: '700' },
   cancel: { paddingVertical: 12, alignItems: 'center' },
-  cancelText: { color: '#6B7685', fontWeight: '600' },
+  cancelText: { color: colors.mutedForeground, fontWeight: '600' },
 });

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAuthTarget } from '@/lib/auth-flow';
 import { decidePostVerifyRoute } from '@/lib/postVerifyRoute';
 import { supabase } from '@/lib/supabase';
+import { colors } from '../../theme';
 
 export default function PasswordScreen() {
   const { t } = useT('auth');
@@ -73,7 +74,7 @@ export default function PasswordScreen() {
         disabled={busy || state.locked || !password}
         accessibilityRole="button"
       >
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('continue')}</Text>}
+        {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('continue')}</Text>}
       </Pressable>
       <Pressable style={styles.linkButton} onPress={() => router.push('/(auth)/recovery' as never)} accessibilityRole="button">
         <Text style={styles.link}>{t('forgotPassword')}</Text>
@@ -86,15 +87,15 @@ export default function PasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC', paddingHorizontal: 24 },
-  title: { fontSize: 24, fontWeight: '800', color: '#0B1F3A', marginBottom: 8 },
-  help: { fontSize: 14, color: '#6B7685', marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', color: '#0B1F3A', marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff' },
-  error: { color: '#D7263D', fontSize: 13, marginTop: 8 },
-  button: { backgroundColor: '#0B7BFF', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
+  container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 24 },
+  title: { fontSize: 24, fontWeight: '800', color: colors.foreground, marginBottom: 8 },
+  help: { fontSize: 14, color: colors.mutedForeground, marginBottom: 24 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
+  error: { color: colors.destructive, fontSize: 13, marginTop: 8 },
+  button: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  buttonText: { color: colors.card, fontWeight: '700', fontSize: 16 },
   linkButton: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
-  link: { color: '#0B7BFF', fontWeight: '600', fontSize: 14 },
+  link: { color: colors.primary, fontWeight: '600', fontSize: 14 },
 });

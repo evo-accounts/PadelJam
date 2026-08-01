@@ -32,6 +32,7 @@ import { EventCard } from '@/components/event/EventCard';
 import { GroupHeader } from '@/components/group/GroupHeader';
 import { RankingList } from '@/components/group/RankingList';
 import { avatarUrl } from '@/lib/community-images';
+import { colors, palette } from '../../../theme';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -97,7 +98,7 @@ export default function GroupHomeScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </SafeAreaView>
     );
   }
@@ -236,12 +237,12 @@ export default function GroupHomeScreen() {
             onPress={openGroupChat}
             disabled={ensureChannel.isPending}
             accessibilityRole="button"
-            style={{ paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#0B7BFF', borderRadius: 12, alignItems: 'center', marginTop: 8 }}
+            style={{ paddingVertical: 12, paddingHorizontal: 16, backgroundColor: colors.primary, borderRadius: 12, alignItems: 'center', marginTop: 8 }}
           >
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{t('openChat', { ns: 'chat' })}</Text>
+            <Text style={{ color: colors.card, fontWeight: '700', fontSize: 15 }}>{t('openChat', { ns: 'chat' })}</Text>
           </Pressable>
           {ensureChannel.isError ? (
-            <Text style={{ color: '#D7263D', fontSize: 13, marginTop: 6 }}>{t('chatUnavailable', { ns: 'chat' })}</Text>
+            <Text style={{ color: colors.destructive, fontSize: 13, marginTop: 6 }}>{t('chatUnavailable', { ns: 'chat' })}</Text>
           ) : null}
         </View>
 
@@ -385,7 +386,7 @@ export default function GroupHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
   topBar: {
     flexDirection: 'row',
@@ -393,32 +394,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
   },
-  back: { fontSize: 32, color: '#0B1F3A', lineHeight: 32 },
-  more: { fontSize: 20, color: '#0B1F3A', fontWeight: '700' },
+  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
+  more: { fontSize: 20, color: colors.foreground, fontWeight: '700' },
   content: { paddingBottom: 32 },
   section: { paddingHorizontal: 16, paddingTop: 20 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#8A95A5', textTransform: 'uppercase' },
-  sectionCount: { fontSize: 13, color: '#3A4A60', fontWeight: '600' },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
+  sectionCount: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
   avatars: { flexDirection: 'row', marginTop: 12 },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E6EAF0',
+    backgroundColor: colors.muted,
     marginRight: -8,
     borderWidth: 2,
-    borderColor: '#F4F6FA',
+    borderColor: colors.border,
   },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 15, fontWeight: '700' },
   inviteRow: { paddingHorizontal: 16, paddingTop: 16 },
-  inviteText: { fontSize: 16, fontWeight: '700', color: '#0B7BFF' },
-  placeholder: { fontSize: 14, color: '#8A95A5', marginTop: 12 },
+  inviteText: { fontSize: 16, fontWeight: '700', color: colors.primary },
+  placeholder: { fontSize: 14, color: palette.slate[400], marginTop: 12 },
   eventList: { marginTop: 12, gap: 8 },
-  card: { backgroundColor: '#fff', borderRadius: 12, marginTop: 12, overflow: 'hidden' },
+  card: { backgroundColor: colors.card, borderRadius: 12, marginTop: 12, overflow: 'hidden' },
   seasonRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -426,45 +427,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  seasonRowText: { fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
-  chevron: { fontSize: 22, color: '#C2CAD6' },
+  seasonRowText: { fontSize: 16, color: colors.foreground, fontWeight: '500' },
+  chevron: { fontSize: 22, color: palette.slate[400] },
   spacer: { height: 8 },
-  noAccessTitle: { fontSize: 20, fontWeight: '800', color: '#0B1F3A', marginBottom: 8 },
-  noAccessBody: { fontSize: 14, color: '#6B7685', textAlign: 'center', paddingHorizontal: 32 },
+  noAccessTitle: { fontSize: 20, fontWeight: '800', color: colors.foreground, marginBottom: 8 },
+  noAccessBody: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', paddingHorizontal: 32 },
   noAccessBtn: {
     marginTop: 20,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: '#0B7BFF',
+    backgroundColor: colors.primary,
     borderRadius: 12,
   },
-  noAccessBtnText: { color: '#fff', fontWeight: '700' },
+  noAccessBtnText: { color: colors.card, fontWeight: '700' },
   periodRow: { flexDirection: 'row', gap: 8, marginBottom: 8, marginTop: 12, flexWrap: 'wrap' },
-  periodChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#EEF1F5' },
-  periodChipOn: { backgroundColor: '#0B7BFF' },
-  periodChipText: { fontSize: 12, color: '#3A4A5E', fontWeight: '600' },
-  periodChipTextOn: { color: '#fff' },
+  periodChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: colors.accent },
+  periodChipOn: { backgroundColor: colors.primary },
+  periodChipText: { fontSize: 12, color: colors.mutedForeground, fontWeight: '600' },
+  periodChipTextOn: { color: colors.card },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center' },
-  sheet: { backgroundColor: '#fff', borderRadius: 14, margin: 24, padding: 20, gap: 8 },
-  sheetTitle: { fontSize: 16, fontWeight: '800', color: '#0B1F3A' },
-  sheetBody: { fontSize: 13, color: '#3A4A5E' },
-  sheetEmpty: { fontSize: 13, color: '#6B7685', paddingVertical: 8 },
+  sheet: { backgroundColor: colors.card, borderRadius: 14, margin: 24, padding: 20, gap: 8 },
+  sheetTitle: { fontSize: 16, fontWeight: '800', color: colors.foreground },
+  sheetBody: { fontSize: 13, color: colors.mutedForeground },
+  sheetEmpty: { fontSize: 13, color: colors.mutedForeground, paddingVertical: 8 },
   adminRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.muted,
   },
-  adminName: { fontSize: 15, color: '#0B1F3A' },
+  adminName: { fontSize: 15, color: colors.foreground },
   addBtn: {
-    backgroundColor: '#0B7BFF',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 12,
   },
-  addBtnText: { color: '#fff', fontWeight: '700' },
+  addBtnText: { color: colors.card, fontWeight: '700' },
 });

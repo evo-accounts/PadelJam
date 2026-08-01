@@ -7,6 +7,7 @@ import { streamClient } from '@/lib/streamClient';
 import { useT } from '@padel/i18n';
 
 import { useChannelPreview } from './useChannelPreview';
+import { colors } from '../../theme';
 
 type Tab = 'active' | 'archived';
 
@@ -71,7 +72,7 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
                 </Pressable>
                 {isDirect ? (
                   <Pressable style={styles.sheetRow} onPress={() => { setMenuOpen(false); setConfirm('delete'); }} accessibilityRole="button">
-                    <Text style={[styles.sheetText, { color: '#D7263D' }]}>{t('delete')}</Text>
+                    <Text style={[styles.sheetText, { color: colors.destructive }]}>{t('delete')}</Text>
                   </Pressable>
                 ) : null}
               </>
@@ -92,7 +93,7 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
                 onPress={() => run(() => (confirm === 'archive' ? channel.archive() : channel.hide(null, true)))}
                 accessibilityRole="button"
               >
-                <Text style={[styles.confirmCta, confirm === 'delete' && { color: '#D7263D' }]}>
+                <Text style={[styles.confirmCta, confirm === 'delete' && { color: colors.destructive }]}>
                   {t(confirm === 'archive' ? 'archive' : 'delete')}
                 </Text>
               </Pressable>
@@ -105,23 +106,23 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E2E8F0' },
-  title: { fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  preview: { fontSize: 13, color: '#6B7685', marginTop: 2 },
-  badge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: '#0B7BFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.muted },
+  title: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  preview: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
+  badge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  badgeText: { color: colors.card, fontSize: 11, fontWeight: '700' },
   kebab: { paddingHorizontal: 8, paddingVertical: 8 },
-  kebabDots: { fontSize: 16, color: '#6B7685', fontWeight: '700' },
+  kebabDots: { fontSize: 16, color: colors.mutedForeground, fontWeight: '700' },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
-  sheet: { backgroundColor: '#fff', borderRadius: 12, minWidth: 220, overflow: 'hidden' },
-  sheetRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0' },
-  sheetText: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
-  confirm: { backgroundColor: '#fff', borderRadius: 14, padding: 20, marginHorizontal: 32, gap: 8 },
-  confirmTitle: { fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
-  confirmBody: { fontSize: 14, color: '#3A4A5E' },
+  sheet: { backgroundColor: colors.card, borderRadius: 12, minWidth: 220, overflow: 'hidden' },
+  sheetRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
+  sheetText: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
+  confirm: { backgroundColor: colors.card, borderRadius: 14, padding: 20, marginHorizontal: 32, gap: 8 },
+  confirmTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground },
+  confirmBody: { fontSize: 14, color: colors.mutedForeground },
   confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 24, marginTop: 12 },
-  cancel: { fontSize: 15, color: '#6B7685', fontWeight: '600' },
-  confirmCta: { fontSize: 15, color: '#0B7BFF', fontWeight: '700' },
+  cancel: { fontSize: 15, color: colors.mutedForeground, fontWeight: '600' },
+  confirmCta: { fontSize: 15, color: colors.primary, fontWeight: '700' },
 });

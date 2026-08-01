@@ -10,6 +10,7 @@ import { ChoiceRow } from '@/components/OnboardingStep';
 import { avatarUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
+import { colors, palette } from '../../theme';
 
 const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -86,7 +87,7 @@ export default function EditProfileScreen() {
     }
   };
 
-  if (my.isLoading) return <ActivityIndicator color="#0B1F3A" style={{ marginTop: 48 }} />;
+  if (my.isLoading) return <ActivityIndicator color={colors.foreground} style={{ marginTop: 48 }} />;
 
   const shownAvatar = picked ? picked.uri : avatarUrl(avatarPath);
 
@@ -140,17 +141,17 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 8, paddingBottom: 48 },
   avatarWrap: { alignItems: 'center', gap: 6, marginBottom: 8 },
-  avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#E6F0FF', overflow: 'hidden' },
+  avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: palette.purple[100], overflow: 'hidden' },
   avatarImg: { width: 96, height: 96 },
-  avatarHint: { color: '#0B7BFF', fontSize: 13, fontWeight: '600' },
-  label: { fontSize: 13, fontWeight: '600', color: '#0B1F3A', marginTop: 8 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff' },
+  avatarHint: { color: colors.primary, fontSize: 13, fontWeight: '600' },
+  label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
   multiline: { minHeight: 72, textAlignVertical: 'top' },
-  error: { color: '#D7263D', fontSize: 13 },
-  save: { backgroundColor: '#0B7BFF', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
+  error: { color: colors.destructive, fontSize: 13 },
+  save: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
   saveDisabled: { opacity: 0.6 },
-  saveText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  saveText: { color: colors.card, fontWeight: '700', fontSize: 16 },
 });

@@ -2,6 +2,7 @@ import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors } from '../theme';
 
 export function CreateEventFab() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export function CreateEventFab() {
       onPress={() => router.push('/event/create')}
       accessibilityRole="button"
       accessibilityLabel="Create event">
-      <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} tintColor="#fff" size={28} />
+      <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} tintColor={colors.card} size={28} />
     </Pressable>
   );
 }
@@ -24,10 +25,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#0B7BFF',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.foreground,
     shadowOpacity: 0.2,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },

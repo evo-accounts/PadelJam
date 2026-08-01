@@ -1,5 +1,6 @@
 import { useT } from '@padel/i18n';
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, palette } from '../../theme';
 
 /** Empty-state card shown before any events have been played in a group. */
 export function RankingPlaceholder() {
@@ -14,7 +15,7 @@ export function RankingPlaceholder() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     paddingVertical: 32,
     paddingHorizontal: 24,
@@ -22,5 +23,5 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   icon: { fontSize: 32 },
-  text: { fontSize: 14, color: '#8A95A5', textAlign: 'center' },
+  text: { fontSize: 14, color: palette.slate[400], textAlign: 'center' },
 });

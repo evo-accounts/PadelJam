@@ -22,6 +22,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
+import { colors } from '../../../theme';
 
 type Candidate = {
   user_id: string;
@@ -141,7 +142,7 @@ export default function GroupInviteScreen() {
                 {name}
               </Text>
               {isPending ? (
-                <ActivityIndicator color="#0B7BFF" />
+                <ActivityIndicator color={colors.primary} />
               ) : isInvited ? (
                 <Text style={styles.invitedMark}>✓</Text>
               ) : (
@@ -156,7 +157,7 @@ export default function GroupInviteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -164,22 +165,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  back: { fontSize: 32, color: '#0B1F3A', lineHeight: 32 },
+  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
   backSpacer: { width: 24 },
-  title: { fontSize: 17, fontWeight: '700', color: '#0B1F3A' },
+  title: { fontSize: 17, fontWeight: '700', color: colors.foreground },
   searchWrap: { padding: 16 },
   search: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
   },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: '#3A4A60', textAlign: 'center' },
+  empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -187,12 +188,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E6EAF0' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1F3A' },
-  avatarInitial: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  name: { flex: 1, fontSize: 16, color: '#0B1F3A', fontWeight: '500' },
-  inviteAction: { fontSize: 14, fontWeight: '700', color: '#0B7BFF' },
-  invitedMark: { fontSize: 18, fontWeight: '700', color: '#2E9E5B' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
+  name: { flex: 1, fontSize: 16, color: colors.foreground, fontWeight: '500' },
+  inviteAction: { fontSize: 14, fontWeight: '700', color: colors.primary },
+  invitedMark: { fontSize: 18, fontWeight: '700', color: colors.success },
 });

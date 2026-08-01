@@ -22,6 +22,7 @@ import { StepIndicator } from '@/components/event/wizard/StepIndicator';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
+import { colors } from '../../../theme';
 
 export default function CreateEventScreen() {
   const { groupId, communityId } = useLocalSearchParams<{
@@ -189,7 +190,7 @@ function CreateEventWizard() {
           ]}
         >
           {submitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.card} />
           ) : (
             <Text style={styles.primaryLabel}>{isLast ? t('finish') : t('next')}</Text>
           )}
@@ -200,7 +201,7 @@ function CreateEventWizard() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -209,10 +210,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6EAF0',
+    borderBottomColor: colors.border,
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#0B1F3A' },
-  close: { fontSize: 16, fontWeight: '600', color: '#0B7BFF' },
+  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
+  close: { fontSize: 16, fontWeight: '600', color: colors.primary },
   inner: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 },
   footer: {
     flexDirection: 'row',
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E6EAF0',
+    borderTopColor: colors.border,
   },
   btn: {
     minHeight: 48,
@@ -231,15 +232,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnSpacer: { width: 1 },
-  backBtn: { backgroundColor: '#F0F3F8' },
-  backLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
-  primaryBtn: { backgroundColor: '#0B7BFF', marginLeft: 'auto' },
+  backBtn: { backgroundColor: colors.muted },
+  backLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
+  primaryBtn: { backgroundColor: colors.primary, marginLeft: 'auto' },
   primaryBtnDisabled: { opacity: 0.4 },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
   error: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#D7263D',
+    color: colors.destructive,
     paddingHorizontal: 20,
     paddingBottom: 8,
   },

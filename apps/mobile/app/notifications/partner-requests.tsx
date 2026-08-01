@@ -8,6 +8,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { Stack } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../../theme';
 
 export default function PartnerRequestsScreen() {
   const { t } = useT('notifications');
@@ -25,7 +26,7 @@ export default function PartnerRequestsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: t('partnerRequests') }} />
       {list.isLoading ? (
-        <ActivityIndicator color="#0B1F3A" style={{ marginTop: 32 }} />
+        <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : list.isError ? (
         <Text style={styles.empty}>{t('requestsError')}</Text>
       ) : rows.length === 0 ? (
@@ -74,17 +75,17 @@ export default function PartnerRequestsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', marginHorizontal: 12, marginTop: 8, borderRadius: 12, padding: 12,
+    backgroundColor: colors.card, marginHorizontal: 12, marginTop: 8, borderRadius: 12, padding: 12,
   },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E2E8F0' },
-  name: { fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  context: { fontSize: 13, color: '#6B7685', marginTop: 2 },
-  decline: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: '#EEF1F5' },
-  declineText: { color: '#0B1F3A', fontWeight: '600', fontSize: 13 },
-  accept: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: '#0B7BFF' },
-  acceptText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  empty: { textAlign: 'center', marginTop: 48, color: '#6B7685', fontSize: 15 },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.muted },
+  name: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  context: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
+  decline: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.accent },
+  declineText: { color: colors.foreground, fontWeight: '600', fontSize: 13 },
+  accept: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.primary },
+  acceptText: { color: colors.card, fontWeight: '700', fontSize: 13 },
+  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
 });

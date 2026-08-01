@@ -14,6 +14,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, palette } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -85,21 +86,21 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   card: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
   title: { fontSize: 28, fontWeight: '700', textAlign: 'center', marginBottom: 16 },
-  body: { fontSize: 16, color: '#444', textAlign: 'center', lineHeight: 22 },
+  body: { fontSize: 16, color: colors.mutedForeground, textAlign: 'center', lineHeight: 22 },
   dots: { flexDirection: 'row', justifyContent: 'center', marginVertical: 24 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ccc', marginHorizontal: 4 },
-  dotActive: { backgroundColor: '#0B1F3A' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.muted, marginHorizontal: 4 },
+  dotActive: { backgroundColor: colors.primary },
   button: {
     marginHorizontal: 24,
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  disclosure: { fontSize: 11, color: '#9AA7B6', textAlign: 'center', marginTop: 12, marginHorizontal: 24, lineHeight: 16 },
-  disclosureLink: { color: '#0B7BFF', fontWeight: '600' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
+  disclosure: { fontSize: 11, color: palette.slate[400], textAlign: 'center', marginTop: 12, marginHorizontal: 24, lineHeight: 16 },
+  disclosureLink: { color: colors.primary, fontWeight: '600' },
 });

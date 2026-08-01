@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSession } from '@padel/auth';
 import { consumePendingCommunityImages } from '@/lib/community-image-handoff';
 import { uploadCommunityImage } from '@/lib/storage';
+import { colors } from '../../../theme';
 
 const THUMBNAIL_BUCKET = 'community-thumbnails';
 const COVER_BUCKET = 'community-covers';
@@ -122,20 +123,20 @@ export default function CommunityCreatedScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 24 },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 8, color: '#0B1F3A' },
-  subtitle: { fontSize: 15, color: '#666', marginBottom: 32 },
+  container: { flex: 1, backgroundColor: colors.card, paddingHorizontal: 24 },
+  title: { fontSize: 28, fontWeight: '700', marginBottom: 8, color: colors.foreground },
+  subtitle: { fontSize: 15, color: colors.mutedForeground, marginBottom: 32 },
   actions: { gap: 12, flex: 1 },
-  button: { backgroundColor: '#0B1F3A', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
   secondary: {
     borderWidth: 1,
-    borderColor: '#0B1F3A',
+    borderColor: colors.foreground,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  secondaryText: { color: '#0B1F3A', fontSize: 16, fontWeight: '600' },
+  secondaryText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
   disabled: { opacity: 0.45 },
-  manage: { backgroundColor: '#0B1F3A', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  manage: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
 });

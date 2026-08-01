@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import { ResultCard } from './ResultCard';
+import { colors } from '../../theme';
 
 export function ShareResultsModal({
   visible,
@@ -71,7 +72,7 @@ export function ShareResultsModal({
               accessibilityRole="button"
             >
               {postResult.isPending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.card} />
               ) : (
                 <Text style={styles.primaryLabel}>{posted ? t('resultPosted') : t('postToFeedCta')}</Text>
               )}
@@ -91,14 +92,14 @@ export function ShareResultsModal({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 12 },
-  title: { fontSize: 18, fontWeight: '700', color: '#0B1F3A' },
-  error: { color: '#D7263D', fontSize: 14, fontWeight: '600' },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 12 },
+  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
+  error: { color: colors.destructive, fontSize: 14, fontWeight: '600' },
   btn: { minHeight: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  primary: { backgroundColor: '#0B7BFF' },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  secondary: { backgroundColor: '#F0F3F8' },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
+  primary: { backgroundColor: colors.primary },
+  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
+  secondary: { backgroundColor: colors.muted },
+  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
   disabled: { opacity: 0.5 },
   offscreen: { position: 'absolute', left: -9999, top: 0 },
 });

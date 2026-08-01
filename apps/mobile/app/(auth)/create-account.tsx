@@ -29,6 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { detectKind, getAuthTarget } from '@/lib/auth-flow';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
+import { colors } from '../../theme';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
@@ -274,7 +275,7 @@ export default function CreateAccountScreen() {
             disabled={busy || otpState.locked || code.length < 6}
             accessibilityRole="button"
           >
-            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('verify')}</Text>}
+            {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('verify')}</Text>}
           </Pressable>
 
           <Pressable
@@ -381,7 +382,7 @@ export default function CreateAccountScreen() {
           accessibilityRole="button"
         >
           {busy ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.card} />
           ) : (
             <Text style={styles.buttonText}>{t('createAccount')}</Text>
           )}
@@ -392,14 +393,14 @@ export default function CreateAccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.card },
   inner: { paddingHorizontal: 24 },
   title: { fontSize: 26, fontWeight: '700', marginBottom: 32 },
-  help: { fontSize: 14, color: '#444', marginBottom: 32, marginTop: -20 },
-  label: { fontSize: 14, color: '#444', marginBottom: 8 },
+  help: { fontSize: 14, color: colors.mutedForeground, marginBottom: 32, marginTop: -20 },
+  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -408,7 +409,7 @@ const styles = StyleSheet.create({
   },
   codeInput: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -417,18 +418,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
-  inputDisabled: { backgroundColor: '#F0F3F8', color: '#6B7685' },
-  error: { color: '#c0392b', marginBottom: 16 },
-  button: { backgroundColor: '#0B1F3A', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  inputDisabled: { backgroundColor: colors.muted, color: colors.mutedForeground },
+  error: { color: colors.destructive, marginBottom: 16 },
+  button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
   linkButton: { paddingVertical: 14, alignItems: 'center' },
-  link: { color: '#0B1F3A', fontSize: 15, fontWeight: '600' },
-  linkMuted: { color: '#999' },
+  link: { color: colors.foreground, fontSize: 15, fontWeight: '600' },
+  linkMuted: { color: colors.mutedForeground },
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 16, marginBottom: 4 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#9AA7B6', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  checkboxOn: { backgroundColor: '#0B7BFF', borderColor: '#0B7BFF' },
-  checkboxMark: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  termsText: { flex: 1, fontSize: 13, color: '#3A4A5E', lineHeight: 18 },
-  termsLink: { color: '#0B7BFF', fontWeight: '700' },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.ring, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  checkboxMark: { color: colors.card, fontSize: 14, fontWeight: '800' },
+  termsText: { flex: 1, fontSize: 13, color: colors.mutedForeground, lineHeight: 18 },
+  termsLink: { color: colors.primary, fontWeight: '700' },
 });

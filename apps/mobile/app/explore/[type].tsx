@@ -13,6 +13,7 @@ import { EventCard } from '@/components/event/EventCard';
 import { CommunityCard } from '@/components/explore/CommunityCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
+import { colors } from '../../theme';
 
 type ExploreType = 'players' | 'events' | 'communities' | 'groups';
 
@@ -67,7 +68,7 @@ export default function ExploreSeeAllScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: t(titleKey) }} />
       {active.isLoading ? (
-        <ActivityIndicator color="#0B1F3A" style={styles.state} />
+        <ActivityIndicator color={colors.foreground} style={styles.state} />
       ) : (
         <FlashList
           data={rows}
@@ -76,7 +77,7 @@ export default function ExploreSeeAllScreen() {
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           ListEmptyComponent={<Text style={styles.empty}>{active.isError ? t('loadError') : t(emptyKey)}</Text>}
-          ListFooterComponent={active.isFetchingNextPage ? <ActivityIndicator color="#0B1F3A" style={styles.state} /> : null}
+          ListFooterComponent={active.isFetchingNextPage ? <ActivityIndicator color={colors.foreground} style={styles.state} /> : null}
           onEndReachedThreshold={0.5}
           onEndReached={() => {
             if (active.hasNextPage && !active.isFetchingNextPage) void active.fetchNextPage();
@@ -89,8 +90,8 @@ export default function ExploreSeeAllScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  container: { flex: 1, backgroundColor: colors.background },
   list: { padding: 16 },
   state: { paddingVertical: 24 },
-  empty: { textAlign: 'center', color: '#6B7685', paddingVertical: 24 },
+  empty: { textAlign: 'center', color: colors.mutedForeground, paddingVertical: 24 },
 });
