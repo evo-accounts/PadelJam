@@ -35,6 +35,25 @@ export const light = {
   successForeground: p.white,
   warning: p.yellow[500],
   warningForeground: p.black,
+  /**
+   * The status colours AS TEXT on a light surface.
+   *
+   * Separate tokens because `success` and `warning` each do two jobs: a solid
+   * FILL (a button, a badge) and a TEXT colour on the page. One value cannot
+   * serve both — measured on the page background, `success` reaches only 2.89
+   * and `warning` 2.05, where body text needs 4.5. Darkening the shared token
+   * would fix the text and simultaneously darken every fill, flipping
+   * `warningForeground` from black to white and changing surfaces that were
+   * already approved at the screenshot review.
+   *
+   * So the fills keep their approved values and text gets its own step:
+   * green-700 (4.77) and yellow-700 (4.80).
+   *
+   * `info` is the same class of problem at 3.91 and has no `infoStrong` yet —
+   * it was left out deliberately rather than overlooked, pending a decision.
+   */
+  successStrong: p.green[700],
+  warningStrong: p.yellow[700],
   border: p.slate[100],
   input: p.slate[100],
   ring: p.slate[400],
@@ -121,6 +140,9 @@ export const dark = {
   successForeground: p.green[950],
   warning: p.yellow[600],
   warningForeground: p.black,
+  // Mirrored: on a dark page the legible step is a LIGHT one, not a dark one.
+  successStrong: p.green[300],
+  warningStrong: p.yellow[300],
   border: p.purple[700],
   input: 'rgba(255, 255, 255, 0.15)',
   ring: p.slate[500],

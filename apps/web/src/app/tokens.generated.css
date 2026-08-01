@@ -160,6 +160,8 @@
   --success-foreground: #ffffff;
   --warning: #f59e0b;
   --warning-foreground: #000000;
+  --success-strong: #457a61;
+  --warning-strong: #b45309;
   --border: #f1f5f9;
   --input: #f1f5f9;
   --ring: #94a3b8;
@@ -206,6 +208,8 @@
   --success-foreground: #022c22;
   --warning: #d97706;
   --warning-foreground: #000000;
+  --success-strong: #a8dfc5;
+  --warning-strong: #fcd34d;
   --border: #6d4a99;
   --input: rgba(255, 255, 255, 0.15);
   --ring: #64748b;

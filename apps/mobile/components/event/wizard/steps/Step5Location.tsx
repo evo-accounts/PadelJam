@@ -168,5 +168,5 @@ const styles = StyleSheet.create({
   or: { textAlign: 'center', color: colors.mutedForeground, fontSize: 13, marginVertical: 12 },
   locBtn: { backgroundColor: palette.purple[100], borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
   locBtnText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
-  coords: { color: colors.success, fontSize: 12, marginTop: 6, textAlign: 'center' },
+  coords: { color: colors.successStrong, fontSize: 12, marginTop: 6, textAlign: 'center' },
 });

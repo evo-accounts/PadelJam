@@ -113,7 +113,7 @@ const styled = StyleSheet.create({
   badgeScheduled: { backgroundColor: palette.purple[100] },
   badgeTextScheduled: { color: colors.primary },
   badgeLive: { backgroundColor: palette.green[100] },
-  badgeTextLive: { color: colors.success },
+  badgeTextLive: { color: colors.successStrong },
   badgeDone: { backgroundColor: colors.muted },
   badgeTextDone: { color: colors.mutedForeground },
 });

@@ -49,7 +49,7 @@ const tones: Record<TextTone, string> = {
   inverse: colors.card,
   primary: colors.primary,
   destructive: colors.destructive,
-  success: colors.success,
+  success: colors.successStrong,
 };
 
 export function Text({ variant = 'body', tone = 'default', style, ...rest }: Props) {

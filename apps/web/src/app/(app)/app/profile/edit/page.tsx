@@ -177,7 +177,7 @@ export default function EditProfilePage() {
         <Button onClick={onSave} disabled={update.isPending}>
           {t('save')}
         </Button>
-        {saved ? <span className="text-sm text-success">{t('saved')}</span> : null}
+        {saved ? <span className="text-sm text-success-strong">{t('saved')}</span> : null}
         {error ? <span className="text-sm text-destructive">{t('saveError')}</span> : null}
       </div>
     </div>
