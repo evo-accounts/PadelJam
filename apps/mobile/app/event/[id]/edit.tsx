@@ -18,6 +18,7 @@ import { Step8Preferences } from '@/components/event/wizard/steps/Step8Preferenc
 import { geocodeAddress } from '@/lib/geocode';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
+import { colors, palette } from '../../../theme';
 
 export default function EditEventScreen() {
   const { t } = useT('event');
@@ -72,7 +73,7 @@ export default function EditEventScreen() {
   if (isLoading || !d) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </SafeAreaView>
     );
   }
@@ -209,7 +210,7 @@ export default function EditEventScreen() {
           onPress={onSave}
           accessibilityRole="button"
         >
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('saveCta')}</Text>}
+          {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.btnText}>{t('saveCta')}</Text>}
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -217,18 +218,18 @@ export default function EditEventScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#fff' },
-  back: { fontSize: 32, color: '#0B1F3A', lineHeight: 32, width: 32 },
-  topTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.card },
+  back: { fontSize: 32, color: colors.foreground, lineHeight: 32, width: 32 },
+  topTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
   content: { padding: 16, gap: 16 },
-  section: { fontSize: 13, fontWeight: '700', color: '#8A95A5', textTransform: 'uppercase', marginTop: 8 },
-  label: { fontSize: 14, fontWeight: '600', color: '#0B1F3A' },
-  input: { borderWidth: 1, borderColor: '#E6EAF0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: '#0B1F3A', backgroundColor: '#fff' },
+  section: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase', marginTop: 8 },
+  label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: colors.foreground, backgroundColor: colors.card },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
-  error: { color: '#D7263D', fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  btn: { minHeight: 50, borderRadius: 12, backgroundColor: '#0B7BFF', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+  error: { color: colors.destructive, fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  btn: { minHeight: 50, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   btnDisabled: { opacity: 0.5 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  btnText: { color: colors.card, fontSize: 16, fontWeight: '700' },
 });

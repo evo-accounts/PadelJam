@@ -31,6 +31,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShareResultsModal } from '@/components/event/ShareResultsModal';
 import { TimerTab } from '@/components/event/TimerTab';
+import { colors, palette } from '../../../theme';
 
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
 type MatchPlayer = MatchRow['match_players'][number];
@@ -109,7 +110,7 @@ export default function EventLiveScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </SafeAreaView>
     );
   }
@@ -674,7 +675,7 @@ export default function EventLiveScreen() {
             <TextInput
               style={[styles.input, styles.inputMultiline]}
               placeholder={t('finishMessagePlaceholder')}
-              placeholderTextColor="#8A95A5"
+              placeholderTextColor={palette.slate[400]}
               multiline
               maxLength={280}
               value={finishMessage}
@@ -738,22 +739,22 @@ export default function EventLiveScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
   centerBox: { paddingHorizontal: 32, alignItems: 'center', gap: 12 },
-  noAccessTitle: { fontSize: 20, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
-  noAccessBody: { fontSize: 15, color: '#6B7685', textAlign: 'center' },
+  noAccessTitle: { fontSize: 20, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  noAccessBody: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
 
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
   },
-  back: { fontSize: 32, color: '#0B1F3A', lineHeight: 32 },
+  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
   backSpacer: { width: 20 },
-  title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: '#0B1F3A' },
+  title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.foreground },
 
   // Round tabs
   roundTabs: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
@@ -761,24 +762,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#F0F3F8',
+    backgroundColor: colors.muted,
   },
-  roundTabActive: { backgroundColor: '#0B7BFF' },
-  roundTabText: { fontSize: 14, fontWeight: '600', color: '#6B7685' },
-  roundTabTextActive: { color: '#fff' },
+  roundTabActive: { backgroundColor: colors.primary },
+  roundTabText: { fontSize: 14, fontWeight: '600', color: colors.mutedForeground },
+  roundTabTextActive: { color: colors.card },
 
   content: { padding: 16, gap: 12 },
-  empty: { fontSize: 15, color: '#6B7685', textAlign: 'center', marginTop: 32 },
+  empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', marginTop: 32 },
 
   // Match card
   matchCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
   },
-  matchCardMine: { borderColor: '#0B7BFF', borderWidth: 2 },
+  matchCardMine: { borderColor: colors.primary, borderWidth: 2 },
   matchHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -788,33 +789,33 @@ const styles = StyleSheet.create({
   courtLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8A95A5',
+    color: palette.slate[400],
     textTransform: 'uppercase',
   },
-  mineChip: { backgroundColor: '#E6F0FF', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  mineChipText: { fontSize: 11, fontWeight: '700', color: '#0B7BFF' },
+  mineChip: { backgroundColor: palette.purple[100], borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  mineChipText: { fontSize: 11, fontWeight: '700', color: colors.primary },
   matchBody: { alignItems: 'center', gap: 4 },
-  sideNames: { fontSize: 16, fontWeight: '600', color: '#0B1F3A', textAlign: 'center' },
-  score: { fontSize: 22, fontWeight: '800', color: '#0B1F3A' },
-  vs: { fontSize: 12, fontWeight: '700', color: '#8A95A5', textTransform: 'uppercase' },
+  sideNames: { fontSize: 16, fontWeight: '600', color: colors.foreground, textAlign: 'center' },
+  score: { fontSize: 22, fontWeight: '800', color: colors.foreground },
+  vs: { fontSize: 12, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
 
   // Resting
   restingSection: { marginTop: 4, gap: 6 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8A95A5',
+    color: palette.slate[400],
     textTransform: 'uppercase',
     marginBottom: 4,
   },
-  restingName: { fontSize: 15, color: '#0B1F3A', fontWeight: '500' },
+  restingName: { fontSize: 15, color: colors.foreground, fontWeight: '500' },
 
   // Leaderboard
   board: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   boardRow: {
@@ -823,19 +824,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E6EAF0',
+    borderTopColor: colors.border,
   },
-  boardHeaderRow: { borderTopWidth: 0, backgroundColor: '#F0F3F8' },
+  boardHeaderRow: { borderTopWidth: 0, backgroundColor: colors.muted },
   boardHeader: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#8A95A5',
+    color: palette.slate[400],
     textTransform: 'uppercase',
   },
-  colRank: { width: 40, fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  colPlayer: { flex: 1, fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  colPoints: { width: 56, textAlign: 'right', fontSize: 15, fontWeight: '700', color: '#0B1F3A' },
-  colRecord: { width: 72, textAlign: 'right', fontSize: 14, color: '#6B7685' },
+  colRank: { width: 40, fontSize: 15, fontWeight: '700', color: colors.foreground },
+  colPlayer: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
+  colPoints: { width: 56, textAlign: 'right', fontSize: 15, fontWeight: '700', color: colors.foreground },
+  colRecord: { width: 72, textAlign: 'right', fontSize: 14, color: colors.mutedForeground },
 
   // Segmented tabs
   segmentBar: {
@@ -843,8 +844,8 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E6EAF0',
-    backgroundColor: '#fff',
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
   },
   segment: {
     flex: 1,
@@ -852,11 +853,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0F3F8',
+    backgroundColor: colors.muted,
   },
-  segmentActive: { backgroundColor: '#0B1F3A' },
-  segmentText: { fontSize: 15, fontWeight: '700', color: '#6B7685' },
-  segmentTextActive: { color: '#fff' },
+  segmentActive: { backgroundColor: colors.primary },
+  segmentText: { fontSize: 15, fontWeight: '700', color: colors.mutedForeground },
+  segmentTextActive: { color: colors.card },
 
   // Buttons (shared with guard views)
   btn: {
@@ -866,10 +867,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryBtn: { backgroundColor: '#F0F3F8' },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
-  primaryBtn: { backgroundColor: '#0B7BFF' },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  secondaryBtn: { backgroundColor: colors.muted },
+  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
+  primaryBtn: { backgroundColor: colors.primary },
+  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
   btnDisabled: { opacity: 0.5 },
   flex1: { flex: 1 },
 
@@ -878,7 +879,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 12,
     fontWeight: '700',
-    color: '#0B7BFF',
+    color: colors.primary,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
@@ -891,34 +892,34 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 22,
     borderRadius: 999,
-    backgroundColor: '#0B1F3A',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.foreground,
     shadowOpacity: 0.2,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 4,
   },
-  finishLabel: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  finishLabel: { fontSize: 15, fontWeight: '700', color: colors.card },
 
   // Overview
   overview: { gap: 16 },
   overviewSection: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     padding: 16,
     gap: 8,
   },
-  finishMessageText: { fontSize: 15, color: '#0B1F3A', lineHeight: 21 },
-  shareBtn: { backgroundColor: '#0B7BFF' },
-  shareLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  finishMessageText: { fontSize: 15, color: colors.foreground, lineHeight: 21 },
+  shareBtn: { backgroundColor: colors.primary },
+  shareLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
   completedHeading: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0B1F3A',
+    color: colors.foreground,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -928,7 +929,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  toggleLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
+  toggleLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
 
   // Modal
   modalBackdrop: {
@@ -940,39 +941,39 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 20,
     gap: 8,
   },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#0B1F3A', textAlign: 'center' },
-  modalBody: { fontSize: 14, color: '#6B7685', textAlign: 'center', marginBottom: 4 },
-  modalSide: { fontSize: 16, fontWeight: '600', color: '#0B1F3A', textAlign: 'center' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: colors.foreground, textAlign: 'center' },
+  modalBody: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', marginBottom: 4 },
+  modalSide: { fontSize: 16, fontWeight: '600', color: colors.foreground, textAlign: 'center' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
   modalCancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
 
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#8A95A5',
+    color: palette.slate[400],
     textTransform: 'uppercase',
     marginTop: 8,
   },
   input: {
     minHeight: 48,
     borderWidth: 1,
-    borderColor: '#E6EAF0',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 16,
-    color: '#0B1F3A',
-    backgroundColor: '#fff',
+    color: colors.foreground,
+    backgroundColor: colors.card,
     justifyContent: 'center',
   },
   inputMultiline: { minHeight: 88, paddingTop: 12, textAlignVertical: 'top' },
-  inputDisabled: { backgroundColor: '#F0F3F8', opacity: 0.6 },
-  inputReadonly: { backgroundColor: '#F0F3F8' },
-  inputReadonlyText: { fontSize: 16, color: '#6B7685', fontWeight: '600' },
-  hint: { fontSize: 12, color: '#8A95A5', marginTop: 4 },
-  error: { fontSize: 14, color: '#D7263D', marginTop: 6, textAlign: 'center' },
+  inputDisabled: { backgroundColor: colors.muted, opacity: 0.6 },
+  inputReadonly: { backgroundColor: colors.muted },
+  inputReadonlyText: { fontSize: 16, color: colors.mutedForeground, fontWeight: '600' },
+  hint: { fontSize: 12, color: palette.slate[400], marginTop: 4 },
+  error: { fontSize: 14, color: colors.destructive, marginTop: 6, textAlign: 'center' },
 });

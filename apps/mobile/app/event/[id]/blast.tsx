@@ -22,6 +22,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, palette } from '../../../theme';
 
 type Channel = 'email' | 'whatsapp';
 
@@ -103,7 +104,7 @@ export default function BlastScreen() {
   if (loadingTier) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <ActivityIndicator color="#0B1F3A" />
+        <ActivityIndicator color={colors.foreground} />
       </SafeAreaView>
     );
   }
@@ -158,7 +159,7 @@ export default function BlastScreen() {
             }
             accessibilityRole="button"
           >
-            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryLabel}>{t('blastSendCta')}</Text>}
+            {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.primaryLabel}>{t('blastSendCta')}</Text>}
           </Pressable>
         </ScrollView>
       ) : (
@@ -257,7 +258,7 @@ export default function BlastScreen() {
               onPress={() => editing && submit(editing)}
               accessibilityRole="button"
             >
-              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryLabel}>{t('blastSendCta')}</Text>}
+              {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.primaryLabel}>{t('blastSendCta')}</Text>}
             </Pressable>
             <Pressable style={[styles.btn, styles.secondaryBtn]} onPress={() => setEditing(null)} accessibilityRole="button">
               <Text style={styles.secondaryLabel}>{t('cancel')}</Text>
@@ -270,51 +271,51 @@ export default function BlastScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#fff' },
-  back: { fontSize: 32, color: '#0B1F3A', lineHeight: 32, width: 32 },
-  topTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: '#0B1F3A', textAlign: 'center' },
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.card },
+  back: { fontSize: 32, color: colors.foreground, lineHeight: 32, width: 32 },
+  topTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
   content: { padding: 16, gap: 12 },
-  error: { color: '#D7263D', fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 16, paddingTop: 8 },
+  error: { color: colors.destructive, fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 16, paddingTop: 8 },
 
-  tabs: { flexDirection: 'row', backgroundColor: '#EEF1F6', borderRadius: 10, padding: 3 },
+  tabs: { flexDirection: 'row', backgroundColor: colors.accent, borderRadius: 10, padding: 3 },
   tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  tabOn: { backgroundColor: '#fff' },
-  tabText: { fontSize: 14, fontWeight: '600', color: '#6B7685' },
-  tabTextOn: { color: '#0B1F3A' },
+  tabOn: { backgroundColor: colors.card },
+  tabText: { fontSize: 14, fontWeight: '600', color: colors.mutedForeground },
+  tabTextOn: { color: colors.foreground },
 
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 4 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#0B1F3A' },
-  cardBody: { fontSize: 14, color: '#6B7685' },
-  cardMeta: { fontSize: 12, color: '#6B7685', marginTop: 4 },
-  retryBtn: { marginTop: 8, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#EAF2FF' },
-  retryLabel: { color: '#0B7BFF', fontWeight: '700', fontSize: 13 },
-  empty: { fontSize: 15, color: '#6B7685', textAlign: 'center', paddingVertical: 24 },
+  card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 4 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground },
+  cardBody: { fontSize: 14, color: colors.mutedForeground },
+  cardMeta: { fontSize: 12, color: colors.mutedForeground, marginTop: 4 },
+  retryBtn: { marginTop: 8, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: palette.purple[100] },
+  retryLabel: { color: colors.primary, fontWeight: '700', fontSize: 13 },
+  empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', paddingVertical: 24 },
 
-  label: { fontSize: 13, fontWeight: '700', color: '#8A95A5', textTransform: 'uppercase' },
-  readonly: { fontSize: 15, color: '#0B1F3A', fontWeight: '600' },
+  label: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
+  readonly: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
   channelRow: { flexDirection: 'row', gap: 10 },
-  channel: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6EAF0' },
-  channelOn: { backgroundColor: '#0B7BFF', borderColor: '#0B7BFF' },
-  channelText: { fontSize: 15, fontWeight: '600', color: '#0B1F3A' },
-  channelTextOn: { color: '#fff' },
+  channel: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  channelOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  channelText: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  channelTextOn: { color: colors.card },
 
-  input: { minHeight: 48, borderRadius: 12, backgroundColor: '#fff', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6EAF0', paddingHorizontal: 14, paddingTop: 12, fontSize: 16, color: '#0B1F3A' },
+  input: { minHeight: 48, borderRadius: 12, backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 14, paddingTop: 12, fontSize: 16, color: colors.foreground },
   inputMulti: { minHeight: 100, textAlignVertical: 'top' },
 
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#F4F6FA', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 10, maxHeight: '90%' },
-  sheetTitle: { fontSize: 18, fontWeight: '700', color: '#0B1F3A' },
+  sheet: { backgroundColor: colors.background, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 10, maxHeight: '90%' },
+  sheetTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground },
 
   sentBox: { paddingHorizontal: 32, alignItems: 'center', gap: 12 },
-  sentTitle: { fontSize: 22, fontWeight: '700', color: '#0B1F3A' },
-  sentBody: { fontSize: 16, color: '#6B7685', textAlign: 'center' },
+  sentTitle: { fontSize: 22, fontWeight: '700', color: colors.foreground },
+  sentBody: { fontSize: 16, color: colors.mutedForeground, textAlign: 'center' },
 
   btn: { minHeight: 48, paddingHorizontal: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   btnDisabled: { opacity: 0.5 },
-  primaryBtn: { backgroundColor: '#0B7BFF' },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  secondaryBtn: { backgroundColor: '#F0F3F8' },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: '#0B1F3A' },
+  primaryBtn: { backgroundColor: colors.primary },
+  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
+  secondaryBtn: { backgroundColor: colors.muted },
+  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
 });

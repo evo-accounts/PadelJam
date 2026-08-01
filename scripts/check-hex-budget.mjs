@@ -29,11 +29,15 @@ const EXEMPT = ['apps/mobile/theme'];
 const SELF = fileURLToPath(import.meta.url);
 
 /**
- * Measured, not inherited from the plan (which said 1303 — a survey with
- * slightly different boundaries). Lower this in the same PR that removes the
- * colours; never raise it.
+ * The ratchet. Lower it in the same PR that removes the colours; never raise it.
+ *
+ *   1316  starting point, measured (the plan's 1303 came from a survey with
+ *         slightly different directory boundaries)
+ *   1079  app/event/[id]/** migrated — 237 colours
+ *
+ * At 0 this script is deleted and `no-restricted-syntax` takes over.
  */
-const BASELINE = 1316;
+const BASELINE = 1079;
 
 const HEX = /#(?:[0-9a-fA-F]{3,4}){1,2}\b/g;
 const RGBA = /\brgba?\(/g;
