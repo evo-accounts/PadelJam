@@ -2,6 +2,7 @@ import { useT } from '@padel/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, palette } from '../../../theme';
+import { Chip, IconButton } from '../../../components/ui';
 
 const MINUTE_OPTIONS = [0, 15, 30, 45] as const;
 const DAY_COUNT = 30;
@@ -135,43 +136,34 @@ export function DateTimePicker({
 
       <Text style={styles.label}>{t('timeLabel')}</Text>
       <View style={styles.timeRow}>
-        <Pressable
-          style={[styles.hourButton, atMinHour && styles.hourButtonDisabled]}
-          onPress={() => setHour(working.getHours() - 1)}
+        <IconButton
+          icon="−"
+          accessibilityLabel={t('hourDecreaseLabel')}
+          size="lg"
+          filled
           disabled={atMinHour}
-          accessibilityRole="button"
-          accessibilityLabel="−"
-          accessibilityState={{ disabled: atMinHour }}
-        >
-          <Text style={styles.hourButtonLabel}>−</Text>
-        </Pressable>
+          onPress={() => setHour(working.getHours() - 1)}
+        />
         <Text style={styles.hourValue}>{String(working.getHours()).padStart(2, '0')}</Text>
-        <Pressable
-          style={[styles.hourButton, atMaxHour && styles.hourButtonDisabled]}
-          onPress={() => setHour(working.getHours() + 1)}
+        <IconButton
+          icon="+"
+          accessibilityLabel={t('hourIncreaseLabel')}
+          size="lg"
+          filled
           disabled={atMaxHour}
-          accessibilityRole="button"
-          accessibilityLabel="+"
-          accessibilityState={{ disabled: atMaxHour }}
-        >
-          <Text style={styles.hourButtonLabel}>+</Text>
-        </Pressable>
+          onPress={() => setHour(working.getHours() + 1)}
+        />
 
         <View style={styles.minuteRow}>
           {MINUTE_OPTIONS.map((min) => {
             const selected = working.getMinutes() === min;
             return (
-              <Pressable
+              <Chip
                 key={min}
+                label={String(min).padStart(2, '0')}
+                selected={selected}
                 onPress={() => setMinute(min)}
-                style={[styles.minuteChip, selected && styles.minuteChipSelected]}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-              >
-                <Text style={[styles.minuteText, selected && styles.minuteTextSelected]}>
-                  {String(min).padStart(2, '0')}
-                </Text>
-              </Pressable>
+              />
             );
           })}
         </View>
@@ -199,16 +191,6 @@ const styles = StyleSheet.create({
   dayNumber: { fontSize: 18, fontWeight: '700', color: colors.foreground },
   dayTextSelected: { color: colors.primary },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  hourButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: colors.muted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hourButtonDisabled: { opacity: 0.4 },
-  hourButtonLabel: { fontSize: 24, fontWeight: '700', color: colors.foreground },
   hourValue: {
     fontSize: 22,
     fontWeight: '700',
@@ -217,17 +199,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   minuteRow: { flexDirection: 'row', gap: 8, marginLeft: 4 },
-  minuteChip: {
-    minWidth: 44,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-  },
-  minuteChipSelected: { borderColor: colors.primary, backgroundColor: palette.purple[100] },
-  minuteText: { fontSize: 15, fontWeight: '700', color: colors.foreground },
-  minuteTextSelected: { color: colors.primary },
 });
