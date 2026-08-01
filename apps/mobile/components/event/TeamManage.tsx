@@ -11,6 +11,7 @@ import { useT } from '@padel/i18n';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, palette } from '../../theme';
+import { Button, Chip, ListRow } from '../../components/ui';
 
 type Participant = {
   id: string;
@@ -128,16 +129,12 @@ export function TeamManage({
       {/* View toggle */}
       <View style={styles.toggle}>
         {(['team', 'player'] as const).map((v) => (
-          <Pressable
+          <Chip
             key={v}
-            style={[styles.toggleItem, view === v ? styles.toggleItemActive : null]}
+            label={t(v === 'team' ? 'teamViewTab' : 'playerViewTab')}
+            selected={view === v}
             onPress={() => setView(v)}
-            accessibilityRole="button"
-          >
-            <Text style={[styles.toggleText, view === v ? styles.toggleTextActive : null]}>
-              {t(v === 'team' ? 'teamViewTab' : 'playerViewTab')}
-            </Text>
-          </Pressable>
+          />
         ))}
       </View>
 
@@ -195,9 +192,7 @@ export function TeamManage({
             ) : (
               <ScrollView>
                 {assignable.map((p) => (
-                  <Pressable key={p.id} style={styles.sheetRow} onPress={() => onPickForSlot(p)} accessibilityRole="button">
-                    <Text style={styles.sheetRowText}>{pname(p)}</Text>
-                  </Pressable>
+                  <ListRow key={p.id} title={pname(p)} onPress={() => onPickForSlot(p)} />
                 ))}
               </ScrollView>
             )}
@@ -214,9 +209,7 @@ export function TeamManage({
               {participants
                 .filter((p) => p.id !== switchTarget)
                 .map((p) => (
-                  <Pressable key={p.id} style={styles.sheetRow} onPress={() => onSwitchPick(p)} accessibilityRole="button">
-                    <Text style={styles.sheetRowText}>{pname(p)}</Text>
-                  </Pressable>
+                  <ListRow key={p.id} title={pname(p)} onPress={() => onSwitchPick(p)} />
                 ))}
             </ScrollView>
           </View>
@@ -232,18 +225,19 @@ export function TeamManage({
               {t('assignConfirmBody', { name: confirmTarget ? pname(confirmTarget.participant) : '' })}
             </Text>
             <View style={styles.dialogRow}>
-              <Pressable style={[styles.dialogBtn, styles.dialogCancel]} onPress={() => setConfirmTarget(null)} accessibilityRole="button">
-                <Text style={styles.dialogCancelText}>{t('cancel')}</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.dialogBtn, styles.dialogOk]}
+              <Button
+                label={t('cancel')}
+                variant="outline"
+                style={styles.dialogBtn}
+                onPress={() => setConfirmTarget(null)}
+              />
+              <Button
+                label={t('continue')}
+                style={styles.dialogBtn}
                 onPress={() =>
                   confirmTarget && doAssign(confirmTarget.participant, confirmTarget.teamNumber, confirmTarget.slot)
                 }
-                accessibilityRole="button"
-              >
-                <Text style={styles.dialogOkText}>{t('continue')}</Text>
-              </Pressable>
+              />
             </View>
           </View>
         </View>
@@ -282,19 +276,19 @@ function PlayerView({
     <View>
       <View style={styles.tabs}>
         {tabs.map((tb) => (
-          <Pressable key={tb.key} style={[styles.tab, tab === tb.key ? styles.tabActive : null]} onPress={() => setTab(tb.key)} accessibilityRole="button">
-            <Text style={[styles.tabText, tab === tb.key ? styles.tabTextActive : null]} numberOfLines={1}>
-              {tb.label}
-            </Text>
-          </Pressable>
+          <Chip key={tb.key} label={tb.label} selected={tab === tb.key} onPress={() => setTab(tb.key)} />
         ))}
       </View>
       {groups[tab].map((p) => (
         <View key={p.id} style={styles.pvRow}>
           <Text style={styles.pvName} numberOfLines={1}>{pname(p)}</Text>
-          <Pressable style={styles.pvRemove} disabled={busy} onPress={() => onRemove(p)} accessibilityRole="button">
-            <Text style={styles.pvRemoveText}>{t('removeCta')}</Text>
-          </Pressable>
+          <Button
+            label={t('removeCta')}
+            variant="destructive"
+            size="sm"
+            disabled={busy}
+            onPress={() => onRemove(p)}
+          />
         </View>
       ))}
     </View>
@@ -303,10 +297,6 @@ function PlayerView({
 
 const styles = StyleSheet.create({
   toggle: { flexDirection: 'row', backgroundColor: colors.accent, borderRadius: 10, padding: 3, marginHorizontal: 16, marginTop: 16 },
-  toggleItem: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  toggleItemActive: { backgroundColor: colors.card },
-  toggleText: { fontSize: 14, fontWeight: '600', color: colors.mutedForeground },
-  toggleTextActive: { color: colors.foreground },
 
   grid: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
   teamBlock: { backgroundColor: colors.card, borderRadius: 12, padding: 12, gap: 8 },
@@ -321,29 +311,18 @@ const styles = StyleSheet.create({
 
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 16 },
   tab: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center' },
-  tabActive: { backgroundColor: colors.primary },
-  tabText: { fontSize: 12, fontWeight: '700', color: colors.mutedForeground },
-  tabTextActive: { color: colors.card },
   pvRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
   pvName: { flex: 1, fontSize: 15, color: colors.foreground, fontWeight: '500' },
-  pvRemove: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: colors.muted },
-  pvRemoveText: { fontSize: 13, fontWeight: '600', color: colors.destructive },
 
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   backdropCenter: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', paddingHorizontal: 24 },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '70%' },
   sheetTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
   sheetEmpty: { fontSize: 15, color: colors.mutedForeground, paddingVertical: 12 },
-  sheetRow: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  sheetRowText: { fontSize: 16, color: colors.foreground },
 
   dialog: { backgroundColor: colors.card, borderRadius: 16, padding: 20, gap: 12 },
   dialogTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground },
   dialogBody: { fontSize: 15, color: colors.mutedForeground, lineHeight: 21 },
   dialogRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
   dialogBtn: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  dialogCancel: { backgroundColor: colors.muted },
-  dialogCancelText: { fontSize: 15, fontWeight: '600', color: colors.foreground },
-  dialogOk: { backgroundColor: colors.primary },
-  dialogOkText: { fontSize: 15, fontWeight: '700', color: colors.card },
 });

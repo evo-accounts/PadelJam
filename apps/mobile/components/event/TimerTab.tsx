@@ -1,9 +1,10 @@
 import { useEventTimer, useSetEventTimer } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useNow } from '@/lib/useNow';
 import { colors } from '../../theme';
+import { Button } from '../../components/ui';
 
 function fmt(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -48,24 +49,16 @@ export function TimerTab({ eventId, isOrganizer }: { eventId: string; isOrganize
           ) : (
             <>
               {status === 'idle' ? (
-                <Pressable style={[styles.btn, styles.primary]} onPress={() => act('start')} accessibilityRole="button">
-                  <Text style={styles.primaryLabel}>{t('timerStart')}</Text>
-                </Pressable>
+                <Button label={t('timerStart')} onPress={() => act('start')} />
               ) : null}
               {status === 'running' ? (
-                <Pressable style={[styles.btn, styles.primary]} onPress={() => act('pause')} accessibilityRole="button">
-                  <Text style={styles.primaryLabel}>{t('timerPause')}</Text>
-                </Pressable>
+                <Button label={t('timerPause')} onPress={() => act('pause')} />
               ) : null}
               {status === 'paused' ? (
-                <Pressable style={[styles.btn, styles.primary]} onPress={() => act('resume')} accessibilityRole="button">
-                  <Text style={styles.primaryLabel}>{t('timerResume')}</Text>
-                </Pressable>
+                <Button label={t('timerResume')} onPress={() => act('resume')} />
               ) : null}
               {status !== 'idle' ? (
-                <Pressable style={[styles.btn, styles.secondary]} onPress={() => act('reset')} accessibilityRole="button">
-                  <Text style={styles.secondaryLabel}>{t('timerReset')}</Text>
-                </Pressable>
+                <Button label={t('timerReset')} variant="outline" onPress={() => act('reset')} />
               ) : null}
             </>
           )}
@@ -80,9 +73,4 @@ const styles = StyleSheet.create({
   clock: { fontSize: 72, fontWeight: '800', color: colors.foreground, fontVariant: ['tabular-nums'] },
   state: { fontSize: 15, color: colors.mutedForeground, minHeight: 20 },
   controls: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  btn: { minHeight: 48, paddingHorizontal: 28, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  primary: { backgroundColor: colors.primary },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
-  secondary: { backgroundColor: colors.muted },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
 });

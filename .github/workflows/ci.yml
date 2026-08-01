@@ -66,6 +66,16 @@ jobs:
         if: '!cancelled()'
         run: pnpm tokens:check
 
+      # The one class of error with NO compiler behind it: t('missing')
+      # typechecks, lints, passes the unit tests, and renders the raw key to
+      # users. The E2E suite does not catch it either — it reads copy off the
+      # accessibility tree, so a raw key is just a string it happily finds.
+      # Two such keys slipped in during the primitive migration before this
+      # existed.
+      - name: i18n keys
+        if: '!cancelled()'
+        run: pnpm i18n:check
+
       - name: Test
         if: '!cancelled()'
         run: pnpm test
