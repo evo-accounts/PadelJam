@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const { withStorybook } = require('@storybook/react-native/metro/withStorybook');
 const path = require('path');
 
 const projectRoot = __dirname;
@@ -41,4 +42,23 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return (defaultResolveRequest ?? context.resolveRequest)(context, moduleName, platform);
 };
 
-module.exports = config;
+// SPIKE: withStorybook REPLACES resolver.resolveRequest, which would drop the
+// singleton forcing above. Wrap it first, then re-apply ours on top of its.
+const sb = withStorybook(config, {
+  enabled: process.env.EXPO_PUBLIC_STORYBOOK === '1',
+  configPath: path.resolve(projectRoot, '.rnstorybook'),
+});
+const sbResolveRequest = sb.resolver.resolveRequest;
+sb.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (platform === 'web' && moduleName.includes('codegenNativeComponent')) {
+    return { type: 'sourceFile', filePath: path.resolve(projectRoot, 'stubs/nativeComponent.web.js') };
+  }
+  const singleton = SINGLETONS.find((m) => moduleName === m || moduleName.startsWith(m + '/'));
+  if (singleton) {
+    const rest = moduleName.slice(singleton.length);
+    return context.resolveRequest(context, resolveSingleton(singleton) + rest, platform);
+  }
+  return (sbResolveRequest ?? context.resolveRequest)(context, moduleName, platform);
+};
+
+module.exports = sb;
