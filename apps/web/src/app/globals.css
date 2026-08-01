@@ -38,6 +38,10 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  /* Status colours as TEXT on a light surface — the fills above fail WCAG at
+     body size (success 2.89, warning 2.05). See packages/ui semantic.ts. */
+  --color-success-strong: var(--success-strong);
+  --color-warning-strong: var(--warning-strong);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

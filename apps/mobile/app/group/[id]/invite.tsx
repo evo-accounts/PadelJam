@@ -195,5 +195,5 @@ const styles = StyleSheet.create({
   avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
   name: { flex: 1, fontSize: 16, color: colors.foreground, fontWeight: '500' },
   inviteAction: { fontSize: 14, fontWeight: '700', color: colors.primary },
-  invitedMark: { fontSize: 18, fontWeight: '700', color: colors.success },
+  invitedMark: { fontSize: 18, fontWeight: '700', color: colors.successStrong },
 });

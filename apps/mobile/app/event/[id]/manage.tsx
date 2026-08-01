@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
   pillPaid: { backgroundColor: palette.green[100] },
   pillUnpaid: { backgroundColor: palette.red[100] },
   pillText: { fontSize: 12, fontWeight: '700' },
-  pillTextPaid: { color: colors.success },
+  pillTextPaid: { color: colors.successStrong },
   pillTextUnpaid: { color: colors.destructive },
 
   // Small action buttons

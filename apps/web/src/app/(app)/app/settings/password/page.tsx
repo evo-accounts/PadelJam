@@ -100,7 +100,7 @@ export default function ChangePasswordPage() {
             </div>
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            {success ? <p className="text-sm text-success">{t('passwordChanged')}</p> : null}
+            {success ? <p className="text-sm text-success-strong">{t('passwordChanged')}</p> : null}
 
             <Button type="submit" className="w-full" disabled={pending}>
               {t('save')}

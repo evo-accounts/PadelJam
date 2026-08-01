@@ -127,7 +127,7 @@ export function BlastComposer({ eventId }: { eventId: string }) {
 
         {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
         {sent ? (
-          <p className="text-sm font-medium text-success">{t('blastSentTitle')}</p>
+          <p className="text-sm font-medium text-success-strong">{t('blastSentTitle')}</p>
         ) : null}
 
         <Button onClick={onSend} disabled={busy || !canSend} className="self-start">
