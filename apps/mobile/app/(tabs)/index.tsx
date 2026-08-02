@@ -91,6 +91,7 @@ export default function HomeScreen() {
                     {t('memberCount', { count: g.member_count })}
                   </Text>
                 }
+                trailingLabel={t('memberCount', { count: g.member_count })}
                 onPress={() => router.push(`/group/${g.group_id}` as never)}
               />
             ))

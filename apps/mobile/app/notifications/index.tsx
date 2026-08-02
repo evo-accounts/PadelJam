@@ -13,7 +13,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { colors } from '../../theme';
+import { colors, space } from '../../theme';
 import { Button, IconButton, ListRow, Text } from '../../components/ui';
 
 const CTA_TYPES = ['event_invite', 'group_invite', 'community_invite'];
@@ -60,6 +60,14 @@ export default function NotificationsScreen() {
           trailing={
             <Text variant="hint" tone="muted">{t('pendingCount', { count: pending })}</Text>
           }
+          trailingLabel={t('pendingCount', { count: pending })}
+          // The old `pinned` style was `margin: 12` on ALL sides; ListRow's card
+          // variant sets marginHorizontal + marginBottom only, because cards in
+          // a list are separated by the PREVIOUS card's bottom margin. The first
+          // card in a screen has no previous card, so this one lost its top
+          // margin and slid under the status bar — visibly colliding with the
+          // clock, and swallowing the tap that suite 08 makes.
+          style={styles.pinnedFirst}
           onPress={() => router.push('/notifications/partner-requests' as never)}
         />
       )}
@@ -88,6 +96,12 @@ export default function NotificationsScreen() {
                     <Button label={t('join')} size="sm" onPress={() => completeCta.mutate(item)} />
                   )
                 ) : null
+              }
+              // Only the static "joined" state needs describing. The Join
+              // button carries its own label; repeating it here would announce
+              // the word twice on a row that already reads as one element.
+              trailingLabel={
+                CTA_TYPES.includes(item.type) && item.cta_done ? t('joined') : undefined
               }
               onPress={() => onRowPress(item)}
             />
@@ -127,6 +141,7 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  pinnedFirst: { marginTop: space[3] },
   empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-start', alignItems: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderRadius: 12, margin: 12, marginTop: 48, minWidth: 200, overflow: 'hidden' },

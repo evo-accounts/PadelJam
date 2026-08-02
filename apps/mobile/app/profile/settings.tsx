@@ -51,6 +51,7 @@ export default function SettingsScreen() {
       <ListRow
         title={t('language')}
         trailing={<Text variant="body" tone="muted">{t(current.key)}</Text>}
+        trailingLabel={t(current.key)}
         onPress={() => setLangOpen((v) => !v)}
       />
       {langOpen &&
