@@ -9,20 +9,12 @@ import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../theme';
+import { TopBar } from '../../../components/ui';
 
 type Candidate = {
   user_id: string;
@@ -92,11 +84,7 @@ export default function GroupInviteScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}>
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-        <Text style={styles.title}>{t('inviteTitle')}</Text>
-        <View style={styles.backSpacer} />
+        <TopBar title={t('inviteTitle')} onBack={() => router.back()} backLabel={t('back')} />
       </View>
 
       <View style={styles.searchWrap}>
@@ -167,9 +155,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
-  backSpacer: { width: 24 },
-  title: { fontSize: 17, fontWeight: '700', color: colors.foreground },
   searchWrap: { padding: 16 },
   search: {
     borderWidth: 1,

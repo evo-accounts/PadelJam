@@ -5,6 +5,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme';
+import { Chip } from '../../components/ui';
 
 export default function YourGroupsScreen() {
   const { t } = useT('home');
@@ -36,11 +37,12 @@ export default function YourGroupsScreen() {
       />
       <View style={styles.tabs}>
         {(['all', 'managing', 'participating'] as const).map((k) => (
-          <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabActive]} accessibilityRole="button">
-            <Text style={[styles.tabText, tab === k && styles.tabTextActive]}>
-              {t(k === 'all' ? 'tabAll' : k === 'managing' ? 'tabManaging' : 'tabParticipating')}
-            </Text>
-          </Pressable>
+          <Chip
+            key={k}
+            label={t(k === 'all' ? 'tabAll' : k === 'managing' ? 'tabManaging' : 'tabParticipating')}
+            selected={tab === k}
+            onPress={() => setTab(k)}
+          />
         ))}
       </View>
       {groups.isLoading ? (
@@ -85,9 +87,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   tabs: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: colors.primary },
-  tabText: { fontSize: 14, color: colors.mutedForeground, fontWeight: '600' },
-  tabTextActive: { color: colors.primary, fontWeight: '700' },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: colors.card, marginHorizontal: 12, marginTop: 8, borderRadius: 12, padding: 14,

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GroupHeader } from '@/components/group/GroupHeader';
 import { colors, palette } from '../../../theme';
+import { Button } from '../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -32,9 +33,7 @@ export default function GroupJoinModal() {
       <View style={styles.noAccess}>
         <Text style={styles.noAccessTitle}>{t('noAccessTitle')}</Text>
         <Text style={styles.noAccessBody}>{t('noAccessBody')}</Text>
-        <Pressable style={styles.secondary} onPress={() => router.back()} accessibilityRole="button">
-          <Text style={styles.secondaryText}>{t('cancel')}</Text>
-        </Pressable>
+        <Button label={t('cancel')} variant="outline" onPress={() => router.back()} />
       </View>
     </SafeAreaView>
   );
@@ -138,6 +137,4 @@ const styles = StyleSheet.create({
   noAccess: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
   noAccessTitle: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   noAccessBody: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', lineHeight: 21 },
-  secondary: { marginTop: 12, paddingVertical: 12, paddingHorizontal: 24 },
-  secondaryText: { fontSize: 16, fontWeight: '600', color: colors.primary },
 });
