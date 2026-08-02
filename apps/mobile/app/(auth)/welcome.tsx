@@ -2,19 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  Dimensions,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
+import { Dimensions, Linking, type NativeScrollEvent, type NativeSyntheticEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, palette } from '../../theme';
+import { Button } from '../../components/ui';
 
 const { width } = Dimensions.get('window');
 
@@ -67,9 +58,7 @@ export default function WelcomeScreen() {
         ))}
       </View>
 
-      <Pressable style={styles.button} onPress={start} accessibilityRole="button">
-        <Text style={styles.buttonText}>{t('startNow')}</Text>
-      </Pressable>
+      <Button label={t('startNow')} fullWidth onPress={start} />
       <Text style={styles.disclosure}>
         {disclosureBefore}
         <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(TERMS_URL)}>

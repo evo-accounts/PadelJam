@@ -279,9 +279,12 @@ export default function CreateAccountScreen() {
             </Text>
           </Pressable>
 
-          <Pressable style={styles.linkButton} onPress={skip} disabled={busy} accessibilityRole="button">
-            <Text style={styles.link}>{t('skipForNow')}</Text>
-          </Pressable>
+          <Button
+            label={t('skipForNow')}
+            variant="ghost"
+            disabled={busy}
+            onPress={skip}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     );
