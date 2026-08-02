@@ -4,12 +4,13 @@ import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@padel/auth';
 import { consumePendingCommunityImages } from '@/lib/community-image-handoff';
 import { uploadCommunityImage } from '@/lib/storage';
+import { Button, Text } from '../../../components/ui';
 import { colors } from '../../../theme';
 
 const THUMBNAIL_BUCKET = 'community-thumbnails';
@@ -92,51 +93,43 @@ export default function CommunityCreatedScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
-      <Text style={styles.title}>{t('createdTitle')}</Text>
-      <Text style={styles.subtitle}>{t('createdSubtitle')}</Text>
+      <Text variant="display" tone="default" style={styles.title}>
+        {t('createdTitle')}
+      </Text>
+      <Text variant="body" tone="muted" style={styles.subtitle}>
+        {t('createdSubtitle')}
+      </Text>
 
       <View style={styles.actions}>
-        <Pressable style={styles.button} onPress={onShare} accessibilityRole="button">
-          <Text style={styles.buttonText}>{t('share')}</Text>
-        </Pressable>
-
-        <Pressable style={styles.secondary} onPress={onCopy} accessibilityRole="button">
-          <Text style={styles.secondaryText}>{copied ? t('linkCopied') : t('copyLink')}</Text>
-        </Pressable>
-
-        <Pressable style={styles.secondary} onPress={onQr} accessibilityRole="button">
-          <Text style={styles.secondaryText}>{t('qrCode')}</Text>
-        </Pressable>
-
-        <Pressable style={[styles.secondary, styles.disabled]} disabled accessibilityRole="button">
-          <Text style={styles.secondaryText}>
-            {t('createEvent')} ({t('comingSoon')})
-          </Text>
-        </Pressable>
+        <Button fullWidth label={t('share')} onPress={onShare} />
+        <Button
+          variant="outline"
+          fullWidth
+          label={copied ? t('linkCopied') : t('copyLink')}
+          onPress={onCopy}
+        />
+        <Button variant="outline" fullWidth label={t('qrCode')} onPress={onQr} />
+        {/* Still disabled, and still announced as such: Button forwards
+            accessibilityState.disabled, which the hand-rolled version did not —
+            it dimmed to 0.45 opacity and told a screen reader nothing. */}
+        <Button
+          variant="outline"
+          fullWidth
+          disabled
+          label={`${t('createEvent')} (${t('comingSoon')})`}
+          onPress={() => {}}
+        />
       </View>
 
-      <Pressable style={styles.manage} onPress={onManage} accessibilityRole="button">
-        <Text style={styles.buttonText}>{t('manageCommunity')}</Text>
-      </Pressable>
+      <Button fullWidth label={t('manageCommunity')} onPress={onManage} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card, paddingHorizontal: 24 },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 8, color: colors.foreground },
-  subtitle: { fontSize: 15, color: colors.mutedForeground, marginBottom: 32 },
+  // Spacing only — size, weight and colour now come from the variant/tone.
+  title: { marginBottom: 8 },
+  subtitle: { marginBottom: 32 },
   actions: { gap: 12, flex: 1 },
-  button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
-  secondary: {
-    borderWidth: 1,
-    borderColor: colors.foreground,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  secondaryText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
-  disabled: { opacity: 0.45 },
-  manage: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
 });
