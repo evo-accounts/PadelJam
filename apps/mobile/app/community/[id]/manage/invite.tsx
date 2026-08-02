@@ -3,20 +3,12 @@ import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
+import { Chip } from '../../../../components/ui';
 
 type Profile = { id: string; full_name: string | null; avatar_url: string | null };
 type Group = { id: string; name: string; is_general: boolean };
@@ -156,11 +148,12 @@ export default function ManageInviteScreen() {
       {selectedList.length > 0 ? (
         <View style={styles.chips}>
           {selectedList.map((p) => (
-            <Pressable key={p.id} style={styles.chip} onPress={() => toggleSelect(p)}>
-              <Text style={styles.chipText} numberOfLines={1}>
-                {p.full_name ?? '—'} ✕
-              </Text>
-            </Pressable>
+            <Chip
+              key={p.id}
+              label={`${p.full_name ?? '—'} ✕`}
+              selected
+              onPress={() => toggleSelect(p)}
+            />
           ))}
         </View>
       ) : null}
@@ -267,7 +260,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     maxWidth: 180,
   },
-  chipText: { fontSize: 13, fontWeight: '600', color: colors.foreground },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
   empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
   personRow: {

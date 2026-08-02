@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ReviewCard, type ReviewRow } from '@/components/community/ReviewCard';
 import { StarRating } from '@/components/community/StarRating';
 import { colors, palette } from '../../../../theme';
+import { Button, Chip } from '../../../../components/ui';
 
 type SortKey = 'newest' | 'highest' | 'lowest';
 type RatingFilter = 0 | 1 | 2 | 3 | 4 | 5; // 0 = all
@@ -90,15 +91,12 @@ export default function ReviewsScreen() {
 
       {/* Write / Edit button (gated on participation; existing reviewers can edit) */}
       {canWrite ? (
-        <Pressable
-          style={styles.writeBtn}
-          accessibilityRole="button"
+        <Button
+          label={myReview ? t('reviewsEditCta') : t('reviewsWriteCta')}
+          variant="outline"
+          fullWidth
           onPress={() => router.push(`/community/${id}/reviews/write`)}
-        >
-          <Text style={styles.writeBtnText}>
-            {myReview ? t('reviewsEditCta') : t('reviewsWriteCta')}
-          </Text>
-        </Pressable>
+        />
       ) : (
         <Text style={styles.gateNotice}>{t('reviewsGateBody')}</Text>
       )}
@@ -107,16 +105,12 @@ export default function ReviewsScreen() {
       <View style={styles.controlsRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {SORT_OPTIONS.map((opt) => (
-            <Pressable
+            <Chip
               key={opt.key}
-              style={[styles.chip, sort === opt.key && styles.chipActive]}
+              label={opt.label}
+              selected={sort === opt.key}
               onPress={() => setSort(opt.key)}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.chipText, sort === opt.key && styles.chipTextActive]}>
-                {opt.label}
-              </Text>
-            </Pressable>
+            />
           ))}
         </ScrollView>
       </View>
@@ -169,15 +163,6 @@ const styles = StyleSheet.create({
   },
   averageText: { fontSize: 36, fontWeight: '700', color: colors.foreground },
   countText: { fontSize: 14, color: palette.slate[400] },
-  writeBtn: {
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-  },
-  writeBtnText: { fontSize: 16, fontWeight: '700', color: colors.card },
   gateNotice: {
     marginHorizontal: 16,
     marginVertical: 12,

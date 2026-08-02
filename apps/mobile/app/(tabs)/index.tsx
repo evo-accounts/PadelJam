@@ -8,12 +8,13 @@ import {
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 import { colors, palette } from '../../theme';
+import { Button, Card, ListRow, Text } from '../../components/ui';
 
 const QUICK_ACTIONS = [
   { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: '/event/create' },
@@ -52,7 +53,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
           >
             <SymbolView name={{ ios: a.icon, android: a.android, web: a.android }} size={24} tintColor={colors.primary} />
-            <Text style={styles.quickLabel}>{t(a.key)}</Text>
+            <Text variant="label">{t(a.key)}</Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -60,12 +61,12 @@ export default function HomeScreen() {
       {loading ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 40 }} />
       ) : errored ? (
-        <Text style={styles.empty}>{t('loadError')}</Text>
+        <Text variant="caption" tone="muted">{t('loadError')}</Text>
       ) : hasActivity ? (
         <>
           <SectionHeader title={t('nextEvents')} onSeeAll={() => router.push('/(tabs)/events' as never)} t={t} />
           {events.length === 0 ? (
-            <Text style={styles.empty}>{t('eventsEmpty')}</Text>
+            <Text variant="caption" tone="muted">{t('eventsEmpty')}</Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
               {events.slice(0, 8).map((e: { id: string }) => (
@@ -78,21 +79,20 @@ export default function HomeScreen() {
 
           <SectionHeader title={t('myGroups')} onSeeAll={() => router.push('/groups' as never)} t={t} />
           {groups.length === 0 ? (
-            <Text style={styles.empty}>{t('groupsEmpty')}</Text>
+            <Text variant="caption" tone="muted">{t('groupsEmpty')}</Text>
           ) : (
             groups.slice(0, 5).map((g) => (
-              <Pressable
+              <ListRow
                 key={g.group_id}
-                style={styles.groupRow}
+                title={g.name}
+                subtitle={g.community_name}
+                trailing={
+                  <Text variant="hint" tone="muted">
+                    {t('memberCount', { count: g.member_count })}
+                  </Text>
+                }
                 onPress={() => router.push(`/group/${g.group_id}` as never)}
-                accessibilityRole="button"
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.groupName}>{g.name}</Text>
-                  <Text style={styles.groupSub}>{g.community_name}</Text>
-                </View>
-                <Text style={styles.groupCount}>{t('memberCount', { count: g.member_count })}</Text>
-              </Pressable>
+              />
             ))
           )}
         </>
@@ -116,10 +116,8 @@ function SectionHeader({
 }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Pressable onPress={onSeeAll} accessibilityRole="button">
-        <Text style={styles.seeAll}>{t('seeAll')}</Text>
-      </Pressable>
+      <Text variant="heading" style={styles.sectionTitle}>{title}</Text>
+      <Button label={t('seeAll')} variant="ghost" size="sm" onPress={onSeeAll} />
     </View>
   );
 }
@@ -140,28 +138,25 @@ function EmptyState({
   return (
     <>
       {!profileHasLocation ? (
-        <Pressable
+        <Card
           style={styles.banner}
           onPress={() => router.push('/(onboarding)/location' as never)}
-          accessibilityRole="button"
         >
-          <Text style={styles.bannerTitle}>{t('addLocationTitle')}</Text>
-          <Text style={styles.bannerBody}>{t('addLocationBody')}</Text>
-          <Text style={styles.bannerCta}>{t('addLocationCta')}</Text>
-        </Pressable>
+          <Text variant="bodyStrong">{t('addLocationTitle')}</Text>
+          <Text variant="caption" tone="muted">{t('addLocationBody')}</Text>
+          <Text variant="label" tone="primary">{t('addLocationCta')}</Text>
+        </Card>
       ) : null}
 
-      <Text style={styles.sectionTitle}>{t('suggestedEvents')}</Text>
+      <Text variant="heading" style={styles.sectionTitle}>{t('suggestedEvents')}</Text>
       {evRows.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyCardText}>{t('eventsEmpty')}</Text>
-          <Pressable
-            style={styles.emptyCardBtn}
+          <Text variant="caption" tone="muted">{t('eventsEmpty')}</Text>
+          <Button
+            label={t('eventsDiscoverCta')}
+            variant="outline"
             onPress={() => router.push('/explore/events' as never)}
-            accessibilityRole="button"
-          >
-            <Text style={styles.emptyCardBtnText}>{t('eventsDiscoverCta')}</Text>
-          </Pressable>
+          />
         </View>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
@@ -173,17 +168,15 @@ function EmptyState({
         </ScrollView>
       )}
 
-      <Text style={styles.sectionTitle}>{t('discoverGroups')}</Text>
+      <Text variant="heading" style={styles.sectionTitle}>{t('discoverGroups')}</Text>
       {grRows.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyCardText}>{t('groupsEmpty')}</Text>
-          <Pressable
-            style={styles.emptyCardBtn}
+          <Text variant="caption" tone="muted">{t('groupsEmpty')}</Text>
+          <Button
+            label={t('groupsDiscoverCta')}
+            variant="outline"
             onPress={() => router.push('/explore/groups' as never)}
-            accessibilityRole="button"
-          >
-            <Text style={styles.emptyCardBtnText}>{t('groupsDiscoverCta')}</Text>
-          </Pressable>
+          />
         </View>
       ) : (
         grRows.map((g: { id: string }) => (
@@ -215,23 +208,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
-  quickLabel: { fontSize: 11, color: colors.foreground, fontWeight: '600', textAlign: 'center' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 8 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginTop: 16, marginBottom: 8 },
-  seeAll: { fontSize: 14, color: colors.primary, fontWeight: '600' },
   rail: { gap: 12, paddingRight: 16 },
   railItem: { width: 260 },
-  groupRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: colors.card, borderRadius: 12, padding: 14, marginBottom: 6,
-  },
-  groupName: { fontSize: 15, fontWeight: '700', color: colors.foreground },
-  groupSub: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
-  groupCount: { fontSize: 13, color: colors.mutedForeground },
   banner: { backgroundColor: palette.purple[100], borderRadius: 12, padding: 16, marginTop: 8, gap: 4 },
-  bannerTitle: { fontSize: 15, fontWeight: '700', color: colors.foreground },
-  bannerBody: { fontSize: 13, color: colors.mutedForeground },
-  bannerCta: { fontSize: 14, color: colors.primary, fontWeight: '700', marginTop: 6 },
   empty: { color: colors.mutedForeground, fontSize: 14, paddingVertical: 8 },
   emptyCard: {
     backgroundColor: colors.card,
@@ -241,12 +222,4 @@ const styles = StyleSheet.create({
     gap: 12,
     marginVertical: 8,
   },
-  emptyCardText: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },
-  emptyCardBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  emptyCardBtnText: { color: colors.card, fontWeight: '700', fontSize: 14 },
 });
