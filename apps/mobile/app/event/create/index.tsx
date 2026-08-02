@@ -5,14 +5,11 @@ import { geocodeQuery } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +19,7 @@ import { StepIndicator } from '@/components/event/wizard/StepIndicator';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
+import { Button, Text } from '../../../components/ui';
 import { colors } from '../../../theme';
 
 export default function CreateEventScreen() {
@@ -143,10 +141,10 @@ function CreateEventWizard() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('createTitle')}</Text>
-        <Pressable onPress={onClose} accessibilityRole="button" hitSlop={8}>
-          <Text style={styles.close}>{t('close')}</Text>
-        </Pressable>
+        <Text variant="heading" tone="default">
+          {t('createTitle')}
+        </Text>
+        <Button variant="ghost" size="sm" label={t('close')} onPress={onClose} />
       </View>
 
       <StepIndicator stepIndex={stepIndex} total={steps.length} />
@@ -164,37 +162,28 @@ function CreateEventWizard() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {error ? <Text style={styles.error}>{t(error)}</Text> : null}
+      {error ? (
+        <Text variant="label" tone="destructive" style={styles.error}>
+          {t(error)}
+        </Text>
+      ) : null}
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         {!isFirst ? (
-          <Pressable
-            onPress={goBack}
-            accessibilityRole="button"
-            style={[styles.btn, styles.backBtn]}
-          >
-            <Text style={styles.backLabel}>{t('back')}</Text>
-          </Pressable>
+          <Button variant="secondary" label={t('back')} onPress={goBack} />
         ) : (
           <View style={styles.btnSpacer} />
         )}
-        <Pressable
+        {/* `submitting ? <ActivityIndicator/> : <Text/>` was `loading` written
+            longhand — the same shape found twelve times across auth. The
+            compound `disabled` splits back into its two real reasons. */}
+        <Button
+          label={isLast ? t('finish') : t('next')}
           onPress={onPrimary}
-          disabled={!canAdvance || submitting}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !canAdvance || submitting }}
-          style={[
-            styles.btn,
-            styles.primaryBtn,
-            (!canAdvance || submitting) && styles.primaryBtnDisabled,
-          ]}
-        >
-          {submitting ? (
-            <ActivityIndicator color={colors.card} />
-          ) : (
-            <Text style={styles.primaryLabel}>{isLast ? t('finish') : t('next')}</Text>
-          )}
-        </Pressable>
+          loading={submitting}
+          disabled={!canAdvance}
+          style={styles.primaryBtn}
+        />
       </View>
     </SafeAreaView>
   );
@@ -212,8 +201,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
-  close: { fontSize: 16, fontWeight: '600', color: colors.primary },
   inner: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 },
   footer: {
     flexDirection: 'row',
@@ -224,24 +211,8 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
-  btn: {
-    minHeight: 48,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   btnSpacer: { width: 1 },
-  backBtn: { backgroundColor: colors.muted },
-  backLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
-  primaryBtn: { backgroundColor: colors.primary, marginLeft: 'auto' },
-  primaryBtnDisabled: { opacity: 0.4 },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
-  error: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.destructive,
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
+  // All that is left is the alignment; Button owns the rest.
+  primaryBtn: { marginLeft: 'auto' },
+  error: { paddingHorizontal: 20, paddingBottom: 8 },
 });
