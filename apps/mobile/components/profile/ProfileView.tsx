@@ -9,6 +9,7 @@ import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'rea
 import { avatarUrl } from '@/lib/community-images';
 import { BlockModal, ReportModal } from './BlockReportModals';
 import { colors, palette } from '../../theme';
+import { Button } from '../../components/ui';
 
 export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolean }) {
   const { t } = useT('profile');
@@ -39,9 +40,12 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
         {p.description ? <Text style={styles.bio}>{p.description}</Text> : null}
         {isSelf && (
           <View style={styles.selfActions}>
-            <Pressable style={styles.editBtn} onPress={() => router.push('/profile/edit')} accessibilityRole="button">
-              <Text style={styles.editText}>{t('edit')}</Text>
-            </Pressable>
+            <Button
+              label={t('edit')}
+              variant="outline"
+              size="sm"
+              onPress={() => router.push('/profile/edit')}
+            />
             <Pressable style={styles.gear} onPress={() => router.push('/profile/settings')} accessibilityRole="button" accessibilityLabel={t('settings')}>
               <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.foreground} size={22} />
             </Pressable>
@@ -59,14 +63,11 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
         </View>
         {!isSelf && (
           <View style={styles.actions}>
-            <Pressable
-              style={[styles.followBtn, p.is_following && styles.followingBtn]}
+            <Button
+              label={p.is_following ? t('following') : t('follow')}
+              variant={p.is_following ? 'outline' : 'primary'}
               onPress={() => (p.is_following ? unfollow.mutate(userId) : follow.mutate(userId))}
-              accessibilityRole="button">
-              <Text style={[styles.followText, p.is_following && styles.followingText]}>
-                {p.is_following ? t('following') : t('follow')}
-              </Text>
-            </Pressable>
+            />
             <Pressable style={styles.kebab} onPress={() => setMenuOpen((v) => !v)} accessibilityRole="button" accessibilityLabel="More">
               <SymbolView name={{ ios: 'ellipsis', android: 'more_vert', web: 'more_vert' }} tintColor={colors.foreground} size={22} />
             </Pressable>
@@ -123,16 +124,10 @@ const styles = StyleSheet.create({
   bio: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', paddingHorizontal: 24 },
   selfActions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   gear: { padding: 8 },
-  editBtn: { borderWidth: 1, borderColor: colors.primary, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 8 },
-  editText: { color: colors.primary, fontWeight: '700' },
   counts: { flexDirection: 'row', gap: 32 },
   countNum: { fontSize: 18, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
   countLabel: { fontSize: 12, color: colors.mutedForeground, textAlign: 'center' },
   actions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  followBtn: { backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 28, paddingVertical: 10 },
-  followingBtn: { backgroundColor: colors.muted },
-  followText: { color: colors.card, fontWeight: '700' },
-  followingText: { color: colors.foreground },
   kebab: { padding: 8 },
   menu: { alignSelf: 'stretch', backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
   menuItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
