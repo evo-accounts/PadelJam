@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import type { EventInvitee } from './draft';
 import { SelectableCard } from './SelectableCard';
 import { colors, palette } from '../../../theme';
+import { Button } from '../../../components/ui';
 
 export function InvitePicker({
   groupId,
@@ -151,15 +152,13 @@ function ManualInvitees({
         keyboardType="phone-pad"
         accessibilityLabel={t('manualPhoneLabel')}
       />
-      <Pressable
-        onPress={add}
+      <Button
+        label={t('addManual')}
+        variant="outline"
+        fullWidth
         disabled={name.trim().length === 0}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: name.trim().length === 0 }}
-        style={[styles.addButton, name.trim().length === 0 && styles.addButtonDisabled]}
-      >
-        <Text style={styles.addButtonLabel}>{t('addManual')}</Text>
-      </Pressable>
+        onPress={add}
+      />
 
       {manual.length > 0 ? (
         <View style={styles.chips}>
@@ -197,15 +196,6 @@ const styles = StyleSheet.create({
     color: colors.foreground,
     backgroundColor: colors.card,
   },
-  addButton: {
-    minHeight: 48,
-    borderRadius: 12,
-    backgroundColor: colors.muted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonDisabled: { opacity: 0.4 },
-  addButtonLabel: { fontSize: 16, fontWeight: '700', color: colors.foreground },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row',

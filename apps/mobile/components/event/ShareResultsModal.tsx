@@ -3,10 +3,11 @@ import { useT } from '@padel/i18n';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import { ResultCard } from './ResultCard';
 import { colors } from '../../theme';
+import { Button } from '../../components/ui';
 
 export function ShareResultsModal({
   visible,
@@ -65,22 +66,20 @@ export function ShareResultsModal({
           <Text style={styles.title}>{t('shareResultsTitle')}</Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {communityId ? (
-            <Pressable
-              style={[styles.btn, styles.primary, (posted || postResult.isPending) && styles.disabled]}
-              disabled={posted || postResult.isPending}
+            <Button
+              label={posted ? t('resultPosted') : t('postToFeedCta')}
+              fullWidth
+              loading={postResult.isPending}
+              disabled={posted}
               onPress={onPost}
-              accessibilityRole="button"
-            >
-              {postResult.isPending ? (
-                <ActivityIndicator color={colors.card} />
-              ) : (
-                <Text style={styles.primaryLabel}>{posted ? t('resultPosted') : t('postToFeedCta')}</Text>
-              )}
-            </Pressable>
+            />
           ) : null}
-          <Pressable style={[styles.btn, styles.secondary]} onPress={onShare} accessibilityRole="button">
-            <Text style={styles.secondaryLabel}>{copied ? t('copied') : t('shareExternalCta')}</Text>
-          </Pressable>
+          <Button
+            label={copied ? t('copied') : t('shareExternalCta')}
+            variant="outline"
+            fullWidth
+            onPress={onShare}
+          />
           <View ref={cardRef} collapsable={false} style={styles.offscreen}>
             <ResultCard eventId={eventId} eventName={eventName} />
           </View>
@@ -95,11 +94,5 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 12 },
   title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 14, fontWeight: '600' },
-  btn: { minHeight: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  primary: { backgroundColor: colors.primary },
-  primaryLabel: { fontSize: 16, fontWeight: '700', color: colors.card },
-  secondary: { backgroundColor: colors.muted },
-  secondaryLabel: { fontSize: 16, fontWeight: '600', color: colors.foreground },
-  disabled: { opacity: 0.5 },
   offscreen: { position: 'absolute', left: -9999, top: 0 },
 });

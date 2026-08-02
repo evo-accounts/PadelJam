@@ -9,6 +9,7 @@ import { geocodeAddress } from '@/lib/geocode';
 
 import type { WizardStepProps } from '../draft';
 import { colors, palette } from '../../../../theme';
+import { Button } from '../../../../components/ui';
 
 export function Step5Location({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
@@ -136,19 +137,22 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         placeholderTextColor={palette.slate[400]}
       />
 
-      <Pressable
-        style={styles.locBtn}
+      <Button
+        label={geocoding ? t('locating') : t('findLocationCta')}
+        variant="outline"
+        fullWidth
+        loading={geocoding}
         onPress={() => void runGeocode(geocodeQuery({ name: draft.manualLocationName, address: draft.manualLocationAddress }))}
-        disabled={geocoding}
-        accessibilityRole="button"
-      >
-        <Text style={styles.locBtnText}>{geocoding ? t('locating') : t('findLocationCta')}</Text>
-      </Pressable>
+      />
       {geoNotFound ? <Text style={styles.denied}>{t('locationNotFound')}</Text> : null}
 
-      <Pressable style={styles.locBtn} onPress={useMyLocation} disabled={locating} accessibilityRole="button">
-        <Text style={styles.locBtnText}>{locating ? t('locating') : t('useMyLocation')}</Text>
-      </Pressable>
+      <Button
+        label={locating ? t('locating') : t('useMyLocation')}
+        variant="outline"
+        fullWidth
+        loading={locating}
+        onPress={useMyLocation}
+      />
       {draft.locationLat != null ? <Text style={styles.coords}>✓ {draft.locationLat.toFixed(4)}, {draft.locationLng?.toFixed(4)}</Text> : null}
       {denied ? <Text style={styles.denied}>{t('locationDenied')}</Text> : null}
     </View>
@@ -166,7 +170,5 @@ const styles = StyleSheet.create({
   venueRowOn: { borderColor: colors.primary, backgroundColor: palette.purple[100] },
   venueName: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
   or: { textAlign: 'center', color: colors.mutedForeground, fontSize: 13, marginVertical: 12 },
-  locBtn: { backgroundColor: palette.purple[100], borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
-  locBtnText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
   coords: { color: colors.successStrong, fontSize: 12, marginTop: 6, textAlign: 'center' },
 });
