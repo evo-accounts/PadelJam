@@ -71,6 +71,10 @@ export default function YourGroupsScreen() {
                   {t('memberCount', { count: item.member_count })}
                 </Text>
               }
+              // Without this the count is not announced at all: ListRow sets an
+              // accessibilityLabel, which makes the row a single element and
+              // drops its children from the tree.
+              trailingLabel={t('memberCount', { count: item.member_count })}
               onPress={() => router.push(`/group/${item.group_id}` as never)}
             />
           )}
