@@ -4,11 +4,12 @@ import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { EventCard } from '@/components/event/EventCard';
 import { colors } from '../../../../theme';
+import { Chip } from '../../../../components/ui';
 
 type Filter = 'all' | 'organizing';
 
@@ -85,13 +86,11 @@ function FilterPill({
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      style={[styles.pill, active && styles.pillActive]}
+    <Chip
       onPress={onPress}
-      accessibilityRole="button"
-    >
-      <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
-    </Pressable>
+      label={label}
+      selected={active}
+    />
   );
 }
 
@@ -103,13 +102,4 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 12, paddingVertical: 8 },
   separator: { height: 8 },
   filters: { flexDirection: 'row', gap: 8, paddingTop: 8, paddingBottom: 4 },
-  pill: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    backgroundColor: colors.muted,
-  },
-  pillActive: { backgroundColor: colors.primary },
-  pillText: { fontSize: 13, fontWeight: '700', color: colors.mutedForeground },
-  pillTextActive: { color: colors.card },
 });
