@@ -27,7 +27,12 @@ export default function GroupMembersScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+          hitSlop={12}
+        >
           <Text style={styles.back}>‹</Text>
         </Pressable>
         <Text style={styles.title}>{t('membersTitle')}</Text>

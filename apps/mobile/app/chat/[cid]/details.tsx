@@ -86,7 +86,12 @@ export default function ChatDetailsScreen() {
 
       <Modal visible={viewer !== null} transparent={false} animationType="fade" onRequestClose={() => setViewer(null)}>
         <View style={styles.viewer}>
-          <Pressable style={styles.close} onPress={() => setViewer(null)} accessibilityRole="button">
+          <Pressable
+            style={styles.close}
+            onPress={() => setViewer(null)}
+            accessibilityRole="button"
+            accessibilityLabel={t('close')}
+          >
             <Text style={styles.closeText}>✕</Text>
           </Pressable>
           {viewer !== null ? (

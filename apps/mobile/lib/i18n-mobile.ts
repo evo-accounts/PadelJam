@@ -204,6 +204,7 @@ const mobileAuth = {
 const mobileOnboarding = {
   'pt-PT': {
     locationTitle: 'Onde joga?',
+    close: 'Fechar',
     locationBody: 'Ajuda-nos a mostrar jogos perto de si.',
     locationUseCurrent: 'Usar localização atual',
     locationUseCurrentTitle: 'Usar localização atual',
@@ -248,6 +249,7 @@ const mobileOnboarding = {
   },
   'pt-BR': {
     locationTitle: 'Onde você joga?',
+    close: 'Fechar',
     locationBody: 'Ajuda a mostrar jogos perto de você.',
     locationUseCurrent: 'Usar localização atual',
     locationUseCurrentTitle: 'Usar localização atual',
@@ -292,6 +294,7 @@ const mobileOnboarding = {
   },
   en: {
     locationTitle: 'Where do you play?',
+    close: 'Close',
     locationBody: 'Helps us show games near you.',
     locationUseCurrent: 'Use current location',
     locationUseCurrentTitle: 'Use Current Location',
@@ -3254,6 +3257,8 @@ const mobileProfile = {
 const mobileChat = {
   'pt-PT': {
     title: 'Conversas',
+    more: 'Mais',
+    close: 'Fechar',
     newChat: 'Nova conversa',
     searchPeople: 'Procurar pessoas que segue',
     messagePlaceholder: 'Mensagem',
@@ -3284,6 +3289,8 @@ const mobileChat = {
   },
   'pt-BR': {
     title: 'Conversas',
+    more: 'Mais',
+    close: 'Fechar',
     newChat: 'Nova conversa',
     searchPeople: 'Buscar pessoas que você segue',
     messagePlaceholder: 'Mensagem',
@@ -3314,6 +3321,8 @@ const mobileChat = {
   },
   en: {
     title: 'Chat',
+    more: 'More',
+    close: 'Close',
     newChat: 'New Chat',
     searchPeople: 'Search people you follow',
     messagePlaceholder: 'Message',

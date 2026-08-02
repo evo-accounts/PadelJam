@@ -1,6 +1,8 @@
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 
+import glyphButtonNeedsLabel from './eslint-rules/glyph-button-needs-label.mjs';
+
 import rootConfig from '../../eslint.config.mjs';
 
 /**
@@ -112,6 +114,22 @@ export default [
           message: 'Use colors.overlay (or a theme token) instead of a raw rgba() colour.',
         },
       ],
+    },
+  },
+
+  {
+    // A glyph-only pressable must say what it does.
+    //
+    // Seven of these shipped during the primitive migration, each found by hand:
+    // a screen reader announced "bullet bullet bullet" for the chat kebab and
+    // "greater-than sign" for a navigation chevron. Unlike the hex rule this one
+    // starts at `error` with zero violations, because seven was small enough to
+    // fix outright — no ratchet needed.
+    files: ['**/*.tsx'],
+    ignores: ['components/ui/**'], // IconButton already REQUIRES the prop
+    plugins: { a11y: { rules: { 'glyph-button-needs-label': glyphButtonNeedsLabel } } },
+    rules: {
+      'a11y/glyph-button-needs-label': 'error',
     },
   },
 ];
