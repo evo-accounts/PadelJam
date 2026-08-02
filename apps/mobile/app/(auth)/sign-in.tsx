@@ -3,17 +3,7 @@ import { useT } from '@padel/i18n';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { runAppleSignIn } from '@/lib/appleSignIn';
@@ -22,6 +12,7 @@ import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { supabase } from '@/lib/supabase';
 import { colors, palette } from '../../theme';
+import { Button } from '../../components/ui';
 
 export default function SignInScreen() {
   const TERMS_URL = 'https://padeljam.app/terms';
@@ -112,31 +103,24 @@ export default function SignInScreen() {
           editable={!busy}
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Pressable
-          style={[styles.button, busy && styles.buttonDisabled]}
+        <Button
+          label={t('continue')}
+          fullWidth
+          loading={busy}
           onPress={onContinue}
-          disabled={busy}
-          accessibilityRole="button"
-        >
-          {busy ? (
-            <ActivityIndicator color={colors.card} />
-          ) : (
-            <Text style={styles.buttonText}>{t('continue')}</Text>
-          )}
-        </Pressable>
+        />
         <View style={styles.dividerRow}>
           <View style={styles.divider} />
           <Text style={styles.dividerText}>{t('orDivider')}</Text>
           <View style={styles.divider} />
         </View>
-        <Pressable
-          style={[styles.googleButton, busy && styles.buttonDisabled]}
+        <Button
+          label={t('continueWithGoogle')}
+          variant="outline"
+          fullWidth
+          loading={busy}
           onPress={onGoogle}
-          disabled={busy}
-          accessibilityRole="button"
-        >
-          <Text style={styles.googleButtonText}>{t('continueWithGoogle')}</Text>
-        </Pressable>
+        />
         {Platform.OS === 'ios' && appleAvailable ? (
           <AppleAuthentication.AppleAuthenticationButton
             buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
@@ -146,14 +130,13 @@ export default function SignInScreen() {
             onPress={onApple}
           />
         ) : (
-          <Pressable
-            style={[styles.googleButton, busy && styles.buttonDisabled]}
+          <Button
+            label={t('continueWithApple')}
+            variant="outline"
+            fullWidth
+            loading={busy}
             onPress={onApple}
-            disabled={busy}
-            accessibilityRole="button"
-          >
-            <Text style={styles.googleButtonText}>{t('continueWithApple')}</Text>
-          </Pressable>
+          />
         )}
         <Text style={styles.disclosure}>
           {disclosureBefore}

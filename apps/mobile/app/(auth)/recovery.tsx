@@ -10,12 +10,13 @@ import {
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useEffect, useReducer, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getAuthTarget } from '@/lib/auth-flow';
 import { supabase } from '@/lib/supabase';
 import { colors, palette } from '../../theme';
+import { Button } from '../../components/ui';
 
 type Step = 'code' | 'password' | 'done';
 
@@ -123,9 +124,13 @@ export default function RecoveryScreen() {
             autoFocus
           />
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={[styles.button, (busy || code.length < 6) && styles.buttonDisabled]} onPress={verifyCode} disabled={busy || code.length < 6} accessibilityRole="button">
-            {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('continue')}</Text>}
-          </Pressable>
+          <Button
+            label={t('continue')}
+            fullWidth
+            loading={busy}
+            disabled={code.length < 6}
+            onPress={verifyCode}
+          />
           <Pressable style={styles.linkButton} onPress={resend} disabled={busy || cooldown > 0} accessibilityRole="button">
             <Text style={[styles.link, cooldown > 0 && { color: palette.slate[400] }]}>{cooldown > 0 ? t('cooldown', { seconds: cooldown }) : t('resend')}</Text>
           </Pressable>
@@ -138,16 +143,18 @@ export default function RecoveryScreen() {
           <Text style={[styles.label, { marginTop: 12 }]}>{t('confirmPasswordLabel')}</Text>
           <TextInput style={styles.input} value={pw2} onChangeText={setPw2} secureTextEntry autoCapitalize="none" editable={!busy} />
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={[styles.button, busy && styles.buttonDisabled]} onPress={savePassword} disabled={busy} accessibilityRole="button">
-            {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('continue')}</Text>}
-          </Pressable>
+          <Button
+            label={t('continue')}
+            fullWidth
+            loading={busy}
+            disabled={busy}
+            onPress={savePassword}
+          />
         </>
       ) : (
         <>
           <Text style={styles.title}>{t('recoveryDoneTitle')}</Text>
-          <Pressable style={styles.button} onPress={finish} accessibilityRole="button">
-            <Text style={styles.buttonText}>{t('recoveryDoneCta')}</Text>
-          </Pressable>
+          <Button label={t('recoveryDoneCta')} fullWidth onPress={finish} />
         </>
       )}
     </View>
