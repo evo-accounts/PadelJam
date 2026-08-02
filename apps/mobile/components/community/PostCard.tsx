@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PostImage } from '@/components/community/PostImage';
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../theme';
+import { Button } from '../../components/ui';
 
 export type CommunityPost = {
   id: string;
@@ -38,9 +39,12 @@ function ResultBody({ eventId }: { eventId: string }) {
           <Text key={r.rank} style={styles.resultRow}>{`${r.rank}. ${r.name} · ${r.points}`}</Text>
         ))
       )}
-      <Pressable onPress={() => router.push(('/event/' + eventId) as never)} accessibilityRole="button">
-        <Text style={styles.resultLink}>{t('viewEventCta')}</Text>
-      </Pressable>
+      <Button
+        label={t('viewEventCta')}
+        variant="ghost"
+        size="sm"
+        onPress={() => router.push(('/event/' + eventId) as never)}
+      />
     </View>
   );
 }
