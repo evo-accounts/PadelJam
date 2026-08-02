@@ -77,8 +77,11 @@ describe('10 groups', () => {
     const m = manifest();
     const before = ((await select('group_seasons', `group_id=eq.${m.groups.g1}&select=id`)) as unknown[]).length;
     await openGroup(/tuesday night league/i);
-    // The overflow control renders as a bullet glyph, not the word "More".
-    await tap({ label: '•••' });
+    // Was `label: '•••'` — the control had NO accessibilityLabel, so the label
+    // fell back to the glyph itself and this test was encoding that bug. It is
+    // an IconButton inside TopBar now, which makes the label required, so it
+    // announces the action instead of the character.
+    await tap({ label: 'More' });
     await sleep(1000);
     await tap({ text: /manage group/i });
     await expectVisible({ text: /manage group/i }, { timeout: 20_000 });
