@@ -12,8 +12,9 @@ import { notificationRoute } from '@padel/utils';
 import { FlashList } from '@shopify/flash-list';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, palette } from '../../theme';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { colors } from '../../theme';
+import { Button, IconButton, ListRow, Text } from '../../components/ui';
 
 const CTA_TYPES = ['event_invite', 'group_invite', 'community_invite'];
 
@@ -47,60 +48,49 @@ export default function NotificationsScreen() {
         options={{
           title: t('title'),
           headerRight: () => (
-            <Pressable onPress={() => setMenuOpen(true)} accessibilityRole="button" hitSlop={12}>
-              <Text style={styles.menuDots}>•••</Text>
-            </Pressable>
+            <IconButton icon="•••" accessibilityLabel={t('more')} onPress={() => setMenuOpen(true)} />
           ),
         }}
       />
 
       {pending > 0 && (
-        <Pressable
-          style={styles.pinned}
+        <ListRow
+          variant="card"
+          title={t('partnerRequests')}
+          trailing={
+            <Text variant="hint" tone="muted">{t('pendingCount', { count: pending })}</Text>
+          }
           onPress={() => router.push('/notifications/partner-requests' as never)}
-          accessibilityRole="button"
-        >
-          <Text style={styles.pinnedLabel}>{t('partnerRequests')}</Text>
-          <Text style={styles.pinnedCount}>{t('pendingCount', { count: pending })}</Text>
-        </Pressable>
+        />
       )}
 
       {list.isLoading ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : list.isError ? (
-        <Text style={styles.empty}>{t('loadError')}</Text>
+        <Text variant="caption" tone="muted" style={styles.empty}>{t('loadError')}</Text>
       ) : rows.length === 0 ? (
-        <Text style={styles.empty}>{t('empty')}</Text>
+        <Text variant="caption" tone="muted" style={styles.empty}>{t('empty')}</Text>
       ) : (
         <FlashList
           data={rows}
           keyExtractor={(n) => n.id}
           onEndReached={() => list.hasNextPage && list.fetchNextPage()}
           renderItem={({ item }) => (
-            <Pressable
-              style={[styles.row, !item.read_at && styles.rowUnread]}
+            <ListRow
+              variant="card"
+              title={t(item.type, { actor: item.actor_name ?? '', entity: item.entity_name ?? '' })}
+              highlighted={!item.read_at}
+              trailing={
+                CTA_TYPES.includes(item.type) ? (
+                  item.cta_done ? (
+                    <Text variant="hint" tone="success">{t('joined')}</Text>
+                  ) : (
+                    <Button label={t('join')} size="sm" onPress={() => completeCta.mutate(item)} />
+                  )
+                ) : null
+              }
               onPress={() => onRowPress(item)}
-              accessibilityRole="button"
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowText}>
-                  {t(item.type, { actor: item.actor_name ?? '', entity: item.entity_name ?? '' })}
-                </Text>
-              </View>
-              {CTA_TYPES.includes(item.type) ? (
-                item.cta_done ? (
-                  <Text style={styles.joined}>{t('joined')}</Text>
-                ) : (
-                  <Pressable
-                    style={styles.joinBtn}
-                    onPress={() => completeCta.mutate(item)}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.joinText}>{t('join')}</Text>
-                  </Pressable>
-                )
-              ) : null}
-            </Pressable>
+            />
           )}
         />
       )}
@@ -116,7 +106,7 @@ export default function NotificationsScreen() {
               }}
               accessibilityRole="button"
             >
-              <Text style={styles.sheetText}>{t('markAllRead')}</Text>
+              <Text variant="body">{t('markAllRead')}</Text>
             </Pressable>
             <Pressable
               style={styles.sheetRow}
@@ -137,22 +127,6 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  menuDots: { fontSize: 18, color: colors.foreground, paddingHorizontal: 8, fontWeight: '700' },
-  pinned: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: colors.card, margin: 12, borderRadius: 12, padding: 16,
-  },
-  pinnedLabel: { fontSize: 15, fontWeight: '700', color: colors.foreground },
-  pinnedCount: { fontSize: 14, color: colors.primary, fontWeight: '600' },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: colors.card, marginHorizontal: 12, marginBottom: 6, borderRadius: 12, padding: 14,
-  },
-  rowUnread: { backgroundColor: palette.purple[100] },
-  rowText: { fontSize: 14, color: colors.foreground },
-  joinBtn: { backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  joinText: { color: colors.card, fontWeight: '700', fontSize: 13 },
-  joined: { color: colors.mutedForeground, fontWeight: '700', fontSize: 13 },
   empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-start', alignItems: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderRadius: 12, margin: 12, marginTop: 48, minWidth: 200, overflow: 'hidden' },

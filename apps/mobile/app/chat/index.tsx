@@ -10,6 +10,7 @@ import { ChannelList } from 'stream-chat-expo';
 
 import { ChannelRow } from '@/components/chat/ChannelRow';
 import { colors, palette } from '../../theme';
+import { Button, Chip } from '../../components/ui';
 
 type Tab = 'active' | 'archived';
 
@@ -20,13 +21,11 @@ function ChatEmptyState() {
     <View style={styles.emptyWrap}>
       <View style={styles.emptyCard}>
         <Text style={styles.emptyText}>{t('noChats')}</Text>
-        <Pressable
-          style={styles.emptyBtn}
+        <Button
+          label={t('emptyStartCta')}
+          variant="outline"
           onPress={() => router.push('/chat/new' as never)}
-          accessibilityRole="button"
-        >
-          <Text style={styles.emptyBtnText}>{t('emptyStartCta')}</Text>
-        </Pressable>
+        />
       </View>
     </View>
   );
@@ -69,17 +68,18 @@ export default function ChatListScreen() {
       />
       <View style={styles.tabs}>
         {(['active', 'archived'] as const).map((k) => (
-          <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabActive]} accessibilityRole="button">
-            <Text style={[styles.tabText, tab === k && styles.tabTextActive]}>{t(k === 'active' ? 'tabActive' : 'tabArchived')}</Text>
-          </Pressable>
+          <Chip
+            key={k}
+            label={t(k === 'active' ? 'tabActive' : 'tabArchived')}
+            selected={tab === k}
+            onPress={() => setTab(k)}
+          />
         ))}
       </View>
       {tokenQ.isError ? (
         <View style={styles.banner}>
           <Text style={styles.bannerText}>{t('connectError')}</Text>
-          <Pressable onPress={() => tokenQ.refetch()} accessibilityRole="button" hitSlop={8}>
-            <Text style={styles.bannerRetry}>{t('retry')}</Text>
-          </Pressable>
+          <Button label={t('retry')} variant="ghost" size="sm" onPress={() => tokenQ.refetch()} />
         </View>
       ) : null}
       <ChannelList
@@ -96,21 +96,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   tabs: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: colors.primary },
-  tabText: { fontSize: 15, color: colors.mutedForeground, fontWeight: '600' },
-  tabTextActive: { color: colors.primary, fontWeight: '700' },
   banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: palette.yellow[100], paddingHorizontal: 16, paddingVertical: 10 },
   bannerText: { color: palette.yellow[900], fontSize: 13, flex: 1 },
-  bannerRetry: { color: colors.primary, fontWeight: '700', fontSize: 13, paddingLeft: 12 },
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyCard: {
     backgroundColor: colors.card, borderRadius: 16, padding: 24,
     alignItems: 'center', gap: 14, width: '100%',
   },
   emptyText: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
-  emptyBtn: {
-    backgroundColor: colors.primary, borderRadius: 8,
-    paddingHorizontal: 24, paddingVertical: 12,
-  },
-  emptyBtnText: { color: colors.card, fontWeight: '700', fontSize: 14 },
 });
