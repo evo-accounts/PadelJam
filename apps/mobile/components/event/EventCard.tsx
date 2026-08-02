@@ -1,7 +1,8 @@
 import { useGroupEvents } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, palette } from '../../theme';
+import { Card } from '../../components/ui';
 
 /** The element type of the group-events hook data: the `events` table Row. */
 type EventRow = NonNullable<ReturnType<typeof useGroupEvents>['data']>[number];
@@ -65,7 +66,7 @@ export function EventCard({
         : styled.badgeTextScheduled;
 
   return (
-    <Pressable style={styled.card} onPress={onPress} accessibilityRole="button">
+    <Card padding="none" style={styled.card} onPress={onPress}>
       <View style={styled.thumb} />
       <View style={styled.body}>
         <View style={styled.headerRow}>
@@ -86,7 +87,7 @@ export function EventCard({
         </Text>
         {distance ? <Text style={styled.distance}>{distance}</Text> : null}
       </View>
-    </Pressable>
+    </Card>
   );
 }
 

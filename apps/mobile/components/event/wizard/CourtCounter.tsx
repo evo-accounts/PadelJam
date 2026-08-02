@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../../theme';
+import { IconButton } from '../../../components/ui';
 
 export function CourtCounter({
   value,
@@ -23,27 +24,23 @@ export function CourtCounter({
     <View style={styles.wrap}>
       <Text style={styles.label}>{t('courtsLabel')}</Text>
       <View style={styles.row}>
-        <Pressable
-          style={[styles.button, atMin && styles.buttonDisabled]}
-          onPress={() => set(value - 1)}
+        <IconButton
+          icon="−"
+          accessibilityLabel={t('decreaseValueLabel', { label: t('courtsLabel') })}
+          size="lg"
+          filled
           disabled={atMin}
-          accessibilityRole="button"
-          accessibilityLabel="−"
-          accessibilityState={{ disabled: atMin }}
-        >
-          <Text style={styles.buttonLabel}>−</Text>
-        </Pressable>
+          onPress={() => set(value - 1)}
+        />
         <Text style={styles.value}>{value}</Text>
-        <Pressable
-          style={[styles.button, atMax && styles.buttonDisabled]}
-          onPress={() => set(value + 1)}
+        <IconButton
+          icon="+"
+          accessibilityLabel={t('increaseValueLabel', { label: t('courtsLabel') })}
+          size="lg"
+          filled
           disabled={atMax}
-          accessibilityRole="button"
-          accessibilityLabel="+"
-          accessibilityState={{ disabled: atMax }}
-        >
-          <Text style={styles.buttonLabel}>+</Text>
-        </Pressable>
+          onPress={() => set(value + 1)}
+        />
       </View>
     </View>
   );
@@ -53,15 +50,5 @@ const styles = StyleSheet.create({
   wrap: { gap: 12 },
   label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   row: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  button: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: colors.muted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonDisabled: { opacity: 0.4 },
-  buttonLabel: { fontSize: 24, fontWeight: '700', color: colors.foreground },
   value: { fontSize: 22, fontWeight: '700', color: colors.foreground, minWidth: 32, textAlign: 'center' },
 });
