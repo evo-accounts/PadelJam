@@ -4,7 +4,7 @@ import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { Channel } from 'stream-chat';
 import { ChannelList } from 'stream-chat-expo';
 
