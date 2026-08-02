@@ -2,12 +2,13 @@ import { useCommunity, useJoinCommunity } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AckGate } from '@/components/community/AckGate';
 import { CommunityHero } from '@/components/community/CommunityHero';
-import { colors, palette } from '../../../theme';
+import { colors } from '../../../theme';
+import { Button } from '../../../components/ui';
 
 const PRIVACY_SUMMARY_KEY: Record<string, string> = {
   public: 'privacySummaryPublic',
@@ -75,9 +76,7 @@ export default function CommunityJoinModal() {
           <View style={styles.requested}>
             <Text style={styles.requestedTitle}>{t('requestedTitle')}</Text>
             <Text style={styles.requestedBody}>{t('requestedBody')}</Text>
-            <Pressable style={styles.secondary} onPress={() => router.back()} accessibilityRole="button">
-              <Text style={styles.secondaryText}>{t('close')}</Text>
-            </Pressable>
+            <Button label={t('close')} variant="outline" onPress={() => router.back()} />
           </View>
         ) : (
           <>
@@ -93,18 +92,13 @@ export default function CommunityJoinModal() {
 
             {errorKey ? <Text style={styles.error}>{t(errorKey)}</Text> : null}
 
-            <Pressable
-              style={[styles.cta, ctaDisabled && styles.ctaDisabled]}
+            <Button
+              label={t(ctaKey)}
+              fullWidth
+              loading={join.isPending}
               disabled={ctaDisabled}
               onPress={onPress}
-              accessibilityRole="button"
-            >
-              {join.isPending ? (
-                <ActivityIndicator color={colors.card} />
-              ) : (
-                <Text style={styles.ctaText}>{t(ctaKey)}</Text>
-              )}
-            </Pressable>
+            />
           </>
         )}
       </View>
@@ -118,17 +112,7 @@ const styles = StyleSheet.create({
   body: { padding: 20, gap: 16 },
   summary: { fontSize: 15, color: colors.mutedForeground, lineHeight: 21, textAlign: 'center' },
   error: { fontSize: 14, color: colors.destructive, textAlign: 'center', fontWeight: '600' },
-  cta: {
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  ctaDisabled: { backgroundColor: palette.purple[200] },
-  ctaText: { color: colors.card, fontSize: 17, fontWeight: '700' },
   requested: { alignItems: 'center', gap: 12, paddingTop: 12 },
   requestedTitle: { fontSize: 20, fontWeight: '700', color: colors.foreground },
   requestedBody: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', lineHeight: 21 },
-  secondary: { marginTop: 8, paddingVertical: 12, paddingHorizontal: 24 },
-  secondaryText: { fontSize: 16, fontWeight: '600', color: colors.primary },
 });

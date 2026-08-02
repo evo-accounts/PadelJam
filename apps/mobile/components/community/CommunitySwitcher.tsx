@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { thumbnailUrl } from '@/lib/community-images';
 import { colors, palette } from '../../theme';
+import { Button, Chip, IconButton } from '../../components/ui';
 
 export type CommunityRow = Tables<'communities'>;
 
@@ -60,14 +61,12 @@ function CommunityListItem({
         ) : null}
       </View>
       {!isDefault ? (
-        <Pressable
-          hitSlop={8}
-          onPress={onSetDefault}
-          accessibilityRole="button"
+        <IconButton
+          icon="☆"
           accessibilityLabel={t('setAsDefault')}
-        >
-          <Text style={styles.star}>☆</Text>
-        </Pressable>
+          size="sm"
+          onPress={onSetDefault}
+        />
       ) : (
         <Text style={[styles.star, styles.starActive]}>★</Text>
       )}
@@ -123,33 +122,23 @@ export function CommunitySwitcher({
       <Text style={styles.title}>{t('title')}</Text>
 
       <View style={styles.toggle}>
-        <Pressable
-          style={[styles.toggleBtn, !showArchived && styles.toggleBtnActive]}
+        <Chip
+          label={t('active')}
+          selected={!showArchived}
           onPress={() => setShowArchived(false)}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.toggleText, !showArchived && styles.toggleTextActive]}>
-            {t('active')}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.toggleBtn, showArchived && styles.toggleBtnActive]}
+        />
+        <Chip
+          label={t('archived')}
+          selected={showArchived}
           onPress={() => setShowArchived(true)}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.toggleText, showArchived && styles.toggleTextActive]}>
-            {t('archived')}
-          </Text>
-        </Pressable>
+        />
       </View>
 
       {renderSection(t('managing'), managing)}
       {renderSection(t('participating'), participating)}
 
       {canCreate ? (
-        <Pressable style={styles.newBtn} onPress={onNewCommunity} accessibilityRole="button">
-          <Text style={styles.newBtnText}>{t('newCommunity')}</Text>
-        </Pressable>
+        <Button label={t('newCommunity')} variant="outline" fullWidth onPress={onNewCommunity} />
       ) : null}
     </ScrollView>
   );
@@ -166,10 +155,6 @@ const styles = StyleSheet.create({
     padding: 4,
     marginBottom: 24,
   },
-  toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
-  toggleBtnActive: { backgroundColor: colors.card },
-  toggleText: { fontSize: 14, fontWeight: '600', color: colors.mutedForeground },
-  toggleTextActive: { color: colors.foreground },
   section: { marginBottom: 24 },
   sectionTitle: {
     fontSize: 13,
@@ -193,13 +178,4 @@ const styles = StyleSheet.create({
   defaultBadge: { marginTop: 2, fontSize: 12, color: palette.yellow[500], fontWeight: '600' },
   star: { fontSize: 22, color: palette.slate[400] },
   starActive: { color: palette.yellow[500] },
-  newBtn: {
-    borderWidth: 1,
-    borderColor: colors.foreground,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  newBtnText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
 });

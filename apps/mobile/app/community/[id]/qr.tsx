@@ -4,10 +4,11 @@ import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, palette } from '../../../theme';
+import { Button } from '../../../components/ui';
 
 export default function CommunityQrModal() {
   const { t } = useT('community');
@@ -45,12 +46,8 @@ export default function CommunityQrModal() {
         <Text style={styles.link}>{deepLink}</Text>
 
         <View style={styles.actions}>
-          <Pressable style={styles.button} onPress={onShare} accessibilityRole="button">
-            <Text style={styles.buttonText}>{t('share')}</Text>
-          </Pressable>
-          <Pressable style={styles.secondary} onPress={onCopy} accessibilityRole="button">
-            <Text style={styles.secondaryText}>{copied ? t('linkCopied') : t('copyLink')}</Text>
-          </Pressable>
+          <Button label={t('share')} onPress={onShare} />
+          <Button label={copied ? t('linkCopied') : t('copyLink')} variant="outline" onPress={onCopy} />
         </View>
       </View>
     </SafeAreaView>
@@ -72,14 +69,4 @@ const styles = StyleSheet.create({
   },
   link: { fontSize: 13, color: palette.slate[400], textAlign: 'center' },
   actions: { alignSelf: 'stretch', gap: 12, marginTop: 8 },
-  button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
-  secondary: {
-    borderWidth: 1,
-    borderColor: colors.foreground,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  secondaryText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
 });
