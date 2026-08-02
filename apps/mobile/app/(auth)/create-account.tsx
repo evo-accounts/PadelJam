@@ -13,23 +13,13 @@ import { useT } from '@padel/i18n';
 import { formatDisplayName, isE164 } from '@padel/utils';
 import { useRouter } from 'expo-router';
 import { useEffect, useReducer, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { detectKind, getAuthTarget } from '@/lib/auth-flow';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
+import { Button } from '../../components/ui';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
@@ -375,18 +365,13 @@ export default function CreateAccountScreen() {
           </Text>
         </Pressable>
 
-        <Pressable
-          style={[styles.button, (busy || !agreed) && styles.buttonDisabled]}
+        <Button
+          label={t('createAccount')}
+          fullWidth
+          loading={busy}
+          disabled={!agreed}
           onPress={submit}
-          disabled={busy || !agreed}
-          accessibilityRole="button"
-        >
-          {busy ? (
-            <ActivityIndicator color={colors.card} />
-          ) : (
-            <Text style={styles.buttonText}>{t('createAccount')}</Text>
-          )}
-        </Pressable>
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -9,15 +9,7 @@ import {
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useEffect, useReducer, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { runAppleSignIn } from '@/lib/appleSignIn';
@@ -27,6 +19,7 @@ import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { decidePostVerifyRoute } from '@/lib/postVerifyRoute';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
+import { Button } from '../../components/ui';
 
 export default function OtpScreen() {
   const { t } = useT('auth');
@@ -181,9 +174,7 @@ export default function OtpScreen() {
         </Text>
       </Pressable>
 
-      <Pressable style={styles.linkButton} onPress={() => setSheetOpen(true)} accessibilityRole="button">
-        <Text style={styles.link}>{t('tryAnotherWay')}</Text>
-      </Pressable>
+      <Button label={t('tryAnotherWay')} variant="ghost" onPress={() => setSheetOpen(true)} />
 
       <Modal visible={sheetOpen} transparent animationType="fade" onRequestClose={() => setSheetOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setSheetOpen(false)}>

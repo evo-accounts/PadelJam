@@ -3,6 +3,7 @@ import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useReducer, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button } from '../../components/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getAuthTarget } from '@/lib/auth-flow';
@@ -76,12 +77,8 @@ export default function PasswordScreen() {
       >
         {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('continue')}</Text>}
       </Pressable>
-      <Pressable style={styles.linkButton} onPress={() => router.push('/(auth)/recovery' as never)} accessibilityRole="button">
-        <Text style={styles.link}>{t('forgotPassword')}</Text>
-      </Pressable>
-      <Pressable style={styles.linkButton} onPress={() => router.back()} accessibilityRole="button">
-        <Text style={styles.link}>{t('tryAnotherWay')}</Text>
-      </Pressable>
+      <Button label={t('forgotPassword')} variant="ghost" onPress={() => router.push('/(auth)/recovery' as never)} />
+      <Button label={t('tryAnotherWay')} variant="ghost" onPress={() => router.back()} />
     </View>
   );
 }
