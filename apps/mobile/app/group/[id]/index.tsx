@@ -327,6 +327,7 @@ export default function GroupHomeScreen() {
                   key={m.user_id}
                   title={m.profiles?.full_name ?? '—'}
                   trailing={selectedAdmins.includes(m.user_id) ? <Text variant="body">✓</Text> : null}
+                  selected={selectedAdmins.includes(m.user_id)}
                   onPress={() =>
                     setSelectedAdmins((s) =>
                       s.includes(m.user_id) ? s.filter((x) => x !== m.user_id) : [...s, m.user_id],
