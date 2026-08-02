@@ -9,7 +9,7 @@ import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'rea
 import { avatarUrl } from '@/lib/community-images';
 import { BlockModal, ReportModal } from './BlockReportModals';
 import { colors, palette } from '../../theme';
-import { Button } from '../../components/ui';
+import { Button, IconButton } from '../../components/ui';
 
 export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolean }) {
   const { t } = useT('profile');
@@ -46,9 +46,11 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
               size="sm"
               onPress={() => router.push('/profile/edit')}
             />
-            <Pressable style={styles.gear} onPress={() => router.push('/profile/settings')} accessibilityRole="button" accessibilityLabel={t('settings')}>
-              <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.foreground} size={22} />
-            </Pressable>
+            <IconButton
+              icon={<SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.foreground} size={22} />}
+              accessibilityLabel={t('settings')}
+              onPress={() => router.push('/profile/settings')}
+            />
           </View>
         )}
         <View style={styles.counts}>
@@ -68,9 +70,11 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
               variant={p.is_following ? 'outline' : 'primary'}
               onPress={() => (p.is_following ? unfollow.mutate(userId) : follow.mutate(userId))}
             />
-            <Pressable style={styles.kebab} onPress={() => setMenuOpen((v) => !v)} accessibilityRole="button" accessibilityLabel="More">
-              <SymbolView name={{ ios: 'ellipsis', android: 'more_vert', web: 'more_vert' }} tintColor={colors.foreground} size={22} />
-            </Pressable>
+            <IconButton
+              icon={<SymbolView name={{ ios: 'ellipsis', android: 'more_vert', web: 'more_vert' }} tintColor={colors.foreground} size={22} />}
+              accessibilityLabel={t('more')}
+              onPress={() => setMenuOpen((v) => !v)}
+            />
           </View>
         )}
         {menuOpen && !isSelf && (

@@ -11,6 +11,7 @@
  * Making it a required prop is the only way that stays true as call sites are
  * added.
  */
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 
 import { colors, radius } from '../../theme';
@@ -19,8 +20,20 @@ import { Text } from './Text';
 export type IconButtonSize = 'sm' | 'md' | 'lg';
 
 type Props = Omit<PressableProps, 'style' | 'children' | 'accessibilityLabel'> & {
-  /** The glyph or short symbol to render. */
-  icon: string;
+  /**
+   * A glyph string (`'‹'`, `'•••'`) or an icon COMPONENT.
+   *
+   * Started as `string` only, which was right at the time — every call site was
+   * a bare character. Then SymbolView-based controls turned up in four files
+   * (ProfileView's gear and kebab, chat's headerRight, NotificationBell) and
+   * each had to stay a hand-rolled Pressable, re-deriving its own hitSlop and,
+   * in two cases, going without an accessibilityLabel entirely.
+   *
+   * A string still gets the size-scaled Text treatment; a node is rendered
+   * as-is and sizes itself, because an SF Symbol carries its own `size` and
+   * `tintColor`.
+   */
+  icon: string | ReactNode;
   /** REQUIRED — what the control DOES, e.g. "Back", not "chevron". */
   accessibilityLabel: string;
   size?: IconButtonSize;
@@ -64,13 +77,17 @@ export function IconButton({
       ]}
       {...rest}
     >
-      <Text
-        variant="body"
-        tone="default"
-        style={{ fontSize: s.glyph, lineHeight: s.glyph + 2 }}
-      >
-        {icon}
-      </Text>
+      {typeof icon === 'string' ? (
+        <Text
+          variant="body"
+          tone="default"
+          style={{ fontSize: s.glyph, lineHeight: s.glyph + 2 }}
+        >
+          {icon}
+        </Text>
+      ) : (
+        icon
+      )}
     </Pressable>
   );
 }

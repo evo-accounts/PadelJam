@@ -36,6 +36,16 @@ const CATALOG = join(ROOT, 'apps/mobile/lib/i18n-mobile.ts');
 /** The SECOND catalog. Mobile reads both — auth/common/onboarding live here. */
 const RESOURCES = join(ROOT, 'packages/i18n/src/resources');
 
+/**
+ * `useT('profile')` — which namespace a file's `t()` calls resolve against.
+ *
+ * Checking only that a key exists SOMEWHERE was not enough. ProfileView calls
+ * `useT('profile')` and used `t('more')`, a key that existed only in the group
+ * namespace: it would have rendered the raw key at runtime, and this checker
+ * passed it. Found by making exactly that mistake.
+ */
+const USE_T = /\buseT\(\s*['"]([a-zA-Z]+)['"]/g;
+
 /** `t('someKey')` — single or double quoted, no template literals. */
 const LITERAL = /\bt\(\s*['"]([A-Za-z][A-Za-z0-9_]*)['"]/g;
 /** Anything else passed to t(): template strings, variables, expressions. */
@@ -111,13 +121,37 @@ const satisfies = (keys, key) =>
   keys.has(key) || PLURAL_SUFFIXES.some((sfx) => keys.has(key + sfx));
 
 /**
- * Where a key lives, and whether it is complete there.
- * A key is OK if SOME namespace declares it in EVERY locale.
+ * Namespace name as written in useT() -> the catalog const holding it.
+ * `useT('profile')` -> `mobileProfile`.
  */
-function lookup(key) {
+const nsConst = (ns) => 'mobile' + ns.charAt(0).toUpperCase() + ns.slice(1);
+
+/**
+ * Where a key lives, and whether it is complete there.
+ *
+ * `wanted` is the namespace the calling FILE declares. When it is known and the
+ * catalog has it, the key must resolve THERE — existing in a sibling namespace
+ * is exactly the bug this now catches. Falls back to "any namespace" when the
+ * file's namespace cannot be determined (multiple useT calls, or an ns: option
+ * passed per call).
+ */
+function lookup(key, wanted) {
   // The shared JSON catalog counts too.
   const inShared = SHARED_LOCALES.filter((l) => satisfies(shared.get(l), key));
   if (inShared.length === SHARED_LOCALES.length && inShared.length > 0) return { ok: true };
+
+  if (wanted) {
+    const target = namespaces.get(nsConst(wanted));
+    if (target) {
+      const has = [...target.entries()].filter(([, keys]) => satisfies(keys, key)).map(([c]) => c);
+      if (has.length === ALL_LOCALES.length) return { ok: true };
+      // Say where it DOES live — that is the actionable half of the message.
+      const elsewhere = [...namespaces.entries()]
+        .filter(([n, ls]) => n !== nsConst(wanted) && [...ls.values()].some((k) => satisfies(k, key)))
+        .map(([n]) => n);
+      return { ok: false, wanted: nsConst(wanted), has, elsewhere };
+    }
+  }
 
   const partial = [];
   for (const [ns, locales] of namespaces) {
@@ -136,12 +170,18 @@ let checked = 0;
 for (const file of SCAN.flatMap((d) => walk(join(ROOT, d)))) {
   const src = readFileSync(file, 'utf8');
   dynamicCount += (src.match(DYNAMIC) ?? []).length;
+  // Only trust a file's namespace when it declares exactly one.
+  const declared = [...new Set([...src.matchAll(USE_T)].map((m) => m[1]))];
+  const wanted = declared.length === 1 ? declared[0] : null;
   for (const m of src.matchAll(LITERAL)) {
     const key = m[1];
     checked += 1;
-    const r = lookup(key);
+    // A per-call `{ ns: 'chat' }` overrides the file's namespace; skip those.
+    const after = src.slice(m.index, m.index + 200);
+    const r = /ns:\s*['"]/.test(after.split(')')[0] ?? '') ? lookup(key) : lookup(key, wanted);
     if (r.ok) continue;
-    const entry = missing.get(key) ?? { files: new Set(), partial: r.partial };
+    const entry = missing.get(key)
+      ?? { files: new Set(), partial: r.partial, wanted: r.wanted, has: r.has, elsewhere: r.elsewhere };
     entry.files.add(relative(ROOT, file));
     missing.set(key, entry);
   }
@@ -159,8 +199,15 @@ if (missing.size === 0) {
 }
 
 console.error(`\n[i18n] ERROR: ${missing.size} key(s) missing or incomplete:\n`);
-for (const [key, { files, partial }] of missing) {
-  const where = partial.length
+for (const [key, { files, partial, wanted, has, elsewhere }] of missing) {
+  if (wanted) {
+    const inNs = has?.length ? `only ${has.join(', ')} in ${wanted}` : `absent from ${wanted}`;
+    const other = elsewhere?.length ? ` — but declared in ${elsewhere.join(', ')}` : '';
+    console.error(`  ${key}  — ${inNs}${other}`);
+    for (const f of files) console.error(`      ${f}`);
+    continue;
+  }
+  const where = (partial ?? []).length
     ? partial.map((p) => `${p.ns}: only ${p.has.join(', ')}`).join('; ')
     : 'not declared in ANY namespace';
   console.error(`  ${key}  — ${where}`);

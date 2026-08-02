@@ -10,7 +10,7 @@ import { ChannelList } from 'stream-chat-expo';
 
 import { ChannelRow } from '@/components/chat/ChannelRow';
 import { colors, palette } from '../../theme';
-import { Button, Chip } from '../../components/ui';
+import { Button, Chip, IconButton } from '../../components/ui';
 
 type Tab = 'active' | 'archived';
 
@@ -50,19 +50,17 @@ export default function ChatListScreen() {
         options={{
           title: t('title'),
           headerRight: () => (
-            <Pressable
-              onPress={() => router.push('/chat/new' as never)}
-              accessibilityRole="button"
+            <IconButton
+              icon={
+                <SymbolView
+                  name={{ ios: 'square.and.pencil', android: 'edit', web: 'edit' }}
+                  tintColor={colors.primary}
+                  size={22}
+                />
+              }
               accessibilityLabel={t('newChat')}
-              hitSlop={12}
-              style={{ paddingHorizontal: 8 }}
-            >
-              <SymbolView
-                name={{ ios: 'square.and.pencil', android: 'edit', web: 'edit' }}
-                tintColor={colors.primary}
-                size={22}
-              />
-            </Pressable>
+              onPress={() => router.push('/chat/new' as never)}
+            />
           ),
         }}
       />
