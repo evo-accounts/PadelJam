@@ -28,6 +28,13 @@ type Props = {
   /** Badge, chevron, timestamp. */
   trailing?: React.ReactNode;
   variant?: ListRowVariant;
+  /**
+   * Tone for the title. `destructive` exists for the one row every settings
+   * list has — "Delete account" — which was otherwise the single hand-rolled
+   * Pressable sitting among nine ListRows, i.e. exactly the drift this
+   * component prevents everywhere else.
+   */
+  titleTone?: 'default' | 'destructive';
   /** Draws attention without colour alone — pairs with an accessibilityValue. */
   highlighted?: boolean;
   onPress?: () => void;
@@ -41,6 +48,7 @@ export function ListRow({
   leading,
   trailing,
   variant = 'plain',
+  titleTone = 'default',
   highlighted = false,
   onPress,
   style,
@@ -50,7 +58,7 @@ export function ListRow({
     <>
       {leading ? <View style={styles.leading}>{leading}</View> : null}
       <View style={styles.text}>
-        <Text variant="bodyStrong" tone="default" numberOfLines={1}>
+        <Text variant="bodyStrong" tone={titleTone} numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (

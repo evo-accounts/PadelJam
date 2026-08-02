@@ -11,6 +11,7 @@ import { avatarUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { colors, palette } from '../../theme';
+import { Button } from '../../components/ui';
 
 const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -133,9 +134,7 @@ export default function EditProfileScreen() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable style={[styles.save, saving && styles.saveDisabled]} onPress={onSave} disabled={saving} accessibilityRole="button">
-        <Text style={styles.saveText}>{t('save')}</Text>
-      </Pressable>
+      <Button label={t('save')} fullWidth loading={saving} onPress={onSave} />
     </ScrollView>
   );
 }
@@ -151,7 +150,4 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
   multiline: { minHeight: 72, textAlignVertical: 'top' },
   error: { color: colors.destructive, fontSize: 13 },
-  save: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
-  saveDisabled: { opacity: 0.6 },
-  saveText: { color: colors.card, fontWeight: '700', fontSize: 16 },
 });

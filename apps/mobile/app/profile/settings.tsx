@@ -3,11 +3,12 @@ import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, Share, StyleSheet, Text } from 'react-native';
+import { Linking, ScrollView, Share, StyleSheet } from 'react-native';
 
 import { unregisterForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
+import { Button, Chip, ListRow, Text } from '../../components/ui';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
@@ -47,56 +48,51 @@ export default function SettingsScreen() {
       <Stack.Screen options={{ title: t('settings') }} />
 
       <Text style={styles.section}>{t('preferences')}</Text>
-      <Pressable style={styles.row} onPress={() => setLangOpen((v) => !v)} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('language')}</Text>
-        <Text style={styles.rowValue}>{t(current.key)}</Text>
-      </Pressable>
+      <ListRow
+        title={t('language')}
+        trailing={<Text variant="body" tone="muted">{t(current.key)}</Text>}
+        onPress={() => setLangOpen((v) => !v)}
+      />
       {langOpen &&
         LANGS.map((l) => (
-          <Pressable key={l.code} style={styles.option} onPress={() => onSelectLang(l.code)} accessibilityRole="button">
-            <Text style={[styles.optionText, l.code === current.code && styles.optionActive]}>{t(l.key)}</Text>
-          </Pressable>
+          <Chip
+            key={l.code}
+            label={t(l.key)}
+            selected={l.code === current.code}
+            onPress={() => onSelectLang(l.code)}
+          />
         ))}
-      <Pressable style={styles.row} onPress={() => router.push('/profile/app-icon')} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('appIcon')}</Text>
-      </Pressable>
-      <Pressable style={styles.row} onPress={() => router.push('/profile/notifications')} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('notifications')}</Text>
-      </Pressable>
+      <ListRow title={t('appIcon')} onPress={() => router.push('/profile/app-icon')} />
+      <ListRow title={t('notifications')} onPress={() => router.push('/profile/notifications')} />
 
       <Text style={styles.section}>{t('account')}</Text>
-      <Pressable style={styles.row} onPress={() => router.push('/profile/change-password')} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('changePassword')}</Text>
-      </Pressable>
-      <Pressable style={styles.row} onPress={() => router.push('/profile/change-email')} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('changeEmail')}</Text>
-      </Pressable>
-      <Pressable style={styles.row} onPress={() => router.push('/profile/delete-account')} accessibilityRole="button">
-        <Text style={[styles.rowLabel, { color: colors.destructive }]}>{t('deleteAccount')}</Text>
-      </Pressable>
+      <ListRow title={t('changePassword')} onPress={() => router.push('/profile/change-password')} />
+      <ListRow title={t('changeEmail')} onPress={() => router.push('/profile/change-email')} />
+      <ListRow
+        title={t('deleteAccount')}
+        titleTone="destructive"
+        onPress={() => router.push('/profile/delete-account')}
+      />
 
       <Text style={styles.section}>{t('support')}</Text>
-      <Pressable style={styles.row} onPress={() => router.push('/profile/support')} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('contactSupport')}</Text>
-      </Pressable>
-      <Pressable style={styles.row} onPress={() => void Linking.openURL(HELP_URL)} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('helpCenter')}</Text>
-      </Pressable>
-      <Pressable style={styles.row} onPress={() => void Share.share({ message: t('shareMessage') })} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('shareApp')}</Text>
-      </Pressable>
+      <ListRow title={t('contactSupport')} onPress={() => router.push('/profile/support')} />
+      <ListRow title={t('helpCenter')} onPress={() => void Linking.openURL(HELP_URL)} />
+      <ListRow
+        title={t('shareApp')}
+        onPress={() => void Share.share({ message: t('shareMessage') })}
+      />
 
       <Text style={styles.section}>{t('legal')}</Text>
-      <Pressable style={styles.row} onPress={() => void Linking.openURL(TERMS_URL)} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('terms')}</Text>
-      </Pressable>
-      <Pressable style={styles.row} onPress={() => void Linking.openURL(PRIVACY_URL)} accessibilityRole="button">
-        <Text style={styles.rowLabel}>{t('privacy')}</Text>
-      </Pressable>
+      <ListRow title={t('terms')} onPress={() => void Linking.openURL(TERMS_URL)} />
+      <ListRow title={t('privacy')} onPress={() => void Linking.openURL(PRIVACY_URL)} />
 
-      <Pressable style={styles.logout} onPress={onLogout} accessibilityRole="button">
-        <Text style={styles.logoutText}>{t('logout')}</Text>
-      </Pressable>
+      <Button
+        label={t('logout')}
+        variant="ghost"
+        fullWidth
+        style={styles.logout}
+        onPress={onLogout}
+      />
     </ScrollView>
   );
 }
@@ -105,12 +101,5 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 4 },
   section: { fontSize: 13, fontWeight: '700', color: colors.mutedForeground, textTransform: 'uppercase', marginTop: 16, marginBottom: 4 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 6 },
-  rowLabel: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
-  rowValue: { fontSize: 14, color: colors.mutedForeground },
-  option: { backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12, marginBottom: 4 },
-  optionText: { fontSize: 15, color: colors.foreground },
-  optionActive: { color: colors.primary, fontWeight: '700' },
   logout: { marginTop: 24, alignItems: 'center', paddingVertical: 14 },
-  logoutText: { color: colors.destructive, fontWeight: '700', fontSize: 16 },
 });
