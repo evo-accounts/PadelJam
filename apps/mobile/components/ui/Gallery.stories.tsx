@@ -216,6 +216,12 @@ export function Overview() {
             subtitle="See you Tuesday!"
             leading={<Avatar name="Ana Silva" size="md" />}
             trailing={<Badge label="2" tone="primary" />}
+            // The gallery had this row WITHOUT a trailingLabel, i.e. modelling
+            // the exact defect that shipped to four screens: the badge is not
+            // announced, so the row reads "Ana Silva. See you Tuesday!" and the
+            // unread count is invisible to a screen reader. Suite 00 now asserts
+            // on this row's announced name.
+            trailingLabel="2 unread"
             onPress={() => {}}
           />
           <ListRow

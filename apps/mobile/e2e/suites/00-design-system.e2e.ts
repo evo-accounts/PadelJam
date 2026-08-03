@@ -1,7 +1,8 @@
 import { join } from 'node:path';
 
-import { beforeAll, describe, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
+import { query, queryAll, snapshot } from '../driver/a11y';
 import { scrollUntilVisible } from '../driver/actions';
 import { freshInstall } from '../driver/app';
 import { CONFIG } from '../driver/config';
@@ -82,4 +83,67 @@ describe('00 design system', () => {
 
     console.log(`[e2e] design-system screenshots: ${dir}`);
   }, 240_000);
+
+  /**
+   * The screenshots above prove the primitives RENDER. They cannot prove the
+   * primitives are USABLE, and the difference is not academic:
+   *
+   * `ListRow` set an accessibilityLabel unconditionally, which makes the row a
+   * single accessibility element and drops its children from the tree. Its
+   * trailing slot — an unread count, a language, a pending count — stopped being
+   * announced at all. That shipped to four screens and was caught by an
+   * unrelated assertion in suite 08, not here, even though the gallery renders
+   * the very component with the very defect.
+   *
+   * A screenshot cannot see it. The row LOOKS correct; the badge is right there
+   * in the picture. Only the accessibility tree shows that the badge is gone.
+   *
+   * So this reads the tree the way a screen reader would.
+   */
+  it('primitives announce their content, not their glyphs', async () => {
+    // Deliberately does NOT scroll. The gallery is a ScrollView, so every
+    // section is mounted and present in the accessibility tree regardless of
+    // where the viewport happens to be — which the first version of this test
+    // proved the hard way, failing with "found at y=-712, off screen" because it
+    // ran after the screenshot pass had already scrolled to the bottom.
+    //
+    // Not scrolling is also more honest about what is being tested. These are
+    // assertions about NAMES, not about layout; making them depend on scroll
+    // position would couple them to section ordering for no benefit.
+    const tree = await snapshot();
+
+    // Guard against a vacuous pass: if the gallery failed to render, every
+    // queryAll below returns [] and the glyph assertion would "succeed".
+    expect(
+      queryAll(tree, { type: 'Button' }).length,
+      'the gallery should contribute a good number of buttons to the tree',
+    ).toBeGreaterThan(10);
+
+    // 1. A trailing slot carrying INFORMATION must reach the accessible name.
+    const unreadRow = query(tree, { text: /ana silva/i, type: 'Button' });
+    expect(unreadRow, 'the ListRow story with a badge should be in the tree').toBeDefined();
+    expect(
+      unreadRow?.AXLabel ?? '',
+      'ListRow must fold its trailingLabel into the accessible name — without it the badge is announced to nobody',
+    ).toMatch(/2 unread/i);
+
+    // Sanity: the row still carries its own text, i.e. the assertion above is
+    // not passing because the label became ONLY the trailing.
+    expect(unreadRow?.AXLabel ?? '').toMatch(/ana silva/i);
+
+    // 2. No control anywhere in the gallery may announce a bare glyph. This is
+    //    the runtime twin of the a11y/glyph-button-needs-label lint rule: the
+    //    rule catches the source pattern, this catches anything that produces
+    //    the same RESULT by another route — an icon font, a mis-set label, a
+    //    primitive that forwards the wrong prop.
+    const GLYPH = /^[^\w\s]{1,3}$/u;
+    const speaksGlyph = queryAll(tree, { type: 'Button' })
+      .filter((b) => b.AXLabel && GLYPH.test(b.AXLabel.trim()))
+      .map((b) => b.AXLabel);
+
+    expect(
+      speaksGlyph,
+      'these controls announce a punctuation character instead of what they do',
+    ).toEqual([]);
+  }, 180_000);
 });
