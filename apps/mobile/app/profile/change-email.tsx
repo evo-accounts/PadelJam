@@ -2,9 +2,10 @@ import { startEmailChange, verifyEmailChange } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { Button } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function ChangeEmailScreen() {
@@ -60,9 +61,7 @@ export default function ChangeEmailScreen() {
           <Text style={styles.label}>{t('newEmailLabel')}</Text>
           <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={onSend} disabled={busy} accessibilityRole="button">
-            <Text style={styles.btnText}>{t('sendCode')}</Text>
-          </Pressable>
+          <Button fullWidth label={t('sendCode')} onPress={onSend} loading={busy} />
         </>
       ) : (
         <>
@@ -70,9 +69,7 @@ export default function ChangeEmailScreen() {
           <Text style={styles.label}>{t('codeLabel')}</Text>
           <TextInput style={styles.input} value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={6} />
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={onVerify} disabled={busy} accessibilityRole="button">
-            <Text style={styles.btnText}>{t('verify')}</Text>
-          </Pressable>
+          <Button fullWidth label={t('verify')} onPress={onVerify} loading={busy} />
         </>
       )}
     </ScrollView>
@@ -86,7 +83,4 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
   error: { color: colors.destructive, fontSize: 13 },
-  btn: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: colors.card, fontWeight: '700', fontSize: 16 },
 });
