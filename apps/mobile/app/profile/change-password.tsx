@@ -2,9 +2,10 @@ import { changePassword, useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { Button } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function ChangePasswordScreen() {
@@ -51,9 +52,7 @@ export default function ChangePasswordScreen() {
       <Text style={styles.label}>{t('repeatPassword')}</Text>
       <TextInput style={styles.input} value={repeat} onChangeText={setRepeat} secureTextEntry autoCapitalize="none" />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable style={[styles.save, busy && styles.saveDisabled]} onPress={onSave} disabled={busy} accessibilityRole="button">
-        <Text style={styles.saveText}>{t('changePassword')}</Text>
-      </Pressable>
+      <Button fullWidth label={t('changePassword')} onPress={onSave} loading={busy} />
     </ScrollView>
   );
 }
@@ -64,7 +63,4 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
   error: { color: colors.destructive, fontSize: 13 },
-  save: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
-  saveDisabled: { opacity: 0.6 },
-  saveText: { color: colors.card, fontWeight: '700', fontSize: 16 },
 });

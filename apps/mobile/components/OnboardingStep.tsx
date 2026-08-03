@@ -1,8 +1,9 @@
 import { useT } from '@padel/i18n';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ReactNode } from 'react';
+import { Button, Text } from './ui';
 import { colors } from '../theme';
 
 export function OnboardingStep({
@@ -33,32 +34,25 @@ export function OnboardingStep({
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.headerRow}>
         {onBack ? (
-          <Pressable onPress={onBack} accessibilityRole="button" hitSlop={12}>
-            <Text style={styles.back}>{t('back')}</Text>
-          </Pressable>
+          <Button variant="ghost" size="sm" label={t('back')} onPress={onBack} />
         ) : (
           <View />
         )}
-        <Pressable onPress={onSkip} accessibilityRole="button" hitSlop={12}>
-          <Text style={styles.skip}>{t('skip')}</Text>
-        </Pressable>
+        <Button variant="ghost" size="sm" label={t('skip')} onPress={onSkip} />
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.body}>{body}</Text>
+        <Text variant="display" style={styles.title}>
+          {title}
+        </Text>
+        <Text variant="body" tone="muted" style={styles.body}>
+          {body}
+        </Text>
         {children}
       </View>
 
       {!hidePrimary && (
-        <Pressable
-          style={[styles.button, primaryDisabled && styles.buttonDisabled]}
-          onPress={onPrimary}
-          disabled={primaryDisabled}
-          accessibilityRole="button"
-        >
-          <Text style={styles.buttonText}>{primaryLabel}</Text>
-        </Pressable>
+        <Button fullWidth label={primaryLabel} onPress={onPrimary} disabled={primaryDisabled} />
       )}
     </View>
   );
@@ -85,7 +79,7 @@ export function ChoiceRow({
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
-            <Text style={[choiceStyles.chipText, active && choiceStyles.chipTextActive]}>
+            <Text variant="bodyStrong" tone={active ? 'inverse' : 'default'}>
               {opt.label}
             </Text>
           </Pressable>
@@ -106,19 +100,12 @@ const choiceStyles = StyleSheet.create({
     alignItems: 'center',
   },
   chipActive: { borderColor: colors.foreground, backgroundColor: colors.primary },
-  chipText: { fontSize: 16, fontWeight: '600', color: colors.foreground },
-  chipTextActive: { color: colors.card },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card, paddingHorizontal: 24 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  back: { color: colors.foreground, fontSize: 22, fontWeight: '400' },
-  skip: { color: colors.foreground, fontSize: 15, fontWeight: '600' },
   content: { flex: 1, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 12 },
-  body: { fontSize: 16, color: colors.mutedForeground, lineHeight: 22, marginBottom: 24 },
-  button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
+  title: { marginBottom: 12 },
+  body: { lineHeight: 22, marginBottom: 24 },
 });

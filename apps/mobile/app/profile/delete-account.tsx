@@ -2,10 +2,11 @@ import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { unregisterForPush } from '@/lib/push';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
+import { Button } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function DeleteAccountScreen() {
@@ -64,9 +65,7 @@ export default function DeleteAccountScreen() {
       <Text style={styles.item}>{t('deleteErasedMemberships')}</Text>
       <Text style={styles.item}>{t('deleteErasedSocial')}</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable style={[styles.delete, busy && styles.deleteDisabled]} onPress={confirm} disabled={busy} accessibilityRole="button">
-        <Text style={styles.deleteText}>{t('deleteConfirm')}</Text>
-      </Pressable>
+      <Button variant="destructive" fullWidth label={t('deleteConfirm')} onPress={confirm} loading={busy} />
     </ScrollView>
   );
 }
@@ -78,7 +77,4 @@ const styles = StyleSheet.create({
   body: { fontSize: 14, color: colors.mutedForeground },
   item: { fontSize: 14, color: colors.mutedForeground },
   error: { color: colors.destructive, fontSize: 13 },
-  delete: { backgroundColor: colors.destructive, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
-  deleteDisabled: { opacity: 0.6 },
-  deleteText: { color: colors.card, fontWeight: '700', fontSize: 16 },
 });
