@@ -62,7 +62,12 @@ export default function JammerPlusStep() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.closeRow}>
-        <Pressable onPress={finish} hitSlop={12} accessibilityRole="button">
+        <Pressable
+          onPress={finish}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t('close')}
+        >
           <Text style={styles.closeBtn}>✕</Text>
         </Pressable>
       </View>

@@ -53,7 +53,13 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
         </View>
         {unread > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unread}</Text></View> : null}
       </Pressable>
-      <Pressable onPress={() => setMenuOpen(true)} accessibilityRole="button" hitSlop={10} style={styles.kebab}>
+      <Pressable
+        onPress={() => setMenuOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={t('more')}
+        hitSlop={10}
+        style={styles.kebab}
+      >
         <Text style={styles.kebabDots}>•••</Text>
       </Pressable>
 
