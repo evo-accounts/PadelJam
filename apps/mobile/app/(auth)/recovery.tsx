@@ -33,7 +33,7 @@ export default function RecoveryScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [otp, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   // Auto-send the recovery code to the entered identifier on mount. The OTP helpers resolve with
   // { error } (they don't throw on a Supabase-level failure), so inspect it and surface a real error.

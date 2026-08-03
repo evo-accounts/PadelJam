@@ -1,6 +1,6 @@
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,7 +25,11 @@ export default function JammerPlusStep() {
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>('annual');
-  const progress = useRef(new Animated.Value(0)).current;
+  // `useRef(new Animated.Value(0)).current` is the old idiom, but it reads a ref
+  // during render — and adding `progress` to the effect's deps only moved the
+  // complaint, because the deps array is render phase too. A lazy useState gives
+  // the same stable-for-the-component's-life value with no ref involved.
+  const [progress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -33,7 +37,9 @@ export default function JammerPlusStep() {
       duration: 1200,
       useNativeDriver: false,
     }).start();
-  }, []);
+    // `progress` is a useRef-held Animated.Value: stable for the component's
+    // life, so including it cannot re-fire the animation.
+  }, [progress]);
 
   const finish = async () => {
     if (busy) return;

@@ -35,19 +35,47 @@ export default [
     rules: {
       ...reactHooks.configs.recommended.rules,
 
-      // React Compiler-era advisory rules, downgraded to warnings for the same
-      // reason apps/web downgrades its two: every current hit is pre-existing
-      // and deliberate, so erroring would only mean disabling them. Spot-checked
-      // before choosing this — useClientOnlyValue's setState-in-effect IS the
-      // hook (it detects the client by running where effects run),
-      // `useState(Date.now())` seeds a ticking clock, and `sessionRef.current =
-      // session` is the latest-ref pattern behind a stable callback.
+      // React Compiler-era rules, split by whether the remaining hits are
+      // genuinely deliberate. They were ALL 'warn' on the claim that every hit
+      // was "pre-existing and deliberate". An audit of all 15 showed that claim
+      // was wrong: 8 were fixable and one was a real bug.
       //
-      // Warnings, not `off`: they stay visible and fixable incrementally, and
-      // `eslint .` still exits 0, so CI is green without hiding anything.
+      // ERROR — audited to zero, entirely by fixing, with no suppressions:
+      //
+      //   purity (3)  `useState(Date.now())` re-evaluated the initialiser on
+      //               EVERY render and discarded the result. Now `() =>`.
+      //   refs (4)    usePushTapRouting wrote `sessionRef.current = session`
+      //               DURING RENDER — a discarded render would mutate state on
+      //               behalf of a render that never commits, so a push tap could
+      //               route on a session that never existed. Moved to an effect.
+      //               The other three were stale idioms
+      //               (`useRef(new Animated.Value(0)).current`, a ref lazily
+      //               seeding itself in render) that lazy `useState` replaces.
+      //
+      // Worth recording, because it is not obvious: satisfying one of these can
+      // feed another. Adding `progress` to a dep array to silence
+      // exhaustive-deps ADDED two refs warnings, because a deps array is render
+      // phase too. Net zero. The fix was to stop using a ref at all.
+      'react-hooks/purity': 'error',
+      'react-hooks/refs': 'error',
+
+      // WARN — the remaining hits ARE deliberate, and this was checked one by
+      // one rather than assumed:
+      //
+      //   3x  form hydration (permissions, settings, profile/edit): seeding
+      //       editable state from fetched data behind a `hydrated` flag. The
+      //       alternatives — a `key` remount, or render-phase derivation — both
+      //       risk discarding what the user is currently typing. The flag exists
+      //       precisely so a refetch cannot clobber an in-progress edit.
+      //   1x  useClientOnlyValue.web: setting state in an effect IS the hook. It
+      //       detects the client by running where effects run.
+      //   2x  a debounced search and an initial channel load — data loading.
+      //
+      // Left at 'warn' deliberately. Promoting would need six eslint-disable
+      // lines in high-traffic screens, and a rule that is mostly suppressed
+      // teaches people to reach for the suppression — the same reason
+      // a11y/glyph-button-needs-label was kept narrow.
       'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/purity': 'warn',
-      'react-hooks/refs': 'warn',
 
       // `require()` stays an error in app code, with two narrow exemptions
       // rather than the rule turned off:

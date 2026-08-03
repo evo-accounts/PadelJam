@@ -31,7 +31,7 @@ export default function OtpScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // Mark the initial send (sign-in already triggered the first OTP) so the
