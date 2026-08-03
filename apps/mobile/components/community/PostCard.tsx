@@ -1,6 +1,5 @@
 import { useEventResultSummary, useToggleLike } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -8,6 +7,7 @@ import { PostImage } from '@/components/community/PostImage';
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../theme';
 import { Button } from '../../components/ui';
+import { Avatar } from '../ui';
 
 export type CommunityPost = {
   id: string;
@@ -83,13 +83,11 @@ export function PostCard({
     <View style={styles.card}>
       <Pressable onPress={onPress} accessibilityRole="button">
         <View style={styles.header}>
-          {avatar ? (
-            <Image source={{ uri: avatar }} style={styles.avatar} contentFit="cover" transition={120} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarInitial}>{(name.charAt(0) || '?').toUpperCase()}</Text>
-            </View>
-          )}
+          {/* Three style keys and a hand-rolled initials fallback, replaced by
+              the primitive that already does both. `avatar:` `avatarFallback:`
+              and `avatarInitial:` were the most duplicated visual in the app —
+              21, 11 and 14 declarations respectively. */}
+          <Avatar uri={avatar} name={name} size="sm" />
           <Text style={styles.author} numberOfLines={1}>
             {name}
           </Text>
@@ -108,6 +106,10 @@ export function PostCard({
           style={styles.action}
           accessibilityRole="button"
           accessibilityLabel={t('like')}
+          // Icon PLUS a count is not Button's shape, so this stays a Pressable —
+          // but "liked" was conveyed by colour and glyph alone, indistinguishable
+          // to assistive tech. Same fix as the post detail screen.
+          accessibilityState={{ selected: likedByMe, disabled: toggleLike.isPending }}
           disabled={toggleLike.isPending}
           onPress={() => toggleLike.mutate({ postId: post.id, liked: likedByMe })}
         >
@@ -139,9 +141,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.muted },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
-  avatarInitial: { color: colors.card, fontSize: 15, fontWeight: '700' },
   author: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.foreground },
   body: { fontSize: 15, color: colors.foreground, lineHeight: 21 },
   image: { marginTop: 10 },
