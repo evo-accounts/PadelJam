@@ -19,7 +19,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { colors, radius, space } from '../../theme';
+import { radius, space, type ThemeColors, useColors, useThemedStyles } from '../../theme';
 import { Text, type TextTone, type TextVariant } from './Text';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
@@ -36,13 +36,15 @@ type Props = Omit<PressableProps, 'style' | 'children'> & {
 };
 
 /** Fill, border and label tone per variant. `ghost` and `outline` are transparent. */
-const variants: Record<ButtonVariant, { bg: string; border: string; tone: TextTone }> = {
-  primary: { bg: colors.primary, border: colors.primary, tone: 'default' },
-  secondary: { bg: colors.secondary, border: colors.secondary, tone: 'default' },
-  outline: { bg: 'transparent', border: colors.border, tone: 'default' },
+const makeVariants = (
+  c: ThemeColors,
+): Record<ButtonVariant, { bg: string; border: string; tone: TextTone }> => ({
+  primary: { bg: c.primary, border: c.primary, tone: 'default' },
+  secondary: { bg: c.secondary, border: c.secondary, tone: 'default' },
+  outline: { bg: 'transparent', border: c.border, tone: 'default' },
   ghost: { bg: 'transparent', border: 'transparent', tone: 'default' },
-  destructive: { bg: colors.destructive, border: colors.destructive, tone: 'inverse' },
-};
+  destructive: { bg: c.destructive, border: c.destructive, tone: 'inverse' },
+});
 
 const sizes: Record<ButtonSize, { minHeight: number; px: number; text: TextVariant }> = {
   // 36 is below the 44pt guideline, so `sm` is for dense secondary actions
@@ -62,6 +64,8 @@ export function Button({
   style,
   ...rest
 }: Props) {
+  const variants = useThemedStyles(makeVariants);
+  const colors = useColors();
   const v = variants[variant];
   const s = sizes[size];
   const blocked = disabled || loading;

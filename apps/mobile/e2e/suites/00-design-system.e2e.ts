@@ -8,7 +8,8 @@ import { freshInstall } from '../driver/app';
 import { CONFIG } from '../driver/config';
 import { expectVisible } from '../driver/expect';
 import { deepLink } from '../driver/flows';
-import { overrideStatusBar, screenshot } from '../driver/sim';
+import { pollUntil } from '../fixtures/poll';
+import { overrideStatusBar, screenshot, setAppearance } from '../driver/sim';
 
 /**
  * 00 design system — the acceptance gate for the token migration.
@@ -34,6 +35,7 @@ describe('00 design system', () => {
     await freshInstall();
     // Pins the clock to 9:41 and the battery to charged, so two runs of an
     // unchanged gallery produce identical pixels apart from the gallery itself.
+    await setAppearance('light');
     await overrideStatusBar();
     await deepLink('mobile:///storybook', /design system/i);
   }, 180_000);
@@ -145,5 +147,57 @@ describe('00 design system', () => {
       speaksGlyph,
       'these controls announce a punctuation character instead of what they do',
     ).toEqual([]);
+  }, 180_000);
+
+  /**
+   * The one thing the dark-mode spike could not prove without a device: that
+   * `useThemedStyles` actually resolves dark tokens when the scheme changes.
+   *
+   * A screenshot alone would not settle it. "The dark capture looks different"
+   * is also satisfied by a half-applied theme, or by the navigation chrome
+   * changing while screen content stays light — which is precisely the state
+   * this app was in before ColorSchemeProvider was mounted, since expo-router
+   * already themed the chrome. So the gallery renders the RESOLVED value and
+   * this asserts on it.
+   */
+  it('resolves dark tokens when the simulator switches appearance', async () => {
+    const dir = join(CONFIG.artifactsDir, 'design-system');
+
+    // Does NOT scroll, for the same reason the test above does not: this runs
+    // after the screenshot pass has already scrolled to the bottom, and
+    // `scrollUntilVisible` only scrolls DOWN — it fails with "found at y=-928,
+    // off screen". The gallery is a ScrollView, so the probe is in the tree
+    // either way, and what is being asserted is a VALUE, not visibility.
+    const probeLabel = async () =>
+      query(await snapshot(), { text: /scheme=/i })?.AXLabel ?? '';
+
+    expect(await probeLabel(), 'beforeAll pins the simulator to light').toMatch(/scheme=light/i);
+
+    await setAppearance('dark');
+    try {
+      // No relaunch: RN's useColorScheme is live, so the re-render IS the
+      // mechanism under test. Waiting for this text to change is the assertion
+      // that the context propagated and useMemo re-ran.
+      const dark = await pollUntil(probeLabel, (l) => /scheme=dark/i.test(l), {
+        timeoutMs: 20_000,
+        label: 'gallery switches to the dark scheme',
+      });
+
+      expect(
+        dark,
+        'the resolved background must be the DARK token, not merely a changed one',
+      ).toMatch(/background=#2f103d/i);
+
+      await screenshot(join(dir, '99-dark.png'));
+    } finally {
+      // The lock hands this simulator to the next suite; leaving it dark would
+      // silently change every screenshot that follows.
+      await setAppearance('light');
+    }
+
+    await pollUntil(probeLabel, (l) => /scheme=light/i.test(l), {
+      timeoutMs: 20_000,
+      label: 'gallery restored to light',
+    });
   }, 180_000);
 });

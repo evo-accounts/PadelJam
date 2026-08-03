@@ -30,6 +30,21 @@ import { TopBar } from './TopBar';
 import { Field } from './Field';
 import { Loading, Screen } from './Screen';
 import { Text } from './Text';
+import { useColors, useScheme } from '../../theme';
+
+/**
+ * Renders the ACTIVE scheme and the colour it resolved to.
+ *
+ * Screenshots prove a dark capture looks different; they cannot prove WHY, and
+ * "different" would also be satisfied by a half-applied theme. This puts the
+ * resolved value in the accessibility tree, so suite 00 can assert that
+ * useThemedStyles produced the dark token rather than merely something else.
+ */
+function SchemeProbe() {
+  const scheme = useScheme();
+  const c = useColors();
+  return <Text variant="caption" tone="muted">{`scheme=${scheme} background=${c.background}`}</Text>;
+}
 
 /** A titled block. `testID` gives the screenshot suite something to scroll to. */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -197,6 +212,10 @@ export function Overview() {
             action={{ icon: '⋯', label: 'More', onPress: () => {} }}
           />
         </Card>
+      </Section>
+
+      <Section title="Scheme">
+        <SchemeProbe />
       </Section>
 
       <Section title="IconButton">

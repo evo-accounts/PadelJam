@@ -8,7 +8,7 @@
  */
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { colors, palette, radius, space } from '../../theme';
+import { palette, radius, space, type ThemeColors, useThemedStyles } from '../../theme';
 import { Text, type TextTone } from './Text';
 
 export type BadgeTone = 'neutral' | 'primary' | 'success' | 'warning' | 'destructive' | 'info';
@@ -27,16 +27,17 @@ type Props = {
  * the solid colour: translucent fills change appearance depending on what is
  * behind them, which is exactly the inconsistency this replaces.
  */
-const tones: Record<BadgeTone, { bg: string; text: TextTone }> = {
-  neutral: { bg: colors.muted, text: 'muted' },
+const makeTones = (c: ThemeColors): Record<BadgeTone, { bg: string; text: TextTone }> => ({
+  neutral: { bg: c.muted, text: 'muted' },
   primary: { bg: palette.purple[100], text: 'default' },
   success: { bg: palette.green[100], text: 'success' },
   warning: { bg: palette.yellow[100], text: 'default' },
   destructive: { bg: palette.red[100], text: 'destructive' },
   info: { bg: palette.sky[100], text: 'default' },
-};
+});
 
 export function Badge({ label, tone = 'neutral', style, testID }: Props) {
+  const tones = useThemedStyles(makeTones);
   const t = tones[tone];
   return (
     <View testID={testID} style={[styles.base, { backgroundColor: t.bg }, style]}>

@@ -14,7 +14,7 @@
  */
 import { ActivityIndicator, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { colors, space } from '../../theme';
+import { space, type ThemeColors, useColors, useThemedStyles } from '../../theme';
 import { Text } from './Text';
 
 type ScreenProps = {
@@ -28,6 +28,7 @@ type ScreenProps = {
 };
 
 export function Screen({ children, scroll = false, padded = true, style, testID }: ScreenProps) {
+  const styles = useThemedStyles(makeStyles);
   const content = [styles.screen, padded && styles.padded, style];
 
   if (scroll) {
@@ -59,6 +60,8 @@ type LoadingProps = {
 };
 
 export function Loading({ label, fill = true, testID }: LoadingProps) {
+  const styles = useThemedStyles(makeStyles);
+  const colors = useColors();
   return (
     <View
       testID={testID}
@@ -76,10 +79,10 @@ export function Loading({ label, fill = true, testID }: LoadingProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   padded: { paddingHorizontal: space[5] },
   loading: {

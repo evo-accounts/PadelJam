@@ -12,7 +12,7 @@
  */
 import { StyleSheet, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
 
-import { colors, radius, space, type } from '../../theme';
+import { radius, space, type, type ThemeColors, useColors, useThemedStyles } from '../../theme';
 import { Text } from './Text';
 
 type Props = Omit<TextInputProps, 'style'> & {
@@ -35,6 +35,8 @@ export function Field({
   multiline = false,
   ...rest
 }: Props) {
+  const styles = useThemedStyles(makeStyles);
+  const colors = useColors();
   const invalid = Boolean(error);
   const message = error ?? hint ?? null;
 
@@ -84,17 +86,17 @@ export function Field({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   container: { alignSelf: 'stretch' },
   label: { marginBottom: space[1] },
   input: {
     minHeight: 44,
     borderWidth: 1,
-    borderColor: colors.input,
+    borderColor: c.input,
     borderRadius: radius.md,
     paddingHorizontal: space[3],
-    backgroundColor: colors.card,
-    color: colors.foreground,
+    backgroundColor: c.card,
+    color: c.foreground,
     fontSize: type.body.fontSize,
   },
   inputMultiline: {
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
     // Android and looks broken next to iOS.
     textAlignVertical: 'top',
   },
-  inputInvalid: { borderColor: colors.destructive },
-  inputDisabled: { backgroundColor: colors.muted },
+  inputInvalid: { borderColor: c.destructive },
+  inputDisabled: { backgroundColor: c.muted },
   message: { marginTop: space[1] },
 });

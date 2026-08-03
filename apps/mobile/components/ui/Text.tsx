@@ -12,7 +12,7 @@
  */
 import { Text as RNText, StyleSheet, type TextProps as RNTextProps } from 'react-native';
 
-import { colors, type } from '../../theme';
+import { type, type ThemeColors, useThemedStyles } from '../../theme';
 
 /** Type roles, from the shared scale. `title` here is `text-2xl` on web. */
 export type TextVariant = keyof typeof type;
@@ -42,17 +42,23 @@ type Props = Omit<RNTextProps, 'style'> & {
   children?: React.ReactNode;
 };
 
-const tones: Record<TextTone, string> = {
-  default: colors.foreground,
-  muted: colors.mutedForeground,
-  subtle: colors.ring,
-  inverse: colors.card,
-  primary: colors.primary,
-  destructive: colors.destructive,
-  success: colors.successStrong,
-};
+/**
+ * A lookup table, not a stylesheet — and the same import-time problem, so it
+ * goes through the same hook. `useThemedStyles` is generic over the factory's
+ * return type precisely so a table like this does not need a second mechanism.
+ */
+const makeTones = (c: ThemeColors): Record<TextTone, string> => ({
+  default: c.foreground,
+  muted: c.mutedForeground,
+  subtle: c.ring,
+  inverse: c.card,
+  primary: c.primary,
+  destructive: c.destructive,
+  success: c.successStrong,
+});
 
 export function Text({ variant = 'body', tone = 'default', style, ...rest }: Props) {
+  const tones = useThemedStyles(makeTones);
   return <RNText style={[styles[variant], { color: tones[tone] }, style]} {...rest} />;
 }
 
