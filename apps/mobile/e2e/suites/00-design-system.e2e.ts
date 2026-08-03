@@ -131,19 +131,39 @@ describe('00 design system', () => {
     // not passing because the label became ONLY the trailing.
     expect(unreadRow?.AXLabel ?? '').toMatch(/ana silva/i);
 
-    // 2. No control anywhere in the gallery may announce a bare glyph. This is
-    //    the runtime twin of the a11y/glyph-button-needs-label lint rule: the
-    //    rule catches the source pattern, this catches anything that produces
-    //    the same RESULT by another route — an icon font, a mis-set label, a
-    //    primitive that forwards the wrong prop.
+    // 2. No control may announce a bare glyph, or a blank name.
+    //
+    //    The glyph half is the runtime twin of a11y/glyph-button-needs-label:
+    //    the rule catches the source pattern, this catches the same RESULT
+    //    arriving another way — an icon font, a mis-set label, a primitive
+    //    forwarding the wrong prop.
+    //
+    //    WHAT NEITHER GUARD COVERS, measured rather than assumed. A control with
+    //    NO accessible name at all — ImagePickerRow shipped one, whose only
+    //    child was an <Image> — is invisible to both:
+    //
+    //      the lint rule    has no text to inspect, so there is nothing to match
+    //      this assertion   never sees it: iOS does not classify an unlabeled
+    //                       pressable as a Button. A probe added one to the
+    //                       gallery and the tree reported it as a
+    //                       GenericElement, so `{ type: 'Button' }` skips it.
+    //      IconButton       DOES prevent it — accessibilityLabel is required
+    //
+    //    So the defence against unnamed controls is routing icon-only controls
+    //    through a primitive that demands a name, not a checker. The blank-name
+    //    clause below is kept anyway because it is free and does cover a Button
+    //    whose label is whitespace.
     const GLYPH = /^[^\w\s]{1,3}$/u;
-    const speaksGlyph = queryAll(tree, { type: 'Button' })
-      .filter((b) => b.AXLabel && GLYPH.test(b.AXLabel.trim()))
-      .map((b) => b.AXLabel);
+    const unusable = queryAll(tree, { type: 'Button' })
+      .filter((b) => {
+        const name = b.AXLabel?.trim() ?? '';
+        return name === '' || GLYPH.test(name);
+      })
+      .map((b) => b.AXLabel ?? '(no accessible name)');
 
     expect(
-      speaksGlyph,
-      'these controls announce a punctuation character instead of what they do',
+      unusable,
+      'these controls announce a punctuation character, or nothing at all',
     ).toEqual([]);
   }, 180_000);
 });
