@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { StreamChatProvider } from '@/components/chat/StreamChatProvider';
+import { ColorSchemeProvider } from '@/theme';
 import { useColorScheme } from '@/components/useColorScheme';
 import { registerMobileCopy } from '@/lib/i18n-mobile';
 import { resolveLocale } from '@/lib/locale';
@@ -211,17 +212,24 @@ export function Boot() {
 function RootNav({ children }: { children: ReactNode }) {
   const colorScheme = useColorScheme();
   return (
+    // Two providers, one scheme. expo-router's themes the navigation CHROME
+    // (header, tab bar) and has done since before this migration; ours themes
+    // screen CONTENT through useThemedStyles. They are separate mechanisms, so
+    // both are needed — and they are named differently on purpose, because
+    // `ThemeProvider` here is expo-router's.
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="community" />
-        <Stack.Screen name="group" />
-        <Stack.Screen name="event" />
-      </Stack>
-      {children}
+      <ColorSchemeProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(onboarding)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="community" />
+          <Stack.Screen name="group" />
+          <Stack.Screen name="event" />
+        </Stack>
+        {children}
+      </ColorSchemeProvider>
     </ThemeProvider>
   );
 }

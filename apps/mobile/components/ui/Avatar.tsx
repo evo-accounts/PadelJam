@@ -8,7 +8,7 @@
  */
 import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { colors, radius } from '../../theme';
+import { radius, type ThemeColors, useThemedStyles } from '../../theme';
 import { Text, type TextVariant } from './Text';
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -56,6 +56,7 @@ export function initialsOf(name: string | null | undefined): string {
 }
 
 export function Avatar({ uri, name, size = 'md', style, testID }: Props) {
+  const styles = useThemedStyles(makeStyles);
   const d = diameters[size];
   const shape = { width: d, height: d, borderRadius: radius.full };
 
@@ -81,11 +82,11 @@ export function Avatar({ uri, name, size = 'md', style, testID }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
 });

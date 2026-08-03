@@ -15,7 +15,7 @@
  */
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { colors, radius, space } from '../../theme';
+import { radius, space, type ThemeColors, useThemedStyles } from '../../theme';
 import { Text } from './Text';
 
 export type ListRowVariant = 'card' | 'plain';
@@ -77,6 +77,7 @@ export function ListRow({
   style,
   testID,
 }: Props) {
+  const styles = useThemedStyles(makeStyles);
   const body = (
     <>
       {leading ? <View style={styles.leading}>{leading}</View> : null}
@@ -129,12 +130,12 @@ export function ListRow({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   base: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space[3],
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
   },
   card: {
     marginHorizontal: space[3],
@@ -148,9 +149,9 @@ const styles = StyleSheet.create({
     // hairlineWidth, not 1: on a 3x screen a 1pt rule is three device pixels and
     // reads as a heavy line rather than a separator.
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.muted,
+    borderBottomColor: c.muted,
   },
-  highlighted: { backgroundColor: colors.accent },
+  highlighted: { backgroundColor: c.accent },
   leading: { justifyContent: 'center' },
   text: { flex: 1 },
   subtitle: { marginTop: 2 },

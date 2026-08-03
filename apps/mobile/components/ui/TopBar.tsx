@@ -13,7 +13,7 @@
  */
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { colors, space } from '../../theme';
+import { space, type ThemeColors, useThemedStyles } from '../../theme';
 import { IconButton } from './IconButton';
 import { Text } from './Text';
 
@@ -36,6 +36,7 @@ type Props = {
 const SIDE = 44;
 
 export function TopBar({ title, onBack, backLabel = 'Back', action, style, testID }: Props) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View testID={testID} style={[styles.bar, style]}>
       <View style={styles.side}>
@@ -66,13 +67,13 @@ export function TopBar({ title, onBack, backLabel = 'Back', action, style, testI
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: space[4],
     paddingVertical: space[2],
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   side: { width: SIDE, alignItems: 'flex-start' },
   sideRight: { alignItems: 'flex-end' },

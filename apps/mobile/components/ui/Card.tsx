@@ -15,7 +15,7 @@
  */
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { colors, radius, space } from '../../theme';
+import { radius, space, type ThemeColors, useThemedStyles } from '../../theme';
 
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
 
@@ -47,6 +47,7 @@ export function Card({
   testID,
   accessibilityLabel,
 }: Props) {
+  const styles = useThemedStyles(makeStyles);
   const surface = [
     styles.base,
     { padding: paddings[padding] },
@@ -75,19 +76,19 @@ export function Card({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   base: {
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
     borderRadius: radius.lg,
   },
   bordered: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   elevated: {
     // shadowColor takes a colour, so it comes from the token surface like
     // everything else. Opacity and radius are geometry, not palette.
-    shadowColor: colors.foreground,
+    shadowColor: c.foreground,
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },

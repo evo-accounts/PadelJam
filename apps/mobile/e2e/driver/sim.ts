@@ -85,6 +85,18 @@ export async function appLogTail(seconds = 30): Promise<string> {
 }
 
 /** Stable status bar for screenshots. */
+/**
+ * Force the simulator's light/dark appearance.
+ *
+ * `status_bar override` pins the clock for deterministic pixels; this pins the
+ * SCHEME, so a dark capture does not depend on whatever the device was left in
+ * by a previous run. Always restore to light afterwards — the lock hands the
+ * same simulator to the next suite.
+ */
+export async function setAppearance(scheme: 'light' | 'dark'): Promise<void> {
+  await run('xcrun', ['simctl', 'ui', CONFIG.udid, 'appearance', scheme]);
+}
+
 export async function overrideStatusBar(): Promise<void> {
   await run('xcrun', ['simctl', 'status_bar', CONFIG.udid, 'override', '--time', '9:41', '--batteryLevel', '100', '--batteryState', 'charged']);
 }

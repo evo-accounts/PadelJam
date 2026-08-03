@@ -8,7 +8,7 @@
  */
 import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
 
-import { colors, radius, space } from '../../theme';
+import { radius, space, type ThemeColors, useThemedStyles } from '../../theme';
 import { Text } from './Text';
 
 type Props = {
@@ -21,6 +21,7 @@ type Props = {
 };
 
 export function Chip({ label, selected = false, disabled = false, onPress, style, testID }: Props) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       testID={testID}
@@ -44,7 +45,7 @@ export function Chip({ label, selected = false, disabled = false, onPress, style
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   base: {
     minHeight: 36,
     justifyContent: 'center',
@@ -53,12 +54,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[3],
   },
   selected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   unselected: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+    backgroundColor: c.card,
+    borderColor: c.border,
   },
   pressed: { opacity: 0.85 },
   disabled: { opacity: 0.45 },

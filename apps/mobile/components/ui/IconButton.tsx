@@ -14,7 +14,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 
-import { colors, radius } from '../../theme';
+import { radius, type ThemeColors, useThemedStyles } from '../../theme';
 import { Text } from './Text';
 
 export type IconButtonSize = 'sm' | 'md' | 'lg';
@@ -59,6 +59,7 @@ export function IconButton({
   style,
   ...rest
 }: Props) {
+  const styles = useThemedStyles(makeStyles);
   const s = sizes[size];
   return (
     <Pressable
@@ -92,9 +93,9 @@ export function IconButton({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   base: { alignItems: 'center', justifyContent: 'center' },
-  filled: { backgroundColor: colors.muted, borderRadius: radius.full },
+  filled: { backgroundColor: c.muted, borderRadius: radius.full },
   pressed: { opacity: 0.6 },
   disabled: { opacity: 0.4 },
 });
