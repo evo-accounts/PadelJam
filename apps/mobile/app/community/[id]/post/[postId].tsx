@@ -26,7 +26,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommentList, type PostComment } from '@/components/community/CommentList';
 import { PostImage } from '@/components/community/PostImage';
 import { avatarUrl } from '@/lib/community-images';
-import { colors, palette } from '../../../../theme';
+import { colors } from '../../../../theme';
+import { Button } from '@/components/ui';
 
 const KNOWN_ERROR_KEYS = new Set(['unknown_error']);
 
@@ -78,15 +79,11 @@ export default function PostDetailScreen() {
     })();
   };
 
-  const canSend = body.trim().length > 0 && !addComment.isPending;
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.navbar}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={8}>
-          <Text style={styles.back}>‹ {t('close')}</Text>
-        </Pressable>
+        <Button variant="ghost" size="sm" label={`‹ ${t('close')}`} onPress={() => router.back()} />
       </View>
 
       <KeyboardAvoidingView
@@ -115,6 +112,10 @@ export default function PostDetailScreen() {
               style={styles.action}
               accessibilityRole="button"
               accessibilityLabel={t('like')}
+              // Stays a Pressable: an icon PLUS a count is not Button's shape.
+              // But "liked" was conveyed by colour and glyph shape alone, so a
+              // screen reader could not tell the two states apart.
+              accessibilityState={{ selected: likedByMe, disabled: toggleLike.isPending }}
               disabled={toggleLike.isPending}
               onPress={() => toggleLike.mutate({ postId: post.id, liked: likedByMe })}
             >
@@ -145,18 +146,15 @@ export default function PostDetailScreen() {
               placeholderTextColor={colors.mutedForeground}
               multiline
             />
-            <Pressable
-              style={[styles.send, !canSend && styles.sendDisabled]}
+            {/* `isPending ? <ActivityIndicator/> : <Text/>` — `loading` written
+                longhand for the fourteenth time in this migration. The compound
+                `canSend` splits into its two real reasons. */}
+            <Button
+              label={t('send')}
               onPress={onSend}
-              disabled={!canSend}
-              accessibilityRole="button"
-            >
-              {addComment.isPending ? (
-                <ActivityIndicator color={colors.card} size="small" />
-              ) : (
-                <Text style={styles.sendText}>{t('send')}</Text>
-              )}
-            </Pressable>
+              loading={addComment.isPending}
+              disabled={body.trim().length === 0}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -175,7 +173,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     backgroundColor: colors.card,
   },
-  back: { fontSize: 16, fontWeight: '600', color: colors.primary },
   scroll: { padding: 16 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
@@ -211,15 +208,5 @@ const styles = StyleSheet.create({
     color: colors.foreground,
     backgroundColor: colors.background,
   },
-  send: {
-    backgroundColor: colors.primary,
-    borderRadius: 22,
-    paddingHorizontal: 18,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendDisabled: { backgroundColor: palette.purple[200] },
-  sendText: { color: colors.card, fontSize: 15, fontWeight: '700' },
   error: { fontSize: 13, color: colors.destructive, fontWeight: '600' },
 });
