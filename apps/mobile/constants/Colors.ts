@@ -8,13 +8,19 @@
  *
  * It was pure Expo scaffolding, and its tint was `#2f95dc`: a blue that appears
  * NOWHERE else in the app and has no counterpart in the shared palette at all.
- * Two files read this map — `app/(tabs)/_layout.tsx` and `components/Themed.tsx`
- * — so that stray blue was tinting the real tab bar. It is `primary` now, which
- * is the design system finally reaching the last of the screen furniture.
+ * It is `primary` now, which is the design system reaching the last of the
+ * screen furniture.
  *
- * The shape is unchanged, so both consumers keep working. Dark is wired up
- * because Themed.tsx switches on the colour scheme, though it still renders
- * nothing today: nothing puts the app into dark mode.
+ * ONE consumer left — `app/(tabs)/_layout.tsx`. `components/Themed.tsx` was the
+ * other and has been deleted: it was a second theming mechanism (a
+ * `useThemeColor` hook plus light/dark props on Text and View) serving a single
+ * screen, which the primitives already cover.
+ *
+ * This file is NOT redundant in the same way, which is why it survives. It is
+ * the only place that picks a colour BY SCHEME, so a dark-mode device gets
+ * `dark.primary` on the tab bar today. `colors` is the light map alone. When
+ * mobile dark mode lands (see theme/DARK-MODE-SPIKE.md), this collapses into
+ * `useColors()` and can go.
  */
 import { dark, light } from '@padel/ui';
 
