@@ -30,7 +30,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShareResultsModal } from '@/components/event/ShareResultsModal';
 import { TimerTab } from '@/components/event/TimerTab';
-import { colors, palette } from '../../../theme';
+import { palette, useColors, useThemedStyles, type ThemeColors } from '../../../theme';
 import { Button, Card, Chip, TopBar } from '../../../components/ui';
 
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
@@ -49,6 +49,8 @@ function sideNames(players: MatchPlayer[], side: 'a' | 'b'): string {
 }
 
 export default function EventLiveScreen() {
+  const styles = useThemedStyles(makeStyles);
+  const colors = useColors();
   const { t } = useT('event');
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -677,12 +679,12 @@ export default function EventLiveScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   center: { alignItems: 'center', justifyContent: 'center' },
   centerBox: { paddingHorizontal: 32, alignItems: 'center', gap: 12 },
-  noAccessTitle: { fontSize: 20, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
-  noAccessBody: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
+  noAccessTitle: { fontSize: 20, fontWeight: '700', color: c.foreground, textAlign: 'center' },
+  noAccessBody: { fontSize: 15, color: c.mutedForeground, textAlign: 'center' },
 
 
   // Round tabs
@@ -691,21 +693,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: colors.muted,
+    backgroundColor: c.muted,
   },
 
   content: { padding: 16, gap: 12 },
-  empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', marginTop: 32 },
+  empty: { fontSize: 15, color: c.mutedForeground, textAlign: 'center', marginTop: 32 },
 
   // Match card
   matchCard: {
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
-  matchCardMine: { borderColor: colors.primary, borderWidth: 2 },
+  matchCardMine: { borderColor: c.primary, borderWidth: 2 },
   matchHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -719,10 +721,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   mineChip: { backgroundColor: palette.purple[100], borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  mineChipText: { fontSize: 11, fontWeight: '700', color: colors.primary },
+  mineChipText: { fontSize: 11, fontWeight: '700', color: c.primary },
   matchBody: { alignItems: 'center', gap: 4 },
-  sideNames: { fontSize: 16, fontWeight: '600', color: colors.foreground, textAlign: 'center' },
-  score: { fontSize: 22, fontWeight: '800', color: colors.foreground },
+  sideNames: { fontSize: 16, fontWeight: '600', color: c.foreground, textAlign: 'center' },
+  score: { fontSize: 22, fontWeight: '800', color: c.foreground },
   vs: { fontSize: 12, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
 
   // Resting
@@ -734,14 +736,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4,
   },
-  restingName: { fontSize: 15, color: colors.foreground, fontWeight: '500' },
+  restingName: { fontSize: 15, color: c.foreground, fontWeight: '500' },
 
   // Leaderboard
   board: {
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     overflow: 'hidden',
   },
   boardRow: {
@@ -750,19 +752,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
-  boardHeaderRow: { borderTopWidth: 0, backgroundColor: colors.muted },
+  boardHeaderRow: { borderTopWidth: 0, backgroundColor: c.muted },
   boardHeader: {
     fontSize: 11,
     fontWeight: '700',
     color: palette.slate[400],
     textTransform: 'uppercase',
   },
-  colRank: { width: 40, fontSize: 15, fontWeight: '700', color: colors.foreground },
-  colPlayer: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
-  colPoints: { width: 56, textAlign: 'right', fontSize: 15, fontWeight: '700', color: colors.foreground },
-  colRecord: { width: 72, textAlign: 'right', fontSize: 14, color: colors.mutedForeground },
+  colRank: { width: 40, fontSize: 15, fontWeight: '700', color: c.foreground },
+  colPlayer: { flex: 1, fontSize: 15, fontWeight: '600', color: c.foreground },
+  colPoints: { width: 56, textAlign: 'right', fontSize: 15, fontWeight: '700', color: c.foreground },
+  colRecord: { width: 72, textAlign: 'right', fontSize: 14, color: c.mutedForeground },
 
   // Segmented tabs
   segmentBar: {
@@ -770,8 +772,8 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    backgroundColor: colors.card,
+    borderTopColor: c.border,
+    backgroundColor: c.card,
   },
   segment: {
     flex: 1,
@@ -779,7 +781,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.muted,
+    backgroundColor: c.muted,
   },
 
   // Buttons (shared with guard views)
@@ -789,7 +791,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 12,
     fontWeight: '700',
-    color: colors.primary,
+    color: c.primary,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
@@ -799,18 +801,18 @@ const styles = StyleSheet.create({
   // Overview
   overview: { gap: 16 },
   overviewSection: {
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: 16,
     gap: 8,
   },
-  finishMessageText: { fontSize: 15, color: colors.foreground, lineHeight: 21 },
+  finishMessageText: { fontSize: 15, color: c.foreground, lineHeight: 21 },
   completedHeading: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.foreground,
+    color: c.foreground,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -820,26 +822,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  toggleLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
+  toggleLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: c.foreground },
 
   // Modal
   modalBackdrop: {
     flex: 1,
-    backgroundColor: colors.overlay,
+    backgroundColor: c.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   modalCard: {
     width: '100%',
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 20,
     gap: 8,
   },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: colors.foreground, textAlign: 'center' },
-  modalBody: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', marginBottom: 4 },
-  modalSide: { fontSize: 16, fontWeight: '600', color: colors.foreground, textAlign: 'center' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: c.foreground, textAlign: 'center' },
+  modalBody: { fontSize: 14, color: c.mutedForeground, textAlign: 'center', marginBottom: 4 },
+  modalSide: { fontSize: 16, fontWeight: '600', color: c.foreground, textAlign: 'center' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
 
   fieldLabel: {
@@ -852,18 +854,18 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 48,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 16,
-    color: colors.foreground,
-    backgroundColor: colors.card,
+    color: c.foreground,
+    backgroundColor: c.card,
     justifyContent: 'center',
   },
   inputMultiline: { minHeight: 88, paddingTop: 12, textAlignVertical: 'top' },
-  inputDisabled: { backgroundColor: colors.muted, opacity: 0.6 },
-  inputReadonly: { backgroundColor: colors.muted },
-  inputReadonlyText: { fontSize: 16, color: colors.mutedForeground, fontWeight: '600' },
+  inputDisabled: { backgroundColor: c.muted, opacity: 0.6 },
+  inputReadonly: { backgroundColor: c.muted },
+  inputReadonlyText: { fontSize: 16, color: c.mutedForeground, fontWeight: '600' },
   hint: { fontSize: 12, color: palette.slate[400], marginTop: 4 },
-  error: { fontSize: 14, color: colors.destructive, marginTop: 6, textAlign: 'center' },
+  error: { fontSize: 14, color: c.destructive, marginTop: 6, textAlign: 'center' },
 });

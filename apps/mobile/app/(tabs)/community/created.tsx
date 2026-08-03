@@ -11,12 +11,13 @@ import { useSession } from '@padel/auth';
 import { consumePendingCommunityImages } from '@/lib/community-image-handoff';
 import { uploadCommunityImage } from '@/lib/storage';
 import { Button, Text } from '../../../components/ui';
-import { colors } from '../../../theme';
+import { useThemedStyles, type ThemeColors } from '../../../theme';
 
 const THUMBNAIL_BUCKET = 'community-thumbnails';
 const COVER_BUCKET = 'community-covers';
 
 export default function CommunityCreatedScreen() {
+  const styles = useThemedStyles(makeStyles);
   const { t } = useT('community');
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -126,8 +127,8 @@ export default function CommunityCreatedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.card, paddingHorizontal: 24 },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.card, paddingHorizontal: 24 },
   // Spacing only — size, weight and colour now come from the variant/tone.
   title: { marginBottom: 8 },
   subtitle: { marginBottom: 32 },

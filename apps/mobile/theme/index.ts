@@ -37,6 +37,20 @@ import {
 export const colors = light;
 
 /**
+ * Theme-aware access to the same tokens. `colors` above stays as the light
+ * scheme so the 124 screens that read it at module scope keep working unchanged
+ * while they are migrated one at a time — see ThemeProvider.tsx.
+ */
+export {
+  ColorSchemeProvider,
+  useColors,
+  useScheme,
+  useThemedStyles,
+  type Scheme,
+  type ThemeColors,
+} from './ThemeProvider.tsx';
+
+/**
  * Raw ramps, for the rare case a semantic token genuinely does not exist yet.
  * Reaching for this is a smell: if a colour has a meaning, it belongs in
  * `packages/ui/src/tokens/semantic.ts` so web gets it too.
