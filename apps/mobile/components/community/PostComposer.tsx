@@ -2,10 +2,11 @@ import { postSchema, useCreatePost } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
+import { Button, IconButton } from '../ui';
 import { colors, palette } from '../../theme';
 
 const POST_IMAGE_BUCKET = 'community-post-images';
@@ -99,41 +100,29 @@ export function PostComposer({
       {picked ? (
         <View style={styles.previewWrap}>
           <Image source={{ uri: picked.uri }} style={styles.preview} contentFit="cover" />
-          <Pressable
-            style={styles.removeImage}
-            onPress={() => setPicked(null)}
-            accessibilityRole="button"
+          <IconButton
+            icon="✕"
             accessibilityLabel={t('removePhoto')}
+            onPress={() => setPicked(null)}
             disabled={pending}
-          >
-            <Text style={styles.removeImageText}>✕</Text>
-          </Pressable>
+            filled
+            style={styles.removeImage}
+          />
         </View>
       ) : (
-        <Pressable
-          style={styles.addPhoto}
+        <Button
+          variant="outline"
+          label={t('addPhoto')}
           onPress={onPickImage}
-          accessibilityRole="button"
           disabled={pending}
-        >
-          <Text style={styles.addPhotoText}>{t('addPhoto')}</Text>
-        </Pressable>
+          style={styles.addPhoto}
+        />
       )}
 
       {errorKey ? <Text style={styles.error}>{t(errorKey)}</Text> : null}
 
-      <Pressable
-        style={[styles.cta, pending && styles.ctaDisabled]}
-        onPress={onSubmit}
-        disabled={pending}
-        accessibilityRole="button"
-      >
-        {pending ? (
-          <ActivityIndicator color={colors.card} />
-        ) : (
-          <Text style={styles.ctaText}>{t('postCta')}</Text>
-        )}
-      </Pressable>
+      {/* `pending ? <ActivityIndicator/> : <Text/>` — instance fifteen. */}
+      <Button fullWidth label={t('postCta')} onPress={onSubmit} loading={pending} />
     </View>
   );
 }
@@ -157,7 +146,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: palette.purple[100],
   },
-  addPhotoText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
   previewWrap: { position: 'relative' },
   preview: { width: '100%', height: 200, borderRadius: 12, backgroundColor: colors.muted },
   removeImage: {
@@ -171,9 +159,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  removeImageText: { color: colors.card, fontSize: 15, fontWeight: '700' },
   error: { fontSize: 14, color: colors.destructive, fontWeight: '600' },
-  cta: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
-  ctaDisabled: { backgroundColor: palette.purple[200] },
-  ctaText: { color: colors.card, fontSize: 17, fontWeight: '700' },
 });
