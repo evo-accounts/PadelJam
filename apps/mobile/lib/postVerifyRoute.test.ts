@@ -15,6 +15,7 @@ const profile = (overrides: Partial<OnboardingProfile> = {}): OnboardingProfile 
   location_text: null,
   dominant_hand: null,
   court_side: null,
+  notifications_prompted_at: null,
   ...overrides,
 });
 
@@ -38,9 +39,23 @@ describe('decidePostVerifyRoute', () => {
     expect(
       decidePostVerifyRoute(profile({ location_text: 'Lisboa', dominant_hand: 'right' }), null),
     ).toEqual({ kind: 'route', target: '/(onboarding)/side' });
+    // The notifications step used to be absent from this sequence entirely
+    // (UX-AUTH-03): the forward path reached it, but a user who quit after the
+    // side step resumed straight at jammer-plus and was never asked.
     expect(
       decidePostVerifyRoute(
         profile({ location_text: 'Lisboa', dominant_hand: 'right', court_side: 'left' }),
+        null,
+      ),
+    ).toEqual({ kind: 'route', target: '/(onboarding)/notifications' });
+    expect(
+      decidePostVerifyRoute(
+        profile({
+          location_text: 'Lisboa',
+          dominant_hand: 'right',
+          court_side: 'left',
+          notifications_prompted_at: '2026-08-04T00:00:00Z',
+        }),
         null,
       ),
     ).toEqual({ kind: 'route', target: '/(onboarding)/jammer-plus' });

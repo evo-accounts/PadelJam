@@ -35,7 +35,7 @@ export default function PasswordScreen() {
       }
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('onboarded_at, location_text, dominant_hand, court_side')
+        .select('onboarded_at, location_text, dominant_hand, court_side, notifications_prompted_at')
         .eq('id', data.user.id)
         .maybeSingle();
       const decision = decidePostVerifyRoute(profile, profileError);

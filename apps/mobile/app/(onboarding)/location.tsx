@@ -1,7 +1,7 @@
 import { useT } from '@padel/i18n';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { OnboardingStep } from '@/components/OnboardingStep';
@@ -9,6 +9,16 @@ import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
 
 type Coords = { lat: number; lng: number };
+
+/** Uses no component state, so it lives outside the component — and being a
+  * declaration rather than a const means the debounced effect below can call
+  * it regardless of source order. */
+function formatAddress(p: Location.LocationGeocodedAddress | undefined): string {
+  if (!p) return '';
+  const parts = [p.name, p.city ?? p.subregion, p.region].filter(Boolean) as string[];
+  return [...new Set(parts)].join(', ');
+}
+
 type Mode = 'pick' | 'manual';
 
 export default function LocationStep() {
@@ -16,18 +26,57 @@ export default function LocationStep() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>('pick');
   const [text, setText] = useState('');
-  const [coords, setCoords] = useState<Coords | null>(null);
+  const [resolved, setResolved] = useState<(Coords & { label: string }) | null>(null);
+  const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const goNext = () => router.push('/(onboarding)/hand');
 
-  const formatAddress = (p: Location.LocationGeocodedAddress | undefined): string => {
-    if (!p) return '';
-    const parts = [p.name, p.city ?? p.subregion, p.region].filter(Boolean) as string[];
-    return [...new Set(parts)].join(', ');
-  };
+  // Resolve what was typed into an actual place, debounced. expo-location's
+  // geocodeAsync returns coordinates only, so the name shown back to the user
+  // comes from reverse-geocoding the hit — that round trip is what makes the
+  // confirmation trustworthy rather than just echoing their typing.
+  //
+  // A true autocomplete would need a places API and a new dependency; this gets
+  // the same guarantee (Continue means a real place) with what is already here.
+  useEffect(() => {
+    const q = text.trim();
+    setResolved(null);
+    if (q.length < 3) {
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    let cancelled = false;
+    const id = setTimeout(async () => {
+      try {
+        const hits = await Location.geocodeAsync(q);
+        const hit = hits[0];
+        if (!hit) return;
+        const places = await Location.reverseGeocodeAsync({
+          latitude: hit.latitude,
+          longitude: hit.longitude,
+        });
+        if (cancelled) return;
+        setResolved({
+          lat: hit.latitude,
+          lng: hit.longitude,
+          label: formatAddress(places[0]) || q,
+        });
+      } catch {
+        /* leave unresolved; Continue stays disabled */
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [text]);
+
 
   const useCurrentLocation = async () => {
     if (locating) return;
@@ -62,22 +111,13 @@ export default function LocationStep() {
     if (saving) return;
     setSaving(true);
     try {
-      let finalCoords = coords;
-      const trimmed = text.trim();
-      if (!finalCoords && trimmed) {
-        try {
-          const results = await Location.geocodeAsync(trimmed);
-          if (results[0]) finalCoords = { lat: results[0].latitude, lng: results[0].longitude };
-          else setNotice(t('locationGeocodeFailed'));
-        } catch {
-          setNotice(t('locationGeocodeFailed'));
-        }
-      }
-      if (finalCoords || trimmed) {
+      // `resolved` is non-null whenever this runs — Continue is disabled
+      // otherwise — so there is no second geocode and no failure path here.
+      if (resolved) {
         await supabase.rpc('set_my_location', {
-          p_lat: finalCoords?.lat ?? null,
-          p_lng: finalCoords?.lng ?? null,
-          p_text: trimmed || null,
+          p_lat: resolved.lat,
+          p_lng: resolved.lng,
+          p_text: resolved.label,
         });
       }
       goNext();
@@ -127,22 +167,25 @@ export default function LocationStep() {
       title={t('locationManualTitle')}
       body={t('locationBody')}
       primaryLabel={t('continue')}
-      primaryDisabled={!text.trim() || saving}
+      // Gated on a RESOLVED place, not on the field being non-empty. Typing
+      // three characters used to enable Continue, which made it behave exactly
+      // like Skip — the same defect UX-AUTH-02 flags on the hand/side steps.
+      primaryDisabled={!resolved || saving}
       onPrimary={onContinue}
       onBack={() => setMode('pick')}
       onSkip={goNext}
     >
+      {/* No autoFocus. The keyboard opening uninvited is UX-AUTH-01's complaint;
+          it now appears only when the user taps the field. */}
       <TextInput
         style={styles.input}
         value={text}
-        onChangeText={(v) => {
-          setText(v);
-          setCoords(null);
-        }}
+        onChangeText={setText}
         placeholder={t('locationManualPlaceholder')}
         autoCapitalize="words"
-        autoFocus
       />
+      {searching ? <Text style={styles.notice}>{t('locationSearching')}</Text> : null}
+      {resolved ? <Text style={styles.resolved}>{resolved.label}</Text> : null}
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
     </OnboardingStep>
   );
@@ -179,4 +222,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   notice: { marginTop: 10, color: colors.mutedForeground, fontSize: 13 },
+  // The confirmed place reads as an answer, not as a hint.
+  resolved: { marginTop: 10, color: colors.foreground, fontSize: 15, fontWeight: '600' },
 });

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ReactNode } from 'react';
-import { Button, Text } from './ui';
+import { Button, IconButton, Text } from './ui';
 import { colors } from '../theme';
 
 export function OnboardingStep({
@@ -33,8 +33,12 @@ export function OnboardingStep({
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.headerRow}>
+        {/* IconButton, not Button: `back` is the glyph "‹", and Button derives
+            its accessible name FROM the label — so a screen reader announced
+            "single left-pointing angle quotation mark". IconButton takes the
+            visual and the name separately, and requires the name. */}
         {onBack ? (
-          <Button variant="ghost" size="sm" label={t('back')} onPress={onBack} />
+          <IconButton icon={t('back')} accessibilityLabel={t('backLabel')} onPress={onBack} />
         ) : (
           <View />
         )}

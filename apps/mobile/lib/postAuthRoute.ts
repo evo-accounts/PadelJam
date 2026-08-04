@@ -22,7 +22,7 @@ function isSocialSession(session: {
 async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('onboarded_at, location_text, dominant_hand, court_side')
+    .select('onboarded_at, location_text, dominant_hand, court_side, notifications_prompted_at')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
