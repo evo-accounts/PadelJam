@@ -18,9 +18,9 @@ import { Button, Card, EmptyState, ListRow, Text } from '../../components/ui';
 
 const QUICK_ACTIONS = [
   { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: '/event/create' },
-  { key: 'findEvent', icon: 'calendar', android: 'event', href: '/explore/events' },
-  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: '/explore/groups' },
-  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: '/explore/communities' },
+  { key: 'findEvent', icon: 'calendar', android: 'event', href: '/(tabs)/explore?tab=events' },
+  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: '/(tabs)/explore?tab=groups' },
+  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: '/(tabs)/explore?tab=communities' },
 ] as const;
 
 export default function HomeScreen() {

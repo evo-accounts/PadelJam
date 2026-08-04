@@ -5,8 +5,9 @@ import {
   useExplorePlayers,
 } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateEventFab } from '@/components/CreateEventFab';
@@ -14,10 +15,76 @@ import { EventCard } from '@/components/event/EventCard';
 import { CommunityCard } from '@/components/explore/CommunityCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
+import { ExploreList } from '@/components/explore/ExploreList';
 import { SuggestionRail } from '@/components/explore/SuggestionRail';
-import { colors } from '../../theme';
+import { Chip } from '@/components/ui';
+import { colors, radius } from '../../theme';
+
+const TABS = ['foryou', 'events', 'groups', 'communities', 'players'] as const;
+type TabKey = (typeof TABS)[number];
+
+/** The tab key as it appears in `?tab=` — `players` is labelled "People". */
+const isTabKey = (v: unknown): v is TabKey => TABS.includes(v as TabKey);
 
 export default function ExploreScreen() {
+  const { t } = useT('discovery');
+  const params = useLocalSearchParams<{ tab?: string }>();
+
+  // Home's quick actions deep-link straight to a tab. Reading the param on every
+  // render rather than seeding state means tapping "Find Groups" while already
+  // on Explore actually switches tabs, instead of being swallowed because the
+  // screen was already mounted.
+  const [override, setOverride] = useState<TabKey | null>(null);
+  const fromParam = isTabKey(params.tab) ? params.tab : 'foryou';
+  const tab = override ?? fromParam;
+
+  const [query, setQuery] = useState('');
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.searchWrap}>
+        {/* No autoFocus: arriving on Explore should not summon the keyboard. */}
+        <TextInput
+          style={styles.search}
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('searchPlaceholder')}
+          placeholderTextColor={colors.mutedForeground}
+          autoCapitalize="none"
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+          accessibilityLabel={t('searchPlaceholder')}
+        />
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabs}
+        style={styles.tabsWrap}
+      >
+        {TABS.map((k) => (
+          <Chip
+            key={k}
+            label={t(`tab_${k}`)}
+            selected={tab === k}
+            onPress={() => {
+              setOverride(k);
+              // A query typed for one tab rarely means anything in another.
+              setQuery('');
+            }}
+          />
+        ))}
+      </ScrollView>
+
+      {tab === 'foryou' ? <ForYou query={query} /> : <ExploreList kind={tab} query={query} />}
+
+      <CreateEventFab />
+    </View>
+  );
+}
+
+function ForYou({ query }: { query: string }) {
   const { t } = useT('discovery');
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -27,8 +94,11 @@ export default function ExploreScreen() {
   const communities = useExploreCommunities();
   const groups = useExploreGroups();
 
+  // A search term is meaningless against curated rails, so "For you" hands over
+  // to the People list rather than filtering four rails into confusion.
+  if (query.trim()) return <ExploreList kind="players" query={query} />;
+
   return (
-    <View style={styles.container}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 96 }]}>
         <SuggestionRail
           title={t('railPlayers')}
@@ -89,13 +159,23 @@ export default function ExploreScreen() {
           renderItem={(g) => <GroupCard group={g} onOpen={() => router.push(`/group/${g.id}`)} />}
         />
       </ScrollView>
-
-      <CreateEventFab />
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  searchWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
+  search: {
+    borderWidth: 1,
+    borderColor: colors.input,
+    borderRadius: radius.lg,
+    backgroundColor: colors.card,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.foreground,
+  },
+  tabsWrap: { flexGrow: 0 },
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 12 },
   content: { paddingTop: 8, gap: 8 },
 });
