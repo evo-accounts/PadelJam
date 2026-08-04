@@ -1766,6 +1766,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           court_side: string | null
+          notifications_prompted_at: string | null
           created_at: string
           date_of_birth: string | null
           description: string | null
@@ -1784,6 +1785,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           court_side?: string | null
+          notifications_prompted_at?: string | null
           created_at?: string
           date_of_birth?: string | null
           description?: string | null
@@ -1802,6 +1804,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           court_side?: string | null
+          notifications_prompted_at?: string | null
           created_at?: string
           date_of_birth?: string | null
           description?: string | null

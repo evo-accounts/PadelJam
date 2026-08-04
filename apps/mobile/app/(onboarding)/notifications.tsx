@@ -4,25 +4,51 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { OnboardingStep } from '@/components/OnboardingStep';
+import { registerForPush } from '@/lib/push';
+import { supabase } from '@/lib/supabase';
 
 export default function NotificationsStep() {
   const { t } = useT('onboarding');
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
-  const goNext = () => router.push('/(onboarding)/jammer-plus');
+  // Records that the step was PUT to the user, for both Enable and Skip, so
+  // onboardingRoute() can resume past it. Best-effort: failing to write this
+  // must not strand someone in onboarding — the worst case is being asked once
+  // more on the next launch.
+  const markPrompted = async () => {
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        await supabase
+          .from('profiles')
+          .update({ notifications_prompted_at: new Date().toISOString() })
+          .eq('id', data.user.id);
+      }
+    } catch {
+      /* best-effort */
+    }
+  };
+
+  const goNext = async () => {
+    await markPrompted();
+    router.push('/(onboarding)/jammer-plus');
+  };
 
   const onEnable = async () => {
     if (busy) return;
     setBusy(true);
     try {
       await Notifications.requestPermissionsAsync();
+      // registerForPush no longer prompts (see lib/push.ts), so the token has to
+      // be registered here, right after the one place the app is allowed to ask.
+      await registerForPush();
     } catch {
       // best-effort; proceed regardless of outcome
     } finally {
       setBusy(false);
     }
-    goNext();
+    await goNext();
   };
 
   return (
@@ -33,7 +59,7 @@ export default function NotificationsStep() {
       primaryDisabled={busy}
       onPrimary={onEnable}
       onBack={() => router.back()}
-      onSkip={goNext}
+      onSkip={() => void goNext()}
     />
   );
 }

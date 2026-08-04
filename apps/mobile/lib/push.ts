@@ -22,9 +22,12 @@ export async function registerForPush(): Promise<void> {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
     if (!projectId) return; // not EAS-initialised yet
 
-    const existing = await Notifications.getPermissionsAsync();
-    let status = existing.status;
-    if (status !== 'granted') status = (await Notifications.requestPermissionsAsync()).status;
+    // NEVER prompts. This runs on (tabs) mount, so requesting here produced the
+    // native dialog for anyone who SKIPPED the onboarding notifications step —
+    // the one thing the UX audit says must not happen (UX-AUTH-03). The ask
+    // belongs to app/(onboarding)/notifications.tsx, which calls this afterwards
+    // to register the token.
+    const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') return;
 
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;

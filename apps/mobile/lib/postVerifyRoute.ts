@@ -13,6 +13,7 @@ export type OnboardingProfile = {
   location_text: string | null;
   dominant_hand: string | null;
   court_side: string | null;
+  notifications_prompted_at: string | null;
 };
 
 export type OnboardingRoute =
@@ -20,6 +21,7 @@ export type OnboardingRoute =
   | '/(onboarding)/location'
   | '/(onboarding)/hand'
   | '/(onboarding)/side'
+  | '/(onboarding)/notifications'
   | '/(onboarding)/jammer-plus';
 
 export function onboardingRoute(profile: OnboardingProfile): OnboardingRoute {
@@ -27,6 +29,9 @@ export function onboardingRoute(profile: OnboardingProfile): OnboardingRoute {
   if (!profile.location_text) return '/(onboarding)/location';
   if (!profile.dominant_hand) return '/(onboarding)/hand';
   if (!profile.court_side) return '/(onboarding)/side';
+  // Keyed on "was it shown", not on the permission result — the OS owns that,
+  // and re-asking someone who declined is what UX-AUTH-03 objects to.
+  if (!profile.notifications_prompted_at) return '/(onboarding)/notifications';
   return '/(onboarding)/jammer-plus';
 }
 
