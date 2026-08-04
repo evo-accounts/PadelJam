@@ -10,7 +10,7 @@ import { ChannelList } from 'stream-chat-expo';
 
 import { ChannelRow } from '@/components/chat/ChannelRow';
 import { colors, palette } from '../../theme';
-import { Button, Chip, IconButton } from '../../components/ui';
+import { Button, Chip, EmptyState, IconButton } from '../../components/ui';
 
 type Tab = 'active' | 'archived';
 
@@ -19,14 +19,18 @@ function ChatEmptyState() {
   const router = useRouter();
   return (
     <View style={styles.emptyWrap}>
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyText}>{t('noChats')}</Text>
-        <Button
-          label={t('emptyStartCta')}
-          variant="outline"
-          onPress={() => router.push('/chat/new' as never)}
-        />
-      </View>
+      <EmptyState
+        icon={
+          <SymbolView
+            name={{ ios: 'bubble.left.and.bubble.right.fill', android: 'chat', web: 'chat' }}
+            size={40}
+            tintColor={colors.mutedForeground}
+            accessibilityElementsHidden
+          />
+        }
+        title={t('noChats')}
+        action={{ label: t('emptyStartCta'), onPress: () => router.push('/chat/new' as never) }}
+      />
     </View>
   );
 }
@@ -97,9 +101,4 @@ const styles = StyleSheet.create({
   banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: palette.yellow[100], paddingHorizontal: 16, paddingVertical: 10 },
   bannerText: { color: palette.yellow[900], fontSize: 13, flex: 1 },
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  emptyCard: {
-    backgroundColor: colors.card, borderRadius: 16, padding: 24,
-    alignItems: 'center', gap: 14, width: '100%',
-  },
-  emptyText: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
 });

@@ -2742,6 +2742,8 @@ const mobileHome = {
     discoverGroups: 'Grupos que podem interessar-te',
     groupsDiscoverCta: 'Explorar grupos',
     eventsDiscoverCta: 'Explorar eventos',
+    suggestedEventsEmpty: 'Não há eventos sugeridos de momento.',
+    createEventCta: 'Criar evento',
     newGroupBtn: 'Explorar grupos',
   },
   'pt-BR': {
@@ -2771,6 +2773,8 @@ const mobileHome = {
     discoverGroups: 'Grupos que podem interessar a você',
     groupsDiscoverCta: 'Explorar grupos',
     eventsDiscoverCta: 'Explorar eventos',
+    suggestedEventsEmpty: 'Não há eventos sugeridos no momento.',
+    createEventCta: 'Criar evento',
     newGroupBtn: 'Explorar grupos',
   },
   en: {
@@ -2800,6 +2804,8 @@ const mobileHome = {
     discoverGroups: 'Groups you might like',
     groupsDiscoverCta: 'Browse groups',
     eventsDiscoverCta: 'Browse events',
+    suggestedEventsEmpty: 'There are no suggested events at the moment.',
+    createEventCta: 'Create Event',
     newGroupBtn: 'Explore groups',
   },
 } as const;
