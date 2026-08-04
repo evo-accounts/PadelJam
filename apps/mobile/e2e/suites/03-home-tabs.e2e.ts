@@ -1,5 +1,5 @@
-import { beforeAll, describe, it } from 'vitest';
-import { query, snapshot } from '../driver/a11y';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { query, queryAll, snapshot } from '../driver/a11y';
 import { backGesture, scrollUntilVisible, swipe, tap } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
@@ -49,9 +49,21 @@ describe('03 home & tabs', () => {
 
   it('explore shows all four rails and see-all paginates events', async () => {
     await tabTo('Explore');
-    for (const rail of [/players/i, /events/i, /communities/i, /groups/i]) {
-      await scrollUntilVisible({ text: rail }, { maxSwipes: 4 });
-    }
+    // The Explore tab strip has chips labelled "Events", "Groups" and
+    // "Communities" — the EXACT strings three rail titles use. A text selector
+    // takes the first match in the tree, which is the chip, so the old loop
+    // passed while asserting nothing about three of the four rails.
+    //
+    // testID is not an option: nothing in this app's tree carries an
+    // AXUniqueId, so the driver's `id` selector never matches (verified by
+    // dumping a captured tree — 0 elements have one).
+    //
+    // So: scroll to the ONE rail title that is still unique, then count the
+    // "See all" controls. There is exactly one per rail and the chips have
+    // none, which makes four an unambiguous statement that four rails rendered.
+    await scrollUntilVisible({ text: /players you might know/i }, { maxSwipes: 4 });
+    const seeAlls = queryAll(await snapshot(), { text: /see all/i });
+    expect(seeAlls.length).toBeGreaterThanOrEqual(4);
     await swipe('down');
     await swipe('down');
     // Open the events see-all list.
