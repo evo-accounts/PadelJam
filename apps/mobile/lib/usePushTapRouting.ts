@@ -9,7 +9,14 @@ export function usePushTapRouting(): void {
   const router = useRouter();
   const { session } = useSession();
   const sessionRef = useRef(session);
-  sessionRef.current = session;
+  // Assigned after commit, not during render. `go` is registered once with []
+  // deps and needs the LATEST session, which is what this ref is for — but
+  // writing it during render mutates shared state on behalf of a render that
+  // may be discarded, so the listener could act on a session that never
+  // committed. useRef's initialiser already covers the first commit.
+  useEffect(() => {
+    sessionRef.current = session;
+  });
   const coldHandled = useRef(false);
 
   const go = (response: Notifications.NotificationResponse | null) => {

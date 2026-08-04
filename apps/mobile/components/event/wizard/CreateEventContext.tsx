@@ -4,7 +4,6 @@ import {
   useCallback,
   useContext,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 
@@ -41,10 +40,10 @@ export function CreateEventProvider({
     isPrivate: initialGroupId ? false : true,
   });
   const [draft, setDraft] = useState<EventDraft>(makeInitialDraft);
-  const initialDraftRef = useRef<EventDraft | null>(null);
-  if (initialDraftRef.current === null) {
-    initialDraftRef.current = makeInitialDraft();
-  }
+  // Was a useRef written during render to lazily seed itself. That is precisely
+  // what a lazy useState initialiser does, without reading or writing a ref in
+  // the render phase — and `isDirty` below compares against it on every render.
+  const [initialDraft] = useState(makeInitialDraft);
   const [stepIndex, setStepIndex] = useState(0);
 
   const patch = useCallback((partial: Partial<EventDraft>) => {
@@ -74,10 +73,12 @@ export function CreateEventProvider({
       steps: STEPS,
       isFirst: stepIndex === 0,
       isLast: stepIndex === STEPS.length - 1,
-      isDirty: JSON.stringify(draft) !== JSON.stringify(initialDraftRef.current),
+      isDirty: JSON.stringify(draft) !== JSON.stringify(initialDraft),
       communityId,
     }),
-    [draft, patch, stepIndex, goNext, goBack, communityId],
+    // `initialDraft` is stable (lazy useState, never set again), so listing it
+    // costs nothing and keeps the rule honest rather than suppressed.
+    [draft, initialDraft, patch, stepIndex, goNext, goBack, communityId],
   );
 
   return <CreateEventContext.Provider value={value}>{children}</CreateEventContext.Provider>;

@@ -57,7 +57,7 @@ export default function CreateAccountScreen() {
 
   // Resend cooldown / attempt lockout for the secondary-identifier OTP (verify phase).
   const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (otpState.cooldownUntil <= now) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
