@@ -185,7 +185,11 @@ function NoActivityView({
             />
           }
           title={t('groupsEmpty')}
-          action={{ label: t('groupsDiscoverCta'), onPress: () => router.push('/explore/groups' as never) }}
+          // No action: the audit asks for a "Create Group" CTA, and groups can
+          // only be created INSIDE a community (/community/[id]/group-create).
+          // "Explore groups" was standing in for a button that should create,
+          // which is worse than saying nothing — it sends people looking for
+          // groups when they came to make one.
         />
       ) : (
         grRows.map((g: { id: string }) => (

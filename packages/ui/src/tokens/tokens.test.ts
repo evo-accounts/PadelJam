@@ -36,6 +36,7 @@ describe('radius parity with the web calc() steps', () => {
     ['md', radius.md],
     ['lg', radius.lg],
     ['xl', radius.xl],
+    ['2xl', radius['2xl']],
   ])('--radius-%s matches the TypeScript value', (name, ours) => {
     expect(calcFor(name)).toBe(ours);
   });

@@ -17,7 +17,7 @@
  */
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { space } from '../../theme';
+import { radius, space } from '../../theme';
 import { Button, type ButtonVariant } from './Button';
 import { Card } from './Card';
 import { Text } from './Text';
@@ -70,6 +70,10 @@ const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
     justifyContent: 'center',
+    // 16, the step the UX audit specifies. Overridden here rather than changing
+    // Card's own `lg`, so this is the empty-state treatment and not a silent
+    // reshaping of every card in the app.
+    borderRadius: radius['2xl'],
     marginHorizontal: space[4],
     marginVertical: space[4],
   },
