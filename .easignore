@@ -1,0 +1,56 @@
+# What NOT to upload to EAS Build.
+#
+# Without this the archive was 4.8 GB and the limit is 2.0 GB. Almost none of it
+# was source: the repo is 32 GB, of which .claude is 23 GB and Xcode DerivedData
+# from the E2E suite is another 6.4 GB. The app itself is a few megabytes.
+#
+# NOTE: when this file exists it REPLACES .gitignore for archive purposes, so
+# everything unwanted has to be listed here even if git already ignores it —
+# which is why node_modules and the native folders appear below despite being in
+# .gitignore. (EAS did not honour .gitignore here: .e2e-derived and ios/ are both
+# git-ignored and were uploaded anyway.)
+#
+# RUN EAS FROM apps/mobile, NOT THE REPO ROOT. The root has no Expo config, so
+# `eas build` there prompts for a bundle identifier and scaffolds a stub app.json
+# + eas.json pointing at a DIFFERENT projectId with no env vars. Two files named
+# app.json, two named eas.json, and which you get depends on your cwd:
+#
+#     cd apps/mobile && npx eas-cli build --platform ios --profile production
+#
+# This file stays at the repo root because that is the directory EAS archives
+# from in a monorepo, even when invoked from apps/mobile.
+
+# Agent worktrees and session artefacts. The single biggest item at 23 GB:
+# .claude/worktrees holds full copies of the repo.
+.claude/
+
+# Xcode DerivedData written by the E2E harness (scripts/e2e/run.mjs). 6.4 GB.
+**/.e2e-derived/
+
+# E2E screenshots, accessibility dumps and app logs, one directory per run.
+apps/mobile/e2e/artifacts/
+
+# Dependencies — EAS installs these itself from the lockfile.
+node_modules/
+**/node_modules/
+
+# Native output. EAS runs prebuild and pod install; Pods alone is 632 MB.
+apps/mobile/ios/
+apps/mobile/android/
+
+# Build caches and local state
+.turbo/
+**/.turbo/
+**/.expo/
+**/dist/
+**/.next/
+**/storybook-static/
+
+# The web app is not part of a mobile build.
+apps/web/
+
+# History, docs and design source
+.git/
+docs/
+Requirements/
+Branding/
