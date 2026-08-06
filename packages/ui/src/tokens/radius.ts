@@ -18,6 +18,12 @@
  * (14). Under the "strict canon" decision it rounds rather than gaining a step;
  * which way is a per-surface call made during migration, not baked in here.
  * Mobile's `999` pill radius maps to `full`.
+ *
+ * `2xl` (16) IS a deliberate exception to that, added 2026-08 for the empty-state
+ * card the UX audit specifies. It is a real new step in the shared scale, not a
+ * mobile-only value: `--radius-2xl` is added to web's globals.css in the same
+ * change, so both platforms keep the same ladder. Rounding to `xl` was the
+ * alternative and was considered; the design call was to match the spec.
  */
 export const radius = {
   none: 0,
@@ -25,6 +31,7 @@ export const radius = {
   md: 8,
   lg: 10,
   xl: 14,
+  '2xl': 16,
   /** Pills and circles. RN has no `9999px` keyword; a large number is the idiom. */
   full: 9999,
 } as const;

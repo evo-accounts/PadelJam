@@ -22,7 +22,9 @@ export default function YourGroupsScreen() {
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          title: t('yourGroups'),
+          // "My Groups", per the audit. The key already existed with exactly
+          // that copy; the screen was simply using the wrong one.
+          title: t('myGroups'),
           headerRight: () => (
             <Button
               variant="ghost"

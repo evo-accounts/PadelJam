@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { useNotificationsRealtime } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
-import { Tabs, useRouter } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 
 import Colors from '@/constants/Colors';
 import { ChatHeaderButton } from '@/components/chat/ChatHeaderButton';
@@ -11,12 +11,10 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { registerForPush } from '@/lib/push';
-import { colors } from '../../theme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t } = useT('community');
-  const router = useRouter();
 
   useNotificationsRealtime();
 
@@ -39,17 +37,9 @@ export default function TabLayout() {
           title: t('tab', { ns: 'home' }),
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingRight: 12 }}>
-              <Pressable
-                onPress={() => router.push('/(tabs)/explore' as never)}
-                accessibilityRole="button"
-                hitSlop={12}
-              >
-                <SymbolView
-                  name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
-                  tintColor={colors.foreground}
-                  size={22}
-                />
-              </Pressable>
+              {/* No search action here: search lives at the top of Explore,
+                  which is its own tab. A magnifying glass in the header that
+                  only jumps to that tab was a second front door to one room. */}
               <ChatHeaderButton />
               <NotificationBell />
             </View>

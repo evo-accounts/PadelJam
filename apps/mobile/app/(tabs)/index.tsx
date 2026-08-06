@@ -14,13 +14,13 @@ import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 import { colors, palette } from '../../theme';
-import { Button, Card, ListRow, Text } from '../../components/ui';
+import { Button, Card, EmptyState, ListRow, Text } from '../../components/ui';
 
 const QUICK_ACTIONS = [
   { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: '/event/create' },
-  { key: 'findEvent', icon: 'calendar', android: 'event', href: '/explore/events' },
-  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: '/explore/groups' },
-  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: '/explore/communities' },
+  { key: 'findEvent', icon: 'calendar', android: 'event', href: '/(tabs)/explore?tab=events' },
+  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: '/(tabs)/explore?tab=groups' },
+  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: '/(tabs)/explore?tab=communities' },
 ] as const;
 
 export default function HomeScreen() {
@@ -98,7 +98,7 @@ export default function HomeScreen() {
           )}
         </>
       ) : (
-        <EmptyState profileHasLocation={!!profile.data?.location_text} router={router} t={t} />
+        <NoActivityView profileHasLocation={!!profile.data?.location_text} router={router} t={t} />
       )}
     </ScrollView>
       <CreateEventFab />
@@ -123,7 +123,7 @@ function SectionHeader({
   );
 }
 
-function EmptyState({
+function NoActivityView({
   profileHasLocation,
   router,
   t,
@@ -151,14 +151,18 @@ function EmptyState({
 
       <Text variant="heading" style={styles.sectionTitle}>{t('suggestedEvents')}</Text>
       {evRows.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text variant="caption" tone="muted">{t('eventsEmpty')}</Text>
-          <Button
-            label={t('eventsDiscoverCta')}
-            variant="outline"
-            onPress={() => router.push('/explore/events' as never)}
-          />
-        </View>
+        <EmptyState
+          icon={
+            <SymbolView
+              name={{ ios: 'calendar', android: 'event', web: 'event' }}
+              size={40}
+              tintColor={colors.mutedForeground}
+              accessibilityElementsHidden
+            />
+          }
+          title={t('suggestedEventsEmpty')}
+          action={{ label: t('createEventCta'), onPress: () => router.push('/event/create' as never) }}
+        />
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
           {evRows.map((e: { id: string }) => (
@@ -171,14 +175,22 @@ function EmptyState({
 
       <Text variant="heading" style={styles.sectionTitle}>{t('discoverGroups')}</Text>
       {grRows.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text variant="caption" tone="muted">{t('groupsEmpty')}</Text>
-          <Button
-            label={t('groupsDiscoverCta')}
-            variant="outline"
-            onPress={() => router.push('/explore/groups' as never)}
-          />
-        </View>
+        <EmptyState
+          icon={
+            <SymbolView
+              name={{ ios: 'person.3.fill', android: 'groups', web: 'groups' }}
+              size={40}
+              tintColor={colors.mutedForeground}
+              accessibilityElementsHidden
+            />
+          }
+          title={t('groupsEmpty')}
+          // No action: the audit asks for a "Create Group" CTA, and groups can
+          // only be created INSIDE a community (/community/[id]/group-create).
+          // "Explore groups" was standing in for a button that should create,
+          // which is worse than saying nothing — it sends people looking for
+          // groups when they came to make one.
+        />
       ) : (
         grRows.map((g: { id: string }) => (
           <View key={g.id} style={styles.railItem}>
