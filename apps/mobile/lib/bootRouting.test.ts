@@ -67,6 +67,9 @@ vi.mock('@/lib/locale', () => ({ resolveLocale: () => 'en' }));
 vi.mock('@/lib/push', () => ({ registerForPush: () => Promise.resolve() }));
 vi.mock('@/lib/usePushTapRouting', () => ({ usePushTapRouting: () => {} }));
 vi.mock('@/lib/sentry', () => ({ initSentry: () => {} }));
+// Side-effect-only import in _layout; it reaches expo-crypto, which needs the RN
+// runtime. Covered on its own in lib/cryptoPolyfill.test.ts.
+vi.mock('@/lib/cryptoPolyfill', () => ({}));
 vi.mock('@/lib/postAuthRoute', () => ({
   resolvePostAuthRoute: vi.fn(() => Promise.resolve('/(tabs)')),
 }));

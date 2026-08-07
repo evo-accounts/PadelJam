@@ -1,3 +1,8 @@
+// FIRST import, deliberately: there is no WebCrypto global in this runtime, and
+// without one supabase-js builds its PKCE verifier from Math.random() and sends
+// a `plain` challenge. See the file for the full explanation.
+import '@/lib/cryptoPolyfill';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthCacheReset } from '@padel/api';
 import { SessionProvider } from '@padel/auth';
