@@ -16,7 +16,8 @@
     "seed:e2e": "node infra/seed/seed-e2e.mjs",
     "tokens:build": "node scripts/tokens.mjs --write",
     "tokens:check": "node scripts/tokens.mjs",
-    "i18n:check": "node scripts/check-i18n-keys.mjs"
+    "i18n:check": "node scripts/check-i18n-keys.mjs",
+    "schema:check": "node scripts/check-remote-schema.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

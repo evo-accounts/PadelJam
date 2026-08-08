@@ -59,3 +59,34 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"<user-uuid>","role":"authenticated"}';
 select id, name, privacy from communities;   -- expect: own-tenant + public only
 ```
+
+## Before an EAS build: apply migrations to the remote FIRST
+
+Migrations are applied to the LOCAL stack by `supabase db reset`. That does
+nothing to the hosted project. Applying them there is a separate, manual step,
+and it must happen BEFORE a build that expects the new schema.
+
+This is not hypothetical. Migration `0089` added
+`profiles.notifications_prompted_at`, the app began selecting it on the auth
+path, and only the local database had it. The TestFlight build authenticated
+users successfully and then failed on `resolvePostAuthRoute` with PostgREST
+42703 — so email, Google and Apple sign-in all broke at once, and the symptom
+looked like broken authentication rather than a missing column.
+
+Release order:
+
+```bash
+# 1. apply migrations to the hosted project (SQL editor, or the linked CLI)
+#    Dashboard -> SQL Editor, paste the migration; or:
+supabase --workdir infra db push
+
+# 2. confirm the deployed schema matches the code about to ship
+pnpm schema:check
+
+# 3. only then build
+cd apps/mobile && npx eas-cli build --platform ios --profile production
+```
+
+`pnpm schema:check` derives the columns it probes from `OnboardingProfile` in
+`apps/mobile/lib/postVerifyRoute.ts`, so adding a field to the auth path extends
+the check automatically. It also runs in CI.

@@ -76,6 +76,13 @@ jobs:
         if: '!cancelled()'
         run: pnpm i18n:check
 
+      - name: Deployed schema matches the code the app ships
+        if: '!cancelled()'
+        # A missing migration on the remote is invisible to typecheck and to
+        # verify-production-env: 0089 shipped to TestFlight without being applied
+        # and broke every sign-in. Unreachable projects are reported, not failed.
+        run: pnpm schema:check
+
       - name: Test
         if: '!cancelled()'
         run: pnpm test
