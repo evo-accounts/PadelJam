@@ -183,17 +183,43 @@ function resolveUdid() {
 
 // --- 2. Preflight the stack -------------------------------------------------
 async function preflight() {
+  const stackHint = `Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@latest --workdir "${join(ROOT, 'infra')}" start`;
+
+  // A stack that is "already running" can still be missing pieces: `supabase
+  // start` reports a container that died as an informational
+  //   Stopped services: [supabase_edge_runtime_padeljam ...]
+  // and still exits 0, so nothing repairs it and nothing fails.
+  //
+  // Measured 2026-09-09 (run 34377160736): the edge runtime had been down since
+  // a Docker restart hours earlier. Every /functions/v1/* URL answered 503
+  // because Kong had no upstream, and suite 01 failed on a bare
+  // `complete-account-failed:503` after the account-creation Edge Function was
+  // simply not served. Worth one HTTP call up front.
+  const edgeHint = 'The stack is up but the Edge Functions runtime is not.\n'
+    + '  `supabase start` reports this as "Stopped services: [...]" and still exits 0,\n'
+    + '  so re-running it will NOT fix this. Restart the container directly:\n'
+    + '    docker start supabase_edge_runtime_padeljam';
+
   const checks = [
-    ['Supabase API', async () => (await fetch('http://127.0.0.1:55321/auth/v1/health')).ok],
-    ['Mailpit', async () => (await fetch('http://127.0.0.1:55324/api/v1/info')).ok],
-    ['Postgres', async () => spawnSync('docker', ['exec', 'supabase_db_padeljam', 'psql', '-U', 'postgres', '-c', 'select 1'], { env: ENV }).status === 0],
+    ['Supabase API', async () => (await fetch('http://127.0.0.1:55321/auth/v1/health')).ok, stackHint],
+    ['Mailpit', async () => (await fetch('http://127.0.0.1:55324/api/v1/info')).ok, stackHint],
+    ['Postgres', async () => spawnSync('docker', ['exec', 'supabase_db_padeljam', 'psql', '-U', 'postgres', '-c', 'select 1'], { env: ENV }).status === 0, stackHint],
+    // 503 = Kong has no upstream for /functions/v1, i.e. the runtime is down.
+    // A served function answers 401 without a JWT; a missing one answers 404.
+    // Both mean the runtime is up, which is all this checks.
+    ['Edge Functions', async () => {
+      const r = await fetch('http://127.0.0.1:55321/functions/v1/complete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      return r.status !== 503;
+    }, edgeHint],
   ];
-  for (const [name, fn] of checks) {
+  for (const [name, fn, hint] of checks) {
     let ok = false;
     try { ok = await fn(); } catch { ok = false; }
-    if (!ok) {
-      die(`${name} is not reachable. Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@latest --workdir "${join(ROOT, 'infra')}" start`);
-    }
+    if (!ok) die(`${name} is not reachable. ${hint}`);
     log(`${name} ✓`);
   }
   const idbPath = process.env.E2E_IDB_PATH ?? join(homedir(), 'Library/Python/3.9/bin/idb');
