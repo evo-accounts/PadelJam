@@ -41,8 +41,48 @@ const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : unde
 //
 // STORYBOOK_DISABLE_TELEMETRY: Storybook phones home anonymously by default.
 // CI machines should not.
+/**
+ * The `EXPO_PUBLIC_*` values that `apps/mobile/.env` holds, so they can be put
+ * into the environment we hand to xcodebuild.
+ *
+ * Expo CLI already reads that file at bundle time, so this looks redundant — it
+ * is not. Metro runs its babel transforms in WORKER processes, and the
+ * `EXPO_PUBLIC_*` inlining happens there, against the env each worker was
+ * spawned with. Loading a .env into the CLI process does not reach them.
+ *
+ * Measured on CI 2026-09-09 (run 34354428689): the build logged
+ *   env: load .env
+ *   env: export EXPO_PUBLIC_APP_ENV EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_SUPABASE_URL
+ * and the bundle it produced still contained
+ *   createPublicEnv({ SUPABASE_URL: undefined, SUPABASE_ANON_KEY: undefined })
+ * The app threw `[@padel/config] Invalid environment` before rendering anything,
+ * so all 13 suites failed in their hook with a bare
+ * `waitFor timed out ... {"text":{}}` — 40 minutes to say "the app never
+ * started". Hence assertPublicEnvInlined() below.
+ *
+ * Putting the values in OUR env fixes it: xcodebuild, its script phase, the
+ * Expo CLI and every Metro worker beneath it all inherit them. That is exactly
+ * why EXPO_PUBLIC_STORYBOOK has always inlined correctly and these did not.
+ *
+ * The file wins over an inherited variable of the same name: it is generated
+ * from the stack that is actually running, and a stale shell export pointing at
+ * a different Supabase is precisely the confusion worth ruling out.
+ */
+function publicEnvFromMobileDotenv() {
+  const file = join(MOBILE, '.env');
+  if (!existsSync(file)) return {};
+  const out = {};
+  for (const line of readFileSync(file, 'utf8').split('\n')) {
+    const m = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
+    if (!m || !m[1].startsWith('EXPO_PUBLIC_')) continue;
+    out[m[1]] = m[2].trim().replace(/^(['"])(.*)\1$/, '$2');
+  }
+  return out;
+}
+
 const ENV = {
   ...process.env,
+  ...publicEnvFromMobileDotenv(),
   DEVELOPER_DIR: process.env.DEVELOPER_DIR ?? '/Applications/Xcode.app/Contents/Developer',
   LANG: 'en_US.UTF-8',
   EXPO_PUBLIC_STORYBOOK: '1',
@@ -143,17 +183,43 @@ function resolveUdid() {
 
 // --- 2. Preflight the stack -------------------------------------------------
 async function preflight() {
+  const stackHint = `Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@latest --workdir "${join(ROOT, 'infra')}" start`;
+
+  // A stack that is "already running" can still be missing pieces: `supabase
+  // start` reports a container that died as an informational
+  //   Stopped services: [supabase_edge_runtime_padeljam ...]
+  // and still exits 0, so nothing repairs it and nothing fails.
+  //
+  // Measured 2026-09-09 (run 34377160736): the edge runtime had been down since
+  // a Docker restart hours earlier. Every /functions/v1/* URL answered 503
+  // because Kong had no upstream, and suite 01 failed on a bare
+  // `complete-account-failed:503` after the account-creation Edge Function was
+  // simply not served. Worth one HTTP call up front.
+  const edgeHint = 'The stack is up but the Edge Functions runtime is not.\n'
+    + '  `supabase start` reports this as "Stopped services: [...]" and still exits 0,\n'
+    + '  so re-running it will NOT fix this. Restart the container directly:\n'
+    + '    docker start supabase_edge_runtime_padeljam';
+
   const checks = [
-    ['Supabase API', async () => (await fetch('http://127.0.0.1:55321/auth/v1/health')).ok],
-    ['Mailpit', async () => (await fetch('http://127.0.0.1:55324/api/v1/info')).ok],
-    ['Postgres', async () => spawnSync('docker', ['exec', 'supabase_db_padeljam', 'psql', '-U', 'postgres', '-c', 'select 1'], { env: ENV }).status === 0],
+    ['Supabase API', async () => (await fetch('http://127.0.0.1:55321/auth/v1/health')).ok, stackHint],
+    ['Mailpit', async () => (await fetch('http://127.0.0.1:55324/api/v1/info')).ok, stackHint],
+    ['Postgres', async () => spawnSync('docker', ['exec', 'supabase_db_padeljam', 'psql', '-U', 'postgres', '-c', 'select 1'], { env: ENV }).status === 0, stackHint],
+    // 503 = Kong has no upstream for /functions/v1, i.e. the runtime is down.
+    // A served function answers 401 without a JWT; a missing one answers 404.
+    // Both mean the runtime is up, which is all this checks.
+    ['Edge Functions', async () => {
+      const r = await fetch('http://127.0.0.1:55321/functions/v1/complete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      return r.status !== 503;
+    }, edgeHint],
   ];
-  for (const [name, fn] of checks) {
+  for (const [name, fn, hint] of checks) {
     let ok = false;
     try { ok = await fn(); } catch { ok = false; }
-    if (!ok) {
-      die(`${name} is not reachable. Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@latest --workdir "${join(ROOT, 'infra')}" start`);
-    }
+    if (!ok) die(`${name} is not reachable. ${hint}`);
     log(`${name} ✓`);
   }
   const idbPath = process.env.E2E_IDB_PATH ?? join(homedir(), 'Library/Python/3.9/bin/idb');
@@ -262,6 +328,33 @@ function buildIfStale(udid) {
   writeFileSync(STAMP, hash);
 }
 
+/**
+ * Fail in seconds, with the cause named, when the build did not inline the
+ * Supabase env — instead of handing the suites an app that dies on launch and
+ * letting every one of them time out on a selector that never appears.
+ *
+ * Hermes keeps string literals in its string table, so a plain substring search
+ * works on the bytecode bundle exactly as it does on a plain-text one.
+ */
+function assertPublicEnvInlined() {
+  const bundle = join(APP_PATH, 'main.jsbundle');
+  // A Debug build loads JS from Metro and embeds nothing — nothing to check.
+  if (!existsSync(bundle)) return;
+  const url = ENV.EXPO_PUBLIC_SUPABASE_URL;
+  if (!url) {
+    die('EXPO_PUBLIC_SUPABASE_URL is not set.\n'
+      + `  apps/mobile/.env is missing or has no EXPO_PUBLIC_* keys (${join(MOBILE, '.env')}).`);
+  }
+  if (!readFileSync(bundle, 'latin1').includes(url)) {
+    die(`the built app does not contain ${url}.\n`
+      + '  EXPO_PUBLIC_* was not inlined, so the app will throw\n'
+      + '  "[@padel/config] Invalid environment" before it renders anything and\n'
+      + '  every suite will fail in its hook on a selector that never appears.\n'
+      + '  Check apps/mobile/.env, then rerun with --force-build.');
+  }
+  log('build carries the expected EXPO_PUBLIC_* values');
+}
+
 // E2E builds must NEVER talk to EAS Updates: a remote bundle (with production env
 // inlined) silently replacing the local one mid-run destroys determinism.
 function disableExpoUpdates() {
@@ -317,6 +410,7 @@ sh('xcrun', ['simctl', 'bootstatus', udid, '-b']);
 try { sh('xcrun', ['simctl', 'status_bar', udid, 'override', '--time', '9:41', '--batteryLevel', '100', '--batteryState', 'charged']); } catch { /* cosmetic */ }
 
 if (!flag('--no-build')) buildIfStale(udid);
+assertPublicEnvInlined();
 disableExpoUpdates();
 if (flag('--build-only')) { log('Build done.'); process.exit(0); }
 

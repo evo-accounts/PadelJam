@@ -55,11 +55,43 @@ describe('05 event create wizard', () => {
     return stepNumber();
   };
 
+  /** Step 7 of the wizard is "When?". */
+  const SCHEDULE_STEP = 7;
+
+  /**
+   * Push the start time a few hours out before leaving the When? step.
+   *
+   * The picker pre-fills the NEXT WHOLE HOUR, which can be seconds away, and
+   * `my_events` only returns rows with `starts_at >= now()`. So an event created
+   * at 16:59:5x for 17:00:00 drops out of the organizer's list the instant the
+   * clock ticks over — it is not late, it is simply no longer "upcoming" and
+   * nothing has marked it in_progress yet.
+   *
+   * That is exactly how this suite failed on run 34377160736: created just
+   * before 17:00, asserted at 17:00:34, filtered out by the RPC. It passes at
+   * every other minute of the hour, which is what made it look like a flake.
+   */
+  const pushStartTimeOut = async () => {
+    const INCREASE_HOUR = 'Increase hour'; // DateTimePicker's accessibilityLabel, `event` namespace
+    if (!query(await snapshot(), { label: INCREASE_HOUR })) {
+      throw new Error(
+        `schedule step: no "${INCREASE_HOUR}" control — the picker's accessibility label changed, ` +
+          'so the start time is back to defaulting to the next whole hour and this suite is ' +
+          'flaky again near the top of the hour.',
+      );
+    }
+    for (let i = 0; i < 3; i += 1) {
+      await tap({ label: INCREASE_HOUR });
+      await sleep(250);
+    }
+  };
+
   /** Walk forward until the given step number is showing. */
   const advanceTo = async (target: number) => {
     for (let i = 0; i < 20; i++) {
       const step = await stepNumber();
       if (step >= target) return;
+      if (step === SCHEDULE_STEP) await pushStartTimeOut();
       await advance();
     }
     throw new Error(`wizard never reached step ${target} (stuck at ${await stepNumber()})`);
