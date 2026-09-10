@@ -1531,6 +1531,7 @@ const mobileEvent = {
     eventsEmptyGoing: 'Ainda não aderiste a nenhum evento',
     cardSpots: '{{count}}/{{total}} jogadores',
     statusScheduled: 'Em breve',
+    statusStartingNow: 'A começar',
     statusInProgress: 'Ao vivo',
     statusCompleted: 'Concluído',
 
@@ -1970,6 +1971,7 @@ const mobileEvent = {
     eventsEmptyGoing: 'Você ainda não entrou em nenhum evento',
     cardSpots: '{{count}}/{{total}} jogadores',
     statusScheduled: 'Em breve',
+    statusStartingNow: 'Começando',
     statusInProgress: 'Ao vivo',
     statusCompleted: 'Concluído',
 
@@ -2409,6 +2411,7 @@ const mobileEvent = {
     eventsEmptyGoing: "You haven't joined any events yet",
     cardSpots: '{{count}}/{{total}} players',
     statusScheduled: 'Upcoming',
+    statusStartingNow: 'Starting now',
     statusInProgress: 'Live',
     statusCompleted: 'Completed',
 

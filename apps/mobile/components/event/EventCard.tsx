@@ -1,4 +1,4 @@
-import { useGroupEvents } from '@padel/api';
+import { eventStatusKey, useGroupEvents } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, palette } from '../../theme';
@@ -18,14 +18,6 @@ function formatWhen(iso: string): string {
   const date = d.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' });
   const time = d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
   return `${date} · ${time}`;
-}
-
-function statusKey(
-  status: EventRow['status'],
-): 'statusScheduled' | 'statusInProgress' | 'statusCompleted' {
-  if (status === 'in_progress') return 'statusInProgress';
-  if (status === 'completed') return 'statusCompleted';
-  return 'statusScheduled';
 }
 
 /**
@@ -52,18 +44,25 @@ export function EventCard({
         ? td('distanceNear')
         : td('distanceKm', { km: (event.distance_m / 1000).toFixed(1) });
 
+  // Derived from status AND the clock: an event stays 'scheduled' until someone
+  // taps start, so a 19:00 event at 19:01 must not still read "Upcoming".
+  const status = eventStatusKey(event.status, event.starts_at);
   const badgeStyle =
-    event.status === 'in_progress'
+    status === 'statusInProgress'
       ? styled.badgeLive
-      : event.status === 'completed'
-        ? styled.badgeDone
-        : styled.badgeScheduled;
+      : status === 'statusStartingNow'
+        ? styled.badgeStarting
+        : status === 'statusCompleted'
+          ? styled.badgeDone
+          : styled.badgeScheduled;
   const badgeTextStyle =
-    event.status === 'in_progress'
+    status === 'statusInProgress'
       ? styled.badgeTextLive
-      : event.status === 'completed'
-        ? styled.badgeTextDone
-        : styled.badgeTextScheduled;
+      : status === 'statusStartingNow'
+        ? styled.badgeTextStarting
+        : status === 'statusCompleted'
+          ? styled.badgeTextDone
+          : styled.badgeTextScheduled;
 
   return (
     <Card padding="none" style={styled.card} onPress={onPress}>
@@ -75,7 +74,7 @@ export function EventCard({
           </Text>
           <View style={[styled.badge, badgeStyle]}>
             <Text style={[styled.badgeText, badgeTextStyle]} numberOfLines={1}>
-              {t(statusKey(event.status))}
+              {t(status)}
             </Text>
           </View>
         </View>
@@ -113,6 +112,8 @@ const styled = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: '700' },
   badgeScheduled: { backgroundColor: palette.purple[100] },
   badgeTextScheduled: { color: colors.primary },
+  badgeStarting: { backgroundColor: palette.yellow[100] },
+  badgeTextStarting: { color: palette.yellow[800] },
   badgeLive: { backgroundColor: palette.green[100] },
   badgeTextLive: { color: colors.successStrong },
   badgeDone: { backgroundColor: colors.muted },

@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { eventStatusKey } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,12 +14,6 @@ export interface EventCardEvent {
   location_text?: string | null;
   manual_location_name?: string | null;
 }
-
-const STATUS_KEY: Record<string, string> = {
-  scheduled: 'statusScheduled',
-  in_progress: 'statusInProgress',
-  completed: 'statusCompleted',
-};
 
 export function EventCard({ event }: { event: EventCardEvent }) {
   const { t, i18n } = useT('event');
@@ -36,7 +31,7 @@ export function EventCard({ event }: { event: EventCardEvent }) {
         <CardContent className="flex flex-col gap-1 p-4">
           <div className="flex items-center justify-between gap-2">
             <span className="truncate font-medium">{event.name}</span>
-            <Badge variant="secondary">{t(STATUS_KEY[event.status] ?? 'statusScheduled')}</Badge>
+            <Badge variant="secondary">{t(eventStatusKey(event.status, event.starts_at))}</Badge>
           </div>
           {when ? <span className="text-sm text-muted-foreground">{when}</span> : null}
           <span className="truncate text-sm text-muted-foreground">{where}</span>
