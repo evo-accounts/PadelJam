@@ -1,4 +1,6 @@
 import {
+  eventStatusKey,
+  type EventStatusKey,
   useAcceptEventInvitation,
   useDeclineEventInvitation,
   useEvent,
@@ -45,22 +47,18 @@ function formatWhen(iso: string): string {
   return `${date} · ${time}`;
 }
 
-/** Map an event status to its i18n status-badge key (mirrors EventCard). */
-function statusKey(status: string): 'statusScheduled' | 'statusInProgress' | 'statusCompleted' {
-  if (status === 'in_progress') return 'statusInProgress';
-  if (status === 'completed') return 'statusCompleted';
-  return 'statusScheduled';
-}
-
-/** Pick the badge container + text styles for a status (mirrors EventCard palette). */
-function badgeStyles(status: string): {
+/** Pick the badge container + text styles for a status key (mirrors EventCard palette). */
+function badgeStyles(status: EventStatusKey): {
   container: { backgroundColor: string };
   text: { color: string };
 } {
-  if (status === 'in_progress') {
+  if (status === 'statusInProgress') {
     return { container: styles.badgeLive, text: styles.badgeTextLive };
   }
-  if (status === 'completed') {
+  if (status === 'statusStartingNow') {
+    return { container: styles.badgeStarting, text: styles.badgeTextStarting };
+  }
+  if (status === 'statusCompleted') {
     return { container: styles.badgeDone, text: styles.badgeTextDone };
   }
   return { container: styles.badgeScheduled, text: styles.badgeTextScheduled };
@@ -177,7 +175,11 @@ export default function EventDetailScreen() {
   const organizerName = organizerRow?.profiles?.full_name ?? null;
 
   const status = event.status;
-  const badge = badgeStyles(status);
+  // The BADGE is derived from status AND the clock (the gates below still key off
+  // the raw status): an event stays 'scheduled' until someone taps start, so past
+  // its start time it must read "Starting now", not "Upcoming".
+  const statusBadge = eventStatusKey(status, event.starts_at);
+  const badge = badgeStyles(statusBadge);
 
   // --- Recurring series (5G-6 + A1): tag + clickable next-occurrence card ---
   // The card must show EXACTLY what materialize_occurrence creates: source.starts_at + 7 days
@@ -456,7 +458,7 @@ export default function EventDetailScreen() {
             <Text style={styles.name}>{event.name}</Text>
             <View style={[styles.badge, badge.container]}>
               <Text style={[styles.badgeText, badge.text]} numberOfLines={1}>
-                {t(statusKey(status))}
+                {t(statusBadge)}
               </Text>
             </View>
             {isRecurring ? (
@@ -622,6 +624,8 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: '700' },
   badgeScheduled: { backgroundColor: palette.purple[100] },
   badgeTextScheduled: { color: colors.primary },
+  badgeStarting: { backgroundColor: palette.yellow[100] },
+  badgeTextStarting: { color: palette.yellow[800] },
   badgeLive: { backgroundColor: palette.green[100] },
   badgeTextLive: { color: colors.successStrong },
   badgeDone: { backgroundColor: colors.muted },

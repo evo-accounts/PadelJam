@@ -6,6 +6,7 @@ import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
 import { participationState } from '@padel/utils';
 import {
+  eventStatusKey,
   useEvent,
   useEventParticipants,
   useEventTeams,
@@ -31,11 +32,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 
-const STATUS_KEY: Record<string, string> = {
-  scheduled: 'statusScheduled',
-  in_progress: 'statusInProgress',
-  completed: 'statusCompleted',
-};
 const cap = (s: string | null | undefined) =>
   s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
@@ -139,7 +135,7 @@ export default function EventDetailPage() {
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold">{e.name}</h1>
-          <Badge variant="secondary">{t(STATUS_KEY[e.status] ?? 'statusScheduled')}</Badge>
+          <Badge variant="secondary">{t(eventStatusKey(e.status, e.starts_at))}</Badge>
           {e.series_id ? <Badge variant="outline">{t('recurrentTag')}</Badge> : null}
           {state.isOrganizer && e.status === 'scheduled' ? (
             <Button asChild variant="outline" size="sm" className="ml-auto">

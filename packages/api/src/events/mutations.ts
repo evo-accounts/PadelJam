@@ -31,6 +31,23 @@ async function logActivity(
   }
 }
 
+/**
+ * Invalidate every My Events list.
+ *
+ * 'all' / 'organizing' / 'going' are three cache keys over one RPC, and which of
+ * them a mutation touches depends on facts the mutation does not have to hand —
+ * is the viewer this event's organizer, a confirmed participant, or both? The
+ * hooks below therefore invalidate the set instead of guessing at a subset. That
+ * is what useCancelEvent and useMaterializeOccurrence already did; useUpdateEvent
+ * covered two of the three and useCreateEvent none at all, so creating an event
+ * left an already-visited Events tab showing a list without it.
+ */
+function invalidateMyEvents(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: qk.myEvents('all') });
+  qc.invalidateQueries({ queryKey: qk.myEvents('organizing') });
+  qc.invalidateQueries({ queryKey: qk.myEvents('going') });
+}
+
 // ---------------------------------------------------------------------------
 // Create / duplicate
 // ---------------------------------------------------------------------------
@@ -47,6 +64,7 @@ export const useCreateEvent = () => {
       return data;
     },
     onSuccess: (_data, input) => {
+      invalidateMyEvents(qc);
       if (input.groupId) {
         qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
         qc.invalidateQueries({ queryKey: qk.canCreateEvent(input.groupId) });
@@ -68,8 +86,7 @@ export const useUpdateEvent = (eventId: string) => {
     },
     onSuccess: (_d, input) => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
-      qc.invalidateQueries({ queryKey: qk.myEvents('all') });
-      qc.invalidateQueries({ queryKey: qk.myEvents('organizing') });
+      invalidateMyEvents(qc);
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
@@ -93,6 +110,7 @@ export const useDuplicateEvent = () => {
       return data;
     },
     onSuccess: (_data, input) => {
+      invalidateMyEvents(qc);
       if (input.groupId) {
         qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
         qc.invalidateQueries({ queryKey: qk.canCreateEvent(input.groupId) });
@@ -119,6 +137,7 @@ export const useJoinEvent = () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(input.eventId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(input.eventId) });
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+      invalidateMyEvents(qc);
     },
   });
 };
@@ -137,6 +156,7 @@ export const useLeaveEvent = () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(input.eventId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(input.eventId) });
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+      invalidateMyEvents(qc);
     },
   });
 };
@@ -152,6 +172,7 @@ export const useLeaveWaitingList = (eventId: string) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      invalidateMyEvents(qc);
     },
   });
 };
@@ -264,6 +285,7 @@ export const useAcceptEventInvitation = () => {
       qc.invalidateQueries({ queryKey: qk.eventInvitations(input.eventId) });
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(input.eventId) });
+      invalidateMyEvents(qc);
     },
   });
 };
@@ -279,6 +301,7 @@ export const useDeclineEventInvitation = (eventId: string) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
+      invalidateMyEvents(qc);
     },
   });
 };
@@ -476,6 +499,7 @@ export const useFinishEvent = (eventId: string) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventStandings(eventId) });
+      invalidateMyEvents(qc);
     },
   });
 };
@@ -627,9 +651,7 @@ export const useCancelEvent = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
-      qc.invalidateQueries({ queryKey: qk.myEvents('all') });
-      qc.invalidateQueries({ queryKey: qk.myEvents('organizing') });
-      qc.invalidateQueries({ queryKey: qk.myEvents('going') });
+      invalidateMyEvents(qc);
     },
   });
 };
@@ -675,9 +697,7 @@ export const useMaterializeOccurrence = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
-      qc.invalidateQueries({ queryKey: qk.myEvents('all') });
-      qc.invalidateQueries({ queryKey: qk.myEvents('organizing') });
-      qc.invalidateQueries({ queryKey: qk.myEvents('going') });
+      invalidateMyEvents(qc);
     },
   });
 };
