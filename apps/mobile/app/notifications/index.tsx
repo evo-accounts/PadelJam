@@ -38,6 +38,7 @@ export default function NotificationsScreen() {
   const clearAll = useClearAll();
   const completeCta = useCompleteNotificationCta();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [ctaError, setCtaError] = useState<{ id: string; code: string } | null>(null);
 
   const rows = list.data?.pages.flat() ?? [];
   const pending = summary.data ?? 0;
@@ -71,12 +72,6 @@ export default function NotificationsScreen() {
         />
       )}
 
-      {completeCta.isError ? (
-        <Text variant="caption" tone="destructive" style={styles.empty} accessibilityRole="alert">
-          {t(completeCta.error instanceof Error ? completeCta.error.message : 'unknown_error', { defaultValue: t('respondError') })}
-        </Text>
-      ) : null}
-
       {list.isLoading ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : list.isError ? (
@@ -92,13 +87,24 @@ export default function NotificationsScreen() {
             <ListRow
               variant="card"
               title={t(item.type, { actor: item.actor_name ?? '', entity: item.entity_name ?? '' })}
+              subtitle={ctaError?.id === item.id ? t(ctaError.code, { defaultValue: t('respondError') }) : undefined}
               highlighted={!item.read_at}
               trailing={
                 CTA_TYPES.has(item.type) ? (
                   item.cta_done ? (
                     <Text variant="hint" tone="success">{ctaDoneLabel(t, item.type)}</Text>
                   ) : (
-                    <Button label={ctaLabel(t, item.type)} size="sm" onPress={() => completeCta.mutate(item)} />
+                    <Button
+                      label={ctaLabel(t, item.type)}
+                      size="sm"
+                      loading={completeCta.isPending && completeCta.variables?.id === item.id}
+                      onPress={() => {
+                        setCtaError(null);
+                        completeCta.mutate(item, {
+                          onError: (e) => setCtaError({ id: item.id, code: e instanceof Error ? e.message : 'unknown_error' }),
+                        });
+                      }}
+                    />
                   )
                 ) : null
               }

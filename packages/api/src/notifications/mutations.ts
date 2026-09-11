@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Database, TypedClient } from '@padel/db';
 import { mapPgError, useDb } from '../client';
 import { qk } from '../query-keys';
 import type { NotificationRow } from './queries';
@@ -60,10 +61,14 @@ export const CTA_TYPES: ReadonlySet<string> = new Set([
   'event_invite', 'group_invite', 'community_invite', 'waitlist_spot',
 ]);
 
+type Fns = Database['public']['Functions'];
+type CtaFn = 'accept_event_invitation' | 'accept_group_invitation' | 'accept_invitation' | 'claim_waitlist_spot';
+
+/** One CTA type's RPC and its exact argument shape. */
+export type CtaCall = { [F in CtaFn]: { fn: F; args: Fns[F]['Args'] } }[CtaFn];
+
 /** Which RPC a CTA notification's button calls, or null when the row carries no CTA. */
-export function ctaCall(
-  n: NotificationRow,
-): { fn: 'accept_event_invitation' | 'accept_group_invitation' | 'accept_invitation' | 'claim_waitlist_spot'; args: Record<string, string> } | null {
+export function ctaCall(n: NotificationRow): CtaCall | null {
   // Arg names match the existing accept hooks exactly: event/group accept by
   // ENTITY id, community accepts by INVITATION id (ref_id).
   if (n.type === 'event_invite' && n.event_id) return { fn: 'accept_event_invitation', args: { p_event_id: n.event_id } };
@@ -71,6 +76,10 @@ export function ctaCall(
   if (n.type === 'community_invite' && n.ref_id) return { fn: 'accept_invitation', args: { p_invitation_id: n.ref_id } };
   if (n.type === 'waitlist_spot' && n.event_id) return { fn: 'claim_waitlist_spot', args: { p_event_id: n.event_id } };
   return null;
+}
+
+function callCta<F extends CtaFn>(db: TypedClient, call: { fn: F; args: Fns[F]['Args'] }) {
+  return db.rpc(call.fn, call.args);
 }
 
 // Acts on a CTA notification's button, then flips cta_done. A waiting-list claim that
@@ -82,11 +91,11 @@ export const useCompleteNotificationCta = () => {
     mutationFn: async (n: NotificationRow) => {
       const call = ctaCall(n);
       if (!call) throw new Error('not_a_cta_notification');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- args are shaped per-fn above
-      const { error } = await db.rpc(call.fn, call.args as any);
+      const { error } = await callCta(db, call);
       if (error) {
         const code = mapPgError(error) ?? 'unknown_error';
         if (code === 'spot_taken') {
+          // Best effort: the offer is stale either way; the rethrow below carries the user-facing code.
           await db.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id);
           invalidate(qc);
         }
