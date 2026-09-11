@@ -61,8 +61,12 @@ export function ShareResultsModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <View style={styles.sheet}>
+      {/* The backdrop is not an accessibility element: wrapping the sheet in a
+          default-accessible Pressable folds the modal into one VoiceOver node and
+          the buttons inside cannot be reached. The sheet claims the responder so
+          taps inside stay inside; Close is how assistive tech leaves. */}
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
+        <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
           <Text style={styles.title}>{t('shareResultsTitle')}</Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {communityId ? (
@@ -80,6 +84,7 @@ export function ShareResultsModal({
             fullWidth
             onPress={onShare}
           />
+          <Button label={t('close')} variant="ghost" fullWidth onPress={onClose} testID="share-results-close" />
           <View ref={cardRef} collapsable={false} style={styles.offscreen}>
             <ResultCard eventId={eventId} eventName={eventName} />
           </View>

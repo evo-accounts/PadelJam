@@ -13,7 +13,7 @@ import { notificationRoute } from '@padel/utils';
 import { FlashList } from '@shopify/flash-list';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { colors } from '../../theme';
 import { Button, IconButton, ListRow, Text } from '../../components/ui';
 
@@ -47,6 +47,22 @@ export default function NotificationsScreen() {
     if (!n.read_at) markRead.mutate(n.id);
     const href = targetHref(n);
     if (href) router.push(href as never);
+  };
+
+  const ctaErrorMessage = (code: string) => t(code, { defaultValue: t('respondError') });
+
+  const onCtaPress = (n: NotificationRow) => {
+    setCtaError(null);
+    completeCta.mutate(n, {
+      onError: (e) => {
+        const code = e instanceof Error ? e.message : 'unknown_error';
+        setCtaError({ id: n.id, code });
+        // The subtitle turns destructive, but the row is one accessibility
+        // element with a composed label — a role change inside it is not
+        // announced. Say it out loud, once, when it happens.
+        AccessibilityInfo.announceForAccessibility(ctaErrorMessage(code));
+      },
+    });
   };
 
   return (
@@ -87,7 +103,7 @@ export default function NotificationsScreen() {
             <ListRow
               variant="card"
               title={t(item.type, { actor: item.actor_name ?? '', entity: item.entity_name ?? '' })}
-              subtitle={ctaError?.id === item.id ? t(ctaError.code, { defaultValue: t('respondError') }) : undefined}
+              subtitle={ctaError?.id === item.id ? ctaErrorMessage(ctaError.code) : undefined}
               subtitleTone={ctaError?.id === item.id ? 'destructive' : 'muted'}
               highlighted={!item.read_at}
               trailing={
@@ -100,19 +116,16 @@ export default function NotificationsScreen() {
                       size="sm"
                       loading={completeCta.isPending && completeCta.variables?.id === item.id}
                       disabled={completeCta.isPending}
-                      onPress={() => {
-                        setCtaError(null);
-                        completeCta.mutate(item, {
-                          onError: (e) => setCtaError({ id: item.id, code: e instanceof Error ? e.message : 'unknown_error' }),
-                        });
-                      }}
+                      onPress={() => onCtaPress(item)}
                     />
                   )
                 ) : null
               }
+              // A live CTA is a control of its own: it must sit BESIDE the row's
+              // accessibility element, not inside it, or VoiceOver cannot reach it.
+              trailingInteractive={CTA_TYPES.has(item.type) && !item.cta_done}
               // Only the static "joined"/"confirmed" state needs describing. The
-              // CTA button carries its own label; repeating it here would announce
-              // the word twice on a row that already reads as one element.
+              // CTA button carries its own label.
               trailingLabel={
                 CTA_TYPES.has(item.type) && item.cta_done ? ctaDoneLabel(t, item.type) : undefined
               }
@@ -123,28 +136,31 @@ export default function NotificationsScreen() {
       )}
 
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
-          <View style={styles.sheet}>
-            <Pressable
-              style={styles.sheetRow}
+        {/* The backdrop is NOT an accessibility element: a default-accessible
+            Pressable wrapping the sheet folds the whole modal into one node and
+            the rows inside become unreachable. The sheet claims the responder so
+            taps inside it do not fall through to the backdrop, and the Close row
+            is how VoiceOver leaves — the backdrop tap is a sighted gesture. */}
+        <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)} accessible={false}>
+          <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
+            <ListRow
+              title={t('markAllRead')}
               onPress={() => {
                 markAllRead.mutate();
                 setMenuOpen(false);
               }}
-              accessibilityRole="button"
-            >
-              <Text variant="body">{t('markAllRead')}</Text>
-            </Pressable>
-            <Pressable
-              style={styles.sheetRow}
+              testID="notifications-mark-all-read"
+            />
+            <ListRow
+              title={t('clearAll')}
+              titleTone="destructive"
               onPress={() => {
                 clearAll.mutate();
                 setMenuOpen(false);
               }}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.sheetText, { color: colors.destructive }]}>{t('clearAll')}</Text>
-            </Pressable>
+              testID="notifications-clear-all"
+            />
+            <ListRow title={t('close')} onPress={() => setMenuOpen(false)} testID="notifications-menu-close" />
           </View>
         </Pressable>
       </Modal>
@@ -157,6 +173,4 @@ const styles = StyleSheet.create({
   empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-start', alignItems: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderRadius: 12, margin: 12, marginTop: 48, minWidth: 200, overflow: 'hidden' },
-  sheetRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
-  sheetText: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
 });

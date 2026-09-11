@@ -31,3 +31,6 @@ describe('ctaCall', () => {
 // @ts-expect-error wrong arg key for this fn
 const _wrongArgs: CtaCall = { fn: 'accept_invitation', args: { p_event_id: 'x' } };
 void _wrongArgs;
+// ...and the positive counterpart, so the guard above cannot pass merely because the union became `never`.
+const _ok: CtaCall = { fn: 'accept_invitation', args: { p_invitation_id: 'x' } };
+void _ok;

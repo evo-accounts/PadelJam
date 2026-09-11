@@ -182,10 +182,14 @@ export function TeamManage({
         />
       )}
 
-      {/* Assign sheet */}
+      {/* Assign sheet. The backdrop is deliberately not an accessibility
+          element — a default-accessible Pressable around the sheet turns the
+          whole modal into one VoiceOver node and hides every row inside it. The
+          sheet claims the responder so taps inside stay inside; the Close row is
+          how assistive tech leaves. */}
       <Modal visible={assignTarget != null} transparent animationType="slide" onRequestClose={() => setAssignTarget(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setAssignTarget(null)}>
-          <View style={styles.sheet}>
+        <Pressable style={styles.backdrop} onPress={() => setAssignTarget(null)} accessible={false}>
+          <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
             <Text style={styles.sheetTitle}>{t('assignTitle')}</Text>
             {assignable.length === 0 ? (
               <Text style={styles.sheetEmpty}>{t('assignNoneEligible')}</Text>
@@ -196,14 +200,15 @@ export function TeamManage({
                 ))}
               </ScrollView>
             )}
+            <ListRow title={t('close')} onPress={() => setAssignTarget(null)} testID="team-assign-close" />
           </View>
         </Pressable>
       </Modal>
 
-      {/* Switch sheet */}
+      {/* Switch sheet — same shape and the same reasoning as the assign sheet. */}
       <Modal visible={switchTarget != null} transparent animationType="slide" onRequestClose={() => setSwitchTarget(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setSwitchTarget(null)}>
-          <View style={styles.sheet}>
+        <Pressable style={styles.backdrop} onPress={() => setSwitchTarget(null)} accessible={false}>
+          <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
             <Text style={styles.sheetTitle}>{t('switchTitle')}</Text>
             <ScrollView>
               {participants
@@ -212,6 +217,7 @@ export function TeamManage({
                   <ListRow key={p.id} title={pname(p)} onPress={() => onSwitchPick(p)} />
                 ))}
             </ScrollView>
+            <ListRow title={t('close')} onPress={() => setSwitchTarget(null)} testID="team-switch-close" />
           </View>
         </Pressable>
       </Modal>
