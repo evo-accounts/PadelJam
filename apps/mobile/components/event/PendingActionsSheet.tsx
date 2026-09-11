@@ -44,19 +44,14 @@ export function PendingActionsSheet({ actions }: Props) {
               {t('pendingActionsHint')}
             </Text>
           </View>
-          <Text variant="hint" tone="muted">
+          <Text variant="hint" tone="muted" accessibilityElementsHidden importantForAccessibility="no">
             ›
           </Text>
         </View>
       </Card>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable
-          style={styles.backdrop}
-          onPress={() => setOpen(false)}
-          accessible={false}
-          accessibilityLabel={t('pendingActionsClose')}
-        >
+        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} accessible={false}>
           {/* A responder-claiming View so taps inside the sheet do not reach the backdrop. */}
           <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
             <Text variant="sectionTitle" style={styles.sheetTitle}>
@@ -66,11 +61,16 @@ export function PendingActionsSheet({ actions }: Props) {
               <ListRow
                 key={a.key}
                 title={label(a)}
-                trailing={<Text variant="hint" tone="muted">›</Text>}
+                trailing={
+                  <Text variant="hint" tone="muted" accessibilityElementsHidden importantForAccessibility="no">
+                    ›
+                  </Text>
+                }
                 onPress={() => go(a)}
                 testID={`pending-action-${a.key}`}
               />
             ))}
+            <ListRow title={t('pendingActionsClose')} onPress={() => setOpen(false)} testID="pending-actions-close" />
           </View>
         </Pressable>
       </Modal>

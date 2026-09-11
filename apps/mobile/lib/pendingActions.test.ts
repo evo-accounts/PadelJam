@@ -28,10 +28,13 @@ describe('pendingActions', () => {
     ]);
   });
 
-  it('lists players before teams when both are missing', () => {
-    expect(pendingActions({ ...base, specification: 'team', confirmedCount: 2, confirmedTeamCount: 0 })).toEqual([
+  it('lists players, then teams, then location when all are missing', () => {
+    expect(
+      pendingActions({ ...base, specification: 'team', confirmedCount: 2, confirmedTeamCount: 0, hasLocation: false })
+    ).toEqual([
       { key: 'addPlayers', count: 2, href: '/event/e1/manage' },
       { key: 'setUpTeams', count: 2, href: '/event/e1/manage' },
+      { key: 'setLocation', count: 0, href: '/event/e1/edit' },
     ]);
   });
 
