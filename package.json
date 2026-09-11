@@ -14,6 +14,8 @@
     "test": "turbo run test",
     "seed:demo": "node infra/seed/seed-demo.mjs",
     "seed:e2e": "node infra/seed/seed-e2e.mjs",
+    "seed:audit": "node infra/seed/audit/run.ts",
+    "seed:audit:test": "node --test infra/seed/audit/",
     "test:db": "for f in infra/supabase/tests/*.test.mjs; do node \"$f\" || exit 1; done",
     "tokens:build": "node scripts/tokens.mjs --write",
     "tokens:check": "node scripts/tokens.mjs",
@@ -26,6 +28,7 @@
     "eslint": "^9.17.0",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "^3.4.0",
+    "stream-chat": "^9.47.0",
     "turbo": "^2.3.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.18.0"
