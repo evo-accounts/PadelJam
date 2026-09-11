@@ -11,10 +11,12 @@ export type Manifest = {
   skipped: string[];
 };
 
+const manifestPath = (target: string) => resolve(OUT_DIR, `manifest.${target}.json`);
+
 export function writeManifest(m: Manifest) {
   mkdirSync(OUT_DIR, { recursive: true });
-  writeFileSync(resolve(OUT_DIR, 'manifest.json'), JSON.stringify(m, null, 2));
+  writeFileSync(manifestPath(m.target), JSON.stringify(m, null, 2));
 }
-export function readManifest(): Manifest {
-  return JSON.parse(readFileSync(resolve(OUT_DIR, 'manifest.json'), 'utf8')) as Manifest;
+export function readManifest(target: string): Manifest {
+  return JSON.parse(readFileSync(manifestPath(target), 'utf8')) as Manifest;
 }

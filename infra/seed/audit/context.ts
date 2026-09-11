@@ -18,6 +18,13 @@ export const u = (ctx: Ctx, key: string): Session => {
   return s;
 };
 
+/** Reads a manifest id, failing loudly if the module that creates it hasn't run yet. */
+export const id = (ctx: Ctx, key: string): string => {
+  const v = ctx.ids[key];
+  if (!v) throw new Error(`id ${key} not seeded; run the module that creates it first`);
+  return v;
+};
+
 export const NOW = new Date();
 export const daysFromNow = (days: number, hour = 19) => {
   const d = new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth(), NOW.getUTCDate(), hour, 0, 0));
