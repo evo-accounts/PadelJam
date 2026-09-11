@@ -37,6 +37,10 @@ async function main() {
       console.error(`--only: unknown step(s) ${unknown.join(', ')}. Known steps: ${STEPS.join(', ')}`);
       process.exit(1);
     }
+    if (only[0] !== 'users') {
+      console.error(`--only must begin with users: later steps sign in through the sessions users creates`);
+      process.exit(1);
+    }
   }
   const want = (step: string) => !only || only.includes(step);
 

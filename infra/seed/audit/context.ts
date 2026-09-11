@@ -26,6 +26,7 @@ export const id = (ctx: Ctx, key: string): string => {
 };
 
 export const NOW = new Date();
+// Hours are UTC; the app renders local time (Lisbon = UTC+1 in September), so 19 shows as 20:00.
 export const daysFromNow = (days: number, hour = 19) => {
   const d = new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth(), NOW.getUTCDate(), hour, 0, 0));
   d.setUTCDate(d.getUTCDate() + days);

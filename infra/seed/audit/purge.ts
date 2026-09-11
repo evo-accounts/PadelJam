@@ -21,6 +21,8 @@ export async function purge(c: Client) {
   console.log(`purge: ${ids.length} accounts, ${tenants.length} tenants, ${communities.length} communities, ${await c.count('events', `organizer_id=${inList}`)} organized events`);
 
   // 1) Events organized by the cast (cascades rosters, rounds, matches, teams, timer, blasts, activity, results).
+  // events.group_id is on delete set null, which is why events are deleted by organizer rather than
+  // via the tenant cascade.
   await c.del('events', `organizer_id=${inList}`);
   await c.del('event_series', `organizer_id=${inList}`);
   // 2) Anything the cast did inside other people's events (none expected, but keep the purge total).
@@ -44,14 +46,21 @@ export async function purge(c: Client) {
   // 4) Social and per-user rows.
   for (const t of ['notifications', 'blocks', 'follows', 'reports', 'subscriptions', 'user_settings', 'push_tokens']) {
     const col = t === 'blocks' ? 'blocker_id' : t === 'follows' ? 'follower_id' : t === 'reports' ? 'reporter_id' : 'user_id';
-    try { await c.del(t, `${col}=${inList}`); } catch (e) { console.log(`  purge: ${t}.${col}: ${(e as Error).message.slice(0, 80)}`); }
+    await c.del(t, `${col}=${inList}`);
   }
   await c.del('blocks', `blocked_id=${inList}`);
   await c.del('follows', `followee_id=${inList}`);
   await c.del('reports', `reported_user_id=${inList}`);
   // 5) Storage objects, profiles, auth users.
   for (const id of ids) {
-    try { await c.req(`/storage/v1/object/avatars/${id}/audit.png`, { method: 'DELETE' }); } catch { /* absent */ }
+    try {
+      await c.req(`/storage/v1/object/avatars/${id}/audit.png`, { method: 'DELETE' });
+    } catch (e) {
+      // Local Storage (fronted by Kong) reports a missing object as HTTP 400 with a nested
+      // {"statusCode":"404"} body rather than a real 404 status; check both forms.
+      const err = e as { status?: number; body?: { statusCode?: string } };
+      if (err.status !== 404 && err.body?.statusCode !== '404') throw e;
+    }
   }
   await c.del('profiles', `id=${inList}`);
   for (const id of ids) await c.adminDeleteUser(id);

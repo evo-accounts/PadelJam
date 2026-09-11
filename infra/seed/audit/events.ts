@@ -7,6 +7,8 @@ import type { Ctx } from './context.ts';
 import { u, id, daysFromNow, hoursFromNow } from './context.ts';
 import { americanoRounds, confirmedIds, scoreRound } from './rounds.ts';
 
+// starts_at defaults 8 h out because join_event refuses joins inside the 6 h cutoff; past/live
+// events are back-dated afterwards.
 const base = (groupId: string | null, over: Record<string, unknown>) => ({
   group_id: groupId, event_type: 'americano', specification: 'classic', scoring_mode: 'points', scoring_value: 24,
   organizer_role: 'organizing_only', name: 'Event', venue_id: null,
@@ -84,6 +86,8 @@ export async function seedEvents(ctx: Ctx) {
       series: { day_of_week: 4, start_time: '19:00', duration_minutes: 90, invite_lead_days: 5 },
     }));
     for (const k of ['f5', 'u6', 'f6', 'f7', 'f8']) await join(ctx, k, eventId);      // 6 confirmed with A1 (3 men, 3 women)
+    // Not a prerequisite: join_event would just accept the invitation. Dropped so the audit shows
+    // a plain joiner on the waiting list, not an invitee.
     for (const k of ['u1a', 'u1c']) {
       await dropInvitation(ctx, eventId, u(ctx, k).id);
       const s = await join(ctx, k, eventId);
@@ -94,6 +98,7 @@ export async function seedEvents(ctx: Ctx) {
       const row = parts.find((p) => p.user_id === u(ctx, k).id)!;
       await ctx.c.rpc(a1.jwt, 'mark_paid', { p_participant_id: row.id, p_paid: true });
     }
+    // Materialize while E2 is still scheduled: the RPC copies a scheduled source.
     ctx.ids.E2_NEXT = await ctx.c.rpc<string>(a1.jwt, 'materialize_occurrence', { p_after_event_id: eventId });
     await ctx.c.rpc(a1.jwt, 'start_event', { p_event_id: eventId });
     await scoreRound(ctx, a1.jwt, eventId, 1);

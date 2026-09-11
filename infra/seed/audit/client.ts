@@ -15,15 +15,20 @@ export function makeClient(env: Env) {
     const h: Record<string, string> = {
       apikey: env.service, Authorization: `Bearer ${jwt ?? env.service}`, ...headers,
     };
-    if (!raw) h['Content-Type'] = 'application/json';
+    // Bodyless requests (DELETE) must not claim a JSON content-type: Storage's fastify backend
+    // rejects "Content-Type: application/json" on an empty body with a 400, which would otherwise
+    // make every avatar delete fail regardless of whether the object exists.
+    if (!raw && body !== undefined) h['Content-Type'] = 'application/json';
     if (prefer) h.Prefer = prefer;
     const res = await fetch(`${env.url}${path}`, { method, headers: h, body: raw ?? (body ? JSON.stringify(body) : undefined) });
     const text = await res.text();
     let data: unknown = null;
     try { data = text ? JSON.parse(text) : null; } catch { data = text; }
     if (!res.ok) {
-      const err = new Error(`${method} ${path} → ${res.status}: ${text.slice(0, 400)}`) as Error & { status?: number };
+      const err = new Error(`${method} ${path} → ${res.status}: ${text.slice(0, 400)}`) as Error & { status?: number; headers?: Headers; body?: unknown };
       err.status = res.status;
+      err.headers = res.headers;
+      err.body = data;
       throw err;
     }
     return data as T;
@@ -61,6 +66,7 @@ export function makeClient(env: Env) {
     // Hosted projects cap password sign-ins per IP; with 31 accounts signing in eagerly at seed
     // time, a 429 is expected there. Wait out the window and retry rather than failing the run.
     const maxAttempts = 3;
+    const backoffs = [65, 130, 300];
     for (let attempt = 1; ; attempt++) {
       try {
         const r = await req<{ access_token: string }>('/auth/v1/token?grant_type=password', {
@@ -70,8 +76,11 @@ export function makeClient(env: Env) {
       } catch (e) {
         const status = (e as { status?: number }).status;
         if (status !== 429 || attempt >= maxAttempts) throw e;
-        console.log(`  sign-in rate limited; waiting…`);
-        await new Promise((resolve) => setTimeout(resolve, 65_000));
+        const retryAfterHeader = (e as { headers?: Headers }).headers?.get('Retry-After');
+        const retryAfter = retryAfterHeader ? Number(retryAfterHeader) : NaN;
+        const waitSeconds = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : backoffs[attempt - 1];
+        console.log(`  sign-in rate limited (attempt ${attempt}/${maxAttempts}); waiting ${waitSeconds}s…`);
+        await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1_000));
       }
     }
   }
