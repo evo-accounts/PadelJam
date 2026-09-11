@@ -1092,6 +1092,7 @@ const mobileGroup = {
     groups_per_community:
       'Atingiste o limite de grupos do teu plano. Arquiva um grupo ou faz upgrade para adicionar mais.',
     sole_owner_must_transfer: 'Transfere a propriedade da comunidade antes de saíres deste grupo.',
+    general_group_only_group: 'O grupo geral não pode ser arquivado enquanto for o único grupo da comunidade.',
     sole_admin_must_add_another: 'Adiciona outro administrador a este grupo antes de saíres.',
     group_private_join_forbidden:
       'Este é um grupo privado. Precisas de um convite para te juntares.',
@@ -1203,6 +1204,7 @@ const mobileGroup = {
     groups_per_community:
       'Você atingiu o limite de grupos do seu plano. Arquive um grupo ou faça upgrade para adicionar mais.',
     sole_owner_must_transfer: 'Transfira a propriedade da comunidade antes de sair deste grupo.',
+    general_group_only_group: 'O grupo geral não pode ser arquivado enquanto for o único grupo da comunidade.',
     sole_admin_must_add_another: 'Adicione outro administrador a este grupo antes de sair.',
     group_private_join_forbidden:
       'Este é um grupo privado. Você precisa de um convite para entrar.',
@@ -1314,6 +1316,7 @@ const mobileGroup = {
     groups_per_community:
       "You've reached your plan's group limit. Archive a group or upgrade to add more.",
     sole_owner_must_transfer: 'Transfer community ownership before leaving this group.',
+    general_group_only_group: 'The general group cannot be archived while it is the only group in the community.',
     sole_admin_must_add_another: 'Add another admin to this group before you leave.',
     group_private_join_forbidden:
       'This is a private group. You need an invitation to join.',

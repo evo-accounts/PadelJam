@@ -11,7 +11,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { colors, palette } from '../../../../theme';
 
 const START_ERROR_KEYS = new Set(['forbidden', 'not_a_member', 'group_not_found']);
-const ARCHIVE_ERROR_KEYS = new Set(['forbidden', 'groups_per_community', 'group_not_found']);
+const ARCHIVE_ERROR_KEYS = new Set(['forbidden', 'groups_per_community', 'group_not_found', 'general_group_only_group']);
 
 export default function GroupManageSeasonsScreen() {
   const { t } = useT('group');

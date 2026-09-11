@@ -29,6 +29,7 @@ export default function GroupManageHubPage() {
   const archived = !!group.data?.archived_at;
   const communityId = group.data?.community_id ?? '';
   const busy = archive.isPending || unarchive.isPending;
+  const actionError = archive.error ?? unarchive.error;
 
   const links = [
     { key: 'settings', href: `/app/group/${id}/manage/settings`, label: t('settingsRow') },
@@ -62,6 +63,11 @@ export default function GroupManageHubPage() {
       >
         {archived ? t('unarchive') : t('archive')}
       </Button>
+      {actionError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {t(actionError.message, { defaultValue: t('unknown_error') })}
+        </p>
+      ) : null}
     </div>
   );
 }
