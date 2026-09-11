@@ -14,6 +14,11 @@ function render(n: { type: string; actor_name: string | null; entity_name: strin
     case 'community_invite': return { title: 'Community invite', body: `${actor} invited you to ${entity}` };
     case 'community_request_accepted': return { title: 'Request accepted', body: `Your request to join ${entity} was accepted` };
     case 'follow_joined_event': return { title: 'Padel Jam', body: `${actor} joined ${entity}` };
+    case 'event_cancelled': return { title: 'Event cancelled', body: `${entity} was cancelled` };
+    case 'event_updated': return { title: 'Event updated', body: `${entity} was updated — check the new details` };
+    case 'participant_confirmed': return { title: 'Player confirmed', body: `${actor} confirmed for ${entity}` };
+    case 'waitlist_spot': return { title: 'A spot opened', body: `A spot opened in ${entity} — confirm it before it goes` };
+    case 'results_published': return { title: 'Results are out', body: `Results for ${entity} are out` };
     default: return { title: 'Padel Jam', body: 'You have a new notification' };
   }
 }

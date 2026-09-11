@@ -13,6 +13,7 @@ const KNOWN = [
   // events: RPC/validation codes the event screens translate directly
   'invalid_event_config', 'series_requires_group', 'event_not_found', 'event_closed',
   'event_full', 'leave_deadline_passed', 'already_joined', 'not_invited', 'not_participant',
+  'not_on_waiting_list', 'spot_taken',
   'use_team_join', 'not_a_team_event', 'partner_unavailable', 'gender_required',
   'setup_incomplete', 'mixed_unbalanced', 'mixed_gender_missing', 'round_not_scored', 'round_exists', 'event_not_scheduled',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useDb } from '../client';
+import type { Database, TypedClient } from '@padel/db';
+import { mapPgError, useDb } from '../client';
 import { qk } from '../query-keys';
 import type { NotificationRow } from './queries';
 
@@ -55,25 +56,50 @@ export const useClearAll = () => {
   });
 };
 
-// Acts on an invitation notification's Join CTA, then flips cta_done.
+/** Notification types that carry an inline CTA. Shared by mobile and web. */
+export const CTA_TYPES: ReadonlySet<string> = new Set([
+  'event_invite', 'group_invite', 'community_invite', 'waitlist_spot',
+]);
+
+type Fns = Database['public']['Functions'];
+type CtaFn = 'accept_event_invitation' | 'accept_group_invitation' | 'accept_invitation' | 'claim_waitlist_spot';
+
+/** One CTA type's RPC and its exact argument shape. */
+export type CtaCall = { [F in CtaFn]: { fn: F; args: Fns[F]['Args'] } }[CtaFn];
+
+/** Which RPC a CTA notification's button calls, or null when the row carries no CTA. */
+export function ctaCall(n: NotificationRow): CtaCall | null {
+  // Arg names match the existing accept hooks exactly: event/group accept by
+  // ENTITY id, community accepts by INVITATION id (ref_id).
+  if (n.type === 'event_invite' && n.event_id) return { fn: 'accept_event_invitation', args: { p_event_id: n.event_id } };
+  if (n.type === 'group_invite' && n.group_id) return { fn: 'accept_group_invitation', args: { p_group_id: n.group_id } };
+  if (n.type === 'community_invite' && n.ref_id) return { fn: 'accept_invitation', args: { p_invitation_id: n.ref_id } };
+  if (n.type === 'waitlist_spot' && n.event_id) return { fn: 'claim_waitlist_spot', args: { p_event_id: n.event_id } };
+  return null;
+}
+
+function callCta<F extends CtaFn>(db: TypedClient, call: { fn: F; args: Fns[F]['Args'] }) {
+  return db.rpc(call.fn, call.args);
+}
+
+// Acts on a CTA notification's button, then flips cta_done. A waiting-list claim that
+// finds no free spot marks the row read (the offer is stale) and rethrows 'spot_taken'.
 export const useCompleteNotificationCta = () => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (n: NotificationRow) => {
-      // Arg names match the existing accept hooks exactly: event/group accept by
-      // ENTITY id, community accepts by INVITATION id (ref_id).
-      if (n.type === 'event_invite' && n.event_id) {
-        const { error } = await db.rpc('accept_event_invitation', { p_event_id: n.event_id });
-        if (error) throw error;
-      } else if (n.type === 'group_invite' && n.group_id) {
-        const { error } = await db.rpc('accept_group_invitation', { p_group_id: n.group_id });
-        if (error) throw error;
-      } else if (n.type === 'community_invite' && n.ref_id) {
-        const { error } = await db.rpc('accept_invitation', { p_invitation_id: n.ref_id });
-        if (error) throw error;
-      } else {
-        throw new Error('not_a_cta_notification');
+      const call = ctaCall(n);
+      if (!call) throw new Error('not_a_cta_notification');
+      const { error } = await callCta(db, call);
+      if (error) {
+        const code = mapPgError(error) ?? 'unknown_error';
+        if (code === 'spot_taken') {
+          // Best effort: the offer is stale either way; the rethrow below carries the user-facing code.
+          await db.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id);
+          invalidate(qc);
+        }
+        throw new Error(code);
       }
       const { error: upErr } = await db
         .from('notifications')

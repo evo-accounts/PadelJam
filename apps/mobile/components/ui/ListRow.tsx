@@ -49,6 +49,12 @@ type Props = {
    * component prevents everywhere else.
    */
   titleTone?: 'default' | 'destructive';
+  /**
+   * Tone for the subtitle. `destructive` marks a per-row error (e.g. a failed
+   * CTA) — it also flips the subtitle's accessibilityRole to `alert` so
+   * assistive tech announces it as an error rather than silent caption text.
+   */
+  subtitleTone?: 'muted' | 'destructive';
   /** Draws attention without colour alone — pairs with an accessibilityValue. */
   highlighted?: boolean;
   /**
@@ -71,6 +77,7 @@ export function ListRow({
   trailingLabel,
   variant = 'plain',
   titleTone = 'default',
+  subtitleTone = 'muted',
   highlighted = false,
   selected,
   onPress,
@@ -85,7 +92,13 @@ export function ListRow({
           {title}
         </Text>
         {subtitle ? (
-          <Text variant="caption" tone="muted" numberOfLines={1} style={styles.subtitle}>
+          <Text
+            variant="caption"
+            tone={subtitleTone}
+            numberOfLines={1}
+            style={styles.subtitle}
+            accessibilityRole={subtitleTone === 'destructive' ? 'alert' : undefined}
+          >
             {subtitle}
           </Text>
         ) : null}
