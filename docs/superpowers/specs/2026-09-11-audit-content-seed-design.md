@@ -184,7 +184,7 @@ Password for every account: `Padel1234#`. Every account has a phone number in th
 | U6 | filler | Private profiles do not exist; kept as a normal user so the count stays 16. |
 | U7 | blocked by A1 | Appears only in Blocked Users. |
 | U8 ×8 | fillers | Community owners for C2, C3, C4 and two decoys; organizers of E6, E7, E8 and the two extra events; women to fill mixed events. |
-| Crowd ×14 | members only | Fill G1 to about 30 members. No traits, no chats. |
+| Crowd ×17 | members only | Fill G1 to 30 members. No traits, no chats. |
 
 Eight of the sixteen named users are women. The document says sixteen accounts; the crowd is the addition forced by G1's pagination requirement and the one-community-per-owner cap (`0023_create_community_extend.sql`).
 
