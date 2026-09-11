@@ -155,24 +155,8 @@ export async function seedEvents(ctx: Ctx) {
     ctx.log(`E6 ${eventId}`);
   }
 
-  // E7 — private standalone team event with a fee. A1 invited by name, interested, no partner; F7 asks A1.
-  {
-    const eventId = await create(ctx, 'f3', base(null, {
-      name: 'Duplas de Sintra', specification: 'team', is_private: true, starts_at: daysFromNow(7, 17),
-      entrance_fee_enabled: true, entrance_fee_amount: 8, entrance_fee_method: 'at_club',
-      manual_location_name: 'Sintra Padel', manual_location_address: 'Rua da Serra 3, Sintra',
-      invitees: ['a1', 'u6', 'f5', 'f6', 'f7'].map((k) => ({ invitee_id: u(ctx, k).id, name: null, email: null, phone: null })),
-    }));
-    await ctx.c.rpc(a1.jwt, 'accept_event_invitation', { p_event_id: eventId });               // interested
-    await ctx.c.rpc(u(ctx, 'f7').jwt, 'request_partner', { p_event_id: eventId, p_targets: [a1.id] });   // N10
-    await ctx.c.rpc(u(ctx, 'f5').jwt, 'choose_partner', { p_event_id: eventId, p_partner_user: u(ctx, 'f6').id }); // one confirmed pair
-    ctx.ids.E7 = eventId;
-    ctx.log(`E7 ${eventId}`);
-  }
-
-  // E8 — scheduled, A1 invited and unanswered (N2).
-  ctx.ids.E8 = await create(ctx, 'f4', base(id(ctx, 'G1'), { name: 'Americano de Sexta', starts_at: daysFromNow(8, 20) }));
-  ctx.log(`E8 ${id(ctx, 'E8')}`);
+  // The extras come before E7/E8 on purpose: notifications.ts keeps the newest two rows per
+  // type, and the audit needs E7's (N1) and E8's (N2) invitations to be the ones that survive.
 
   // Extra — date-changed event A1 is confirmed in (N6). update_event notifies confirmed players
   // only, so this cannot ride on E8, where A1 must stay merely invited.
@@ -193,6 +177,25 @@ export async function seedEvents(ctx: Ctx) {
     ctx.ids.E_CANCELLED = eventId;
     ctx.log(`E cancelled ${eventId}`);
   }
+
+  // E7 — private standalone team event with a fee. A1 invited by name, interested, no partner; F7 asks A1.
+  {
+    const eventId = await create(ctx, 'f3', base(null, {
+      name: 'Duplas de Sintra', specification: 'team', is_private: true, starts_at: daysFromNow(7, 17),
+      entrance_fee_enabled: true, entrance_fee_amount: 8, entrance_fee_method: 'at_club',
+      manual_location_name: 'Sintra Padel', manual_location_address: 'Rua da Serra 3, Sintra',
+      invitees: ['a1', 'u6', 'f5', 'f6', 'f7'].map((k) => ({ invitee_id: u(ctx, k).id, name: null, email: null, phone: null })),
+    }));
+    await ctx.c.rpc(a1.jwt, 'accept_event_invitation', { p_event_id: eventId });               // interested
+    await ctx.c.rpc(u(ctx, 'f7').jwt, 'request_partner', { p_event_id: eventId, p_targets: [a1.id] });   // N10
+    await ctx.c.rpc(u(ctx, 'f5').jwt, 'choose_partner', { p_event_id: eventId, p_partner_user: u(ctx, 'f6').id }); // one confirmed pair
+    ctx.ids.E7 = eventId;
+    ctx.log(`E7 ${eventId}`);
+  }
+
+  // E8 — scheduled, A1 invited and unanswered (N2).
+  ctx.ids.E8 = await create(ctx, 'f4', base(id(ctx, 'G1'), { name: 'Americano de Sexta', starts_at: daysFromNow(8, 20) }));
+  ctx.log(`E8 ${id(ctx, 'E8')}`);
 
   // U4's history — 20 completed, counted, spread over the last four months, in C3's ranking group.
   for (let i = 0; i < 20; i++) {

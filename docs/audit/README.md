@@ -53,7 +53,5 @@ sign up with it to review onboarding, and re-run the seed with `--purge` to rese
 - Gender-aware pairing inside rounds: only the start block exists.
 - `num_courts = 0`: the schema requires at least one court; E4 has no library courts assigned.
 - G5 as a join request on a private group: the requirements rule that out; G5 is a pending invitation instead.
-- The document's supporting-user table sums to 17, not 16; the seed creates 17 named users plus 13 crowd
-  members (30 supporting accounts, 31 with A1). Of the 17 named users, U4, U5, F1, F2 and F3 sit outside
-  C1/G1 by design (F1/F2/F3 own C2/C3/C4; U4 lives in C3's ranking group; U5 has a minimal profile), so
-  G1 lands at 26 members (C1's roster plus A1), not a literal 30.
+- The document's supporting-user table sums to 17, not 16; the seed creates 17 named users plus 17 crowd
+  members (34 supporting accounts, 35 with A1).
