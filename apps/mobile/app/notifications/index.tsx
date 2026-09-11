@@ -88,6 +88,7 @@ export default function NotificationsScreen() {
               variant="card"
               title={t(item.type, { actor: item.actor_name ?? '', entity: item.entity_name ?? '' })}
               subtitle={ctaError?.id === item.id ? t(ctaError.code, { defaultValue: t('respondError') }) : undefined}
+              subtitleTone={ctaError?.id === item.id ? 'destructive' : 'muted'}
               highlighted={!item.read_at}
               trailing={
                 CTA_TYPES.has(item.type) ? (
@@ -98,6 +99,7 @@ export default function NotificationsScreen() {
                       label={ctaLabel(t, item.type)}
                       size="sm"
                       loading={completeCta.isPending && completeCta.variables?.id === item.id}
+                      disabled={completeCta.isPending}
                       onPress={() => {
                         setCtaError(null);
                         completeCta.mutate(item, {

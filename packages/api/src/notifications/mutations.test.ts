@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ctaCall, CTA_TYPES } from './mutations';
+import type { CtaCall } from './mutations';
 import type { NotificationRow } from './queries';
 
 const base: NotificationRow = {
@@ -25,3 +26,8 @@ describe('ctaCall', () => {
     expect([...CTA_TYPES]).toEqual(['event_invite', 'group_invite', 'community_invite', 'waitlist_spot']);
   });
 });
+
+// Type-level guard: the CtaCall union correlates fn with its exact args, so a wrong key must not compile.
+// @ts-expect-error wrong arg key for this fn
+const _wrongArgs: CtaCall = { fn: 'accept_invitation', args: { p_event_id: 'x' } };
+void _wrongArgs;
