@@ -1,4 +1,5 @@
 import {
+  CTA_TYPES,
   useClearAll,
   useCompleteNotificationCta,
   useMarkAllRead,
@@ -16,10 +17,15 @@ import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-nat
 import { colors } from '../../theme';
 import { Button, IconButton, ListRow, Text } from '../../components/ui';
 
-const CTA_TYPES = ['event_invite', 'group_invite', 'community_invite'];
-
 function targetHref(n: NotificationRow): string | null {
   return notificationRoute(n);
+}
+
+function ctaLabel(t: (k: string) => string, type: string): string {
+  return type === 'waitlist_spot' ? t('confirmSpot') : t('join');
+}
+function ctaDoneLabel(t: (k: string) => string, type: string): string {
+  return type === 'waitlist_spot' ? t('spotConfirmed') : t('joined');
 }
 
 export default function NotificationsScreen() {
@@ -65,6 +71,12 @@ export default function NotificationsScreen() {
         />
       )}
 
+      {completeCta.isError ? (
+        <Text variant="caption" tone="destructive" style={styles.empty} accessibilityRole="alert">
+          {t(completeCta.error instanceof Error ? completeCta.error.message : 'unknown_error', { defaultValue: t('respondError') })}
+        </Text>
+      ) : null}
+
       {list.isLoading ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : list.isError ? (
@@ -82,19 +94,19 @@ export default function NotificationsScreen() {
               title={t(item.type, { actor: item.actor_name ?? '', entity: item.entity_name ?? '' })}
               highlighted={!item.read_at}
               trailing={
-                CTA_TYPES.includes(item.type) ? (
+                CTA_TYPES.has(item.type) ? (
                   item.cta_done ? (
-                    <Text variant="hint" tone="success">{t('joined')}</Text>
+                    <Text variant="hint" tone="success">{ctaDoneLabel(t, item.type)}</Text>
                   ) : (
-                    <Button label={t('join')} size="sm" onPress={() => completeCta.mutate(item)} />
+                    <Button label={ctaLabel(t, item.type)} size="sm" onPress={() => completeCta.mutate(item)} />
                   )
                 ) : null
               }
-              // Only the static "joined" state needs describing. The Join
-              // button carries its own label; repeating it here would announce
+              // Only the static "joined"/"confirmed" state needs describing. The
+              // CTA button carries its own label; repeating it here would announce
               // the word twice on a row that already reads as one element.
               trailingLabel={
-                CTA_TYPES.includes(item.type) && item.cta_done ? t('joined') : undefined
+                CTA_TYPES.has(item.type) && item.cta_done ? ctaDoneLabel(t, item.type) : undefined
               }
               onPress={() => onRowPress(item)}
             />
