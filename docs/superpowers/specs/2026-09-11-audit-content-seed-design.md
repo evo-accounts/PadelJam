@@ -194,8 +194,8 @@ Acting users, the ones the auditor logs into for live transitions, are named in 
 
 | Id | Owner | Privacy | Groups and state |
 |---|---|---|---|
-| C1 "Lisboa Padel Jam" | A1 | public | `community_subscriptions` on `community_pro`. General group; G1 public (about 30 members, second community admin who is also a G1 member, hosts E1, E9, E2, E8 and the two extras); G3 private (A1 sole admin, four members, hosts E3); G4 archived. Three pending `community_invitations`. |
-| C2 "Padel Porto Social" | U8 | public | Only the general group, which is G2. A1 is a plain member. Hosts E4, E5, E6. G5 is a private group here whose owner invited A1. |
+| C1 "Lisboa Padel Jam" | A1 | public | `community_subscriptions` on `community_pro`. General group; G1 public (about 30 members, second community admin who is also a G1 member, hosts E1, E9, E2, E4, E5, E8 and the two extras); G3 private (A1 sole admin, four members, hosts E3); G4 archived. Three pending `community_invitations`. |
+| C2 "Padel Porto Social" | U8 | public | Only the general group, which is G2. A1 is a plain member. Hosts E6. G5 is a private group here whose owner invited A1. `create_event` requires community admin, so A1's own events (E4, E5) live in G1, not here. |
 | C3 "Cascais Padel Club" | U8 | public | General group plus "Ranking Cascais" with U4's 20 events. A1 is not a member. |
 | C4 "Clube Fechado de Sintra" | U8 | request_to_join | A1's join request pending. |
 | Decoys "Padel Cascais", "Clube Padel Cascais" | crowd | public | Similar names for S4. One of them sends A1 a community invitation (N8). |
@@ -211,8 +211,8 @@ All created in the future through `create_event` and the roster RPCs, then back-
 | E1 | Americano, classic, points, public, G1, completed 3 days ago. A1 organizing and playing, 2 courts, 8 players, no fee, library venue with two courts assigned, full Americano schedule from `americanoSchedule`, every match scored, `finish_event` counting, `post_event_result` called (N7 fires from finish). |
 | E2 | Mexicano, mixed, time, public, G1, live (started 2 hours ago). A1 organizing and playing. Fee 5 € MB WAY, three of six paid. Recurring series with the next occurrence materialized as a scheduled event. 1 court, standby 2, six confirmed (3 men, 3 women), two on the waiting list. Manual venue. `players_submit_results = true`. Round 1 scored, round 2 generated and pending. Timer started. One `event_blasts` row inserted. |
 | E3 | Up and Down, team, classic sets, private, G3, live. A1 organizing only. 1 court, two confirmed teams via `choose_partner`. `has_location = false`, `players_submit_results = false`. |
-| E4 | Americano, classic, points, public, G2, scheduled in 5 days. A1 organizing only. Fee on. Zero confirmed, `has_location = false`, no venue. Yields the pending-actions rows "Add 4 players" and "Set a location". |
-| E5 | Americano, mixed, points, public, G2, scheduled in 6 days. A1 organizing only, 2 courts, 4 men and 3 women confirmed. Start is blocked by section 2. |
+| E4 | Americano, classic, points, public, G1, scheduled in 5 days. A1 organizing only. Fee on. Zero confirmed, `has_location = false`, no venue. Yields the pending-actions rows "Add 4 players" and "Set a location". |
+| E5 | Americano, mixed, points, public, G1, scheduled in 6 days. A1 organizing only, 2 courts, 4 men and 3 women confirmed. Start is blocked by section 2. |
 | E6 | Americano, mixed, points, public, G2, scheduled in 4 days. Organizer U8. 1 court, `allow_standby = false`, 2 men and 2 women confirmed. A1's invitation deleted, then A1 joins to land on the waiting list at position 1; one crowd user at position 2. |
 | E7 | Americano, team, points, private, standalone, scheduled in 7 days. Organizer U8, fee on. A1 invited by name (N1), accepted, so `interested` with no partner. Another interested player calls `request_partner` targeting A1 (N10 through the pinned row). |
 | E8 | Americano, classic, points, public, G1, scheduled in 8 days. Organizer U8. A1's auto-invitation kept and unanswered (N2). |
