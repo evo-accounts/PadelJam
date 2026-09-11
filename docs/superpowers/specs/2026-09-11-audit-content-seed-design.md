@@ -200,7 +200,7 @@ Acting users, the ones the auditor logs into for live transitions, are named in 
 | C4 "Clube Fechado de Sintra" | U8 | request_to_join | A1's join request pending. |
 | Decoys "Padel Cascais", "Clube Padel Cascais" | crowd | public | Similar names for S4. One of them sends A1 a community invitation (N8). |
 
-G1 has a crafted ranking tie: E1 and E9 both count, and two players finish with equal totals through `placement_points`.
+G1 has a crafted ranking tie: E1 and E9 both count, and after finishing, one `group_event_results` row is patched so F4 and F5 hold equal totals.
 
 ### 5.5 Events
 
@@ -209,17 +209,17 @@ All created in the future through `create_event` and the roster RPCs, then back-
 | Id | Setup |
 |---|---|
 | E1 | Americano, classic, points, public, G1, completed 3 days ago. A1 organizing and playing, 2 courts, 8 players, no fee, library venue with two courts assigned, full Americano schedule from `americanoSchedule`, every match scored, `finish_event` counting, `post_event_result` called (N7 fires from finish). |
-| E2 | Mexicano, mixed, time, public, G1, live (started 2 hours ago). A1 organizing and playing. Fee 5 € MB WAY, three of six paid. Recurring series with the next occurrence materialized as a scheduled event. 1 court, standby 2, six confirmed (3 men, 3 women), two on the waiting list. Manual venue. `players_submit_results = true`. Round 1 scored, round 2 generated and pending. Timer started. One `event_blasts` row inserted. |
+| E2 | Mexicano, mixed, time, public, G1, live (started 2 hours ago). A1 organizing and playing. Fee 5 € MB WAY, three of six paid. Recurring series with the next occurrence materialized as a scheduled event (materialized before the back-date, so it sits seven days after the creation time rather than on the series slot). 1 court, standby 2, six confirmed (3 men, 3 women), two on the waiting list. Manual venue. `players_submit_results = true`. Round 1 scored, round 2 generated and pending. Timer started. One `event_blasts` row inserted. |
 | E3 | Up and Down, team, classic sets, private, G3, live. A1 organizing only. 1 court, two confirmed teams via `choose_partner`. `has_location = false`, `players_submit_results = false`. |
 | E4 | Americano, classic, points, public, G1, scheduled in 5 days. A1 organizing only. Fee on. Zero confirmed, `has_location = false`, no venue. Yields the pending-actions rows "Add 4 players" and "Set a location". |
 | E5 | Americano, mixed, points, public, G1, scheduled in 6 days. A1 organizing only, 2 courts, 4 men and 3 women confirmed. Start is blocked by section 2. |
-| E6 | Americano, mixed, points, public, G2, scheduled in 4 days. Organizer U8. 1 court, `allow_standby = false`, 2 men and 2 women confirmed. A1's invitation deleted, then A1 joins to land on the waiting list at position 1; one crowd user at position 2. |
+| E6 | Americano, mixed, points, public, G2, scheduled in 4 days. Organizer U8. 1 court, `allow_standby = false`, 2 men and 2 women confirmed. A1's invitation deleted, then A1 joins to land on the waiting list at position 1; U2 at position 2. |
 | E7 | Americano, team, points, private, standalone, scheduled in 7 days. Organizer U8, fee on. A1 invited by name (N1), accepted, so `interested` with no partner. Another interested player calls `request_partner` targeting A1 (N10 through the pinned row). |
 | E8 | Americano, classic, points, public, G1, scheduled in 8 days. Organizer U8. A1's auto-invitation kept and unanswered (N2). |
 | Extra: date-changed | Public G1 event organized by U8 with A1 confirmed, then `update_event` with a new date (N6). `update_event` notifies confirmed players only, so this cannot ride on E8, where A1 must stay invited. |
-| E9 | Americano, classic, points, public, G1, completed 10 days ago. A1 organizing only. 1 court, 4 players. Round 1 scored, round 2 with one match `not_played` and one left pending, `finish_event` counting, so `finished_early = true`. |
-| Extra: cancelled | Public G1 event organized by U8 with A1 confirmed, then `cancel_event` (N5). |
-| U4 history | 20 completed Americano events in C3's ranking group, each started, scored and finished counting, back-dated across the last four months. |
+| E9 | Americano, classic, points, public, G1, completed 10 days ago. A1 organizing only. 1 court, 4 players, three rounds of one match. Round 1 scored, round 2 marked `not_played`, round 3 left pending, `finish_event` counting, so `finished_early = true`. |
+| Extra: cancelled | Public G1 event organized by U8 with A1 confirmed, then `cancel_event` (N5). Both extras are created before E7 and E8 so that the newest invitation rows, which the prune keeps, are E7's (N1) and E8's (N2). |
+| U4 history | 20 completed Mexicano events in C3's ranking group (server-side round 1, scored and finished counting), back-dated across the last four months. |
 
 Coverage check against the document's table: three formats (E1, E2, E3), three scoring modes (E2 time, E3 classic, points elsewhere), three modalities as organizer (E1, E2, E3), visibility (E3, E7 private), context (E7 standalone), fee (E2, E4, E7), recurrence (E2), status (E4 to E8 scheduled, E2 and E3 live, E1 and E9 completed), fill level (E4 empty, E2 and E6 full, E5 unbalanced), roles (organizing and playing, organizing only, waiting list, interested, invited).
 
@@ -232,8 +232,8 @@ The seed then prunes A1's list to a readable size: it keeps at most two rows per
 ### 5.7 Chat
 
 - Sign in as A1, call `ensure-channel` for G1, G2, G3 (CH1).
-- For each group channel, connect as two other members with tokens from `stream-token` and send messages. Connect as A1 and mark G2 read, then post more in G1 and G3 so those two carry unread counts (CH2).
-- Connect as A1, create a `messaging` channel with U4, exchange four messages (CH3). Create a `messaging` channel with a crowd user and send nothing (CH4).
+- For each group channel, connect as other members with tokens from `stream-token` and send messages. Connect as A1 and mark G2 read, then post more in G1 and G3 so those two carry unread counts (CH2).
+- Connect as A1, create a `messaging` channel with U4, exchange three messages (CH3). Create a `messaging` channel with a crowd user and send nothing (CH4).
 - On local, the chat module is skipped unless `EXPO_PUBLIC_STREAM_API_KEY` is set and the edge functions are served, and it reports the skip.
 
 ### 5.8 Home and Explore
