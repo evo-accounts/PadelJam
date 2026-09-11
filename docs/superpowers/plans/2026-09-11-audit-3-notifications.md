@@ -55,6 +55,7 @@ await run('organizer is notified once per player who confirms', async () => {
   const p1 = await user('p1');
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
   await del('event_invitations', `event_id=eq.${eventId}`);
+  await rpc(p1.jwt, 'join_group', { p_group_id: groupId });
   await rpc(p1.jwt, 'join_event', { p_event_id: eventId });
   const rows = await notifs(org.id, 'participant_confirmed', eventId);
   assert(rows.length === 1, `one participant_confirmed for the organizer, got ${rows.length}`);
@@ -77,8 +78,10 @@ await run('a freed confirmed spot is offered to the first waiter, who claims it'
   const w2 = await user('w2');
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
   await del('event_invitations', `event_id=eq.${eventId}`);
-  for (const p of players) await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  for (const p of players) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
+  await rpc(w1.jwt, 'join_group', { p_group_id: groupId });
   assert((await rpc(w1.jwt, 'join_event', { p_event_id: eventId })) === 'waiting_list', 'w1 waits');
+  await rpc(w2.jwt, 'join_group', { p_group_id: groupId });
   assert((await rpc(w2.jwt, 'join_event', { p_event_id: eventId })) === 'waiting_list', 'w2 waits');
 
   await rpc(players[0].jwt, 'leave_event', { p_event_id: eventId });
@@ -107,7 +110,8 @@ await run('claiming with no free spot raises spot_taken; non-waiters are refused
   const w1 = await user('w3');
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
   await del('event_invitations', `event_id=eq.${eventId}`);
-  for (const p of players) await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  for (const p of players) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
+  await rpc(w1.jwt, 'join_group', { p_group_id: groupId });
   await rpc(w1.jwt, 'join_event', { p_event_id: eventId });
   await expectError(() => rpc(w1.jwt, 'claim_waitlist_spot', { p_event_id: eventId }), 'spot_taken');
   await expectError(() => rpc(players[0].jwt, 'claim_waitlist_spot', { p_event_id: eventId }), 'not_on_waiting_list');
@@ -121,7 +125,8 @@ await run('organizer removal also offers the spot', async () => {
   const w1 = await user('w4');
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
   await del('event_invitations', `event_id=eq.${eventId}`);
-  for (const p of players) await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  for (const p of players) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
+  await rpc(w1.jwt, 'join_group', { p_group_id: groupId });
   await rpc(w1.jwt, 'join_event', { p_event_id: eventId });
   const [row] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${players[0].id}&select=id`);
   await rpc(org.jwt, 'organizer_remove_participant', { p_participant_id: row.id, p_mode: 'from_event' });
@@ -135,7 +140,7 @@ await run('finishing notifies every confirmed player including an organizer who 
   for (const i of [0, 1, 2]) players.push(await user(`f${i}`));
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, { organizer_role: 'organizing_and_playing', starts_at: hoursFromNow(8) }) });
   await del('event_invitations', `event_id=eq.${eventId}`);
-  for (const p of players) await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  for (const p of players) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
   await rpc(org.jwt, 'start_event', { p_event_id: eventId });
   const rounds = await sel('event_rounds', `event_id=eq.${eventId}&select=id`);
   const matches = await sel('event_matches', `round_id=eq.${rounds[0].id}&select=id`);
@@ -153,7 +158,7 @@ await run('finishing does not notify an organizer who did not play', async () =>
   for (const i of [0, 1, 2, 3]) players.push(await user(`g${i}`));
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, { starts_at: hoursFromNow(8) }) });
   await del('event_invitations', `event_id=eq.${eventId}`);
-  for (const p of players) await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  for (const p of players) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
   await rpc(org.jwt, 'start_event', { p_event_id: eventId });
   const rounds = await sel('event_rounds', `event_id=eq.${eventId}&select=id`);
   const matches = await sel('event_matches', `round_id=eq.${rounds[0].id}&select=id`);
