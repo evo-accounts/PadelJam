@@ -12,4 +12,8 @@ describe('mapPgError', () => {
   it('returns null for no error', () => {
     expect(mapPgError(null)).toBeNull();
   });
+  it('maps the mixed start guards', () => {
+    expect(mapPgError({ message: 'mixed_unbalanced' })).toBe('mixed_unbalanced');
+    expect(mapPgError({ message: 'mixed_gender_missing' })).toBe('mixed_gender_missing');
+  });
 });

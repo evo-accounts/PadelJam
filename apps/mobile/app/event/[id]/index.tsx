@@ -25,6 +25,7 @@ import { streamClient } from '@/lib/streamClient';
 import { useNow } from '@/lib/useNow';
 import { pendingActions } from '@/lib/pendingActions';
 import { PendingActionsSheet } from '../../../components/event/PendingActionsSheet';
+import { mixedBalance } from '@/lib/mixedBalance';
 import {
   ActivityIndicator,
   ScrollView,
@@ -149,6 +150,19 @@ export default function EventDetailScreen() {
   const setupComplete =
     startConfirmedCount >= event.num_courts * 4 &&
     (event.specification !== 'team' || confirmedTeamCount >= event.num_courts * 2);
+
+  // Mixed events also need equal men and women with no unknown gender (start_event, migration 0092).
+  const mixed = event.specification === 'mixed' ? mixedBalance(participants) : null;
+  const mixedHint =
+    mixed != null && !mixed.balanced
+      ? mixed.unknown > 0
+        ? t('mixedGenderMissingHint', { count: mixed.unknown })
+        : t('mixedUnbalancedHint', {
+            men: t('mixedMenCount', { count: mixed.men }),
+            women: t('mixedWomenCount', { count: mixed.women }),
+          })
+      : null;
+  const mixedBlocked = mixedHint != null;
 
   // --- My relationship to this event ---
   const isOrganizer = uid != null && uid === event.organizer_id;
@@ -359,10 +373,12 @@ export default function EventDetailScreen() {
         <Button
           label={t('startCta')}
           loading={busy}
-          disabled={!setupComplete}
+          disabled={!setupComplete || mixedBlocked}
           onPress={onStart}
         />
-        {!setupComplete ? (
+        {mixedHint != null ? (
+          <Text style={styles.startHint} accessibilityRole="alert">{mixedHint}</Text>
+        ) : !setupComplete ? (
           <Text style={styles.startHint}>
             {t('startSetupIncomplete', { needed: event.num_courts * 4 })}
           </Text>
