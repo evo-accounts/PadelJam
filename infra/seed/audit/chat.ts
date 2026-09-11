@@ -28,8 +28,8 @@ export async function seedChat(ctx: Ctx): Promise<{ skipped: string | null }> {
 
   const say = async (key: string, cid: string, texts: string[]) => {
     const client = await connect(ctx, key);
-    const [type, id] = cid.split(':');
-    const ch = client.channel(type, id);
+    const [type, chanId] = cid.split(':');
+    const ch = client.channel(type, chanId);
     await ch.watch();
     for (const text of texts) await ch.sendMessage({ text });
     await client.disconnectUser();
@@ -44,8 +44,8 @@ export async function seedChat(ctx: Ctx): Promise<{ skipped: string | null }> {
   // A1 reads G2, so G1 and G3 stay unread (CH2 = two badges).
   {
     const client = await connect(ctx, 'a1');
-    const [type, id] = cids.G2.split(':');
-    const ch = client.channel(type, id);
+    const [type, chanId] = cids.G2.split(':');
+    const ch = client.channel(type, chanId);
     await ch.watch();
     await ch.markRead();
     // CH3: direct conversation with U4, with messages.

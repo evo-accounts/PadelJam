@@ -9,8 +9,8 @@ test('cast shape matches the audit document', () => {
   assert.equal(NAMED.length, 17);
   assert.equal(NAMED.filter((p) => p.gender === 'female').length, 8);
   assert.equal(NAMED.filter((p) => !p.avatar).length, 3);
-  assert.equal(CROWD.length, 13);
-  assert.equal(SUPPORTING.length, 30);
+  assert.equal(CROWD.length, 17);
+  assert.equal(SUPPORTING.length, 34);
   assert.equal(new Set(ALL_EMAILS).size, ALL_EMAILS.length);
   assert.equal(new Set(SUPPORTING.map((p) => p.phone)).size, SUPPORTING.length);
   assert.equal(byKey('u3').name, 'Q');

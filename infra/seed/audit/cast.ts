@@ -65,6 +65,7 @@ const crowdNames = [
   ['Filipe Sousa', 'male'], ['Teresa Gomes', 'female'], ['André Faria', 'male'], ['Helena Duarte', 'female'],
   ['Ricardo Pires', 'male'], ['Cláudia Melo', 'female'], ['Gonçalo Tavares', 'male'], ['Patrícia Antunes', 'female'],
   ['Luís Barros', 'male'],
+  ['Vera Lourenço', 'female'], ['Nuno Esteves', 'male'], ['Isabel Prata', 'female'], ['Rafael Moniz', 'male'],
 ] as const;
 export const CROWD: Person[] = crowdNames.map(([name, gender], i) =>
   sup(`c${String(i + 1).padStart(2, '0')}`, name, gender, 130 + i, { location: ['Lisboa, PT', 'Porto, PT', 'Cascais, PT'][i % 3] }),
@@ -74,6 +75,7 @@ export const CROWD: Person[] = crowdNames.map(([name, gender], i) =>
 export const C1_MEMBERS = [
   'f4', 'f5', 'f6', 'f7', 'f8', 'u1a', 'u1b', 'u1c', 'u2', 'u3', 'u6', 'u7',
   'c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08', 'c09', 'c10', 'c11', 'c12', 'c13',
+  'c14', 'c15', 'c16', 'c17',
 ];
 /** The keys that join C2 (F1's community). */
 export const C2_MEMBERS = ['a1', 'u1a', 'u1c', 'u2', 'u3', 'u6', 'f5', 'f6', 'f7', 'f8'];
