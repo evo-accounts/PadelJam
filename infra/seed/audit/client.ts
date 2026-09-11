@@ -25,8 +25,9 @@ export function makeClient(env: Env) {
     return data as T;
   }
 
+  // RPCs run as the user with the anon apikey, exactly like the app's traffic.
   const rpc = <T = unknown>(jwt: string, name: string, args: Record<string, unknown> = {}) =>
-    req<T>(`/rest/v1/rpc/${name}`, { method: 'POST', jwt, body: args });
+    req<T>(`/rest/v1/rpc/${name}`, { method: 'POST', jwt, body: args, headers: { apikey: env.anon } });
   const insert = <T = Record<string, unknown>[]>(table: string, rows: unknown) =>
     req<T>(`/rest/v1/${table}`, { method: 'POST', body: rows, prefer: 'return=representation' });
   const sel = <T = Record<string, unknown>[]>(table: string, qs: string) => req<T>(`/rest/v1/${table}?${qs}`);
@@ -45,7 +46,11 @@ export function makeClient(env: Env) {
     const rows = await sel<{ id: string }[]>('profiles', `email=eq.${encodeURIComponent(email)}&select=id`);
     if (rows.length) return rows[0].id;
     // A half-created account (auth user, no profile) still has to be purged.
+    // One page is enough for this project (31 cast accounts plus a handful of real users); a full page
+    // means the assumption broke, so fail loudly rather than return a false null (which would leave an
+    // orphan auth user and make the next adminCreateUser fail on the duplicate email).
     const page = await req<{ users: { id: string; email?: string }[] }>(`/auth/v1/admin/users?page=1&per_page=1000`);
+    if (page.users.length >= 1000) throw new Error('adminFindUserByEmail: more than 1000 auth users; add pagination');
     return page.users.find((u) => u.email?.toLowerCase() === email.toLowerCase())?.id ?? null;
   }
   async function signIn(email: string, password: string): Promise<string> {

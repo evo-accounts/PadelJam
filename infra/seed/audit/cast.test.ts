@@ -1,7 +1,7 @@
 // infra/seed/audit/cast.test.ts
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { A1, A2, NAMED, CROWD, SUPPORTING, ALL_EMAILS, byKey } from './cast.ts';
+import { A1, A2, ALL, NAMED, CROWD, SUPPORTING, ALL_EMAILS, byKey } from './cast.ts';
 
 test('cast shape matches the audit document', () => {
   assert.equal(A1.email, 'user@padeljam.com');
@@ -15,4 +15,11 @@ test('cast shape matches the audit document', () => {
   assert.equal(new Set(SUPPORTING.map((p) => p.phone)).size, SUPPORTING.length);
   assert.equal(byKey('u3').name, 'Q');
   assert.ok(byKey('u2').name.length >= 50);
+});
+
+test('phones are unique E.164 numbers in the reserved range', () => {
+  for (const p of ALL) assert.match(p.phone, /^\+3519100\d{5}$/);
+  const supportingPhones = new Set(SUPPORTING.map((p) => p.phone));
+  assert.ok(!supportingPhones.has(A1.phone));
+  assert.ok(!supportingPhones.has(A2.phone));
 });
