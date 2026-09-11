@@ -1,6 +1,7 @@
 // infra/supabase/tests/lib.mjs
 // Minimal REST harness for RPC-level tests against the LOCAL stack.
 // Usage: import { rpc, sel, insert, patch, del, user, expectError, assert, run, adminCreateUser, signIn } from './lib.mjs'
+// Leaves its test users/communities in the local DB (cleaned by the next db reset).
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -18,17 +19,17 @@ function loadEnv() {
   return env;
 }
 const ENV = loadEnv();
-export const URL = ENV.SUPABASE_URL || 'http://127.0.0.1:55321';
+export const BASE_URL = ENV.SUPABASE_URL || 'http://127.0.0.1:55321';
 export const SERVICE = ENV.SUPABASE_SERVICE_ROLE_KEY;
 if (!SERVICE) { console.error('Missing SUPABASE_SERVICE_ROLE_KEY'); process.exit(1); }
-if (!/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(URL)) {
-  console.error(`Refusing non-local URL ${URL}`); process.exit(1);
+if (!/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(BASE_URL)) {
+  console.error(`Refusing non-local URL ${BASE_URL}`); process.exit(1);
 }
 
 export async function req(path, { method = 'GET', jwt, body, prefer } = {}) {
   const headers = { 'Content-Type': 'application/json', apikey: SERVICE, Authorization: `Bearer ${jwt || SERVICE}` };
   if (prefer) headers.Prefer = prefer;
-  const res = await fetch(`${URL}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const res = await fetch(`${BASE_URL}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }

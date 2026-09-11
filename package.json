@@ -14,6 +14,7 @@
     "test": "turbo run test",
     "seed:demo": "node infra/seed/seed-demo.mjs",
     "seed:e2e": "node infra/seed/seed-e2e.mjs",
+    "test:db": "for f in infra/supabase/tests/*.test.mjs; do node \"$f\" || exit 1; done",
     "tokens:build": "node scripts/tokens.mjs --write",
     "tokens:check": "node scripts/tokens.mjs",
     "i18n:check": "node scripts/check-i18n-keys.mjs",

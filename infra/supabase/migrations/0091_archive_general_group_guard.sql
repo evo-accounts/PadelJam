@@ -6,6 +6,7 @@ declare v_community uuid; v_general boolean;
 begin
   if not is_group_admin(p_group_id, auth.uid()) then raise exception 'forbidden' using errcode='P0001'; end if;
   select community_id, is_general into v_community, v_general from groups where id = p_group_id;
+  perform pg_advisory_xact_lock(hashtextextended('community_groups:'||coalesce(v_community::text,''), 0));
   if v_general and not exists (
       select 1 from groups g
       where g.community_id = v_community and g.id <> p_group_id and g.archived_at is null)
