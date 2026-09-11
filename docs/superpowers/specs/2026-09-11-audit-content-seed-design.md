@@ -164,7 +164,7 @@ Run with `node infra/seed/audit/run.ts` (Node 22.18+ strips types natively; the 
 
 - `--target local` defaults to `http://127.0.0.1:55321` and behaves like the existing seeds.
 - `--target hosted` requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` and `EXPO_PUBLIC_STREAM_API_KEY`. The URL host must contain the project reference read from `apps/mobile/eas.json`, and `--yes-hosted` must be present. Any mismatch aborts before the first request.
-- The seed refuses to start when any cast email already exists unless `--purge` is given.
+- The seed refuses to start when any cast email already exists unless `--purge` is given. `--only <domains>` bypasses that refusal for incremental development runs (a duplicate then fails loudly at the first admin call).
 - `--purge` prints the counts it is about to delete, then deletes only rows reachable from the cast: events organized by cast users (cascades rosters, rounds, matches, timer, blasts, results), their event series, communities owned by cast users (cascades groups, members, posts, invitations, join requests, venues), venues created by cast users, blocks, follows, partner requests, notifications, subscriptions, user settings, push tokens, reports, profiles, tenants owned by cast users, then the auth users through the admin API. It ends by asserting no profile with a cast email remains.
 - No outbound mail: `event_blasts` rows are inserted directly; every supporting user has `notifications_email = false`; the seed never calls `send_event_blast` or `send-blast` on hosted. Push is inert because no cast user registers a token.
 
@@ -174,7 +174,7 @@ Password for every account: `Padel1234#`. Every account has a phone number in th
 
 | Id | Account | Notes |
 |---|---|---|
-| A1 | `user@padeljam.com`, `+351910000100` | Complete profile with avatar, court side, hand, bio, gender male. `subscriptions` row `jammer_plus`, active, provider manual. Blocks U7. Follows 14 of the 15 non-blocked named users; 14 of them follow A1, with different gaps in each direction. Member of C1 (owner), C2, G1, G2, G3, G4; pending request in C4; pending invitation to G5. |
+| A1 | `user@padeljam.com`, `+351910000100` | Complete profile with avatar, court side, hand, bio, gender male. `subscriptions` row `jammer_plus`, active, provider manual. Blocks U7. Follows 14 of the 16 non-blocked named users; 13 of them follow A1, with different gaps in each direction. Member of C1 (owner), C2, G1, G2, G3, G4; pending request in C4; pending invitation to G5. |
 | A2 | `newuser@padeljam.com`, `+351910000101` | Never created by the seed. Purge deletes it if present so the auditor always signs up fresh. |
 | U1 ×3 | no avatar | Placeholder rendering. |
 | U2 | 52-character name | Layout stress. |
