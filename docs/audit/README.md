@@ -29,6 +29,17 @@ then
 `--purge` removes everything the cast owns and recreates it; run it before every audit session so live and
 upcoming events are fresh relative to today.
 
+## Re-running just the chat step
+
+    pnpm seed:audit -- --target hosted --yes-hosted --resume --only chat
+
+`--resume` signs the cast back in and reuses the ids already recorded in
+`infra/seed/audit/out/manifest.<target>.json`, instead of creating everything fresh. That is only safe for
+the chat step (the other steps aren't idempotent — re-running, say, `notifications` would double-plant
+rows), so `--resume` requires `--only chat` and rejects anything else. Use it when a project was seeded
+before the chat step worked, or after clearing the Stream app's users: the chat step connects every group
+member once before calling `ensure-channel`, which is what makes the server-side channel creation succeed.
+
 ## Hosted prerequisites (someone with owner rights)
 
 1. Migrations 0091, 0092, 0093 applied through the dashboard SQL editor (plus the `schema_migrations` rows).

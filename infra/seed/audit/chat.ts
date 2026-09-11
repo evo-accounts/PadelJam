@@ -1,21 +1,47 @@
 // infra/seed/audit/chat.ts
 // Group channels via ensure-channel (as A1), messages via per-user Stream tokens from
 // stream-token. No Stream secret. Skipped, with a reason, when the key or the functions are absent.
+//
+// ensure-channel creates the Stream channel server-side and adds every group member in one shot.
+// Stream rejects members that do not yet exist as Stream users, and a seeded user never has —
+// nothing has ever called connectUser for them — so ensure-channel used to fail with
+// `stream_failed`. Connecting once as each member (client-side, with a token from stream-token)
+// creates the Stream user; only then does ensure-channel succeed.
 import { StreamChat } from 'stream-chat';
 import type { Ctx } from './context.ts';
 import { u, id } from './context.ts';
+import { C1_MEMBERS, C2_MEMBERS } from './cast.ts';
 
 async function connect(ctx: Ctx, key: string): Promise<StreamChat> {
   const s = u(ctx, key);
   const { token } = await ctx.c.invokeFn<{ token: string }>('stream-token', s.jwt);
-  const client = new StreamChat(ctx.c.env.streamKey!, { timeout: 15000 });
+  const client = new StreamChat(ctx.c.env.streamKey!, { allowServerSideConnect: true, timeout: 15000 });
   await client.connectUser({ id: s.id, name: s.person.name }, token);
   return client;
+}
+
+/** Connects and immediately disconnects as `key`, purely to create the Stream user. */
+async function ensureStreamUser(ctx: Ctx, key: string): Promise<void> {
+  const client = await connect(ctx, key);
+  await client.disconnectUser();
 }
 
 export async function seedChat(ctx: Ctx): Promise<{ skipped: string | null }> {
   if (!ctx.c.env.streamKey) return { skipped: 'EXPO_PUBLIC_STREAM_API_KEY not set' };
   const a1 = u(ctx, 'a1');
+
+  // Every member of G1/G2/G3 plus the DM partners must exist as a Stream user before
+  // ensure-channel tries to add them server-side.
+  const members = new Set<string>([
+    'a1',
+    ...C1_MEMBERS,                 // G1
+    ...C2_MEMBERS, 'f1',           // G2
+    'u1a', 'u1c', 'u6', 'f5',      // G3
+    'u4', 'c09',                   // DMs
+  ]);
+  for (const key of members) await ensureStreamUser(ctx, key);
+  ctx.log(`chat: ${members.size} Stream users ensured`);
+
   const cids: Record<string, string> = {};
   try {
     for (const g of ['G1', 'G2', 'G3'] as const) {
