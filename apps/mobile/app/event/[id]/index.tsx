@@ -23,6 +23,8 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { streamClient } from '@/lib/streamClient';
 import { useNow } from '@/lib/useNow';
+import { pendingActions } from '@/lib/pendingActions';
+import { PendingActionsSheet } from '../../../components/event/PendingActionsSheet';
 import {
   ActivityIndicator,
   ScrollView,
@@ -175,6 +177,20 @@ export default function EventDetailScreen() {
   const organizerName = organizerRow?.profiles?.full_name ?? null;
 
   const status = event.status;
+
+  // JM-38: what the organizer still has to do. Only meaningful while scheduled.
+  const pending =
+    isOrganizer && status === 'scheduled'
+      ? pendingActions({
+          eventId: id,
+          specification: event.specification,
+          numCourts: event.num_courts,
+          confirmedCount: startConfirmedCount,
+          confirmedTeamCount,
+          hasLocation: event.has_location,
+        })
+      : [];
+
   // The BADGE is derived from status AND the clock (the gates below still key off
   // the raw status): an event stays 'scheduled' until someone taps start, so past
   // its start time it must read "Starting now", not "Upcoming".
@@ -573,6 +589,9 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
         </View>
+
+        {/* Pending actions (JM-38) */}
+        <PendingActionsSheet actions={pending} />
 
         {/* Chat */}
         {hasOwnChat ? (

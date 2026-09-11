@@ -1673,6 +1673,17 @@ const mobileEvent = {
     startSetupIncomplete: 'Todas as {{needed}} vagas têm de estar confirmadas antes de iniciar',
     viewMatchesCta: 'Ver jogos',
 
+    // --- JM-38: Pending actions ---
+    pendingActionsTitle_one: 'Tens {{count}} ação pendente',
+    pendingActionsTitle_other: 'Tens {{count}} ações pendentes',
+    pendingActionsHint: 'Toca para ver o que falta antes de iniciar',
+    pendingActionsClose: 'Fechar',
+    pendingAddPlayers_one: 'Adicionar {{count}} jogador',
+    pendingAddPlayers_other: 'Adicionar {{count}} jogadores',
+    pendingSetUpTeams_one: 'Montar {{count}} equipa',
+    pendingSetUpTeams_other: 'Montar {{count}} equipas',
+    pendingSetLocation: 'Definir a localização',
+
     // --- Phase 7: Live match hub ---
     liveTitle: 'Ao vivo',
     matchesTab: 'Jogos',
@@ -2113,6 +2124,17 @@ const mobileEvent = {
     startSetupIncomplete: 'Todas as {{needed}} vagas precisam estar confirmadas antes de iniciar',
     viewMatchesCta: 'Ver partidas',
 
+    // --- JM-38: Pending actions ---
+    pendingActionsTitle_one: 'Você tem {{count}} ação pendente',
+    pendingActionsTitle_other: 'Você tem {{count}} ações pendentes',
+    pendingActionsHint: 'Toque para ver o que falta antes de iniciar',
+    pendingActionsClose: 'Fechar',
+    pendingAddPlayers_one: 'Adicionar {{count}} jogador',
+    pendingAddPlayers_other: 'Adicionar {{count}} jogadores',
+    pendingSetUpTeams_one: 'Montar {{count}} dupla',
+    pendingSetUpTeams_other: 'Montar {{count}} duplas',
+    pendingSetLocation: 'Definir o local',
+
     // --- Phase 7: Live match hub ---
     liveTitle: 'Ao vivo',
     matchesTab: 'Partidas',
@@ -2552,6 +2574,17 @@ const mobileEvent = {
     waitingToStart: 'Waiting for the organizer to start the event',
     startSetupIncomplete: 'All {{needed}} spots must be confirmed before starting',
     viewMatchesCta: 'View matches',
+
+    // --- JM-38: Pending actions ---
+    pendingActionsTitle_one: 'You have {{count}} pending action',
+    pendingActionsTitle_other: 'You have {{count}} pending actions',
+    pendingActionsHint: 'Tap to see what is left before you can start',
+    pendingActionsClose: 'Close',
+    pendingAddPlayers_one: 'Add {{count}} player',
+    pendingAddPlayers_other: 'Add {{count}} players',
+    pendingSetUpTeams_one: 'Set up {{count}} team',
+    pendingSetUpTeams_other: 'Set up {{count}} teams',
+    pendingSetLocation: 'Set a location',
 
     // --- Phase 7: Live match hub ---
     liveTitle: 'Live',
