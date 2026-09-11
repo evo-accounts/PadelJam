@@ -146,13 +146,19 @@ export function ListRow({
   if (trailingInteractive && trailingSlot) {
     // The surface stays a plain View (and keeps the testID, so selectors do not
     // move); the pressable shrinks to the body and the control sits beside it.
+    // The body stretches to the surface's content height and its hit area is
+    // slopped out by the surface padding, so a finger landing anywhere on the
+    // card that is not the control still opens the row — the same target the
+    // single-pressable shape had.
+    const pad = variant === 'card' ? space[4] : space[3];
     return (
-      <View testID={testID} style={surface}>
+      <View testID={testID} style={[...surface, styles.split]}>
         <Pressable
           onPress={onPress}
           accessibilityRole="button"
           accessibilityLabel={[title, subtitle].filter(Boolean).join(', ')}
           accessibilityState={accessibilityState}
+          hitSlop={{ top: pad, bottom: pad, left: pad }}
           style={({ pressed }) => [styles.main, pressed && styles.pressed]}
         >
           {main}
@@ -204,8 +210,11 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.muted,
   },
   highlighted: { backgroundColor: colors.accent },
-  // The body of a row whose trailing is interactive: same row layout as the
-  // surface, minus the surface. Only this half dims when pressed.
+  // A row whose trailing is interactive: the surface lets its two children
+  // stretch, so the body is as tall as the control beside it.
+  split: { alignItems: 'stretch' },
+  // The body of that row: same row layout as the surface, minus the surface.
+  // Only this half dims when pressed.
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space[3] },
   leading: { justifyContent: 'center' },
   text: { flex: 1 },
