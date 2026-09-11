@@ -11,8 +11,12 @@ export type Person = {
   avatar: boolean;
   /** What the auditor logs into this account for, if anything. */
   acting?: string;
-  bio?: string;
+  /** `null` means "no description"; omitted/undefined means "generate one" (see users.ts traitsFor). */
+  bio?: string | null;
   location: string;
+  hand?: 'left' | 'right';
+  side?: 'left' | 'right';
+  time?: 'any' | 'morning' | 'afternoon' | 'night';
 };
 
 export const PASSWORD = 'Padel1234#';
@@ -22,6 +26,7 @@ const phone = (n: number) => `+3519100${String(n).padStart(5, '0')}`;
 export const A1: Person = {
   key: 'a1', email: 'user@padeljam.com', phone: phone(100), name: 'João Malaggi', gender: 'male', avatar: true,
   bio: 'Left-side player, weeknight regular. Organizing the Tuesday league since 2025.', location: 'Lisboa, PT',
+  hand: 'right', side: 'left', time: 'night',
 };
 /** Never created by the seed. Purged if present so the auditor always signs up fresh. */
 export const A2: Person = {
@@ -38,8 +43,11 @@ export const NAMED: Person[] = [
   sup('u1c', 'Vasco Pinto', 'male', 112, { avatar: false }),
   sup('u2', 'Maria Madalena Albuquerque de Sousa Ferreira Cabral', 'female', 113, { location: 'Cascais, PT' }),
   sup('u3', 'Q', 'male', 114),
-  sup('u4', 'Diogo Antunes', 'male', 115, { location: 'Cascais, PT', bio: 'Twenty-plus events a season. Right side, right hand.' }),
-  sup('u5', 'Leonor Brito', 'female', 116, { bio: undefined }),
+  sup('u4', 'Diogo Antunes', 'male', 115, {
+    location: 'Cascais, PT', bio: 'Twenty-plus events a season. Right side, right hand.',
+    hand: 'right', side: 'right', time: 'morning',
+  }),
+  sup('u5', 'Leonor Brito', 'female', 116, { bio: null }),
   sup('u6', 'Tomás Ribeiro', 'male', 117),
   sup('u7', 'Rui Trindade', 'male', 118, { location: 'Sintra, PT' }),
   sup('f1', 'Miguel Carvalho', 'male', 119, { location: 'Porto, PT', acting: 'Owner of C2 and organizer of E6 (watch the waiting-list spot release)' }),
@@ -61,6 +69,16 @@ const crowdNames = [
 export const CROWD: Person[] = crowdNames.map(([name, gender], i) =>
   sup(`c${String(i + 1).padStart(2, '0')}`, name, gender, 130 + i, { location: ['Lisboa, PT', 'Porto, PT', 'Cascais, PT'][i % 3] }),
 );
+
+/** C1's members beyond A1 (owner) — also G1's roster, since G1 spans all of C1. */
+export const C1_MEMBERS = [
+  'f4', 'f5', 'f6', 'f7', 'f8', 'u1a', 'u1b', 'u1c', 'u2', 'u3', 'u6', 'u7',
+  'c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08', 'c09', 'c10', 'c11', 'c12', 'c13',
+];
+/** The keys that join C2 (F1's community). */
+export const C2_MEMBERS = ['a1', 'u1a', 'u1c', 'u2', 'u3', 'u6', 'f5', 'f6', 'f7', 'f8'];
+/** The keys that join C3 (F2's community), U4's ranked history. */
+export const C3_MEMBERS = ['u4', 'c03', 'c04', 'c05', 'c06'];
 
 export const SUPPORTING: Person[] = [...NAMED, ...CROWD];
 export const ALL: Person[] = [A1, ...SUPPORTING];

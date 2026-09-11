@@ -3,15 +3,15 @@
 // transition is audited live), prunes A1's list to at most two rows per type, and mixes read and
 // unread.
 import type { Ctx } from './context.ts';
-import { u } from './context.ts';
+import { u, id } from './context.ts';
 
 export async function seedNotifications(ctx: Ctx) {
   const a1 = u(ctx, 'a1');
 
   // N4 — the offer for the E6 spot, as notify_waitlist_spot would write it.
-  const [me] = await ctx.c.sel<{ id: string }[]>('event_participants', `event_id=eq.${ctx.ids.E6}&user_id=eq.${a1.id}&select=id`);
+  const [me] = await ctx.c.sel<{ id: string }[]>('event_participants', `event_id=eq.${id(ctx, 'E6')}&user_id=eq.${a1.id}&select=id`);
   await ctx.c.insert('notifications', {
-    user_id: a1.id, type: 'waitlist_spot', actor_id: u(ctx, 'f1').id, event_id: ctx.ids.E6, ref_id: me.id,
+    user_id: a1.id, type: 'waitlist_spot', actor_id: u(ctx, 'f1').id, event_id: id(ctx, 'E6'), ref_id: me.id,
     actor_name: u(ctx, 'f1').person.name, entity_name: 'Misto Cheio',
   });
 

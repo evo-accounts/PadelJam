@@ -3,7 +3,7 @@
 // stream-token. No Stream secret. Skipped, with a reason, when the key or the functions are absent.
 import { StreamChat } from 'stream-chat';
 import type { Ctx } from './context.ts';
-import { u } from './context.ts';
+import { u, id } from './context.ts';
 
 async function connect(ctx: Ctx, key: string): Promise<StreamChat> {
   const s = u(ctx, key);
@@ -19,7 +19,7 @@ export async function seedChat(ctx: Ctx): Promise<{ skipped: string | null }> {
   let cids: Record<string, string> = {};
   try {
     for (const g of ['G1', 'G2', 'G3'] as const) {
-      const { cid } = await ctx.c.invokeFn<{ cid: string }>('ensure-channel', a1.jwt, { kind: 'group', id: ctx.ids[g] });
+      const { cid } = await ctx.c.invokeFn<{ cid: string }>('ensure-channel', a1.jwt, { kind: 'group', id: id(ctx, g) });
       cids[g] = cid;
     }
   } catch (e) {

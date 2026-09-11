@@ -21,7 +21,11 @@ export function makeClient(env: Env) {
     const text = await res.text();
     let data: unknown = null;
     try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-    if (!res.ok) throw new Error(`${method} ${path} → ${res.status}: ${text.slice(0, 400)}`);
+    if (!res.ok) {
+      const err = new Error(`${method} ${path} → ${res.status}: ${text.slice(0, 400)}`) as Error & { status?: number };
+      err.status = res.status;
+      throw err;
+    }
     return data as T;
   }
 
@@ -54,10 +58,22 @@ export function makeClient(env: Env) {
     return page.users.find((u) => u.email?.toLowerCase() === email.toLowerCase())?.id ?? null;
   }
   async function signIn(email: string, password: string): Promise<string> {
-    const r = await req<{ access_token: string }>('/auth/v1/token?grant_type=password', {
-      method: 'POST', body: { email, password }, headers: { apikey: env.anon }, jwt: env.anon,
-    });
-    return r.access_token;
+    // Hosted projects cap password sign-ins per IP; with 31 accounts signing in eagerly at seed
+    // time, a 429 is expected there. Wait out the window and retry rather than failing the run.
+    const maxAttempts = 3;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const r = await req<{ access_token: string }>('/auth/v1/token?grant_type=password', {
+          method: 'POST', body: { email, password }, headers: { apikey: env.anon }, jwt: env.anon,
+        });
+        return r.access_token;
+      } catch (e) {
+        const status = (e as { status?: number }).status;
+        if (status !== 429 || attempt >= maxAttempts) throw e;
+        console.log(`  sign-in rate limited; waiting…`);
+        await new Promise((resolve) => setTimeout(resolve, 65_000));
+      }
+    }
   }
   const invokeFn = <T = unknown>(name: string, jwt: string, body: unknown = {}) =>
     req<T>(`/functions/v1/${name}`, { method: 'POST', jwt, body, headers: { apikey: env.anon } });
