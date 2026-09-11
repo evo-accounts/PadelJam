@@ -255,7 +255,7 @@ The full seed runs on the local stack after `supabase db reset`, twice in a row 
 
 The user's Supabase account cannot link, push migrations or deploy edge functions (see the hosted deploy notes in memory). The plan therefore ends with an explicit hand-off:
 
-1. Migrations from sections 1 to 3 (three files, `0090` onward) pasted into the dashboard SQL editor, each followed by the `schema_migrations` insert.
+1. Migrations from sections 1 to 3 (three files, `0091` onward) pasted into the dashboard SQL editor, each followed by the `schema_migrations` insert.
 2. Test phone numbers and codes registered under Authentication, Phone provider, for A1, A2 and the acting users.
 3. `send-push` redeployed by someone with owner rights. Until then the new types push with the default copy.
 4. `.env.audit` on the machine running the seed, holding the hosted keys. Never committed.

@@ -174,7 +174,7 @@ Expected: the first case fails with `one participant_confirmed for the organizer
 ### Task 2: Migration
 
 **Files:**
-- Create: `infra/supabase/migrations/0092_notifications_confirm_waitlist_results.sql`
+- Create: `infra/supabase/migrations/0093_notifications_confirm_waitlist_results.sql`
 
 `leave_event` is copied from `0047_roster_rpcs.sql` lines 50 to 101, `organizer_remove_participant` from `0081_activity_logging.sql` lines 226 to 258, `finish_event` from `0048_match_engine_rpcs.sql` lines 394 to 441. Only the marked lines are new.
 
@@ -439,7 +439,7 @@ Expected: all `✔` (they exist if the earlier PRs merged; skip any that is abse
 - [ ] **Step 4: Commit**
 
 ```bash
-git add infra/supabase/migrations/0092_notifications_confirm_waitlist_results.sql infra/supabase/tests/notifications.test.mjs
+git add infra/supabase/migrations/0093_notifications_confirm_waitlist_results.sql infra/supabase/tests/notifications.test.mjs
 git commit -m "feat(db): participant_confirmed, waitlist_spot and results_published notifications, claim_waitlist_spot"
 ```
 
@@ -857,7 +857,7 @@ git push -u origin feat/audit-notifications
 gh pr create --title "feat: participant confirmed, waiting-list spot and results notifications (JM-08)" --body "$(cat <<'EOF'
 Implements section 3 of docs/superpowers/specs/2026-09-11-audit-content-seed-design.md.
 
-- 0092: three new notification types; trigger on confirmations; freed confirmed spots are offered to the first waiter (no auto-confirmation); claim_waitlist_spot; results_published on finish
+- 0093: three new notification types; trigger on confirmations; freed confirmed spots are offered to the first waiter (no auto-confirmation); claim_waitlist_spot; results_published on finish
 - CTA_TYPES and ctaCall() shared by mobile and web; Confirm spot CTA; inline error when the spot is gone
 - send-push copy for the new types plus the two existing ones that fell through to the default
 

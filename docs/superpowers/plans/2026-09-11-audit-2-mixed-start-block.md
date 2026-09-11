@@ -110,7 +110,7 @@ Expected: first case fails with `expected error containing "mixed_unbalanced", g
 ### Task 2: Migration
 
 **Files:**
-- Create: `infra/supabase/migrations/0091_start_event_mixed_guard.sql`
+- Create: `infra/supabase/migrations/0092_start_event_mixed_guard.sql`
 
 The body below is the current `start_event` from `0048_match_engine_rpcs.sql` lines 90 to 180 with the mixed block inserted after the status check. Keep everything else byte-for-byte.
 
@@ -233,7 +233,7 @@ end; $$;
 Run:
 ```bash
 sed -n 90,180p infra/supabase/migrations/0048_match_engine_rpcs.sql > /tmp/start_event_old.sql
-diff /tmp/start_event_old.sql infra/supabase/migrations/0091_start_event_mixed_guard.sql
+diff /tmp/start_event_old.sql infra/supabase/migrations/0092_start_event_mixed_guard.sql
 ```
 Expected: only the header comment, the three new `v_men/v_women/v_unknown` declarations, and the mixed block appear as additions.
 
@@ -249,7 +249,7 @@ Expected: four `✔`.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add infra/supabase/migrations/0091_start_event_mixed_guard.sql infra/supabase/tests/mixed-start.test.mjs
+git add infra/supabase/migrations/0092_start_event_mixed_guard.sql infra/supabase/tests/mixed-start.test.mjs
 git commit -m "feat(db): a mixed event cannot start with unequal or unknown genders"
 ```
 
@@ -393,7 +393,7 @@ Expected: fails, module not found.
 // apps/mobile/lib/mixedBalance.ts
 /**
  * Count a mixed event's CONFIRMED roster by gender. Mirrors the server check in
- * start_event (migration 0091): members use profiles.gender, guests use guest_gender.
+ * start_event (migration 0092): members use profiles.gender, guests use guest_gender.
  */
 export type MixedBalance = { men: number; women: number; unknown: number; balanced: boolean };
 
@@ -449,7 +449,7 @@ import { mixedBalance } from '@/lib/mixedBalance';
 Directly after the `setupComplete` declaration (the block that ends with `confirmedTeamCount >= event.num_courts * 2);`) add:
 
 ```ts
-  // Mixed events also need equal men and women with no unknown gender (start_event, migration 0091).
+  // Mixed events also need equal men and women with no unknown gender (start_event, migration 0092).
   const mixed = event.specification === 'mixed' ? mixedBalance(participants) : null;
   const mixedBlocked = mixed != null && !mixed.balanced;
 ```
@@ -553,7 +553,7 @@ git push -u origin feat/mixed-start-block
 gh pr create --title "feat: a mixed event cannot start with unequal or unknown genders" --body "$(cat <<'EOF'
 Implements section 2 of docs/superpowers/specs/2026-09-11-audit-content-seed-design.md.
 
-- 0091: start_event raises mixed_gender_missing / mixed_unbalanced before the capacity check
+- 0092: start_event raises mixed_gender_missing / mixed_unbalanced before the capacity check
 - participant embed carries gender; mixedBalance() counts the roster; detail screen shows the counts and disables Start
 - RPC codes mapped and translated as the fallback
 

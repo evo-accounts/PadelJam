@@ -198,7 +198,7 @@ Expected: first case fails with `expected error containing "general_group_only_g
 ### Task 3: Migration
 
 **Files:**
-- Create: `infra/supabase/migrations/0090_archive_general_group_guard.sql`
+- Create: `infra/supabase/migrations/0091_archive_general_group_guard.sql`
 
 - [ ] **Step 1: Write the migration**
 
@@ -233,7 +233,7 @@ Expected: three `✔` lines.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add infra/supabase/migrations/0090_archive_general_group_guard.sql infra/supabase/tests/archive-guard.test.mjs
+git add infra/supabase/migrations/0091_archive_general_group_guard.sql infra/supabase/tests/archive-guard.test.mjs
 git commit -m "feat(db): refuse to archive the general group while it is the only group"
 ```
 
@@ -418,7 +418,7 @@ git push -u origin feat/archive-guard
 gh pr create --title "feat: the general group cannot be archived while it is the only group (CM-05)" --body "$(cat <<'EOF'
 Implements section 1 of docs/superpowers/specs/2026-09-11-audit-content-seed-design.md.
 
-- 0090: archive_group raises general_group_only_group for a lone general group
+- 0091: archive_group raises general_group_only_group for a lone general group
 - mapPgError, mobile seasons screen and web manage page translate it
 - infra/supabase/tests/lib.mjs: REST harness for RPC-level tests, reused by the next audit PRs
 
