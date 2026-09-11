@@ -4,7 +4,15 @@ import type { Tables } from '@padel/db';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
 
-type ProfileEmbed = { id: string; full_name: string | null; avatar_url: string | null; gender: string | null } | null;
+type ProfileEmbed = { id: string; full_name: string | null; avatar_url: string | null } | null;
+// The participant profile embed additionally selects gender (needed for the mixed-start
+// balance check); it is spliced in wherever PARTICIPANT_PROFILE_EMBED is used below.
+type ParticipantProfileEmbed = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  gender: string | null;
+} | null;
 
 // event_participants has TWO foreign keys to profiles — user_id and invited_by —
 // so PostgREST cannot infer what an unqualified `profiles(...)` embed means and
@@ -114,7 +122,7 @@ export const useEventParticipants = (id: string) => {
             guest_name: string | null;
             guest_gender: string | null;
             invited_by: string | null;
-            profiles: ProfileEmbed;
+            profiles: ParticipantProfileEmbed;
           }[]
         >();
       if (error) throw error;
@@ -161,7 +169,7 @@ export interface TeamSlotPlayer {
   user_id: string | null;
   guest_name: string | null;
   status: string;
-  profiles: ProfileEmbed;
+  profiles: ParticipantProfileEmbed;
 }
 export interface TeamRow {
   id: string;
@@ -250,7 +258,7 @@ export const useEventMatches = (id: string) => {
                 id: string;
                 user_id: string | null;
                 guest_name: string | null;
-                profiles: ProfileEmbed;
+                profiles: ParticipantProfileEmbed;
               } | null;
             }[];
           }[]

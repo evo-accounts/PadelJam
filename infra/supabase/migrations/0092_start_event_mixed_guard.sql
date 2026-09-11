@@ -1,6 +1,7 @@
 -- create-event.md line 54: a mixed event pairs one man with one woman, so it cannot start with
 -- unequal counts or unknown genders. The check runs BEFORE the capacity check so the organizer
 -- sees the gender problem rather than setup_incomplete.
+-- Body copied verbatim from 0048 lines 90-180; only the mixed block is new. Future redefinitions copy from HERE.
 create or replace function start_event(p_event_id uuid, p_rounds jsonb default null)
 returns void language plpgsql security definer set search_path = public as $$
 declare

@@ -1,6 +1,10 @@
 /**
  * Count a mixed event's CONFIRMED roster by gender. Mirrors the server check in
  * start_event (migration 0092): members use profiles.gender, guests use guest_gender.
+ *
+ * A member whose profile is hidden by a block arrives as `profiles: null` and is counted as
+ * unknown here, while start_event (security definer) sees the real gender. The server stays
+ * authoritative; the banner is a pre-flight hint.
  */
 export type MixedBalance = { men: number; women: number; unknown: number; balanced: boolean };
 

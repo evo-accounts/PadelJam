@@ -153,7 +153,16 @@ export default function EventDetailScreen() {
 
   // Mixed events also need equal men and women with no unknown gender (start_event, migration 0092).
   const mixed = event.specification === 'mixed' ? mixedBalance(participants) : null;
-  const mixedBlocked = mixed != null && !mixed.balanced;
+  const mixedHint =
+    mixed != null && !mixed.balanced
+      ? mixed.unknown > 0
+        ? t('mixedGenderMissingHint', { count: mixed.unknown })
+        : t('mixedUnbalancedHint', {
+            men: t('mixedMenCount', { count: mixed.men }),
+            women: t('mixedWomenCount', { count: mixed.women }),
+          })
+      : null;
+  const mixedBlocked = mixedHint != null;
 
   // --- My relationship to this event ---
   const isOrganizer = uid != null && uid === event.organizer_id;
@@ -367,14 +376,9 @@ export default function EventDetailScreen() {
           disabled={!setupComplete || mixedBlocked}
           onPress={onStart}
         />
-        {mixedBlocked ? (
-          <Text style={styles.startHint} accessibilityRole="alert">
-            {mixed!.unknown > 0
-              ? t('mixedGenderMissingHint', { count: mixed!.unknown })
-              : t('mixedUnbalancedHint', { men: mixed!.men, women: mixed!.women })}
-          </Text>
-        ) : null}
-        {!setupComplete ? (
+        {mixedHint != null ? (
+          <Text style={styles.startHint} accessibilityRole="alert">{mixedHint}</Text>
+        ) : !setupComplete ? (
           <Text style={styles.startHint}>
             {t('startSetupIncomplete', { needed: event.num_courts * 4 })}
           </Text>

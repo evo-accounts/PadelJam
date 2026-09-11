@@ -86,3 +86,29 @@ await run('classic events are untouched', async () => {
   const [ev] = await sel('events', `id=eq.${eventId}&select=status`);
   assert(ev.status === 'in_progress', 'classic event started');
 });
+
+await run('a member without a profile gender blocks the start', async () => {
+  const org = await user('org5');
+  const groupId = await communityAndGroup(org);
+  const players = [];
+  for (const [i, g] of [['male'], ['female'], ['female'], [null]].entries()) players.push(await user(`t${i}`, { gender: g[0] }));
+  const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
+  for (const p of players) {
+    await rpc(p.jwt, 'join_group', { p_group_id: groupId });
+    await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  }
+  await expectError(() => rpc(org.jwt, 'start_event', { p_event_id: eventId }), 'mixed_gender_missing');
+});
+
+await run('standby players count toward the balance', async () => {
+  const org = await user('org6');
+  const groupId = await communityAndGroup(org);
+  const players = [];
+  for (const [i, g] of ['male', 'male', 'female', 'female', 'male'].entries()) players.push(await user(`u${i}`, { gender: g }));
+  const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, { allow_standby: true, standby_spots: 1 }) });
+  for (const p of players) {
+    await rpc(p.jwt, 'join_group', { p_group_id: groupId });
+    await rpc(p.jwt, 'join_event', { p_event_id: eventId });   // the fifth lands confirmed with is_standby
+  }
+  await expectError(() => rpc(org.jwt, 'start_event', { p_event_id: eventId }), 'mixed_unbalanced');
+});
