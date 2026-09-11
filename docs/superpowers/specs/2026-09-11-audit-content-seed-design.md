@@ -216,7 +216,8 @@ All created in the future through `create_event` and the roster RPCs, then back-
 | E5 | Americano, mixed, points, public, G2, scheduled in 6 days. A1 organizing only, 2 courts, 4 men and 3 women confirmed. Start is blocked by section 2. |
 | E6 | Americano, mixed, points, public, G2, scheduled in 4 days. Organizer U8. 1 court, `allow_standby = false`, 2 men and 2 women confirmed. A1's invitation deleted, then A1 joins to land on the waiting list at position 1; one crowd user at position 2. |
 | E7 | Americano, team, points, private, standalone, scheduled in 7 days. Organizer U8, fee on. A1 invited by name (N1), accepted, so `interested` with no partner. Another interested player calls `request_partner` targeting A1 (N10 through the pinned row). |
-| E8 | Americano, classic, points, public, G1, scheduled in 8 days. Organizer U8. A1's auto-invitation kept and unanswered (N2). After creation the organizer calls `update_event` with a new date so A1 holds an `event_updated` notification (N6). |
+| E8 | Americano, classic, points, public, G1, scheduled in 8 days. Organizer U8. A1's auto-invitation kept and unanswered (N2). |
+| Extra: date-changed | Public G1 event organized by U8 with A1 confirmed, then `update_event` with a new date (N6). `update_event` notifies confirmed players only, so this cannot ride on E8, where A1 must stay invited. |
 | E9 | Americano, classic, points, public, G1, completed 10 days ago. A1 organizing only. 1 court, 4 players. Round 1 scored, round 2 with one match `not_played` and one left pending, `finish_event` counting, so `finished_early = true`. |
 | Extra: cancelled | Public G1 event organized by U8 with A1 confirmed, then `cancel_event` (N5). |
 | U4 history | 20 completed Americano events in C3's ranking group, each started, scored and finished counting, back-dated across the last four months. |
@@ -225,7 +226,7 @@ Coverage check against the document's table: three formats (E1, E2, E3), three s
 
 ### 5.6 Notifications
 
-Building the fixtures fires the real emitters, so A1 ends up with one or more of each type: N1 from E7's direct invitation, N2 from E8's group invitation, N3 from every player who confirmed in A1's events, N5 from the cancelled extra, N6 from E8's date change, N7 from E1 (A1 played it), N8 from G5's group invitation and the decoy community's invitation, N9 from every follower, and `follow_joined_event` from followed users joining events. N10 is the pinned partner-request row from E7, not a notification. N4 is inserted directly with the service role as a `waitlist_spot` row for E6, since the live transition is audited separately.
+Building the fixtures fires the real emitters, so A1 ends up with one or more of each type: N1 from E7's direct invitation, N2 from E8's group invitation, N3 from every player who confirmed in A1's events, N5 from the cancelled extra, N6 from the date-changed extra, N7 from E1 (A1 played it), N8 from G5's group invitation and the decoy community's invitation, N9 from every follower, and `follow_joined_event` from followed users joining events. N10 is the pinned partner-request row from E7, not a notification. N4 is inserted directly with the service role as a `waitlist_spot` row for E6, since the live transition is audited separately.
 
 The seed then prunes A1's list to a readable size: it keeps at most two rows per type, newest first, and deletes the rest. Half of the remaining rows are patched with `read_at` so read and unread mix.
 
