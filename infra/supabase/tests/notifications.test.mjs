@@ -30,6 +30,7 @@ await run('organizer is notified once per player who confirms', async () => {
   const groupId = await groupFor(org);
   const p1 = await user('p1');
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
+  // create_event invites every group member; drop those so players arrive as plain joiners (not invitees).
   await del('event_invitations', `event_id=eq.${eventId}`);
   await rpc(p1.jwt, 'join_group', { p_group_id: groupId });
   await rpc(p1.jwt, 'join_event', { p_event_id: eventId });
@@ -63,6 +64,8 @@ await run('a freed confirmed spot is offered to the first waiter, who claims it'
   await rpc(players[0].jwt, 'leave_event', { p_event_id: eventId });
   const offered = await notifs(w1.id, 'waitlist_spot', eventId);
   assert(offered.length === 1, `w1 offered once, got ${offered.length}`);
+  const [w1part] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${w1.id}&select=id`);
+  assert(offered[0].ref_id === w1part.id, 'offer references the waiter participant row');
   assert((await notifs(w2.id, 'waitlist_spot', eventId)).length === 0, 'w2 not offered');
 
   // Leaving again before the claim must not duplicate the offer.
@@ -76,6 +79,8 @@ await run('a freed confirmed spot is offered to the first waiter, who claims it'
   assert(w2row.status === 'waiting_list' && w2row.waiting_list_position === 1, 'w2 renumbered to 1');
   // w1's claim freed nothing, but the second leave did: w2 must now hold an offer of their own.
   assert((await notifs(w2.id, 'waitlist_spot', eventId)).length === 1, 'w2 offered after w1 claimed');
+  const closed = await notifs(w1.id, 'waitlist_spot', eventId);
+  assert(closed.every((n) => n.cta_done && n.read_at), 'claim closes the claimant offers server-side');
 });
 
 await run('claiming with no free spot raises spot_taken; non-waiters are refused', async () => {
@@ -142,4 +147,40 @@ await run('finishing does not notify an organizer who did not play', async () =>
   await rpc(org.jwt, 'finish_event', { p_event_id: eventId, p_finish_message: null, p_counts_override: true });
   assert((await notifs(org.id, 'results_published', eventId)).length === 0, 'organizer not notified');
   assert((await notifs(players[0].id, 'results_published', eventId)).length === 1, 'player notified');
+});
+
+await run('organizer-performed confirmations and re-confirmations do not notify the organizer', async () => {
+  const org = await user('org8');
+  const groupId = await groupFor(org);
+  const p1 = await user('h1');
+  // p1 must be a group member before create_event runs its one-time invite-all-members insert.
+  await rpc(p1.jwt, 'join_group', { p_group_id: groupId });
+  const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
+  // p1 keeps the auto-invitation; the organizer confirms them from the roster.
+  await rpc(p1.jwt, 'accept_event_invitation', { p_event_id: eventId });      // player acted → 1
+  const [row] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${p1.id}&select=id`);
+  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: row.id }); // confirmed→confirmed, organizer acted → still 1
+  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 1, 'exactly one notification');
+});
+
+await run('finishing twice does not publish results twice', async () => {
+  const org = await user('org9');
+  const groupId = await groupFor(org);
+  const players = [];
+  for (const i of [0, 1, 2, 3]) players.push(await user(`k${i}`));
+  const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, { starts_at: hoursFromNow(8) }) });
+  await del('event_invitations', `event_id=eq.${eventId}`);
+  for (const p of players) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
+  await rpc(org.jwt, 'start_event', { p_event_id: eventId });
+  const rounds = await sel('event_rounds', `event_id=eq.${eventId}&select=id`);
+  const matches = await sel('event_matches', `round_id=eq.${rounds[0].id}&select=id`);
+  for (const m of matches) await rpc(org.jwt, 'submit_score', { p_match_id: m.id, p_side_a: 24, p_side_b: 16, p_not_played: false });
+  await rpc(org.jwt, 'finish_event', { p_event_id: eventId, p_finish_message: null, p_counts_override: true });
+  await rpc(org.jwt, 'finish_event', { p_event_id: eventId, p_finish_message: 'edited', p_counts_override: true });
+  assert((await notifs(players[0].id, 'results_published', eventId)).length === 1, 'one results_published after two finishes');
+});
+
+await run('the internal offer helper is not callable through the API', async () => {
+  const someone = await user('nobody');
+  await expectError(() => rpc(someone.jwt, 'notify_waitlist_spot', { p_event_id: '00000000-0000-0000-0000-000000000000', p_actor: null }), '42501');
 });
