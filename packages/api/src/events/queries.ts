@@ -4,7 +4,7 @@ import type { Tables } from '@padel/db';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
 
-type ProfileEmbed = { id: string; full_name: string | null; avatar_url: string | null } | null;
+type ProfileEmbed = { id: string; full_name: string | null; avatar_url: string | null; gender: string | null } | null;
 
 // event_participants has TWO foreign keys to profiles — user_id and invited_by —
 // so PostgREST cannot infer what an unqualified `profiles(...)` embed means and
@@ -13,7 +13,7 @@ type ProfileEmbed = { id: string; full_name: string | null; avatar_url: string |
 // event_teams and match_players. Same pattern as the event_invitations and
 // partner_requests embeds below, which are qualified for the same reason.
 export const PARTICIPANT_PROFILE_EMBED =
-  'profiles!event_participants_user_id_fkey(id, full_name, avatar_url)';
+  'profiles!event_participants_user_id_fkey(id, full_name, avatar_url, gender)';
 
 export const useGroupEvents = (groupId: string) => {
   const db = useDb();

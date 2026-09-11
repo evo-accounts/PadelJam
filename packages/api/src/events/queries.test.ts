@@ -23,6 +23,10 @@ describe('participant profile embed', () => {
     const code = src.replace(/^\s*\/\/.*$/gm, ''); // prose mentions the bad form
     expect(code).not.toMatch(/\bprofiles\s*\(/);
   });
+
+  it('embeds gender so mixed rosters can be counted', () => {
+    expect(PARTICIPANT_PROFILE_EMBED).toContain('gender');
+  });
 });
 
 describe('my events query keys', () => {
