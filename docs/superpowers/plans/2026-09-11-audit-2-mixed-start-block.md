@@ -56,7 +56,10 @@ await run('unbalanced mixed roster is refused before the capacity check', async 
     players.push(await user(`p${i}`, { gender: g }));
   }
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, { num_courts: 2 }) });
-  for (const p of players) await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  for (const p of players) {
+    await rpc(p.jwt, 'join_group', { p_group_id: groupId });   // public group: joining also adds community membership
+    await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  }
   // 7 confirmed on 2 courts would be setup_incomplete; the gender problem must win.
   await expectError(() => rpc(org.jwt, 'start_event', { p_event_id: eventId }), 'mixed_unbalanced');
   const [ev] = await sel('events', `id=eq.${eventId}&select=status`);
@@ -69,7 +72,10 @@ await run('balanced mixed roster starts', async () => {
   const players = [];
   for (const [i, g] of ['male', 'male', 'female', 'female'].entries()) players.push(await user(`q${i}`, { gender: g }));
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
-  for (const p of players) await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  for (const p of players) {
+    await rpc(p.jwt, 'join_group', { p_group_id: groupId });   // public group: joining also adds community membership
+    await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  }
   await rpc(org.jwt, 'start_event', { p_event_id: eventId });
   const [ev] = await sel('events', `id=eq.${eventId}&select=status`);
   assert(ev.status === 'in_progress', 'event started');
@@ -81,7 +87,10 @@ await run('a confirmed guest without gender blocks the start', async () => {
   const players = [];
   for (const [i, g] of ['male', 'female', 'female'].entries()) players.push(await user(`r${i}`, { gender: g }));
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
-  for (const p of players) await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  for (const p of players) {
+    await rpc(p.jwt, 'join_group', { p_group_id: groupId });   // public group: joining also adds community membership
+    await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  }
   // add_manual_participant enforces gender on mixed events, so the null-gender row is inserted directly.
   await insert('event_participants', { event_id: eventId, guest_name: 'Guest', status: 'confirmed', confirmed_at: new Date().toISOString(), invited_by: org.id });
   await expectError(() => rpc(org.jwt, 'start_event', { p_event_id: eventId }), 'mixed_gender_missing');
@@ -93,7 +102,10 @@ await run('classic events are untouched', async () => {
   const players = [];
   for (const i of [0, 1, 2, 3]) players.push(await user(`s${i}`, { gender: 'male' }));
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, { specification: 'classic' }) });
-  for (const p of players) await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  for (const p of players) {
+    await rpc(p.jwt, 'join_group', { p_group_id: groupId });   // public group: joining also adds community membership
+    await rpc(p.jwt, 'join_event', { p_event_id: eventId });
+  }
   await rpc(org.jwt, 'start_event', { p_event_id: eventId });
   const [ev] = await sel('events', `id=eq.${eventId}&select=status`);
   assert(ev.status === 'in_progress', 'classic event started');
