@@ -121,14 +121,13 @@ Local RPC script: a confirmed player leaves an event with two waiters, the first
 
 **Requirement.** JM-38 and section 4.7 of `Requirements/join-manage-event.md`: on the organizer's event detail, "You have N pending actions" opens a checklist; each row links to the screen that resolves it. No implementation exists.
 
-**Component.** `apps/mobile/components/event/PendingActionsSheet.tsx`, rendered by `apps/mobile/app/event/[id]/index.tsx` only when the viewer is the organizer and `status = 'scheduled'`. Rows are derived from data the screen already loads, plus one extra query for `event_courts`:
+**Component.** `apps/mobile/components/event/PendingActionsSheet.tsx`, rendered by `apps/mobile/app/event/[id]/index.tsx` only when the viewer is the organizer and `status = 'scheduled'`. Rows are derived from data the screen already loads. An "Assign courts" row was considered and dropped: nothing after creation writes `event_courts` (`update_event` ignores `court_ids`), so the row could never be cleared.
 
 | Row | Condition | Destination |
 |---|---|---|
 | Add N players | confirmed count below `num_courts * 4`; N is the difference | manage players |
 | Set up N teams | `specification = 'team'` and confirmed teams below `num_courts * 2` | manage teams |
 | Set a location | `has_location = false` | edit event, location step |
-| Assign courts | `venue_id` set, the venue has courts, and the event has no `event_courts` rows | edit event, location step |
 
 Collapsed: a card at the bottom of the detail reading "You have N pending actions" with a chevron. Tapping opens a modal sheet built from the same primitives as the notifications menu, listing the rows with `ListRow`. Tapping a row closes the sheet and navigates. When no row applies, nothing renders. Strings in three locales, with plural forms for the counts.
 

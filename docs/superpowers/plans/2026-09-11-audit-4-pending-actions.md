@@ -10,6 +10,9 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-11-audit-content-seed-design.md` section 4.
 
+
+> **Executed 2026-09-11 with one change:** the "Assign courts" row and `useEventCourtSetup` (Task 2) were dropped during code review. No client path writes `event_courts` after creation (`update_event` ignores `court_ids`), so the row could never be cleared. The sheet also uses a responder-claiming `View` inside an `accessible={false}` backdrop so VoiceOver reaches the rows.
+
 **Prerequisites:** Branch: `git fetch origin && git checkout -b feat/pending-actions origin/main`. No database change.
 
 ---
