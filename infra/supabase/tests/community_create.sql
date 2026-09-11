@@ -17,8 +17,11 @@ begin
     raise exception using errcode='PT001', message='general group name should be "Createy group"'; end if;
   if (select create_posts from community_permissions where community_id=cid) is not true then
     raise exception using errcode='PT001', message='create_posts should default true'; end if;
+  -- community_plan is an internal helper (0094): not executable by authenticated, so ask as postgres.
+  perform set_config('role','postgres',true);
   if community_plan(cid) <> 'starter' then
     raise exception using errcode='PT001', message='community should resolve to starter implicitly'; end if;
+  perform set_config('role','authenticated',true);
   if (select role from community_members where community_id=cid and user_id='c0000001-0000-0000-0000-000000000001') <> 'owner' then
     raise exception using errcode='PT001', message='creator should be owner'; end if;
   raise notice 'OK create: general="Createy group", create_posts=true, starter implicit, owner set';

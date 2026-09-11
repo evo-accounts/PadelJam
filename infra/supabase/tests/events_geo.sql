@@ -44,8 +44,9 @@ begin
     values (o, v_group,'americano','mixed','points',24,'Nul',true,2,false, now()+interval '1 day',
             90,'organizing_and_playing','Null Event','scheduled') returning id into e_null;
 
-  -- Now act as the authenticated viewer for the helper + explore_events checks.
-  perform set_config('role','authenticated',true);
+  -- The viewer's identity comes from the JWT claims; viewer_distance_m is an internal helper (0094)
+  -- that authenticated cannot call directly, so the helper checks run as postgres and only
+  -- explore_events runs as the authenticated viewer.
   perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v), true);
 
   -- viewer_distance_m: null arg -> null; near < far.
@@ -57,6 +58,7 @@ begin
     raise exception using errcode='PT001', message=format('distance order wrong near=%s far=%s', d_near, d_far); end if;
 
   -- explore_events (as viewer): near first, far second, null-coord last — despite null being soonest.
+  perform set_config('role','authenticated',true);
   select array_agg((event).id order by ord) into v_rows
     from (select event, row_number() over () as ord from explore_events(10, 0)) s;
   if v_rows[1] <> e_near or v_rows[2] <> e_far or v_rows[3] <> e_null then
