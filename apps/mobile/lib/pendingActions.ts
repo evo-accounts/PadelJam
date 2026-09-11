@@ -1,8 +1,10 @@
 /**
  * JM-38 / join-manage-event.md section 4.7: the setup tasks an organizer still has to do
  * before a scheduled event can start. Pure so it can be tested without rendering.
+ *
+ * Three rows: missing players, missing teams (team events only), and a missing location.
  */
-export type PendingActionKey = 'addPlayers' | 'setUpTeams' | 'setLocation' | 'assignCourts';
+export type PendingActionKey = 'addPlayers' | 'setUpTeams' | 'setLocation';
 
 export type PendingAction = {
   key: PendingActionKey;
@@ -18,9 +20,6 @@ export type PendingActionsInput = {
   confirmedCount: number;
   confirmedTeamCount: number;
   hasLocation: boolean;
-  venueId: string | null;
-  venueCourtCount: number;
-  assignedCourtCount: number;
 };
 
 export function pendingActions(i: PendingActionsInput): PendingAction[] {
@@ -38,8 +37,5 @@ export function pendingActions(i: PendingActionsInput): PendingAction[] {
 
   if (!i.hasLocation) rows.push({ key: 'setLocation', count: 0, href: edit });
 
-  if (i.venueId != null && i.venueCourtCount > 0 && i.assignedCourtCount === 0) {
-    rows.push({ key: 'assignCourts', count: 0, href: edit });
-  }
   return rows;
 }

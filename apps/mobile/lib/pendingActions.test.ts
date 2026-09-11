@@ -8,9 +8,6 @@ const base = {
   confirmedCount: 4,
   confirmedTeamCount: 0,
   hasLocation: true,
-  venueId: null as string | null,
-  venueCourtCount: 0,
-  assignedCourtCount: 0,
 };
 
 describe('pendingActions', () => {
@@ -31,12 +28,11 @@ describe('pendingActions', () => {
     ]);
   });
 
-  it('asks to assign courts when a library venue has courts and none are picked', () => {
-    expect(pendingActions({ ...base, venueId: 'v1', venueCourtCount: 3, assignedCourtCount: 0 })).toEqual([
-      { key: 'assignCourts', count: 0, href: '/event/e1/edit' },
+  it('lists players before teams when both are missing', () => {
+    expect(pendingActions({ ...base, specification: 'team', confirmedCount: 2, confirmedTeamCount: 0 })).toEqual([
+      { key: 'addPlayers', count: 2, href: '/event/e1/manage' },
+      { key: 'setUpTeams', count: 2, href: '/event/e1/manage' },
     ]);
-    expect(pendingActions({ ...base, venueId: 'v1', venueCourtCount: 3, assignedCourtCount: 1 })).toEqual([]);
-    expect(pendingActions({ ...base, venueId: 'v1', venueCourtCount: 0, assignedCourtCount: 0 })).toEqual([]);
   });
 
   it('never reports a negative player count', () => {

@@ -1,7 +1,7 @@
 import { useT } from '@padel/i18n';
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { colors } from '../../theme';
 import { Card, ListRow, Text } from '../ui';
 import type { PendingAction } from '@/lib/pendingActions';
@@ -26,8 +26,6 @@ export function PendingActionsSheet({ actions }: Props) {
         return t('pendingSetUpTeams', { count: a.count });
       case 'setLocation':
         return t('pendingSetLocation');
-      case 'assignCourts':
-        return t('pendingAssignCourts');
     }
   };
 
@@ -38,35 +36,42 @@ export function PendingActionsSheet({ actions }: Props) {
 
   return (
     <>
-      <Card
-        style={styles.card}
-        onPress={() => setOpen(true)}
-        accessibilityLabel={t('pendingActionsTitle', { count: actions.length })}
-        testID="pending-actions-card"
-      >
-        <Text variant="bodyStrong">{t('pendingActionsTitle', { count: actions.length })}</Text>
-        <Text variant="caption" tone="muted">
-          {t('pendingActionsHint')}
-        </Text>
+      <Card style={styles.card} onPress={() => setOpen(true)} testID="pending-actions-card">
+        <View style={styles.cardRow}>
+          <View style={styles.cardText}>
+            <Text variant="bodyStrong">{t('pendingActionsTitle', { count: actions.length })}</Text>
+            <Text variant="caption" tone="muted">
+              {t('pendingActionsHint')}
+            </Text>
+          </View>
+          <Text variant="hint" tone="muted">
+            ›
+          </Text>
+        </View>
       </Card>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} accessibilityLabel={t('pendingActionsClose')}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => setOpen(false)}
+          accessible={false}
+          accessibilityLabel={t('pendingActionsClose')}
+        >
+          {/* A responder-claiming View so taps inside the sheet do not reach the backdrop. */}
+          <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
             <Text variant="sectionTitle" style={styles.sheetTitle}>
               {t('pendingActionsTitle', { count: actions.length })}
             </Text>
             {actions.map((a) => (
               <ListRow
                 key={a.key}
-                variant="plain"
                 title={label(a)}
                 trailing={<Text variant="hint" tone="muted">›</Text>}
                 onPress={() => go(a)}
                 testID={`pending-action-${a.key}`}
               />
             ))}
-          </Pressable>
+          </View>
         </Pressable>
       </Modal>
     </>
@@ -74,7 +79,9 @@ export function PendingActionsSheet({ actions }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 16, marginTop: 20, gap: 4 },
+  card: { marginHorizontal: 16, marginTop: 20 },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardText: { flex: 1, gap: 4 },
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.card,

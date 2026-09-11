@@ -1680,7 +1680,6 @@ const mobileEvent = {
     pendingSetUpTeams_one: 'Montar {{count}} equipa',
     pendingSetUpTeams_other: 'Montar {{count}} equipas',
     pendingSetLocation: 'Definir a localização',
-    pendingAssignCourts: 'Atribuir campos',
 
     // --- Phase 7: Live match hub ---
     liveTitle: 'Ao vivo',
@@ -2132,7 +2131,6 @@ const mobileEvent = {
     pendingSetUpTeams_one: 'Montar {{count}} dupla',
     pendingSetUpTeams_other: 'Montar {{count}} duplas',
     pendingSetLocation: 'Definir o local',
-    pendingAssignCourts: 'Atribuir quadras',
 
     // --- Phase 7: Live match hub ---
     liveTitle: 'Ao vivo',
@@ -2584,7 +2582,6 @@ const mobileEvent = {
     pendingSetUpTeams_one: 'Set up {{count}} team',
     pendingSetUpTeams_other: 'Set up {{count}} teams',
     pendingSetLocation: 'Set a location',
-    pendingAssignCourts: 'Assign courts',
 
     // --- Phase 7: Live match hub ---
     liveTitle: 'Live',

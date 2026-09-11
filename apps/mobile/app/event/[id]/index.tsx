@@ -6,7 +6,6 @@ import {
   useEvent,
   useEventInvitations,
   useEventParticipants,
-  useEventCourtSetup,
   useEventSeries,
   useEventTeams,
   useJoinEvent,
@@ -78,7 +77,6 @@ export default function EventDetailScreen() {
   const { data: invitationsData } = useEventInvitations(id);
   const { data: teamsData } = useEventTeams(id);
   const { data: series } = useEventSeries(id);
-  const { data: courtSetup } = useEventCourtSetup(id, event?.venue_id);
 
   const joinEvent = useJoinEvent();
   const leaveEvent = useLeaveEvent();
@@ -190,9 +188,6 @@ export default function EventDetailScreen() {
           confirmedCount: startConfirmedCount,
           confirmedTeamCount,
           hasLocation: event.has_location,
-          venueId: event.venue_id,
-          venueCourtCount: courtSetup?.venueCourtCount ?? 0,
-          assignedCourtCount: courtSetup?.assignedCourtCount ?? 0,
         })
       : [];
 
