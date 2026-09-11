@@ -19,6 +19,7 @@ begin
   if NEW.user_id is null then return NEW; end if;                 -- guests are added by the organizer
   select organizer_id, name into v_org, v_name from events where id = NEW.event_id;
   if v_org is null or v_org = NEW.user_id then return NEW; end if; -- organizer playing their own event
+  if auth.uid() = v_org then return NEW; end if;               -- the organizer's own action
   if notif_blocked(v_org, NEW.user_id) then return NEW; end if;
   select full_name into v_actor from profiles where id = NEW.user_id;
   insert into notifications (user_id, type, actor_id, event_id, actor_name, entity_name)
@@ -44,7 +45,8 @@ begin
   if exists (select 1 from notifications n
               where n.user_id = v_uid and n.event_id = p_event_id and n.type = 'waitlist_spot'
                 and n.read_at is null and not n.cta_done) then
-    return;                                                        -- an unanswered offer already stands
+    return;  -- an unread, unactioned offer already stands. Once the waiter reads it (mark-all-read included),
+             -- the next freed spot produces a fresh offer; that is intended (JM-08: the waiter must act).
   end if;
   if p_actor is not null and notif_blocked(v_uid, p_actor) then return; end if;
   select full_name into v_actor from profiles where id = p_actor;
@@ -52,6 +54,8 @@ begin
   insert into notifications (user_id, type, actor_id, event_id, ref_id, actor_name, entity_name)
   values (v_uid, 'waitlist_spot', p_actor, p_event_id, v_pid, v_actor, v_name);
 end; $$;
+-- Internal helper: only the RPCs above call it. 0030's default privileges would expose it via PostgREST.
+revoke execute on function notify_waitlist_spot(uuid, uuid) from public, anon, authenticated;
 
 create or replace function leave_event(p_event_id uuid) returns void
 language plpgsql security definer set search_path = public as $$
@@ -155,6 +159,7 @@ begin
   if v_ev.id is null then raise exception 'event_not_found' using errcode='P0001'; end if;
   if v_ev.status <> 'scheduled' then raise exception 'event_closed' using errcode='P0001'; end if;
   if now() > v_ev.starts_at - interval '6 hours' then raise exception 'event_closed' using errcode='P0001'; end if;
+  if v_ev.specification = 'team' then raise exception 'use_team_join' using errcode='P0001'; end if;
 
   perform pg_advisory_xact_lock(hashtextextended('event_roster:'||p_event_id::text, 0));
   select id into v_pid from event_participants
@@ -174,9 +179,11 @@ begin
     from event_participants where event_id = p_event_id and status = 'waiting_list')
   update event_participants ep set waiting_list_position = ranked.rn
     from ranked where ep.id = ranked.id and ep.waiting_list_position <> ranked.rn;
+  update notifications set cta_done = true, read_at = coalesce(read_at, now())
+    where user_id = v_user and event_id = p_event_id and type = 'waitlist_spot' and not cta_done;
   -- Offers are deduplicated per waiter, so a second spot freed while the first offer stood was
   -- never announced. Now that this waiter has moved on, pass any remaining free spot down the list.
-  if v_confirmed + 1 < event_capacity(p_event_id) then perform notify_waitlist_spot(p_event_id, v_user); end if;
+  if v_confirmed + 1 < event_capacity(p_event_id) then perform notify_waitlist_spot(p_event_id, null); end if;
   return 'confirmed';
 end; $$;
 grant execute on function claim_waitlist_spot(uuid) to authenticated;
@@ -230,10 +237,13 @@ begin
   end if;
 
   -- NEW: every confirmed player with an account, the organizer included when they played.
-  select full_name into v_actor from profiles where id = v_user;
-  insert into notifications (user_id, type, actor_id, event_id, actor_name, entity_name)
-  select ep.user_id, 'results_published', v_user, p_event_id, v_actor, v_ev.name
-  from event_participants ep
-  where ep.event_id = p_event_id and ep.status = 'confirmed' and ep.user_id is not null
-    and not notif_blocked(ep.user_id, v_user);
+  -- Guarded so a retried finish does not notify twice.
+  if v_ev.status <> 'completed' then
+    select full_name into v_actor from profiles where id = v_user;
+    insert into notifications (user_id, type, actor_id, event_id, actor_name, entity_name)
+    select ep.user_id, 'results_published', v_user, p_event_id, v_actor, v_ev.name
+    from event_participants ep
+    where ep.event_id = p_event_id and ep.status = 'confirmed' and ep.user_id is not null
+      and not notif_blocked(ep.user_id, v_user);
+  end if;
 end; $$;
