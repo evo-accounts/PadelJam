@@ -62,6 +62,11 @@ export default function GroupManageHubPage() {
       >
         {archived ? t('unarchive') : t('archive')}
       </Button>
+      {archive.error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {t(archive.error.message, { defaultValue: t('unknown_error') })}
+        </p>
+      ) : null}
     </div>
   );
 }
