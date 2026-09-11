@@ -1,11 +1,9 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
-import { useMarkRead, useCompleteNotificationCta, type NotificationRow } from '@padel/api';
+import { CTA_TYPES, useMarkRead, useCompleteNotificationCta, type NotificationRow } from '@padel/api';
 import { notificationRoute } from '@padel/utils';
 import { Button } from '@/components/ui/button';
-
-const CTA_TYPES = new Set(['event_invite', 'group_invite', 'community_invite']);
 
 export function NotificationItem({ n, onNavigate }: { n: NotificationRow; onNavigate?: () => void }) {
   const { t, i18n } = useT('notifications');
@@ -48,18 +46,26 @@ export function NotificationItem({ n, onNavigate }: { n: NotificationRow; onNavi
       </div>
       {CTA_TYPES.has(n.type) ? (
         n.cta_done ? (
-          <span className="shrink-0 text-xs text-muted-foreground">{t('joined')}</span>
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {n.type === 'waitlist_spot' ? t('spotConfirmed') : t('joined')}
+          </span>
         ) : (
-          <Button
-            size="sm"
-            className="shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              completeCta.mutate(n);
-            }}
-          >
-            {t('join')}
-          </Button>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                completeCta.mutate(n);
+              }}
+            >
+              {n.type === 'waitlist_spot' ? t('confirmSpot') : t('join')}
+            </Button>
+            {completeCta.isError ? (
+              <span role="alert" className="text-xs text-destructive">
+                {t(completeCta.error instanceof Error ? completeCta.error.message : 'unknown_error', { defaultValue: t('respondError') })}
+              </span>
+            ) : null}
+          </div>
         )
       ) : null}
     </div>
