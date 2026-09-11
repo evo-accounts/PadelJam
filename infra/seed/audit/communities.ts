@@ -30,12 +30,17 @@ export async function seedCommunities(ctx: Ctx) {
     { community_id: ctx.ids.C1, author_id: u(ctx, 'f4').id, kind: 'user', body: 'Great games last week, thanks everyone.' },
   ]);
 
-  // C2 — F1 owner, A1 plain member, only the general group (that group is G2).
+  // C2 — F1 owner, A1 co-admin, only the general group (that group is G2).
+  // A1 organizes E4/E5/the audit's E6-adjacent fixtures inside G2 (see the document); create_event
+  // requires the caller to be a community admin/owner whenever the event carries a group_id
+  // (infra/supabase/migrations/0067_create_event_location.sql, is_community_admin(v_cid)). A plain
+  // membership cannot satisfy that, so A1 is promoted to admin here, the same way F4 is in C1 above.
   ctx.ids.C2 = await create(ctx, 'f1', { p_name: 'Padel Porto Social', p_description: 'Casual games in Porto.', p_location: 'Porto, PT' });
   await ctx.c.insert('community_subscriptions', { community_id: ctx.ids.C2, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
   for (const k of ['a1', 'u1a', 'u1c', 'u2', 'u3', 'u6', 'f5', 'f6', 'f7', 'f8']) {
     await ctx.c.rpc(u(ctx, k).jwt, 'join_community', { p_community_id: ctx.ids.C2, p_ack: true });
   }
+  await ctx.c.patch('community_members', `community_id=eq.${ctx.ids.C2}&user_id=eq.${u(ctx, 'a1').id}`, { role: 'admin' });
 
   // C3 — F2 owner, A1 not a member. Holds U4's ranked history.
   ctx.ids.C3 = await create(ctx, 'f2', { p_name: 'Cascais Padel Club', p_description: 'The club by the sea.', p_location: 'Cascais, PT' });
