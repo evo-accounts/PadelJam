@@ -2358,6 +2358,7 @@ export type Database = {
         Args: { p_event_id: string; p_partner_user: string }
         Returns: undefined
       }
+      claim_waitlist_spot: { Args: { p_event_id: string }; Returns: string }
       community_has_feature: {
         Args: { c: string; key: string }
         Returns: boolean

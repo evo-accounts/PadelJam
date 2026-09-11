@@ -16,4 +16,8 @@ describe('mapPgError', () => {
     expect(mapPgError({ message: 'mixed_unbalanced' })).toBe('mixed_unbalanced');
     expect(mapPgError({ message: 'mixed_gender_missing' })).toBe('mixed_gender_missing');
   });
+  it('maps the waiting-list claim codes', () => {
+    expect(mapPgError({ message: 'not_on_waiting_list' })).toBe('not_on_waiting_list');
+    expect(mapPgError({ message: 'spot_taken' })).toBe('spot_taken');
+  });
 });
