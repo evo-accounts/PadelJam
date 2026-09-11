@@ -315,8 +315,14 @@ export default function GroupHomeScreen() {
         animationType="fade"
         onRequestClose={() => setAddAdminOpen(false)}
       >
-        <Pressable style={styles.backdrop} onPress={() => setAddAdminOpen(false)}>
-          <View style={styles.sheet}>
+        {/* The backdrop is NOT an accessibility element: a default-accessible
+            Pressable wrapping the sheet folds the whole modal into one VoiceOver
+            node and the rows inside become unreachable. The sheet claims the
+            responder so taps inside it do not fall through to the backdrop, and
+            the Close button is how VoiceOver leaves — the backdrop tap is a
+            sighted gesture. */}
+        <Pressable style={styles.backdrop} onPress={() => setAddAdminOpen(false)} accessible={false}>
+          <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
             <Text variant="sectionTitle">{t('addAdminTitle')}</Text>
             <Text variant="body" tone="muted">{t('addAdminBody')}</Text>
             {eligibleAdmins.length === 0 ? (
@@ -351,6 +357,13 @@ export default function GroupHomeScreen() {
                   err(e2);
                 }
               }}
+            />
+            <Button
+              label={t('close')}
+              variant="ghost"
+              fullWidth
+              onPress={() => setAddAdminOpen(false)}
+              testID="group-add-admin-close"
             />
           </View>
         </Pressable>

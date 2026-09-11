@@ -19,7 +19,7 @@ import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { decidePostVerifyRoute } from '@/lib/postVerifyRoute';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
-import { Button } from '../../components/ui';
+import { Button, ListRow } from '../../components/ui';
 
 export default function OtpScreen() {
   const { t } = useT('auth');
@@ -176,29 +176,28 @@ export default function OtpScreen() {
 
       <Button label={t('tryAnotherWay')} variant="ghost" onPress={() => setSheetOpen(true)} />
 
+      {/* Sign-in options sheet. The backdrop is NOT an accessibility element:
+          a default-accessible Pressable wrapping the sheet folds the whole modal
+          into one VoiceOver node and the rows inside become unreachable. The
+          sheet claims the responder so taps inside it do not fall through to
+          the backdrop, and the Close row is how VoiceOver leaves — the backdrop
+          tap is a sighted gesture. */}
       <Modal visible={sheetOpen} transparent animationType="fade" onRequestClose={() => setSheetOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setSheetOpen(false)}>
-          <View style={styles.sheet}>
-            <Pressable
-              style={styles.sheetRow}
+        <Pressable style={styles.backdrop} onPress={() => setSheetOpen(false)} accessible={false}>
+          <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
+            <ListRow
+              title={t('usePassword')}
               onPress={() => { setSheetOpen(false); router.push('/(auth)/password' as never); }}
-              accessibilityRole="button"
-            >
-              <Text style={styles.sheetText}>{t('usePassword')}</Text>
-            </Pressable>
-            <Pressable
-              style={styles.sheetRow}
+              testID="otp-sheet-use-password"
+            />
+            <ListRow
+              title={t('useDifferentId')}
               onPress={() => { setSheetOpen(false); dispatch({ type: 'reset' }); router.replace('/(auth)/sign-in'); }}
-              accessibilityRole="button"
-            >
-              <Text style={styles.sheetText}>{t('useDifferentId')}</Text>
-            </Pressable>
-            <Pressable style={styles.sheetRow} onPress={onGoogle} accessibilityRole="button">
-              <Text style={styles.sheetText}>{t('continueWithGoogle')}</Text>
-            </Pressable>
-            <Pressable style={styles.sheetRow} onPress={onApple} accessibilityRole="button">
-              <Text style={styles.sheetText}>{t('continueWithApple')}</Text>
-            </Pressable>
+              testID="otp-sheet-use-different-id"
+            />
+            <ListRow title={t('continueWithGoogle')} onPress={onGoogle} testID="otp-sheet-google" />
+            <ListRow title={t('continueWithApple')} onPress={onApple} testID="otp-sheet-apple" />
+            <ListRow title={t('close')} onPress={() => setSheetOpen(false)} testID="otp-sheet-close" />
           </View>
         </Pressable>
       </Modal>
@@ -230,7 +229,5 @@ const styles = StyleSheet.create({
   link: { color: colors.foreground, fontSize: 15, fontWeight: '600' },
   linkMuted: { color: colors.mutedForeground },
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 8 },
-  sheetRow: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
-  sheetText: { fontSize: 16, color: colors.foreground, fontWeight: '600' },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 8, overflow: 'hidden' },
 });

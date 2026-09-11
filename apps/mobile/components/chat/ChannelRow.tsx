@@ -68,10 +68,15 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
       </Pressable>
       <IconButton icon="•••" accessibilityLabel={t('more')} onPress={() => setMenuOpen(true)} />
 
-      {/* action sheet */}
+      {/* action sheet. The backdrop is NOT an accessibility element: a
+          default-accessible Pressable wrapping the sheet folds the whole modal
+          into one VoiceOver node and the rows inside become unreachable. The
+          sheet claims the responder so taps inside it do not fall through to
+          the backdrop, and the Close row is how VoiceOver leaves — the backdrop
+          tap is a sighted gesture. */}
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
-          <View style={styles.sheet}>
+        <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)} accessible={false}>
+          <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
             {/* Action-sheet rows ARE ListRow's shape exactly: a tappable row,
                 one label, no nested control. `titleTone` replaces the inline
                 colour override the delete row used to carry. */}
@@ -98,14 +103,16 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
                 ) : null}
               </>
             )}
+            <ListRow title={t('close')} onPress={() => setMenuOpen(false)} testID="chat-channel-menu-close" />
           </View>
         </Pressable>
       </Modal>
 
-      {/* confirmation modals */}
+      {/* confirmation modals — same backdrop/sheet shape and reasoning as the
+          action sheet; the Cancel button below is the exit. */}
       <Modal visible={confirm !== null} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setConfirm(null)}>
-          <View style={styles.confirm}>
+        <Pressable style={styles.backdrop} onPress={() => setConfirm(null)} accessible={false}>
+          <View style={styles.confirm} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
             <Text variant="sectionTitle">
               {t(confirm === 'archive' ? 'archiveTitle' : 'deleteTitle')}
             </Text>
