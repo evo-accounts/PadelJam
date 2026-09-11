@@ -20,6 +20,7 @@ begin
   select organizer_id, name into v_org, v_name from events where id = NEW.event_id;
   if v_org is null or v_org = NEW.user_id then return NEW; end if; -- organizer playing their own event
   if auth.uid() = v_org then return NEW; end if;               -- the organizer's own action
+  -- Service-role writes (seed, admin scripts) carry no JWT: auth.uid() is null and they still notify.
   if notif_blocked(v_org, NEW.user_id) then return NEW; end if;
   select full_name into v_actor from profiles where id = NEW.user_id;
   insert into notifications (user_id, type, actor_id, event_id, actor_name, entity_name)
@@ -54,7 +55,7 @@ begin
   insert into notifications (user_id, type, actor_id, event_id, ref_id, actor_name, entity_name)
   values (v_uid, 'waitlist_spot', p_actor, p_event_id, v_pid, v_actor, v_name);
 end; $$;
--- Internal helper: only the RPCs above call it. 0030's default privileges would expose it via PostgREST.
+-- Internal helper: only the RPCs in this migration call it. 0030's default privileges would expose it via PostgREST.
 revoke execute on function notify_waitlist_spot(uuid, uuid) from public, anon, authenticated;
 
 create or replace function leave_event(p_event_id uuid) returns void
