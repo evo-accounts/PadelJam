@@ -10,6 +10,9 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-11-audit-content-seed-design.md` section 3. One refinement over the spec: when a claim fails with `spot_taken`, the row is marked read and an inline error line says the spot is gone; the row is not marked done, because "done" renders as "Confirmed".
 
+
+> **Executed 2026-09-11 with review-driven additions to 0093:** `notify_waitlist_spot` has `revoke execute … from public, anon, authenticated` (0030's default privileges would otherwise expose it via PostgREST); the confirmation trigger also skips actions performed by the organizer (`auth.uid() = organizer`), so only player-initiated confirmations notify; `claim_waitlist_spot` refuses team events (`use_team_join`), closes the claimant's own offers server-side, and passes a null actor when handing the next spot down; `finish_event` only emits `results_published` when the event was not already completed. Tests cover ref_id, double finish, organizer self-actions and the revoked helper.
+
 **Prerequisites:** local stack running; `infra/supabase/tests/lib.mjs` present (from the archive-guard PR; if missing, create it from Task 1 of `docs/superpowers/plans/2026-09-11-audit-1-archive-guard.md`). Branch: `git fetch origin && git checkout -b feat/audit-notifications origin/main`.
 
 ---
