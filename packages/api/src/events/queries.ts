@@ -195,6 +195,27 @@ export const useEventTeams = (id: string) => {
   });
 };
 
+/**
+ * How many courts the event's library venue offers and how many the event has picked.
+ * Feeds the organizer's pending-actions "Assign courts" row; nothing else needs it.
+ */
+export const useEventCourtSetup = (id: string, venueId: string | null | undefined) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.eventCourtSetup(id),
+    enabled: !!venueId,
+    queryFn: async () => {
+      const [venue, assigned] = await Promise.all([
+        db.from('courts').select('id', { count: 'exact', head: true }).eq('venue_id', venueId!),
+        db.from('event_courts').select('court_id', { count: 'exact', head: true }).eq('event_id', id),
+      ]);
+      if (venue.error) throw venue.error;
+      if (assigned.error) throw assigned.error;
+      return { venueCourtCount: venue.count ?? 0, assignedCourtCount: assigned.count ?? 0 };
+    },
+  });
+};
+
 export const useEventRounds = (id: string) => {
   const db = useDb();
   return useQuery({
