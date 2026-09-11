@@ -27,11 +27,11 @@ on:
     #                                 answers when you change something
     #   "did the WORLD break it?"  -> this cron
     #
-    # The second is real here: the stack is genuinely unpinned — the workflow,
-    # scripts/e2e/run.mjs and e2e/global-setup.ts all run `supabase@latest`, so
-    # GoTrue/PostgREST/edge-runtime can change with no commit. This project has
-    # been bitten before (see the CLI ≤2.75 ES256/HS256 note in
-    # infra/supabase/config.toml). Weekly catches that.
+    # The second is real here: the CLI is pinned below (SUPABASE_CLI_VERSION),
+    # but a developer's own stack, Xcode, the simulator runtime and idb are
+    # not, and the pin itself gets bumped. This project has been bitten before
+    # (see the CLI ≤2.75 ES256/HS256 note in infra/supabase/config.toml).
+    # Weekly catches that.
     #
     # A run also WIPES the developer's local database (resetDb rotates every
     # seeded id), so nightly was charging that cost 7× a week to answer a
@@ -124,14 +124,33 @@ jobs:
       - name: Ensure the local Supabase stack is up
         env:
           SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: local_test_token
+          # PINNED, not @latest, so a run is reproducible and a CLI bump is a
+          # commit. Keep it in step with infra/supabase/README.md and
+          # apps/mobile/e2e/README.md. The pin alone does NOT fix the incident
+          # below — see npm_config_cache_dir in the script.
+          SUPABASE_CLI_VERSION: 2.117.0
         run: |
+          # INCIDENT 2026-09-11: every run failed here with "No matching Supabase
+          # CLI binary package found for darwin-arm64". pnpm caches `dlx`
+          # installs under ~/Library/Caches/pnpm/dlx/<hash of the RESOLVED
+          # version>, shared by every process on the machine regardless of CPU
+          # arch, and reused for 24h. The developer's shell on this Mac runs an
+          # Intel Homebrew Node under Rosetta (`node -p process.arch` → x64),
+          # while the runner's setup-node is arm64. Whichever of the two
+          # repopulates the entry first after it expires decides which
+          # @supabase/cli-darwin-* optional package is in it, and the other
+          # arch then fails. Pinning the version does not change the cache key
+          # (supabase@2.117.0 and supabase@latest hash to the same directory),
+          # so the job gets its own pnpm cache dir that no developer shell
+          # writes to. It is persistent, so the CLI is downloaded once.
+          export npm_config_cache_dir="$HOME/Library/Caches/pnpm-e2e-runner"
           # A no-op that prints "already running" when the developer's stack is
           # already up, which on this machine is the normal case.
-          pnpm dlx supabase@latest --workdir infra start
+          pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" --workdir infra start
           # This checkout is the runner's own workspace, not the developer's
           # clone, so it starts with no .env — the seed and the suite read the
           # service-role key from the repo root.
-          pnpm dlx supabase@latest --workdir infra status -o env \
+          pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" --workdir infra status -o env \
             | sed -e 's/^API_URL=/SUPABASE_URL=/' \
                   -e 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' \
                   -e 's/^PUBLISHABLE_KEY=/SUPABASE_ANON_KEY=/' > .env

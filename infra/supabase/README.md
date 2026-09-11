@@ -3,7 +3,18 @@
 The Supabase project lives at `infra/supabase/` (`config.toml`, `migrations/`, `seed.sql`,
 `functions/`). The CLI's project root is therefore `infra/` — **run all `supabase` commands
 from the `infra/` directory** (the folder that contains `supabase/`). The CLI is not installed
-globally; invoke it via `pnpm dlx supabase@latest`.
+globally; invoke it via `pnpm dlx supabase@2.117.0` — **pinned, not `@latest`**, and the same
+version the E2E workflow uses (`SUPABASE_CLI_VERSION` in `.github/workflows/e2e-mobile.yml`).
+Bump both together.
+
+> If you see `No matching Supabase CLI binary package found for darwin-<arch>`: pnpm caches
+> `dlx` installs under `~/Library/Caches/pnpm/dlx/<hash of the resolved version>`, shared by every
+> process on the machine and reused for 24h, and the entry only holds the `@supabase/cli-darwin-*`
+> binary for the arch of the Node that wrote it. A Mac that mixes an Intel Homebrew Node (Rosetta,
+> `node -p process.arch` → `x64`) with an arm64 Node hits this whenever the "other" arch wrote
+> the entry first. Delete that entry and re-run, or point `npm_config_cache_dir` at a cache of
+> your own. That is what took the E2E workflow down on every branch on 2026-09-11; the workflow
+> now uses its own cache dir (see the step comment in `.github/workflows/e2e-mobile.yml`).
 
 Docker must be running.
 
@@ -33,18 +44,18 @@ Docker must be running.
 WD=/path/to/repo/infra   # the folder that contains supabase/
 
 # Start / stop the local stack (export the dummy twilio token first; see Auth above)
-pnpm dlx supabase@latest --workdir "$WD" start
-pnpm dlx supabase@latest --workdir "$WD" stop
-pnpm dlx supabase@latest --workdir "$WD" status      # prints URLs + keys
+pnpm dlx supabase@2.117.0 --workdir "$WD" start
+pnpm dlx supabase@2.117.0 --workdir "$WD" stop
+pnpm dlx supabase@2.117.0 --workdir "$WD" status      # prints URLs + keys
 
 # Create a new migration
-pnpm dlx supabase@latest migration new <name>
+pnpm dlx supabase@2.117.0 migration new <name>
 
 # Apply all migrations + run seed.sql (resets local DB)
-pnpm dlx supabase@latest db reset
+pnpm dlx supabase@2.117.0 db reset
 
 # Regenerate typed DB client into packages/db
-pnpm dlx supabase@latest gen types typescript --local > ../packages/db/src/database.types.ts
+pnpm dlx supabase@2.117.0 gen types typescript --local > ../packages/db/src/database.types.ts
 ```
 
 ## RLS sanity check

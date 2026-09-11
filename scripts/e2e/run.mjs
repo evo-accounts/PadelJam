@@ -183,7 +183,7 @@ function resolveUdid() {
 
 // --- 2. Preflight the stack -------------------------------------------------
 async function preflight() {
-  const stackHint = `Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@latest --workdir "${join(ROOT, 'infra')}" start`;
+  const stackHint = `Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@2.117.0 --workdir "${join(ROOT, 'infra')}" start`;
 
   // A stack that is "already running" can still be missing pieces: `supabase
   // start` reports a container that died as an informational

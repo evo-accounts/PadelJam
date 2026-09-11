@@ -11,9 +11,10 @@ The web app has its own separate end-to-end suite (Playwright) at
 ## Prerequisites
 
 - Docker running, local stack up:
-  `export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token && pnpm dlx supabase@latest --workdir infra start`
-  (**use the latest CLI** — older CLIs pair an ES256-signing GoTrue with an edge-runtime
-  that only verifies HS256, so every `verify_jwt` edge function 401s locally).
+  `export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token && pnpm dlx supabase@2.117.0 --workdir infra start`
+  (pinned to the version in the workflow's `SUPABASE_CLI_VERSION`, see
+  `infra/supabase/README.md` for why; anything ≤2.75 pairs an ES256-signing GoTrue with an
+  edge-runtime that only verifies HS256, so every `verify_jwt` edge function 401s locally).
 - Repo-root `.env` with `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (local keys).
 - `apps/mobile/.env` pointing `EXPO_PUBLIC_SUPABASE_URL` at `http://127.0.0.1:55321`.
 - Xcode (the runner exports `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`).
@@ -84,10 +85,11 @@ would take down the stack you develop against.
   `scripts/e2e/**` or the workflow itself. A paths filter, not a label — relying on
   someone remembering to add one meant `main` had no automated E2E at all.
 - **Weekly**, Sunday 03:00 UTC. This answers a different question from the PR run:
-  the stack is genuinely unpinned (the workflow, `run.mjs` and `global-setup.ts` all
-  use `supabase@latest`), so GoTrue/PostgREST/edge-runtime can change with no commit
-  on your side. This repo has been bitten by exactly that before — see the CLI ≤2.75
-  ES256/HS256 note in `infra/supabase/config.toml`.
+  the CLI is pinned in the workflow (`SUPABASE_CLI_VERSION`), but the developer's own
+  stack, Xcode, the simulator runtime and idb are not, and the pin gets bumped. This
+  repo has been bitten by drift before — see the CLI ≤2.75 ES256/HS256 note in
+  `infra/supabase/config.toml`, and the 2026-09-11 arm64/x64 dlx-cache incident in
+  `.github/workflows/e2e-mobile.yml`.
 - **On demand** via `workflow_dispatch`, which also takes a `suite` input to run one
   suite. Use this for anything the paths filter excludes.
 

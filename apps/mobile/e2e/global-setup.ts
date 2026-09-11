@@ -18,7 +18,7 @@ export default async function globalSetup(): Promise<void> {
   const problems: string[] = [];
 
   if (!(await stackHealthy())) {
-    problems.push(`Supabase API not responding at ${CONFIG.supabaseUrl} — start it: export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token && pnpm dlx supabase@latest --workdir infra start`);
+    problems.push(`Supabase API not responding at ${CONFIG.supabaseUrl} — start it: export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token && pnpm dlx supabase@2.117.0 --workdir infra start`);
   }
   if (!(await mailpitHealthy())) {
     problems.push(`Mailpit not responding at ${CONFIG.mailpitUrl} (part of the supabase stack).`);
