@@ -17,18 +17,18 @@ export async function seedNotifications(ctx: Ctx) {
 
   // Prune: newest two per type.
   const rows = await ctx.c.sel<{ id: string; type: string; created_at: string }[]>(
-    'notifications', `user_id=eq.${a1.id}&select=id,type,created_at&order=created_at.desc`);
+    'notifications', `user_id=eq.${a1.id}&select=id,type,created_at&order=created_at.desc,id.desc`);
   const seen = new Map<string, number>();
-  const drop: string[] = [];
+  const drop = new Set<string>();
   for (const r of rows) {
     const n = (seen.get(r.type) ?? 0) + 1;
     seen.set(r.type, n);
-    if (n > 2) drop.push(r.id);
+    if (n > 2) drop.add(r.id);
   }
-  if (drop.length) await ctx.c.del('notifications', `id=in.(${drop.join(',')})`);
+  if (drop.size) await ctx.c.del('notifications', `id=in.(${[...drop].join(',')})`);
 
   // Read/unread mix: every other remaining row is read.
-  const keep = rows.filter((r) => !drop.includes(r.id));
+  const keep = rows.filter((r) => !drop.has(r.id));
   const read = keep.filter((_, i) => i % 2 === 1).map((r) => r.id);
   if (read.length) await ctx.c.patch('notifications', `id=in.(${read.join(',')})`, { read_at: new Date().toISOString() });
 

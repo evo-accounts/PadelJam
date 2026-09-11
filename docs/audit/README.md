@@ -36,8 +36,11 @@ upcoming events are fresh relative to today.
 3. Fixed phone codes registered under Authentication → Providers → Phone → Test phone numbers, for every
    phone the hand-over lists (A1, A2 and the acting users).
 4. Stream secrets present on the edge functions (they are, if chat works in the shipped build).
-5. Raise the Auth sign-in rate limit (Authentication → Rate Limits) or accept that the seed pauses
-   ~65 s when it hits the per-IP cap on password sign-ins.
+5. Raise the Auth sign-in rate limit (Authentication → Rate Limits) before the run; the seed signs
+   in 35 accounts.
+6. Dry-run the chat step once (`--only users,venues,communities,groups,events,notifications,chat`
+   with `EXPO_PUBLIC_STREAM_API_KEY` set, functions served) before pointing the seed at hosted — the
+   chat module has not been exercised locally without a key.
 
 ## Sign-in
 
@@ -55,3 +58,17 @@ sign up with it to review onboarding, and re-run the seed with `--purge` to rese
 - G5 as a join request on a private group: the requirements rule that out; G5 is a pending invitation instead.
 - The document's supporting-user table sums to 17, not 16; the seed creates 17 named users plus 17 crowd
   members (34 supporting accounts, 35 with A1).
+
+## What --purge does not remove
+
+Stream channels, messages and users created by the chat step live in the Stream app, not in Supabase,
+and `--purge` never touches them. Each reseed mints new auth ids, so the Stream side accumulates a new
+set of users and channels every time the chat step runs against a given Stream app. Clean them up in
+the Stream dashboard if the accumulation matters (e.g. before a demo of the Stream side itself).
+
+## Noise you will see
+
+Every notification insert invokes the `send-push` edge function via `pg_net`; with no real push tokens
+registered for the cast, all of these return `no_tokens`. That's expected, not a failure. Some of those
+`pg_net` calls can still be in flight when `--purge` deletes the notification rows they reference; if so
+they log `notification_not_found` on completion. Also expected — ignore it.

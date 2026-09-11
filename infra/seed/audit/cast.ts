@@ -53,7 +53,7 @@ export const NAMED: Person[] = [
   sup('f1', 'Miguel Carvalho', 'male', 119, { location: 'Porto, PT', acting: 'Owner of C2 and organizer of E6 (watch the waiting-list spot release)' }),
   sup('f2', 'Beatriz Nogueira', 'female', 120, { location: 'Cascais, PT' }),
   sup('f3', 'Carlos Mendes', 'male', 121, { location: 'Sintra, PT', acting: 'Owner of C4 and organizer of E7' }),
-  sup('f4', 'Ana Rocha', 'female', 122, { acting: 'Second admin of C1, organizer of E8 (change its date live for N6)' }),
+  sup('f4', 'Ana Rocha', 'female', 122, { acting: 'Second admin of C1, organizer of E8 and of "Treino Remarcado" (change that one\'s date live for N6)' }),
   sup('f5', 'Diogo Fonseca', 'male', 123, { acting: 'Confirmed in E2 and E6: submit a score (lock) or leave E6 (spot release)' }),
   sup('f6', 'Sara Lima', 'female', 124),
   sup('f7', 'Joana Freitas', 'female', 125, { acting: 'Interested in E7, sent A1 the partner request (N10)' }),

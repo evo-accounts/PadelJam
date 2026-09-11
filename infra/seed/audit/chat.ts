@@ -16,7 +16,7 @@ async function connect(ctx: Ctx, key: string): Promise<StreamChat> {
 export async function seedChat(ctx: Ctx): Promise<{ skipped: string | null }> {
   if (!ctx.c.env.streamKey) return { skipped: 'EXPO_PUBLIC_STREAM_API_KEY not set' };
   const a1 = u(ctx, 'a1');
-  let cids: Record<string, string> = {};
+  const cids: Record<string, string> = {};
   try {
     for (const g of ['G1', 'G2', 'G3'] as const) {
       const { cid } = await ctx.c.invokeFn<{ cid: string }>('ensure-channel', a1.jwt, { kind: 'group', id: id(ctx, g) });
@@ -55,8 +55,10 @@ export async function seedChat(ctx: Ctx): Promise<{ skipped: string | null }> {
     // CH4: direct conversation with no messages at all.
     const empty = client.channel('messaging', { members: [a1.id, u(ctx, 'c09').id] });
     await empty.watch();
-    ctx.ids.CH3 = dm.cid ?? '';
-    ctx.ids.CH4 = empty.cid ?? '';
+    if (!dm.cid) throw new Error('Stream did not return a cid for the direct channel');
+    if (!empty.cid) throw new Error('Stream did not return a cid for the direct channel');
+    ctx.ids.CH3 = dm.cid;
+    ctx.ids.CH4 = empty.cid;
     await client.disconnectUser();
   }
   {
