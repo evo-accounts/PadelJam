@@ -53,6 +53,7 @@ export function NotificationItem({ n, onNavigate }: { n: NotificationRow; onNavi
           <div className="flex shrink-0 flex-col items-end gap-1">
             <Button
               size="sm"
+              disabled={completeCta.isPending}
               onClick={(e) => {
                 e.stopPropagation();
                 completeCta.mutate(n);
