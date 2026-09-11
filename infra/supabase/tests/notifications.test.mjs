@@ -80,7 +80,7 @@ await run('a freed confirmed spot is offered to the first waiter, who claims it'
   // w1's claim freed nothing, but the second leave did: w2 must now hold an offer of their own.
   assert((await notifs(w2.id, 'waitlist_spot', eventId)).length === 1, 'w2 offered after w1 claimed');
   const closed = await notifs(w1.id, 'waitlist_spot', eventId);
-  assert(closed.every((n) => n.cta_done && n.read_at), 'claim closes the claimant offers server-side');
+  assert(closed.length === 1 && closed.every((n) => n.cta_done && n.read_at), 'claim closes the claimant offers server-side');
 });
 
 await run('claiming with no free spot raises spot_taken; non-waiters are refused', async () => {
@@ -149,18 +149,27 @@ await run('finishing does not notify an organizer who did not play', async () =>
   assert((await notifs(players[0].id, 'results_published', eventId)).length === 1, 'player notified');
 });
 
-await run('organizer-performed confirmations and re-confirmations do not notify the organizer', async () => {
+await run('a confirmation performed by the organizer does not notify the organizer', async () => {
   const org = await user('org8');
   const groupId = await groupFor(org);
-  const p1 = await user('h1');
-  // p1 must be a group member before create_event runs its one-time invite-all-members insert.
-  await rpc(p1.jwt, 'join_group', { p_group_id: groupId });
+  const players = [];
+  for (const i of [0, 1, 2, 3]) players.push(await user(`h${i}`));
+  const waiter = await user('h4');
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
-  // p1 keeps the auto-invitation; the organizer confirms them from the roster.
-  await rpc(p1.jwt, 'accept_event_invitation', { p_event_id: eventId });      // player acted → 1
-  const [row] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${p1.id}&select=id`);
-  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: row.id }); // confirmed→confirmed, organizer acted → still 1
-  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 1, 'exactly one notification');
+  await del('event_invitations', `event_id=eq.${eventId}`);
+  for (const p of players) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
+  await rpc(waiter.jwt, 'join_group', { p_group_id: groupId });
+  assert((await rpc(waiter.jwt, 'join_event', { p_event_id: eventId })) === 'waiting_list', 'fifth player waits');
+  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 4, 'four player-initiated confirmations');
+  // The organizer promotes the waiter from the roster: waiting_list → confirmed, performed by the organizer.
+  const [row] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${waiter.id}&select=id`);
+  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: row.id });
+  const [after] = await sel('event_participants', `id=eq.${row.id}&select=status`);
+  assert(after.status === 'confirmed', 'waiter is now confirmed');
+  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 4, 'organizer-performed confirmation adds nothing');
+  // Re-confirming an already confirmed row is a no-op too.
+  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: row.id });
+  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 4, 'still four');
 });
 
 await run('finishing twice does not publish results twice', async () => {
