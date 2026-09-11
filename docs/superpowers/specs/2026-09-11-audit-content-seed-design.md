@@ -88,13 +88,13 @@ The mixed check runs first so a 4-men, 3-women event on two courts reports the g
 One migration:
 
 - Replace the `notifications_type_check` constraint with the current list plus `participant_confirmed`, `waitlist_spot`, `results_published`.
-- Trigger `trg_notify_on_participant_confirmed` on `event_participants`, after insert or update of `status`, when the new status is `confirmed` and the old one was not. Inserts `participant_confirmed` for the event's organizer with the player as actor and the event name as entity. Skipped when the player is the organizer, when `user_id` is null (guests are added by the organizer), or when `notif_blocked`.
+- Trigger `trg_notify_on_participant_confirmed` on `event_participants`, after insert or update of `status`, when the new status is `confirmed` and the old one was not. Inserts `participant_confirmed` for the event's organizer with the player as actor and the event name as entity. Skipped when the player is the organizer, when `user_id` is null (guests are added by the organizer), or when `notif_blocked`. Also skipped when the organizer performed the confirmation themselves (`auth.uid()` equals the organizer), so only player-initiated confirmations notify; service-role writes carry no JWT and still notify, which the seed relies on.
 - Helper `notify_waitlist_spot(p_event_id uuid, p_actor uuid)`: finds the participant with `status = 'waiting_list'` and the lowest `waiting_list_position`; inserts `waitlist_spot` for them with `ref_id` = their participant id, unless an unread, not-done `waitlist_spot` already exists for that user and event. Actor and entity as usual.
 - `leave_event` and `organizer_remove_participant` (current definitions: `0047` line 50 and `0081_activity_logging.sql` line 226) capture the removed row's status before deletion and call the helper when it was `confirmed`. Bodies otherwise unchanged.
 - `finish_event` (`0048` line 394) inserts `results_published` for every confirmed participant with a `user_id`, after the status update, with the organizer as actor. An organizer who played (`organizing_and_playing`) holds a participant row and is included; an organizer who did not play is not. Blocked pairs skipped. This is what lets E1, which A1 organized and played, produce N7 for A1.
 - New RPC `claim_waitlist_spot(p_event_id uuid) returns text`:
   - caller must hold a `waiting_list` row, else `not_on_waiting_list`;
-  - same join cutoff as `join_event` (`event_closed` inside six hours);
+  - same join cutoff as `join_event` (`event_closed` inside six hours), and the same team refusal (`use_team_join`), since team events pair through partner requests;
   - under the event roster advisory lock, if confirmed count is below `event_capacity`, set the row to `confirmed`, `is_standby = confirmed_count >= num_courts * 4`, `waiting_list_position = null`, renumber the remaining waiters, and return `confirmed`;
   - otherwise raise `spot_taken`.
   - granted to `authenticated`.
