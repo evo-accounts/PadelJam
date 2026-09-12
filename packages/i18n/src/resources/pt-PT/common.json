@@ -8,5 +8,7 @@
   "discardBody": "O que escreveste vai perder-se.",
   "discardConfirm": "Descartar",
   "missingInformation": "Falta informação",
-  "somethingWrong": "Algo não está certo"
+  "somethingWrong": "Algo não está certo",
+  "loadError": "Não foi possível carregar",
+  "retry": "Tentar novamente"
 }

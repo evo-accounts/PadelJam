@@ -12,7 +12,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../../theme';
-import { TopBar, useBanner, useConfirm } from '../../../../components/ui';
+import {
+  EmptyState,
+  emptyIcon,
+  listEmptyContent,
+  TopBar,
+  useBanner,
+  useConfirm,
+} from '../../../../components/ui';
 
 type JoinRequest = {
   id: string;
@@ -28,7 +35,7 @@ export default function ManageRequestsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data: requests, isLoading } = useCommunityRequests(id);
+  const { data: requests, isLoading, isError, refetch } = useCommunityRequests(id);
   const accept = useAcceptJoinRequest(id);
   const decline = useDeclineJoinRequest(id);
   const confirm = useConfirm();
@@ -79,10 +86,25 @@ export default function ManageRequestsScreen() {
       <FlashList
         data={(requests ?? []) as JoinRequest[]}
         keyExtractor={(r) => r.id}
+        contentContainerStyle={listEmptyContent}
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.empty}>{t('noRequests')}</Text>
-          </View>
+          isError ? (
+            <EmptyState
+              fill
+              tone="error"
+              title={t('loadError', { ns: 'common' })}
+              action={{ label: t('retry', { ns: 'common' }), onPress: () => refetch() }}
+              testID="empty-requests"
+            />
+          ) : (
+            <EmptyState
+              fill
+              icon={emptyIcon('person.badge.clock')}
+              title={t('noRequests')}
+              body={t('manageRequestsEmptyBody')}
+              testID="empty-requests"
+            />
+          )
         }
         renderItem={({ item }) => {
           const name = item.profiles?.full_name ?? '—';
@@ -128,7 +150,6 @@ export default function ManageRequestsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: colors.mutedForeground },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

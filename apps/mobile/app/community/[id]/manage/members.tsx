@@ -13,7 +13,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
 import { colors, palette } from '../../../../theme';
-import { TopBar, useActionSheet, useBanner } from '../../../../components/ui';
+import {
+  EmptyState,
+  emptyIcon,
+  listEmptyContent,
+  TopBar,
+  useActionSheet,
+  useBanner,
+} from '../../../../components/ui';
 
 const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 };
 
@@ -23,7 +30,7 @@ export default function ManageMembersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = useSession().session?.user.id;
 
-  const { data: members, isLoading } = useCommunityMembers(id);
+  const { data: members, isLoading, isError, refetch } = useCommunityMembers(id);
   const makeAdmin = useMakeAdmin(id);
   const removeAdmin = useRemoveAdmin(id);
   const removeMember = useRemoveMember(id);
@@ -112,10 +119,33 @@ export default function ManageMembersScreen() {
       <FlashList
         data={rows}
         keyExtractor={(m) => m.user_id}
+        contentContainerStyle={listEmptyContent}
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.empty}>{t('noMembers')}</Text>
-          </View>
+          isError ? (
+            <EmptyState
+              fill
+              tone="error"
+              title={t('loadError', { ns: 'common' })}
+              action={{ label: t('retry', { ns: 'common' }), onPress: () => refetch() }}
+              testID="empty-manage-members"
+            />
+          ) : (
+            <EmptyState
+              fill
+              icon={emptyIcon('person.2')}
+              title={t('noMembers')}
+              body={t('communityMembersEmptyBody')}
+              action={
+                canManage
+                  ? {
+                      label: t('communityMembersEmptyCta'),
+                      onPress: () => router.push(`/community/${id}/manage/invite`),
+                    }
+                  : undefined
+              }
+              testID="empty-manage-members"
+            />
+          )
         }
         renderItem={({ item }) => (
           <Pressable
@@ -139,7 +169,6 @@ export default function ManageMembersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: colors.mutedForeground },
   rowWrap: { flexDirection: 'row', alignItems: 'center' },
   rowFill: { flex: 1 },
   dots: { fontSize: 24, color: palette.slate[400], paddingHorizontal: 16 },

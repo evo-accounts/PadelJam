@@ -9,7 +9,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { colors } from '../../theme';
-import { TopBar } from '../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
 
 const FILTERS: MyEventsFilter[] = ['all', 'organizing', 'going'];
 
@@ -43,10 +43,30 @@ export default function EventsScreen() {
         <FlashList
           data={rows}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 96 }}
+          contentContainerStyle={[{ padding: 16, paddingBottom: insets.bottom + 96 }, listEmptyContent]}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           ListEmptyComponent={
-            <Text style={styles.empty}>{query.isError ? t('loadError') : t('empty')}</Text>
+            query.isError ? (
+              <EmptyState
+                fill
+                tone="error"
+                title={t('loadError')}
+                action={{ label: t('retry', { ns: 'common' }), onPress: () => query.refetch() }}
+                testID="empty-events"
+              />
+            ) : (
+              <EmptyState
+                fill
+                icon={emptyIcon('calendar')}
+                title={t('empty')}
+                body={t('eventsEmptyBody')}
+                action={{
+                  label: t('eventsEmptyCta'),
+                  onPress: () => router.push('/(tabs)/explore?tab=events' as never),
+                }}
+                testID="empty-events"
+              />
+            )
           }
           ListFooterComponent={
             query.isFetchingNextPage ? <ActivityIndicator color={colors.foreground} style={styles.state} /> : null
@@ -73,5 +93,4 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   chipTextActive: { color: colors.card },
   state: { paddingVertical: 24 },
-  empty: { textAlign: 'center', color: colors.mutedForeground, paddingVertical: 24 },
 });

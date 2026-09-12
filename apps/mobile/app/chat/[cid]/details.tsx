@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { streamClient } from '@/lib/streamClient';
 import { colors, palette } from '../../../theme';
-import { TopBar } from '../../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
 
 const COLS = 3;
 const GAP = 2;
@@ -67,17 +67,26 @@ export default function ChatDetailsScreen() {
       <Text style={styles.section}>{t('media')}</Text>
       {!initialised ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
-      ) : images.length === 0 && !hasMore ? (
-        <Text style={styles.empty}>{t('noPhotos')}</Text>
       ) : (
         <FlatList
           data={images}
           numColumns={COLS}
           keyExtractor={(u, i) => u + i}
           columnWrapperStyle={{ gap: GAP }}
-          contentContainerStyle={{ gap: GAP }}
+          contentContainerStyle={[{ gap: GAP }, listEmptyContent]}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
+          ListEmptyComponent={
+            hasMore ? null : (
+              <EmptyState
+                fill
+                icon={emptyIcon('photo')}
+                title={t('noPhotos')}
+                body={t('chatMediaEmptyBody')}
+                testID="empty-chat-media"
+              />
+            )
+          }
           ListFooterComponent={loading && images.length > 0 ? <ActivityIndicator color={colors.foreground} style={{ marginVertical: 16 }} /> : null}
           renderItem={({ item, index }) => (
             <Pressable onPress={() => setViewer(index)} accessibilityRole="imagebutton">
@@ -119,7 +128,6 @@ export default function ChatDetailsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   section: { fontSize: 13, fontWeight: '700', color: colors.mutedForeground, textTransform: 'uppercase', paddingHorizontal: 12, paddingVertical: 10 },
-  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
   viewer: { flex: 1, backgroundColor: palette.black, justifyContent: 'center' },
   close: { position: 'absolute', top: 48, right: 20, zIndex: 1, padding: 8 },
   closeText: { color: colors.card, fontSize: 22, fontWeight: '700' },

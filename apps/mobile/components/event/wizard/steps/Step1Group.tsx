@@ -6,6 +6,7 @@ import { useEventWizard } from '../CreateEventContext';
 import type { WizardStepProps } from '../draft';
 import { SelectableCard } from '../SelectableCard';
 import { colors } from '../../../../theme';
+import { EmptyState, emptyIcon } from '../../../../components/ui';
 
 export function Step1Group({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
@@ -51,7 +52,14 @@ function GroupList({
 
   return (
     <View style={styles.list}>
-      {rows.length === 0 ? <Text style={styles.hint}>{t('noGroupsYet')}</Text> : null}
+      {rows.length === 0 ? (
+        <EmptyState
+          icon={emptyIcon('person.3')}
+          title={t('noGroupsYet')}
+          body={t('step1GroupEmptyBody')}
+          testID="empty-step1-groups"
+        />
+      ) : null}
       {rows.map((group) => (
         <SelectableCard
           key={group.id}

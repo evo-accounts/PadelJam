@@ -17,7 +17,16 @@ import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
-import { Button, ListRow, Text, TopBar, useActionSheet } from '../../components/ui';
+import {
+  Button,
+  EmptyState,
+  emptyIcon,
+  listEmptyContent,
+  ListRow,
+  Text,
+  TopBar,
+  useActionSheet,
+} from '../../components/ui';
 
 function targetHref(n: NotificationRow): string | null {
   return notificationRoute(n);
@@ -94,15 +103,31 @@ export default function NotificationsScreen() {
 
       {list.isLoading ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
-      ) : list.isError ? (
-        <Text variant="caption" tone="muted" style={styles.empty}>{t('loadError')}</Text>
-      ) : rows.length === 0 ? (
-        <Text variant="caption" tone="muted" style={styles.empty}>{t('empty')}</Text>
       ) : (
         <FlashList
           data={rows}
           keyExtractor={(n) => n.id}
           onEndReached={() => list.hasNextPage && list.fetchNextPage()}
+          contentContainerStyle={listEmptyContent}
+          ListEmptyComponent={
+            list.isError ? (
+              <EmptyState
+                fill
+                tone="error"
+                title={t('loadError')}
+                action={{ label: t('retry', { ns: 'common' }), onPress: () => list.refetch() }}
+                testID="empty-notifications"
+              />
+            ) : (
+              <EmptyState
+                fill
+                icon={emptyIcon('bell')}
+                title={t('empty')}
+                body={t('notificationsEmptyBody')}
+                testID="empty-notifications"
+              />
+            )
+          }
           renderItem={({ item }) => (
             <ListRow
               variant="card"
@@ -147,5 +172,4 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
 });

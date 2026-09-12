@@ -8,5 +8,7 @@
   "discardBody": "What you entered will be lost.",
   "discardConfirm": "Discard",
   "missingInformation": "Missing information",
-  "somethingWrong": "Something isn't right"
+  "somethingWrong": "Something isn't right",
+  "loadError": "Couldn't load this",
+  "retry": "Retry"
 }

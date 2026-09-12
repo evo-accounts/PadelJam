@@ -9,7 +9,7 @@ import { geocodeAddress } from '@/lib/geocode';
 
 import type { WizardStepProps } from '../draft';
 import { colors, palette } from '../../../../theme';
-import { Button } from '../../../../components/ui';
+import { Button, EmptyState, emptyIcon } from '../../../../components/ui';
 
 export function Step5Location({ draft, patch }: WizardStepProps) {
   const { t } = useT('event');
@@ -103,7 +103,12 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         venues.isLoading ? (
           <ActivityIndicator color={colors.foreground} style={{ marginTop: 8 }} />
         ) : results.length === 0 ? (
-          <Text style={styles.empty}>{t('venueResultsEmpty')}</Text>
+          <EmptyState
+            icon={emptyIcon('mappin')}
+            title={t('venueResultsEmpty')}
+            body={t('step5LocationEmptyBody')}
+            testID="empty-step5-venues"
+          />
         ) : (
           results.map((v: { id: string; name: string; address: string | null }) => (
             <Pressable
@@ -164,7 +169,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '800', color: colors.foreground, marginBottom: 4 },
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
-  empty: { color: colors.mutedForeground, fontSize: 13, paddingVertical: 8 },
   denied: { color: colors.destructive, fontSize: 12, marginTop: 6, textAlign: 'center' },
   venueRow: { backgroundColor: colors.card, borderRadius: 10, padding: 12, marginTop: 6, borderWidth: 1, borderColor: colors.muted },
   venueRowOn: { borderColor: colors.primary, backgroundColor: palette.purple[100] },

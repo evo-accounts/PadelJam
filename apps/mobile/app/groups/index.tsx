@@ -41,9 +41,12 @@ export default function YourGroupsScreen() {
       {groups.isLoading ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : groups.isError ? (
-        <Text variant="body" tone="muted" style={styles.empty}>
-          {t('loadError')}
-        </Text>
+        <EmptyState
+          tone="error"
+          title={t('loadError')}
+          action={{ label: t('retry', { ns: 'common' }), onPress: () => groups.refetch() }}
+          testID="empty-groups"
+        />
       ) : rows.length === 0 ? (
         <EmptyState
           title={t('groupsEmpty')}
@@ -82,6 +85,4 @@ export default function YourGroupsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   tabs: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
-  // Only layout survives: `Text` carries the size and colour via variant/tone.
-  empty: { textAlign: 'center', marginTop: 48 },
 });

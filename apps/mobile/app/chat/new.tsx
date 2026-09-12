@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { streamClient } from '@/lib/streamClient';
 import { colors } from '../../theme';
-import { TopBar } from '../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
 
 type Person = { id: string; full_name: string | null; avatar_url: string | null };
 
@@ -51,12 +51,24 @@ export default function NewChatScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {following.isLoading ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
-      ) : rows.length === 0 ? (
-        <Text style={styles.empty}>{t('noFollows')}</Text>
       ) : (
         <FlashList
           data={rows}
           keyExtractor={(p) => p.id}
+          contentContainerStyle={listEmptyContent}
+          ListEmptyComponent={
+            <EmptyState
+              fill
+              icon={emptyIcon('bubble.left.and.bubble.right')}
+              title={t('noFollows')}
+              body={t('chatNewEmptyBody')}
+              action={{
+                label: t('chatNewEmptyCta'),
+                onPress: () => router.push('/(tabs)/explore?tab=players' as never),
+              }}
+              testID="empty-chat-new"
+            />
+          }
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => openChat(item)} disabled={busy} accessibilityRole="button">
               <Image
@@ -79,6 +91,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, marginHorizontal: 12, marginBottom: 6, borderRadius: 12, padding: 12 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
   name: { fontSize: 15, fontWeight: '600', color: colors.foreground },
-  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
   error: { color: colors.destructive, fontSize: 13, marginHorizontal: 12, marginBottom: 4 },
 });

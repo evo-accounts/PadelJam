@@ -31,7 +31,7 @@ import { RankingList } from '@/components/group/RankingList';
 import { avatarUrl } from '@/lib/community-images';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors, palette } from '../../../theme';
-import { Avatar, Badge, BottomSheet, Button, Chip, ListRow, SheetRow, Text, TopBar, useActionSheet, useBanner } from '../../../components/ui';
+import { Avatar, Badge, BottomSheet, Button, Chip, EmptyState, emptyIcon, ListRow, SheetRow, Text, TopBar, useActionSheet, useBanner } from '../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -248,7 +248,17 @@ export default function GroupHomeScreen() {
             }
           />
           {eventRows.length === 0 ? (
-            <Text variant="caption" tone="muted">{t('event:eventsEmpty')}</Text>
+            <EmptyState
+              icon={emptyIcon('calendar')}
+              title={t('groupEventsEmptyTitle')}
+              body={t('groupEventsEmptyBody')}
+              action={{
+                label: t('groupEventsEmptyCta'),
+                onPress: () =>
+                  router.push(`/event/create?groupId=${id}&communityId=${communityId ?? ''}` as Href),
+              }}
+              testID="empty-group-events"
+            />
           ) : (
             <View style={styles.eventList}>
               {eventRows.map((e) => (

@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '../../../theme';
-import { TopBar } from '../../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
 
 export default function FollowersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,9 +23,21 @@ export default function FollowersScreen() {
       <FlashList
         data={rows}
         keyExtractor={(it) => it.id}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={[{ padding: 16 }, listEmptyContent]}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-        ListEmptyComponent={<Text style={styles.empty}>{t('emptyFollowers')}</Text>}
+        ListEmptyComponent={
+          // `query.isLoading` gates this so the empty card doesn't flash before
+          // the first page of followers arrives.
+          query.isLoading ? null : (
+            <EmptyState
+              fill
+              icon={emptyIcon('person.2')}
+              title={t('emptyFollowers')}
+              body={t('followersEmptyBody')}
+              testID="empty-followers"
+            />
+          )
+        }
         onEndReachedThreshold={0.5}
         onEndReached={() => {
           if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
@@ -45,5 +57,4 @@ const styles = StyleSheet.create({
   search: { margin: 16, marginBottom: 0, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
   row: { backgroundColor: colors.card, borderRadius: 12, padding: 16 },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.foreground },
-  empty: { textAlign: 'center', color: colors.mutedForeground, paddingVertical: 24 },
 });

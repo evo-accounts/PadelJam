@@ -3,12 +3,12 @@ import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GroupMemberRow, type GroupMember } from '@/components/group/GroupMemberRow';
 import { colors } from '../../../theme';
-import { TopBar } from '../../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
 
 export default function GroupMembersScreen() {
   const { t } = useT('group');
@@ -49,10 +49,19 @@ export default function GroupMembersScreen() {
           data={rows}
           keyExtractor={(m) => m.user_id}
           renderItem={({ item }) => <GroupMemberRow member={item} />}
+          contentContainerStyle={listEmptyContent}
           ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.empty}>{t('membersTitle')}</Text>
-            </View>
+            <EmptyState
+              fill
+              icon={emptyIcon('person.2')}
+              title={t('groupMembersEmptyTitle')}
+              body={t('groupMembersEmptyBody')}
+              // Ungated: the invite route is open to every group member, not just
+              // an organizer/admin, and is already linked from the group detail
+              // screen — there is no permission check to gate this CTA on.
+              action={{ label: t('groupMembersEmptyCta'), onPress: () => router.push(`/group/${id}/invite` as never) }}
+              testID="empty-group-members"
+            />
           }
         />
       )}
@@ -72,5 +81,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: colors.mutedForeground },
 });

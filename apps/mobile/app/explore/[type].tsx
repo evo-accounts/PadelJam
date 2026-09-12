@@ -7,7 +7,7 @@ import {
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventCard } from '@/components/event/EventCard';
@@ -15,7 +15,7 @@ import { CommunityCard } from '@/components/explore/CommunityCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
 import { colors } from '../../theme';
-import { TopBar } from '../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
 
 type ExploreType = 'players' | 'events' | 'communities' | 'groups';
 
@@ -76,9 +76,21 @@ export default function ExploreSeeAllScreen() {
           data={rows}
           keyExtractor={(item) => item.id}
           numColumns={kind === 'players' ? 3 : 1}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, listEmptyContent]}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-          ListEmptyComponent={<Text style={styles.empty}>{active.isError ? t('loadError') : t(emptyKey)}</Text>}
+          ListEmptyComponent={
+            active.isError ? (
+              <EmptyState
+                fill
+                tone="error"
+                title={t('loadError', { ns: 'common' })}
+                action={{ label: t('retry', { ns: 'common' }), onPress: () => active.refetch() }}
+                testID="empty-explore-seeall"
+              />
+            ) : (
+              <EmptyState fill icon={emptyIcon('magnifyingglass')} title={t(emptyKey)} testID="empty-explore-seeall" />
+            )
+          }
           ListFooterComponent={active.isFetchingNextPage ? <ActivityIndicator color={colors.foreground} style={styles.state} /> : null}
           onEndReachedThreshold={0.5}
           onEndReached={() => {
@@ -95,5 +107,4 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: 16 },
   state: { paddingVertical: 24 },
-  empty: { textAlign: 'center', color: colors.mutedForeground, paddingVertical: 24 },
 });

@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, palette } from '../../../theme';
-import { Button, Text, TopBar } from '../../../components/ui';
+import { Button, EmptyState, emptyIcon, Text, TopBar } from '../../../components/ui';
 
 type Runner = (fn: () => Promise<unknown>) => void;
 
@@ -150,7 +150,11 @@ export default function PartnerRequestsScreen() {
 
         {/* Empty state */}
         {incoming.length === 0 && outgoing.length === 0 && !hasGroup ? (
-          <Text style={styles.emptyText}>{t('noPartnerRequests')}</Text>
+          <EmptyState
+            icon={emptyIcon('person.badge.clock')}
+            title={t('noPartnerRequests')}
+            testID="empty-partner-requests"
+          />
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -191,7 +195,11 @@ function CandidateList({
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{t('choosePartnerTitle')}</Text>
       {candidates.length === 0 ? (
-        <Text style={styles.emptyText}>{t('noPartnerRequests')}</Text>
+        <EmptyState
+          icon={emptyIcon('person.badge.clock')}
+          title={t('noPartnerRequests')}
+          testID="empty-partner-candidates"
+        />
       ) : null}
       {candidates.map((m) => (
         <View key={m.user_id} style={styles.row}>
@@ -254,7 +262,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  emptyText: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', marginTop: 32 },
   error: { fontSize: 14, fontWeight: '600', color: colors.destructive, marginTop: 12, textAlign: 'center' },
 
   // Buttons

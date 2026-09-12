@@ -13,7 +13,7 @@ import { EventCard } from '@/components/event/EventCard';
 import { CommunityCard } from '@/components/explore/CommunityCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
-import { Text } from '@/components/ui';
+import { EmptyState, emptyIcon, listEmptyContent } from '@/components/ui';
 import { colors } from '../../theme';
 
 export type ExploreKind = 'players' | 'events' | 'communities' | 'groups';
@@ -88,14 +88,30 @@ export function ExploreList({ kind, query = '' }: { kind: ExploreKind; query?: s
       data={rows}
       keyExtractor={(item) => item.id}
       numColumns={kind === 'players' ? 3 : 1}
-      contentContainerStyle={styles.list}
+      contentContainerStyle={[styles.list, listEmptyContent]}
       ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListEmptyComponent={
-        <Text variant="caption" tone="muted" style={styles.empty}>
-          {/* A query that matches nothing is not the same as having nothing —
-              saying "no communities yet" to someone who typed "zzz" is wrong. */}
-          {active.isError ? t('loadError') : q ? t('noMatches') : t(emptyKey)}
-        </Text>
+        active.isError ? (
+          <EmptyState
+            fill
+            tone="error"
+            title={t('loadError', { ns: 'common' })}
+            action={{ label: t('retry', { ns: 'common' }), onPress: () => active.refetch() }}
+            testID="empty-explore"
+          />
+        ) : q ? (
+          // A query that matches nothing is not the same as having nothing —
+          // saying "no communities yet" to someone who typed "zzz" is wrong.
+          <EmptyState
+            fill
+            icon={emptyIcon('magnifyingglass')}
+            title={t('noMatches')}
+            body={t('tryBroaderSearch')}
+            testID="empty-explore"
+          />
+        ) : (
+          <EmptyState fill icon={emptyIcon('magnifyingglass')} title={t(emptyKey)} testID="empty-explore" />
+        )
       }
       ListFooterComponent={
         active.isFetchingNextPage ? (
@@ -114,5 +130,4 @@ export function ExploreList({ kind, query = '' }: { kind: ExploreKind; query?: s
 const styles = StyleSheet.create({
   list: { padding: 16 },
   state: { paddingVertical: 24 },
-  empty: { textAlign: 'center', paddingVertical: 24 },
 });
