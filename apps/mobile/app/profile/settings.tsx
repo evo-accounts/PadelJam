@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { unregisterForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
-import { Button, Chip, ListRow, Text, TopBar } from '../../components/ui';
+import { Badge, BottomSheet, Button, ListRow, Text, TopBar } from '../../components/ui';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
@@ -53,17 +53,8 @@ export default function SettingsScreen() {
           title={t('language')}
           trailing={<Text variant="body" tone="muted">{t(current.key)}</Text>}
           trailingLabel={t(current.key)}
-          onPress={() => setLangOpen((v) => !v)}
+          onPress={() => setLangOpen(true)}
         />
-        {langOpen &&
-          LANGS.map((l) => (
-            <Chip
-              key={l.code}
-              label={t(l.key)}
-              selected={l.code === current.code}
-              onPress={() => onSelectLang(l.code)}
-            />
-          ))}
         <ListRow title={t('appIcon')} onPress={() => router.push('/profile/app-icon')} />
         <ListRow title={t('notifications')} onPress={() => router.push('/profile/notifications')} />
 
@@ -96,6 +87,19 @@ export default function SettingsScreen() {
           onPress={onLogout}
         />
       </ScrollView>
+
+      <BottomSheet visible={langOpen} onClose={() => setLangOpen(false)} title={t('languageSheetTitle')} testID="language-sheet">
+        {LANGS.map((l) => (
+          <ListRow
+            key={l.code}
+            title={t(l.key)}
+            selected={l.code === current.code}
+            trailing={l.code === current.code ? <Badge label="✓" tone="primary" /> : undefined}
+            onPress={() => onSelectLang(l.code)}
+            testID={`language-sheet-${l.code}`}
+          />
+        ))}
+      </BottomSheet>
     </SafeAreaView>
   );
 }
