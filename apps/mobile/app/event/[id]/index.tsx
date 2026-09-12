@@ -27,6 +27,7 @@ import { useGoBack } from '@/lib/useGoBack';
 import { pendingActions } from '@/lib/pendingActions';
 import { PendingActionsSheet } from '../../../components/event/PendingActionsSheet';
 import { mixedBalance } from '@/lib/mixedBalance';
+import { avatarUrl } from '@/lib/community-images';
 import {
   ActivityIndicator,
   ScrollView,
@@ -36,7 +37,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, palette } from '../../../theme';
-import { Button, Card, TopBar } from '../../../components/ui';
+import { Avatar, Button, Card, TopBar } from '../../../components/ui';
 
 /** Capitalize the first character of a raw enum value (rest left untouched). */
 function cap(value: string): string {
@@ -572,11 +573,14 @@ export default function EventDetailScreen() {
                 const pName = p.profiles?.full_name ?? p.guest_name ?? '—';
                 return (
                   <View key={p.id} style={styles.playerRow}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarInitial}>
-                        {(pName.charAt(0) || '?').toUpperCase()}
-                      </Text>
-                    </View>
+                    {/* Decorative: the player's name is right beside it as its own Text node. */}
+                    <Avatar
+                      uri={avatarUrl(p.profiles?.avatar_url)}
+                      name={pName}
+                      colourKey={p.profiles?.id ?? p.user_id}
+                      size="sm"
+                      decorative
+                    />
                     <Text style={styles.playerName}>{pName}</Text>
                   </View>
                 );
@@ -688,15 +692,6 @@ const styles = StyleSheet.create({
   // Players
   playerList: { marginTop: 12, gap: 10 },
   playerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitial: { color: colors.card, fontSize: 13, fontWeight: '700' },
   playerName: { fontSize: 15, color: colors.foreground, fontWeight: '500' },
 
   // Details

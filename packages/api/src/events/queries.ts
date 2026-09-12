@@ -355,7 +355,8 @@ export interface ActivityRow {
   action: string;
   detail: { target_name?: string; guest_name?: string; mode?: string; status?: string; changes?: string[] } | null;
   created_at: string;
-  profiles: { full_name: string | null; avatar_url: string | null } | null;
+  actor_id: string | null;
+  profiles: { id: string; full_name: string | null; avatar_url: string | null } | null;
 }
 
 export const useEventActivity = (eventId: string) => {
@@ -365,7 +366,7 @@ export const useEventActivity = (eventId: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('event_activity')
-        .select('id, action, detail, created_at, profiles:actor_id (full_name, avatar_url)')
+        .select('id, action, detail, created_at, actor_id, profiles:actor_id (id, full_name, avatar_url)')
         .eq('event_id', eventId)
         .order('created_at', { ascending: false })
         .returns<ActivityRow[]>();

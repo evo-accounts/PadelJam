@@ -28,8 +28,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamManage } from '@/components/event/TeamManage';
+import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../theme';
 import {
+  Avatar,
   Button,
   Chip,
   EmptyState,
@@ -253,9 +255,14 @@ export default function EventManageScreen() {
     const showConfirm = p.status !== 'confirmed';
     return (
       <View key={p.id} style={styles.row}>
-        <View style={styles.avatar}>
-          <Text variant="hint" tone="inverse">{(name.charAt(0) || '?').toUpperCase()}</Text>
-        </View>
+        {/* Decorative: the participant's name is right beside it as its own Text node. */}
+        <Avatar
+          uri={avatarUrl(p.profiles?.avatar_url)}
+          name={name}
+          colourKey={p.profiles?.id ?? p.user_id}
+          size="sm"
+          decorative
+        />
         <Text variant="body" numberOfLines={1} style={styles.rowName}>
           {name}
         </Text>
@@ -410,11 +417,14 @@ export default function EventManageScreen() {
                   const name = inv.invitee?.full_name ?? inv.invitee_name ?? '—';
                   return (
                     <View key={inv.id} style={styles.row}>
-                      <View style={styles.avatar}>
-                        <Text variant="hint" tone="inverse">
-                          {(name.charAt(0) || '?').toUpperCase()}
-                        </Text>
-                      </View>
+                      {/* Decorative: the invitee's name is right beside it as its own Text node. */}
+                      <Avatar
+                        uri={avatarUrl(inv.invitee?.avatar_url)}
+                        name={name}
+                        colourKey={inv.invitee?.id ?? inv.invitee_id}
+                        size="sm"
+                        decorative
+                      />
                       <Text variant="body" numberOfLines={1} style={styles.rowName}>
                         {name}
                       </Text>
@@ -525,14 +535,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingVertical: 8,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   rowName: { flex: 1, fontSize: 15, color: colors.foreground, fontWeight: '500' },
   rowActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -1,6 +1,5 @@
 import { useCommunityMembers, useDb, useInviteMembers } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -9,6 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
 import {
+  Avatar,
   Chip,
   EmptyState,
   emptyIcon,
@@ -201,17 +201,12 @@ export default function ManageInviteScreen() {
         }
         renderItem={({ item }) => {
           const name = item.full_name ?? '—';
-          const url = avatarUrl(item.avatar_url);
           const isSelected = !!selected[item.id];
           return (
             <Pressable style={styles.personRow} onPress={() => toggleSelect(item)}>
-              {url ? (
-                <Image source={{ uri: url }} style={styles.avatar} contentFit="cover" transition={120} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarFallback]}>
-                  <Text style={styles.avatarInitial}>{(name.charAt(0) || '?').toUpperCase()}</Text>
-                </View>
-              )}
+              {/* The row's name Text already labels this button; hide the
+                  avatar from the accessibility tree so it isn't announced twice. */}
+              <Avatar uri={avatarUrl(item.avatar_url)} name={name} colourKey={item.id} size="md" decorative />
               <Text style={styles.name} numberOfLines={1}>
                 {name}
               </Text>
@@ -292,9 +287,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
-  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
   name: { flex: 1, fontSize: 16, color: colors.foreground, fontWeight: '500' },
   check: {
     width: 24,

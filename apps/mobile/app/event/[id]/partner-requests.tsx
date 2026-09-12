@@ -19,7 +19,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, palette } from '../../../theme';
-import { Button, EmptyState, emptyIcon, Text, TopBar } from '../../../components/ui';
+import { Avatar, Button, EmptyState, emptyIcon, Text, TopBar } from '../../../components/ui';
+import { avatarUrl } from '@/lib/community-images';
 
 type Runner = (fn: () => Promise<unknown>) => void;
 
@@ -112,9 +113,19 @@ export default function PartnerRequestsScreen() {
           <View style={styles.section}>
             {incoming.map((r) => (
               <View key={r.id} style={styles.card}>
-                <Text variant="body">
-                  {t('partnerIncoming', { name: r.requester?.full_name ?? '—' })}
-                </Text>
+                <View style={styles.requestRow}>
+                  {/* Decorative: the requester's name is already part of the sentence beside it. */}
+                  <Avatar
+                    uri={avatarUrl(r.requester?.avatar_url)}
+                    name={r.requester?.full_name}
+                    colourKey={r.requester?.id ?? r.requester_id}
+                    size="sm"
+                    decorative
+                  />
+                  <Text variant="body" style={styles.requestText}>
+                    {t('partnerIncoming', { name: r.requester?.full_name ?? '—' })}
+                  </Text>
+                </View>
                 <View style={styles.actionRow}>
                   <Button label={t('declineCta')} variant="outline" size="sm" disabled={busy} onPress={() => onDecline(r.id)} />
                   <Button label={t('acceptCta')} size="sm" disabled={busy} onPress={() => onAccept(r.id)} />
@@ -129,7 +140,17 @@ export default function PartnerRequestsScreen() {
           <View style={styles.section}>
             {outgoing.map((r) => (
               <View key={r.id} style={styles.row}>
-                <Text variant="body">{r.target?.full_name ?? '—'}</Text>
+                <View style={styles.requestRow}>
+                  {/* Decorative: the target's name is right beside it as its own Text node. */}
+                  <Avatar
+                    uri={avatarUrl(r.target?.avatar_url)}
+                    name={r.target?.full_name}
+                    colourKey={r.target?.id ?? r.target_id}
+                    size="sm"
+                    decorative
+                  />
+                  <Text variant="body">{r.target?.full_name ?? '—'}</Text>
+                </View>
                 <Text variant="hint" tone="muted">{t('partnerRequestPending')}</Text>
               </View>
             ))}
@@ -203,7 +224,17 @@ function CandidateList({
       ) : null}
       {candidates.map((m) => (
         <View key={m.user_id} style={styles.row}>
-          <Text variant="body">{m.profiles?.full_name ?? '—'}</Text>
+          <View style={styles.requestRow}>
+            {/* Decorative: the candidate's name is right beside it as its own Text node. */}
+            <Avatar
+              uri={avatarUrl(m.profiles?.avatar_url)}
+              name={m.profiles?.full_name}
+              colourKey={m.profiles?.id ?? m.user_id}
+              size="sm"
+              decorative
+            />
+            <Text variant="body">{m.profiles?.full_name ?? '—'}</Text>
+          </View>
           <Button
             label={t('requestPartnerCta')}
             variant="outline"
@@ -247,6 +278,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionRow: { flexDirection: 'row', gap: 12 },
+  requestRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
+  requestText: { flex: 1 },
 
   // Generic rows
   row: {

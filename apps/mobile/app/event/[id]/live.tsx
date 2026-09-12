@@ -15,7 +15,7 @@ import {
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -29,8 +29,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShareResultsModal } from '@/components/event/ShareResultsModal';
 import { TimerTab } from '@/components/event/TimerTab';
+import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../theme';
-import { BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, TopBar } from '../../../components/ui';
+import { Avatar, BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, TopBar } from '../../../components/ui';
 
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
 type MatchPlayer = MatchRow['match_players'][number];
@@ -41,10 +42,35 @@ function playerName(mp: MatchPlayer): string {
   return ep?.profiles?.full_name ?? ep?.guest_name ?? '—';
 }
 
-/** Join a side's player names with a separator (numbers/glue only). */
-function sideNames(players: MatchPlayer[], side: 'a' | 'b'): string {
-  const names = players.filter((mp) => mp.side === side).map(playerName);
-  return names.length > 0 ? names.join(' & ') : '—';
+/** One match side: an avatar + name row per player (doubles = up to two rows). */
+function SidePlayers({ players, side }: { players: MatchPlayer[]; side: 'a' | 'b' }) {
+  const sidePlayers = players.filter((mp) => mp.side === side);
+  if (sidePlayers.length === 0) {
+    return <Text style={styles.sideNames}>—</Text>;
+  }
+  return (
+    <View style={styles.sideColumn}>
+      {sidePlayers.map((mp) => {
+        const ep = mp.event_participants;
+        const name = playerName(mp);
+        return (
+          <View key={mp.id} style={styles.sidePlayerRow}>
+            {/* Decorative: the player's name is right beside it as its own Text node. */}
+            <Avatar
+              uri={avatarUrl(ep?.profiles?.avatar_url)}
+              name={name}
+              colourKey={ep?.profiles?.id ?? ep?.user_id}
+              size="sm"
+              decorative
+            />
+            <Text style={styles.sideNames} numberOfLines={1}>
+              {name}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
 }
 
 export default function EventLiveScreen() {
@@ -68,6 +94,21 @@ export default function EventLiveScreen() {
   const generateNextRound = useGenerateNextRound(id);
   const finishEvent = useFinishEvent(id);
   const setEventRanking = useSetEventRanking(id);
+
+  // Participant id -> display name + avatar, for standings and the resting list
+  // (the standings() RPC and event_matches embed carry their own profile data,
+  // but standings only returns entity_id, so this map is how it gets a face).
+  const participantById = useMemo(() => {
+    const map = new Map<string, { name: string; avatarUrl: string | null; colourKey: string | null }>();
+    for (const p of participantsData ?? []) {
+      map.set(p.id, {
+        name: p.profiles?.full_name ?? p.guest_name ?? '—',
+        avatarUrl: p.profiles?.avatar_url ?? null,
+        colourKey: p.profiles?.id ?? p.user_id ?? null,
+      });
+    }
+    return map;
+  }, [participantsData]);
 
   const rounds = roundsData ?? [];
   const lastRound = rounds.length > 0 ? rounds[rounds.length - 1] : undefined;
@@ -152,11 +193,6 @@ export default function EventLiveScreen() {
   const standings = standingsData ?? [];
   const teams = teamsData ?? [];
 
-  // Name map: participant id -> display name.
-  const nameById = new Map<string, string>();
-  for (const p of participants) {
-    nameById.set(p.id, p.profiles?.full_name ?? p.guest_name ?? '—');
-  }
   // Team-number map for leaderboard team rows.
   const teamNumberById = new Map<string, number>();
   for (const team of teams) {
@@ -166,7 +202,7 @@ export default function EventLiveScreen() {
   // Plain-text results summary for the share sheet.
   const resultsSummary = [
     `🏆 ${event.name}`,
-    ...standings.map((s) => `${s.rank}. ${nameById.get(s.entity_id) ?? '—'} (${s.points})`),
+    ...standings.map((s) => `${s.rank}. ${participantById.get(s.entity_id)?.name ?? '—'} (${s.points})`),
   ].join('\n');
 
   // --- Matches for the selected round, sorted by court ---
@@ -414,14 +450,10 @@ export default function EventLiveScreen() {
                       ) : null}
                     </View>
                     <View style={styles.matchBody}>
-                      <Text style={styles.sideNames} numberOfLines={2}>
-                        {sideNames(m.match_players, 'a')}
-                      </Text>
+                      <SidePlayers players={m.match_players} side="a" />
                       <Text style={styles.score}>{scoreText(m)}</Text>
                       <Text style={styles.vs}>{t('vsLabel')}</Text>
-                      <Text style={styles.sideNames} numberOfLines={2}>
-                        {sideNames(m.match_players, 'b')}
-                      </Text>
+                      <SidePlayers players={m.match_players} side="b" />
                     </View>
                     {showHint ? (
                       <Text style={styles.tapHint}>{t('tapToScore')}</Text>
@@ -441,11 +473,22 @@ export default function EventLiveScreen() {
               {resting.length > 0 ? (
                 <View style={styles.restingSection}>
                   <Text style={styles.sectionTitle}>{t('restingTitle')}</Text>
-                  {resting.map((p) => (
-                    <Text key={p.id} style={styles.restingName}>
-                      {nameById.get(p.id) ?? '—'}
-                    </Text>
-                  ))}
+                  {resting.map((p) => {
+                    const info = participantById.get(p.id);
+                    return (
+                      <View key={p.id} style={styles.restingRow}>
+                        {/* Decorative: the resting player's name is right beside it as its own Text node. */}
+                        <Avatar
+                          uri={avatarUrl(info?.avatarUrl)}
+                          name={info?.name}
+                          colourKey={info?.colourKey}
+                          size="sm"
+                          decorative
+                        />
+                        <Text style={styles.restingName}>{info?.name ?? '—'}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
               ) : null}
             </>
@@ -463,20 +506,33 @@ export default function EventLiveScreen() {
           <View style={styles.board}>
             <View style={[styles.boardRow, styles.boardHeaderRow]}>
               <Text style={[styles.colRank, styles.boardHeader]}>{t('rankCol')}</Text>
-              <Text style={[styles.colPlayer, styles.boardHeader]}>{t('playerCol')}</Text>
+              <Text style={[styles.colPlayerText, styles.boardHeader]}>{t('playerCol')}</Text>
               <Text style={[styles.colPoints, styles.boardHeader]}>{t('pointsCol')}</Text>
               <Text style={[styles.colRecord, styles.boardHeader]}>{t('recordCol')}</Text>
             </View>
             {standings.map((s) => {
+              const info = s.is_team ? null : participantById.get(s.entity_id);
               const name = s.is_team
                 ? t('teamLabel', { n: teamNumberById.get(s.entity_id) ?? 0 })
-                : (nameById.get(s.entity_id) ?? '—');
+                : (info?.name ?? '—');
               return (
                 <View key={s.entity_id} style={styles.boardRow}>
                   <Text style={styles.colRank}>{s.rank}</Text>
-                  <Text style={styles.colPlayer} numberOfLines={1}>
-                    {name}
-                  </Text>
+                  <View style={styles.colPlayer}>
+                    {!s.is_team ? (
+                      // Decorative: the standing's name is right beside it as its own Text node.
+                      <Avatar
+                        uri={avatarUrl(info?.avatarUrl)}
+                        name={name}
+                        colourKey={info?.colourKey}
+                        size="sm"
+                        decorative
+                      />
+                    ) : null}
+                    <Text style={styles.colPlayerText} numberOfLines={1}>
+                      {name}
+                    </Text>
+                  </View>
                   <Text style={styles.colPoints}>{s.points}</Text>
                   <Text style={styles.colRecord}>{`${s.wins}-${s.draws}-${s.losses}`}</Text>
                 </View>
@@ -537,13 +593,11 @@ export default function EventLiveScreen() {
       >
         {scoringMatch != null ? (
           <>
-            <Text style={styles.modalSide} numberOfLines={2}>
-              {sideNames(scoringMatch.match_players, 'a')}
-            </Text>
-            <Text style={styles.vs}>{t('vsLabel')}</Text>
-            <Text style={styles.modalSide} numberOfLines={2}>
-              {sideNames(scoringMatch.match_players, 'b')}
-            </Text>
+            <View style={styles.matchBody}>
+              <SidePlayers players={scoringMatch.match_players} side="a" />
+              <Text style={styles.vs}>{t('vsLabel')}</Text>
+              <SidePlayers players={scoringMatch.match_players} side="b" />
+            </View>
 
             {isPoints ? (
               <>
@@ -703,6 +757,8 @@ const styles = StyleSheet.create({
   mineChip: { backgroundColor: palette.purple[100], borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   mineChipText: { fontSize: 11, fontWeight: '700', color: colors.primary },
   matchBody: { alignItems: 'center', gap: 4 },
+  sideColumn: { alignItems: 'center', gap: 4 },
+  sidePlayerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sideNames: { fontSize: 16, fontWeight: '600', color: colors.foreground, textAlign: 'center' },
   score: { fontSize: 22, fontWeight: '800', color: colors.foreground },
   vs: { fontSize: 12, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
@@ -716,6 +772,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4,
   },
+  restingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   restingName: { fontSize: 15, color: colors.foreground, fontWeight: '500' },
 
   // Leaderboard
@@ -742,7 +799,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   colRank: { width: 40, fontSize: 15, fontWeight: '700', color: colors.foreground },
-  colPlayer: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
+  colPlayer: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  colPlayerText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
   colPoints: { width: 56, textAlign: 'right', fontSize: 15, fontWeight: '700', color: colors.foreground },
   colRecord: { width: 72, textAlign: 'right', fontSize: 14, color: colors.mutedForeground },
 

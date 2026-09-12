@@ -1,11 +1,11 @@
 import { useT } from '@padel/i18n';
-import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
 
 import { RankingPlaceholder } from './RankingPlaceholder';
 import { colors, palette } from '../../theme';
+import { Avatar } from '../ui';
 
 /** A single leaderboard row. Fed empty for now; populated once Events lands. */
 export type RankingRow = {
@@ -37,25 +37,11 @@ export function RankingList({ rows }: { rows: RankingRow[] }) {
       </View>
       {rows.map((row) => {
         const name = row.name ?? '—';
-        const url = avatarUrl(row.avatarUrl);
         return (
           <View key={row.userId} style={styles.row}>
             <Text style={[styles.rank, styles.rankCol]}>{row.rank}</Text>
             <View style={[styles.playerCol, styles.player]}>
-              {url ? (
-                <Image
-                  source={{ uri: url }}
-                  style={styles.avatar}
-                  contentFit="cover"
-                  transition={120}
-                />
-              ) : (
-                <View style={[styles.avatar, styles.avatarFallback]}>
-                  <Text style={styles.avatarInitial}>
-                    {(name.charAt(0) || '?').toUpperCase()}
-                  </Text>
-                </View>
-              )}
+              <Avatar uri={avatarUrl(row.avatarUrl)} name={name} colourKey={row.userId} size="md" decorative />
               <View style={styles.playerText}>
                 <Text style={styles.name} numberOfLines={1}>
                   {name}
@@ -90,9 +76,6 @@ const styles = StyleSheet.create({
   pointsCol: { width: 56, textAlign: 'right' },
   rank: { fontSize: 16, fontWeight: '700', color: colors.primary },
   player: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
-  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
   playerText: { flex: 1 },
   name: { fontSize: 15, fontWeight: '600', color: colors.foreground },
   events: { fontSize: 12, color: palette.slate[400], marginTop: 2 },

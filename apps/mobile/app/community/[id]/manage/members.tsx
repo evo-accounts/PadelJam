@@ -75,6 +75,14 @@ export default function ManageMembersScreen() {
     if (!canManage || member.role === 'owner' || member.user_id === uid) return;
     const name = member.profiles?.full_name ?? '—';
 
+    // UX-GLOB-04: this sheet should show the member's Avatar next to `name`
+    // in the title. `ActionSheetOptions.title` (components/ui/sheetApi.ts) is
+    // a plain string and `SheetAction` has no `leading` slot — SheetHost maps
+    // actions straight to `SheetRow` without ever reading one — so a node
+    // can't reach the sheet through this API today. Adding it means changing
+    // the shared sheet primitive (sheetApi.ts + SheetHost.tsx), which is out
+    // of scope for this screen; flagged as a follow-up instead of widening
+    // scope here.
     const key = await show({
       title: name,
       actions: [

@@ -7,7 +7,6 @@ import {
   useToggleLike,
 } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -28,7 +27,7 @@ import { PostImage } from '@/components/community/PostImage';
 import { avatarUrl } from '@/lib/community-images';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../../../theme';
-import { Button, TopBar } from '@/components/ui';
+import { Avatar, Button, TopBar } from '@/components/ui';
 
 const KNOWN_ERROR_KEYS = new Set(['unknown_error']);
 
@@ -90,13 +89,16 @@ export default function PostDetailScreen() {
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatar} contentFit="cover" transition={120} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarFallback]}>
-                <Text style={styles.avatarInitial}>{(name.charAt(0) || '?').toUpperCase()}</Text>
-              </View>
-            )}
+            {/* The name is rendered right beside it, so the avatar itself is
+                decorative — hidden from the accessibility tree to avoid a
+                screen reader announcing the same name twice. */}
+            <Avatar
+              uri={avatar}
+              name={name}
+              colourKey={post.author?.id ?? post.author_id}
+              size="md"
+              decorative
+            />
             <Text style={styles.author} numberOfLines={1}>
               {name}
             </Text>
@@ -166,9 +168,6 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: 16 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
-  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
   author: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.foreground },
   body: { fontSize: 16, color: colors.foreground, lineHeight: 23 },
   image: { marginTop: 12 },

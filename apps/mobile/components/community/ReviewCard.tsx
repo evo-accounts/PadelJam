@@ -1,9 +1,9 @@
-import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
 import { StarRating } from './StarRating';
 import { colors, palette } from '../../theme';
+import { Avatar } from '../ui';
 
 export type ReviewRow = {
   id: string;
@@ -21,21 +21,19 @@ type ReviewCardProps = {
 /** Single review card: avatar, name, stars, optional body, relative time. */
 export function ReviewCard({ review }: ReviewCardProps) {
   const name = review.profiles?.full_name ?? '—';
-  const url = avatarUrl(review.profiles?.avatar_url);
-  const initial = (name.charAt(0) || '?').toUpperCase();
 
   const relativeTime = formatRelativeTime(review.created_at);
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        {url ? (
-          <Image source={{ uri: url }} style={styles.avatar} contentFit="cover" transition={120} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarFallback]}>
-            <Text style={styles.avatarInitial}>{initial}</Text>
-          </View>
-        )}
+        <Avatar
+          uri={avatarUrl(review.profiles?.avatar_url)}
+          name={name}
+          colourKey={review.user_id}
+          size="md"
+          decorative
+        />
         <View style={styles.meta}>
           <Text style={styles.name} numberOfLines={1}>
             {name}
@@ -80,9 +78,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
-  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
   meta: { flex: 1, gap: 2 },
   name: { fontSize: 15, fontWeight: '600', color: colors.foreground },
   starsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

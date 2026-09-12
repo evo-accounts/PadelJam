@@ -92,7 +92,7 @@ export function TeamManage({
       actions: assignable.map((p) => ({
         key: p.id,
         label: pname(p),
-        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" />,
+        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" decorative />,
         // An unconfirmed player (interested / invited, not yet RSVP'd) gets a
         // confirmation step before landing on the court — the host morphs the
         // same Modal from the candidate list straight into this prompt.
@@ -113,7 +113,7 @@ export function TeamManage({
       actions: candidates.map((p) => ({
         key: p.id,
         label: pname(p),
-        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" />,
+        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" decorative />,
       })),
     });
     if (otherId) {
@@ -186,9 +186,23 @@ export function TeamManage({
                       accessibilityRole="button"
                       disabled={busy}
                     >
-                      <Text style={occ ? styles.slotName : styles.slotEmptyText}>
-                        {occ ? pname(occ) : t('teamSlotEmpty')}
-                      </Text>
+                      {occ ? (
+                        <View style={styles.slotFilledContent}>
+                          {/* Decorative: the occupant's name is right beside it as its own Text node. */}
+                          <Avatar
+                            uri={avatarUrl(occ.profiles?.avatar_url)}
+                            name={pname(occ)}
+                            colourKey={occ.profiles?.id ?? occ.user_id}
+                            size="sm"
+                            decorative
+                          />
+                          <Text style={styles.slotName} numberOfLines={1}>
+                            {pname(occ)}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.slotEmptyText}>{t('teamSlotEmpty')}</Text>
+                      )}
                     </Pressable>
                   );
                 })}
@@ -272,7 +286,8 @@ const styles = StyleSheet.create({
   slot: { minHeight: 44, borderRadius: 10, justifyContent: 'center', paddingHorizontal: 12 },
   slotFilled: { backgroundColor: palette.purple[100] },
   slotEmpty: { backgroundColor: colors.background, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, borderStyle: 'dashed' },
-  slotName: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  slotFilledContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  slotName: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
   slotEmptyText: { fontSize: 14, color: palette.slate[400] },
 
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 16 },

@@ -6,7 +6,6 @@ import {
   useInviteToGroup,
 } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -15,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../theme';
 import {
+  Avatar,
   EmptyState,
   emptyIcon,
   listEmptyContent,
@@ -115,7 +115,6 @@ export default function GroupInviteScreen() {
         }
         renderItem={({ item }) => {
           const name = item.profiles?.full_name ?? '—';
-          const url = avatarUrl(item.profiles?.avatar_url);
           const isInvited = !!invited[item.user_id];
           const isPending = pendingId === item.user_id;
           return (
@@ -125,13 +124,10 @@ export default function GroupInviteScreen() {
               disabled={isInvited || isPending}
               accessibilityRole="button"
             >
-              {url ? (
-                <Image source={{ uri: url }} style={styles.avatar} contentFit="cover" transition={120} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarFallback]}>
-                  <Text style={styles.avatarInitial}>{(name.charAt(0) || '?').toUpperCase()}</Text>
-                </View>
-              )}
+              {/* The whole row is one accessible button whose label already
+                  includes the name (below); hide the avatar itself so a
+                  screen reader doesn't announce the name a second time. */}
+              <Avatar uri={avatarUrl(item.profiles?.avatar_url)} name={name} colourKey={item.user_id} size="md" decorative />
               <Text style={styles.name} numberOfLines={1}>
                 {name}
               </Text>
@@ -170,9 +166,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
-  avatarInitial: { color: colors.card, fontSize: 16, fontWeight: '700' },
   name: { flex: 1, fontSize: 16, color: colors.foreground, fontWeight: '500' },
   inviteAction: { fontSize: 14, fontWeight: '700', color: colors.primary },
   invitedMark: { fontSize: 18, fontWeight: '700', color: colors.successStrong },

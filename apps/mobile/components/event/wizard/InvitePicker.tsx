@@ -3,10 +3,10 @@ import { useT } from '@padel/i18n';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { avatarUrl } from '@/lib/community-images';
 import type { EventInvitee } from './draft';
-import { SelectableCard } from './SelectableCard';
 import { colors, palette } from '../../../theme';
-import { Button } from '../../../components/ui';
+import { Avatar, Button } from '../../../components/ui';
 
 export function InvitePicker({
   groupId,
@@ -73,13 +73,24 @@ function GroupMemberList({
         <View style={styles.list}>
           {(members.data ?? []).map((member) => {
             const selected = invitees.some((i) => i.invitee_id === member.user_id);
+            const name = member.profiles?.full_name ?? 'Player';
             return (
-              <SelectableCard
+              <Pressable
                 key={member.user_id}
-                title={member.profiles?.full_name ?? 'Player'}
-                selected={selected}
+                style={[styles.memberCard, selected && styles.memberCardSelected]}
                 onPress={() => toggle(member.user_id)}
-              />
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+              >
+                <Avatar
+                  uri={avatarUrl(member.profiles?.avatar_url)}
+                  name={name}
+                  colourKey={member.user_id}
+                  size="md"
+                  decorative
+                />
+                <Text style={[styles.memberName, selected && styles.memberNameSelected]}>{name}</Text>
+              </Pressable>
             );
           })}
         </View>
@@ -167,8 +178,10 @@ function ManualInvitees({
               key={`${inv.name ?? ''}-${inv.email ?? ''}-${inv.phone ?? ''}-${index}`}
               onPress={() => remove(inv)}
               accessibilityRole="button"
+              accessibilityLabel={`${t('removeCta')}: ${inv.name ?? ''}`}
               style={styles.chip}
             >
+              <Avatar name={inv.name} size="xs" decorative />
               <Text style={styles.chipText}>{inv.name ?? '—'}</Text>
               <Text style={styles.chipRemove}>×</Text>
             </Pressable>
@@ -186,6 +199,20 @@ const styles = StyleSheet.create({
   hint: { fontSize: 14, color: colors.mutedForeground },
   list: { gap: 10 },
   loading: { paddingVertical: 24, alignItems: 'center' },
+  memberCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: colors.card,
+  },
+  memberCardSelected: { borderColor: colors.primary, backgroundColor: palette.purple[100] },
+  memberName: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.foreground },
+  memberNameSelected: { color: colors.primary },
   input: {
     borderWidth: 1,
     borderColor: colors.border,

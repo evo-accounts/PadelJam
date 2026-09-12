@@ -5,7 +5,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../theme';
-import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
+import { Avatar, EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
+import { avatarUrl } from '@/lib/community-images';
 
 /** Map an activity row to a localized one-line sentence. */
 function lineFor(t: (k: string, o?: Record<string, unknown>) => string, row: ActivityRow): string {
@@ -84,9 +85,14 @@ export default function EventActivityScreen() {
           const actor = item.profiles?.full_name ?? '?';
           return (
             <View style={styles.row}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarInitial}>{(actor.charAt(0) || '?').toUpperCase()}</Text>
-              </View>
+              {/* Decorative: the actor's name is part of the line text beside it. */}
+              <Avatar
+                uri={avatarUrl(item.profiles?.avatar_url)}
+                name={actor}
+                colourKey={item.profiles?.id ?? item.actor_id}
+                size="md"
+                decorative
+              />
               <View style={styles.rowBody}>
                 <Text style={styles.line}>{lineFor(t, item)}</Text>
                 <Text style={styles.time}>{ago(item.created_at)}</Text>
@@ -104,11 +110,6 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: 16, paddingBottom: 32 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  avatar: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarInitial: { color: colors.card, fontSize: 14, fontWeight: '700' },
   rowBody: { flex: 1 },
   line: { fontSize: 15, color: colors.foreground, fontWeight: '500' },
   time: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },

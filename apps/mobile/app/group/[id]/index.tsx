@@ -12,7 +12,6 @@ import {
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -196,23 +195,16 @@ export default function GroupHomeScreen() {
             <Text variant="hint" tone="muted">{t('membersPill', { count: memberRows.length })}</Text>
           </View>
           <View style={styles.avatars}>
-            {previewMembers.map((m) => {
-              const name = m.profiles?.full_name ?? '—';
-              const url = avatarUrl(m.profiles?.avatar_url);
-              return url ? (
-                <Image
-                  key={m.user_id}
-                  source={{ uri: url }}
-                  style={styles.avatar}
-                  contentFit="cover"
-                  transition={120}
-                />
-              ) : (
-                <View key={m.user_id} style={[styles.avatar, styles.avatarFallback]}>
-                  <Text variant="hint" tone="inverse">{(name.charAt(0) || '?').toUpperCase()}</Text>
-                </View>
-              );
-            })}
+            {previewMembers.map((m) => (
+              <Avatar
+                key={m.user_id}
+                uri={avatarUrl(m.profiles?.avatar_url)}
+                name={m.profiles?.full_name}
+                colourKey={m.user_id}
+                size="md"
+                style={styles.avatarStack}
+              />
+            ))}
           </View>
         </Pressable>
 
@@ -379,16 +371,7 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
   avatars: { flexDirection: 'row', marginTop: 12 },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.muted,
-    marginRight: -8,
-    borderWidth: 2,
-    borderColor: colors.border,
-  },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarStack: { marginRight: -8, borderWidth: 2, borderColor: colors.border },
   eventList: { marginTop: 12, gap: 8 },
   card: { backgroundColor: colors.card, borderRadius: 12, marginTop: 12, overflow: 'hidden' },
   spacer: { height: 8 },
