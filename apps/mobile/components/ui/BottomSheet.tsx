@@ -8,7 +8,8 @@
  */
 import { useT } from '@padel/i18n';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, space } from '../../theme';
@@ -18,17 +19,43 @@ import { Text } from './Text';
 type Props = {
   visible: boolean;
   onClose: () => void;
+  /**
+   * Fires once the sheet has actually finished dismissing — not when `visible`
+   * flips to false, but after the Modal itself is gone. On iOS this is the
+   * Modal's own `onDismiss`. Android's Modal has no such callback, so it is
+   * simulated here: a `useEffect` watches `visible` flip true -> false and
+   * fires after a `requestAnimationFrame`, giving the close animation a frame
+   * to start before callers (e.g. a caller `await`ing the sheet's promise)
+   * act on the dismissal. Guarded to fire once per close on both platforms.
+   */
+  onDismissed?: () => void;
   title?: string;
   children: ReactNode;
   style?: ViewStyle;
   testID?: string;
 };
 
-export function BottomSheet({ visible, onClose, title, children, style, testID }: Props) {
+export function BottomSheet({ visible, onClose, onDismissed, title, children, style, testID }: Props) {
   const { t } = useT('common');
   const insets = useSafeAreaInsets();
+  const wasVisible = useRef(visible);
+
+  useEffect(() => {
+    const justClosed = wasVisible.current && !visible;
+    wasVisible.current = visible;
+    if (Platform.OS === 'ios' || !justClosed) return;
+    const handle = requestAnimationFrame(() => onDismissed?.());
+    return () => cancelAnimationFrame(handle);
+  }, [visible, onDismissed]);
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      onDismiss={onDismissed}
+    >
       <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
         <View
           testID={testID}
