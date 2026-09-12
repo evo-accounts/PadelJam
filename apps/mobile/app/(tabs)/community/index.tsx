@@ -7,7 +7,7 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -18,7 +18,7 @@ import {
 import { EmptyState } from '@/components/community/EmptyState';
 import type { SuggestedCommunity } from '@/components/community/SuggestedCommunityCard';
 import { colors } from '../../../theme';
-import { TopBar } from '../../../components/ui';
+import { TopBar, useBanner } from '../../../components/ui';
 
 export default function CommunityHomeScreen() {
   const { t } = useT('community');
@@ -29,6 +29,7 @@ export default function CommunityHomeScreen() {
   const suggestedQuery = useSuggestedCommunities();
   const defaultQuery = useDefaultCommunity();
   const setDefault = useSetDefaultCommunity();
+  const banner = useBanner();
 
   const canCreate = canCreateQuery.data !== false;
 
@@ -43,9 +44,9 @@ export default function CommunityHomeScreen() {
     void (async () => {
       try {
         await setDefault.mutateAsync(community.id);
-        Alert.alert(t('defaultBadge'), t('defaultSetToast', { name: community.name }));
+        banner.show(t('defaultSetToast', { name: community.name }), 'success');
       } catch {
-        Alert.alert(t('unknown_error'));
+        banner.show(t('unknown_error'));
       }
     })();
   };

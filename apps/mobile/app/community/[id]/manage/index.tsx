@@ -10,12 +10,11 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
+import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
-import { TopBar } from '../../../../components/ui';
+import { Avatar, BottomSheet, SheetRow, TopBar, useBanner, useConfirm } from '../../../../components/ui';
 import {
   ActivityIndicator,
-  Alert,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -43,6 +42,8 @@ export default function ManageIndexScreen() {
   const archive = useArchiveCommunity(id);
   const transfer = useTransferOwnership(id);
   const leave = useLeaveCommunity();
+  const confirm = useConfirm();
+  const banner = useBanner();
 
   const [transferOpen, setTransferOpen] = useState(false);
 
@@ -53,67 +54,72 @@ export default function ManageIndexScreen() {
 
   const err = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';
-    Alert.alert(t('errorTitle'), t(code, { defaultValue: t('unknown_error') }));
+    banner.show(t(code, { defaultValue: t('unknown_error') }));
   };
 
-  const onArchive = () => {
+  const onArchive = async () => {
     const archiving = !isArchived;
-    Alert.alert(
-      archiving ? t('archiveConfirmTitle') : t('unarchiveConfirmTitle'),
-      archiving ? t('archiveConfirmBody') : t('unarchiveConfirmBody'),
-      [
-        { text: t('cancel'), style: 'cancel' },
-        {
-          text: archiving ? t('archive') : t('unarchive'),
-          style: archiving ? 'destructive' : 'default',
-          onPress: async () => {
-            try {
-              const groupCount = await archive.mutateAsync(archiving);
-              Alert.alert(
-                archiving ? t('archivedTitle') : t('unarchivedTitle'),
-                t('archiveResult', { count: (groupCount as number) ?? 0 }),
-              );
-            } catch (e) {
-              err(e);
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  const onTransfer = async (newOwnerId: string) => {
-    setTransferOpen(false);
+    const ok = await confirm({
+      title: archiving ? t('archiveConfirmTitle') : t('unarchiveConfirmTitle'),
+      body: archiving ? t('archiveConfirmBody') : t('unarchiveConfirmBody'),
+      confirmLabel: archiving ? t('archive') : t('unarchive'),
+      cancelLabel: t('cancel'),
+      destructive: archiving,
+    });
+    if (!ok) return;
     try {
-      await transfer.mutateAsync(newOwnerId);
-      Alert.alert(t('transferDoneTitle'), t('transferDoneBody'));
+      const groupCount = await archive.mutateAsync(archiving);
+      banner.show(
+        `${t(archiving ? 'archivedTitle' : 'unarchivedTitle')} ${t('archiveResult', { count: (groupCount as number) ?? 0 })}`,
+        'success',
+      );
     } catch (e) {
       err(e);
     }
   };
 
-  const onLeave = () => {
-    Alert.alert(t('leaveConfirmTitle'), t('leaveConfirmBody'), [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: t('leave'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await leave.mutateAsync(id);
-            // Pop the whole community stack; the user is no longer a member.
-            router.dismissAll();
-            router.replace('/');
-          } catch (e) {
-            if (e instanceof Error && e.message === 'transfer_ownership_first') {
-              Alert.alert(t('errorTitle'), t('transfer_ownership_first'));
-            } else {
-              err(e);
-            }
-          }
-        },
-      },
-    ]);
+  const onTransfer = async (newOwnerId: string) => {
+    try {
+      await transfer.mutateAsync(newOwnerId);
+      banner.show(t('transferDoneBody'), 'success');
+    } catch (e) {
+      err(e);
+    }
+  };
+
+  const onPickTransfer = async (member: Member) => {
+    const ok = await confirm({
+      title: t('transferConfirmTitle'),
+      body: t('transferConfirmBody', { name: member.profiles?.full_name ?? '—' }),
+      confirmLabel: t('transferOwnership'),
+      cancelLabel: t('cancel'),
+    });
+    if (!ok) return;
+    setTransferOpen(false);
+    await onTransfer(member.user_id);
+  };
+
+  const onLeave = async () => {
+    const ok = await confirm({
+      title: t('leaveConfirmTitle'),
+      body: t('leaveConfirmBody'),
+      confirmLabel: t('leave'),
+      cancelLabel: t('cancel'),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await leave.mutateAsync(id);
+      // Pop the whole community stack; the user is no longer a member.
+      router.dismissAll();
+      router.replace('/');
+    } catch (e) {
+      if (e instanceof Error && e.message === 'transfer_ownership_first') {
+        banner.show(t('transfer_ownership_first'));
+      } else {
+        err(e);
+      }
+    }
   };
 
   const showRequests = community?.privacy === 'request_to_join';
@@ -160,42 +166,35 @@ export default function ManageIndexScreen() {
             onPress={onLeave}
           />
         </Section>
-
-        <Modal visible={transferOpen} animationType="slide" transparent onRequestClose={() => setTransferOpen(false)}>
-          <View style={styles.modalBackdrop}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>{t('transferPickTitle')}</Text>
-              <ScrollView style={styles.modalList}>
-                {otherMembers.length === 0 ? (
-                  <Text style={styles.modalEmpty}>{t('transferNoMembers')}</Text>
-                ) : (
-                  otherMembers.map((m) => (
-                    <Pressable
-                      key={m.user_id}
-                      style={styles.modalRow}
-                      onPress={() =>
-                        Alert.alert(
-                          t('transferConfirmTitle'),
-                          t('transferConfirmBody', { name: m.profiles?.full_name ?? '—' }),
-                          [
-                            { text: t('cancel'), style: 'cancel' },
-                            { text: t('transferOwnership'), onPress: () => onTransfer(m.user_id) },
-                          ],
-                        )
-                      }
-                    >
-                      <Text style={styles.modalRowText}>{m.profiles?.full_name ?? '—'}</Text>
-                    </Pressable>
-                  ))
-                )}
-              </ScrollView>
-              <Pressable style={styles.modalCancel} onPress={() => setTransferOpen(false)}>
-                <Text style={styles.modalCancelText}>{t('cancel')}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
       </ScrollView>
+
+      <BottomSheet
+        visible={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        title={t('transferPickTitle')}
+        testID="transfer-ownership-sheet"
+      >
+        {otherMembers.length === 0 ? (
+          <Text style={styles.transferEmpty}>{t('transferNoMembers')}</Text>
+        ) : (
+          otherMembers.map((m) => (
+            <SheetRow
+              key={m.user_id}
+              label={m.profiles?.full_name ?? '—'}
+              leading={
+                <Avatar
+                  name={m.profiles?.full_name}
+                  uri={avatarUrl(m.profiles?.avatar_url)}
+                  colourKey={m.user_id}
+                  size="sm"
+                />
+              }
+              onPress={() => onPickTransfer(m)}
+              testID={`transfer-row-${m.user_id}`}
+            />
+          ))
+        )}
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -280,23 +279,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { color: colors.card, fontSize: 12, fontWeight: '700' },
-  modalBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  modalCard: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '70%',
-  },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
-  modalList: { flexGrow: 0 },
-  modalEmpty: { fontSize: 15, color: colors.mutedForeground, paddingVertical: 16 },
-  modalRow: {
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  modalRowText: { fontSize: 16, color: colors.foreground },
-  modalCancel: { paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  modalCancelText: { fontSize: 16, fontWeight: '600', color: colors.primary },
+  transferEmpty: { fontSize: 15, color: colors.mutedForeground, paddingVertical: 16 },
 });

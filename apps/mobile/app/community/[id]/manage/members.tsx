@@ -8,12 +8,12 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
 import { colors, palette } from '../../../../theme';
-import { TopBar } from '../../../../components/ui';
+import { TopBar, useActionSheet, useBanner } from '../../../../components/ui';
 
 const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 };
 
@@ -27,6 +27,8 @@ export default function ManageMembersScreen() {
   const makeAdmin = useMakeAdmin(id);
   const removeAdmin = useRemoveAdmin(id);
   const removeMember = useRemoveMember(id);
+  const show = useActionSheet();
+  const banner = useBanner();
 
   const myRole = (members as CommunityMember[] | undefined)?.find((m) => m.user_id === uid)?.role;
   const canManage = myRole === 'owner' || myRole === 'admin';
@@ -34,7 +36,7 @@ export default function ManageMembersScreen() {
 
   const err = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';
-    Alert.alert(t('errorTitle'), t(code, { defaultValue: t('unknown_error') }));
+    banner.show(t(code, { defaultValue: t('unknown_error') }));
   };
 
   const onMakeAdmin = async (userId: string) => {
@@ -53,47 +55,40 @@ export default function ManageMembersScreen() {
     }
   };
 
-  const onRemoveMember = (member: CommunityMember) => {
-    Alert.alert(
-      t('removeMemberConfirmTitle'),
-      t('removeMemberConfirmBody', { name: member.profiles?.full_name ?? '—' }),
-      [
-        { text: t('cancel'), style: 'cancel' },
+  const onRemoveMember = async (member: CommunityMember) => {
+    try {
+      await removeMember.mutateAsync(member.user_id);
+    } catch (e) {
+      err(e);
+    }
+  };
+
+  const openActions = async (member: CommunityMember) => {
+    // Owner row has no destructive actions; you can't act on yourself.
+    if (!canManage || member.role === 'owner' || member.user_id === uid) return;
+    const name = member.profiles?.full_name ?? '—';
+
+    const key = await show({
+      title: name,
+      actions: [
+        member.role === 'admin'
+          ? { key: 'removeAdmin', label: t('removeAdmin') }
+          : { key: 'makeAdmin', label: t('makeAdmin') },
         {
-          text: t('removeMember'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await removeMember.mutateAsync(member.user_id);
-            } catch (e) {
-              err(e);
-            }
+          key: 'removeMember',
+          label: t('removeMember'),
+          destructive: true,
+          confirm: {
+            title: t('removeMemberConfirmTitle'),
+            body: t('removeMemberConfirmBody', { name }),
+            confirmLabel: t('removeMember'),
           },
         },
       ],
-    );
-  };
-
-  const openActions = (member: CommunityMember) => {
-    // Owner row has no destructive actions; you can't act on yourself.
-    if (!canManage || member.role === 'owner' || member.user_id === uid) return;
-
-    const options: { text: string; style?: 'default' | 'destructive'; onPress: () => void }[] = [];
-    if (member.role === 'admin') {
-      options.push({ text: t('removeAdmin'), onPress: () => onRemoveAdmin(member.user_id) });
-    } else {
-      options.push({ text: t('makeAdmin'), onPress: () => onMakeAdmin(member.user_id) });
-    }
-    options.push({
-      text: t('removeMember'),
-      style: 'destructive',
-      onPress: () => onRemoveMember(member),
     });
-
-    Alert.alert(member.profiles?.full_name ?? '—', undefined, [
-      ...options.map((o) => ({ text: o.text, style: o.style, onPress: o.onPress })),
-      { text: t('cancel'), style: 'cancel' as const },
-    ]);
+    if (key === 'makeAdmin') await onMakeAdmin(member.user_id);
+    else if (key === 'removeAdmin') await onRemoveAdmin(member.user_id);
+    else if (key === 'removeMember') await onRemoveMember(member);
   };
 
   if (isLoading) {

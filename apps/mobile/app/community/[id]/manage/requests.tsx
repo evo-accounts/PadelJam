@@ -7,12 +7,12 @@ import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../../theme';
-import { TopBar } from '../../../../components/ui';
+import { TopBar, useBanner, useConfirm } from '../../../../components/ui';
 
 type JoinRequest = {
   id: string;
@@ -31,12 +31,14 @@ export default function ManageRequestsScreen() {
   const { data: requests, isLoading } = useCommunityRequests(id);
   const accept = useAcceptJoinRequest(id);
   const decline = useDeclineJoinRequest(id);
+  const confirm = useConfirm();
+  const banner = useBanner();
 
   const busy = accept.isPending || decline.isPending;
 
   const err = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';
-    Alert.alert(t('errorTitle'), t(code, { defaultValue: t('unknown_error') }));
+    banner.show(t(code, { defaultValue: t('unknown_error') }));
   };
 
   const onAccept = async (requestId: string) => {
@@ -48,6 +50,14 @@ export default function ManageRequestsScreen() {
   };
 
   const onDecline = async (requestId: string) => {
+    const ok = await confirm({
+      title: t('declineRequestTitle'),
+      body: t('declineRequestBody'),
+      confirmLabel: t('decline'),
+      cancelLabel: t('cancel'),
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await decline.mutateAsync(requestId);
     } catch (e) {

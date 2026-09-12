@@ -2,11 +2,11 @@ import { useCommunityPermissions, useUpdatePermissions } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, palette } from '../../../../theme';
-import { TopBar } from '../../../../components/ui';
+import { TopBar, useBanner } from '../../../../components/ui';
 
 type PermKey = 'invite_members' | 'approve_join_requests' | 'create_posts';
 
@@ -17,6 +17,7 @@ export default function ManagePermissionsScreen() {
 
   const { data: perms, isLoading } = useCommunityPermissions(id);
   const update = useUpdatePermissions(id);
+  const banner = useBanner();
 
   const [state, setState] = useState<Record<PermKey, boolean>>({
     invite_members: false,
@@ -44,7 +45,7 @@ export default function ManagePermissionsScreen() {
     } catch (e) {
       setState((s) => ({ ...s, [key]: prev }));
       const code = e instanceof Error ? e.message : 'unknown_error';
-      Alert.alert(t('errorTitle'), t(code, { defaultValue: t('unknown_error') }));
+      banner.show(t(code, { defaultValue: t('unknown_error') }));
     }
   };
 

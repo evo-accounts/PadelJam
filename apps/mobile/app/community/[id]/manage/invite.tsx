@@ -3,12 +3,12 @@ import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
-import { Chip, TopBar } from '../../../../components/ui';
+import { Chip, TopBar, useBanner, useConfirm } from '../../../../components/ui';
 
 type Profile = { id: string; full_name: string | null; avatar_url: string | null };
 type Group = { id: string; name: string; is_general: boolean };
@@ -22,6 +22,8 @@ export default function ManageInviteScreen() {
 
   const { data: members } = useCommunityMembers(id);
   const invite = useInviteMembers(id);
+  const confirm = useConfirm();
+  const banner = useBanner();
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Profile[]>([]);
@@ -109,28 +111,30 @@ export default function ManageInviteScreen() {
         inviteeIds: selectedList.map((p) => p.id),
         groupIds: chosenGroupIds,
       });
-      Alert.alert(t('inviteSentTitle'), t('inviteSentBody'), [
-        { text: t('ok'), onPress: () => router.back() },
-      ]);
+      banner.show(t('inviteSentBody'), 'success');
+      router.back();
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';
-      Alert.alert(t('errorTitle'), t(code, { defaultValue: t('unknown_error') }));
+      banner.show(t(code, { defaultValue: t('unknown_error') }));
     }
   };
 
-  const onConfirm = () => {
+  const onConfirm = async () => {
     if (selectedList.length === 0) return;
 
     if (hasMultipleGroups && chosenGroupIds.length === 0) {
-      Alert.alert(t('errorTitle'), t('inviteGroupRequired'));
+      banner.show(t('inviteGroupRequired'));
       return;
     }
 
     const body = hasMultipleGroups ? t('inviteConfirmGroups') : t('inviteConfirmGeneral');
-    Alert.alert(t('inviteConfirmTitle'), body, [
-      { text: t('cancel'), style: 'cancel' },
-      { text: t('invite'), onPress: doInvite },
-    ]);
+    const ok = await confirm({
+      title: t('inviteConfirmTitle'),
+      body,
+      confirmLabel: t('invite'),
+      cancelLabel: t('cancel'),
+    });
+    if (ok) await doInvite();
   };
 
   return (
