@@ -5,11 +5,8 @@ import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,6 +14,7 @@ import { GroupComposer, type GroupComposerValues } from '@/components/group/Grou
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../../theme';
+import { TopBar } from '../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -37,6 +35,7 @@ export default function GroupCreateModal() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   const onSubmit = (values: GroupComposerValues) => {
     if (submitting) return;
@@ -81,12 +80,7 @@ export default function GroupCreateModal() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('createTitle')}</Text>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={8}>
-          <Text style={styles.close}>{t('close')}</Text>
-        </Pressable>
-      </View>
+      <TopBar variant="edit" title={t('createTitle')} onClose={() => router.back()} dirty={dirty} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -101,6 +95,7 @@ export default function GroupCreateModal() {
             submitting={submitting}
             error={error}
             onSubmit={onSubmit}
+            onDirtyChange={setDirty}
           />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -111,16 +106,5 @@ export default function GroupCreateModal() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
-  close: { fontSize: 16, fontWeight: '600', color: colors.primary },
   inner: { paddingHorizontal: 24, paddingTop: 16 },
 });

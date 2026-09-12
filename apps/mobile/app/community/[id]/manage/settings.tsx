@@ -7,7 +7,7 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -18,7 +18,7 @@ import {
   Text,
   TextInput,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { PrivacyCards } from '@/components/community/PrivacyCards';
@@ -27,7 +27,9 @@ import { SegmentedType } from '@/components/community/SegmentedType';
 import { coverUrl, thumbnailUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
+import { useDirty } from '@/lib/useDirty';
 import { colors, palette } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
@@ -70,6 +72,20 @@ export default function ManageSettingsScreen() {
   }, [community, prefilled]);
 
   const pending = updateCommunity.isPending;
+
+  const initial = useMemo(
+    () => ({
+      name: community?.name ?? '',
+      description: community?.description ?? '',
+      location: community?.location ?? '',
+      type: (community?.type as CommunityType) ?? 'club',
+      privacy: (community?.privacy as Privacy) ?? 'public',
+      rulesEnabled: community?.cancellation_rules_enabled ?? false,
+      rulesText: community?.cancellation_rules_text ?? '',
+    }),
+    [community],
+  );
+  const dirty = useDirty({ name, description, location, type, privacy, rulesEnabled, rulesText }, initial);
 
   const existingThumb = thumbnailUrl(community?.thumbnail_path);
   const existingCover = coverUrl(community?.cover_image_path);
@@ -148,10 +164,12 @@ export default function ManageSettingsScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar variant="edit" title={t('manageSettings')} onClose={() => router.back()} dirty={dirty} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView
         contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 24 }]}
         keyboardShouldPersistTaps="handled"
@@ -229,12 +247,14 @@ export default function ManageSettingsScreen() {
           )}
         </Pressable>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
+  flex: { flex: 1 },
   inner: { paddingHorizontal: 24, paddingTop: 16 },
   label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
   hint: { fontSize: 12, color: palette.slate[400], marginTop: 4, marginBottom: 16 },

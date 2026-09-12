@@ -6,7 +6,7 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -17,7 +17,7 @@ import {
   Text,
   TextInput,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { PrivacyCards } from '@/components/community/PrivacyCards';
@@ -25,7 +25,9 @@ import { RulesToggle } from '@/components/community/RulesToggle';
 import { SegmentedType } from '@/components/community/SegmentedType';
 import { setPendingCommunityImages } from '@/lib/community-image-handoff';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
+import { useDirty } from '@/lib/useDirty';
 import { colors } from '../../../theme';
+import { TopBar } from '../../../components/ui';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
@@ -50,6 +52,9 @@ export default function CreateCommunityScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const pending = createCommunity.isPending;
+
+  const initial = useMemo(() => ({ name: '', description: '', location: '', rules: '' }), []);
+  const dirty = useDirty({ name, description, location, rules: rulesText }, initial);
 
   const pick = async (setter: (img: PickedImage) => void) => {
     setError(null);
@@ -94,19 +99,19 @@ export default function CreateCommunityScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar variant="edit" title={t('createTitle')} onClose={() => router.back()} dirty={dirty} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView
         contentContainerStyle={[
           styles.inner,
-          { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
+          { paddingTop: 24, paddingBottom: insets.bottom + 24 },
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>{t('createTitle')}</Text>
-
         <Text style={styles.label}>{t('nameLabel')}</Text>
         <TextInput
           style={styles.input}
@@ -180,14 +185,15 @@ export default function CreateCommunityScreen() {
           )}
         </Pressable>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
+  flex: { flex: 1 },
   inner: { paddingHorizontal: 24 },
-  title: { fontSize: 26, fontWeight: '700', marginBottom: 24 },
   label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
   input: {
     borderWidth: 1,

@@ -1,7 +1,7 @@
 import { postSchema, useCreatePost } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
@@ -23,9 +23,12 @@ const KNOWN_ERROR_KEYS = new Set([
 export function PostComposer({
   communityId,
   onDone,
+  onDirtyChange,
 }: {
   communityId: string;
   onDone: () => void;
+  /** Reports whether the composer has unsaved input, so the caller's TopBar can confirm before closing. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { t } = useT('community');
   const createPost = useCreatePost(communityId);
@@ -36,6 +39,11 @@ export function PostComposer({
   const [submitting, setSubmitting] = useState(false);
 
   const pending = submitting || createPost.isPending;
+
+  useEffect(() => {
+    onDirtyChange?.(body.trim().length > 0 || picked != null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body, picked]);
 
   const onPickImage = () => {
     setErrorKey(null);
