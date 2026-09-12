@@ -21,6 +21,7 @@ export { EmptyState } from './EmptyState';
 export { Field } from './Field';
 export { IconButton, type IconButtonSize } from './IconButton';
 export { ListRow, type ListRowVariant } from './ListRow';
+export { SheetHost, useConfirm, useActionSheet, type ConfirmOptions, type ActionSheetOptions, type SheetAction } from './SheetHost';
 export { SheetRow } from './SheetRow';
 export { TopBar } from './TopBar';
 export { Loading, Screen } from './Screen';
