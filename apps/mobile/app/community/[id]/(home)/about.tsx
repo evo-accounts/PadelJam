@@ -10,6 +10,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { RulesModal } from '@/components/community/RulesModal';
+import { avatarUrl } from '@/lib/community-images';
+import { Avatar } from '@/components/ui';
 import { colors, palette } from '../../../../theme';
 
 const TYPE_KEY: Record<string, string> = {
@@ -111,6 +113,16 @@ export default function CommunityAboutScreen() {
           <Text style={styles.sectionTitle}>{t('aboutAdminsLabel')}</Text>
           {admins.map((a) => (
             <View key={a.user_id} style={styles.adminRow}>
+              {/* Decorative: the admin's name is right beside it as its own Text node. */}
+              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <Avatar
+                  uri={avatarUrl(a.profiles?.avatar_url)}
+                  name={a.profiles?.full_name}
+                  colourKey={a.user_id}
+                  size="md"
+                  style={styles.adminAvatar}
+                />
+              </View>
               <Text style={styles.adminName} numberOfLines={1}>
                 {a.profiles?.full_name ?? '—'}
               </Text>
@@ -166,8 +178,9 @@ const styles = StyleSheet.create({
   summary: { fontSize: 13, color: colors.mutedForeground, lineHeight: 19, marginTop: 2, marginBottom: 4 },
   section: { marginTop: 16 },
   sectionTitle: { fontSize: 13, color: palette.slate[400], fontWeight: '700', marginBottom: 8, textTransform: 'uppercase' },
-  adminRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  adminName: { fontSize: 15, color: colors.foreground, fontWeight: '600', flexShrink: 1 },
+  adminRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, gap: 8 },
+  adminAvatar: { marginRight: 2 },
+  adminName: { fontSize: 15, color: colors.foreground, fontWeight: '600', flexShrink: 1, flexGrow: 1 },
   adminRole: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
   link: { fontSize: 15, fontWeight: '700', color: colors.primary },
   reviews: { marginTop: 20, paddingVertical: 8 },
