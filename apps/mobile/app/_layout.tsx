@@ -95,17 +95,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <I18nextProvider i18n={i18n}>
-        <SessionProvider client={supabase}>
-          <QueryClientProvider client={queryClient}>
-            <StreamChatProvider>
-              <BannerProvider>
-                <SheetHost>
+        <BannerProvider>
+          <SheetHost>
+            <SessionProvider client={supabase}>
+              <QueryClientProvider client={queryClient}>
+                <StreamChatProvider>
                   <Boot />
-                </SheetHost>
-              </BannerProvider>
-            </StreamChatProvider>
-          </QueryClientProvider>
-        </SessionProvider>
+                </StreamChatProvider>
+              </QueryClientProvider>
+            </SessionProvider>
+          </SheetHost>
+        </BannerProvider>
       </I18nextProvider>
     </GestureHandlerRootView>
   );

@@ -21,7 +21,8 @@ export function SheetRow({ label, onPress, destructive = false, disabled = false
       title={label}
       titleTone={destructive ? 'destructive' : 'default'}
       leading={leading}
-      onPress={disabled ? undefined : onPress}
+      onPress={onPress}
+      disabled={disabled}
       testID={testID}
     />
   );

@@ -35,10 +35,17 @@ export function BottomSheet({ visible, onClose, title, children, style, testID }
           style={[styles.sheet, { paddingBottom: insets.bottom + space[4] }, style]}
           accessibilityViewIsModal
           onStartShouldSetResponder={() => true}
+          onAccessibilityEscape={onClose}
         >
           <View style={styles.header}>
             {title ? (
-              <Text variant="sectionTitle" tone="default" style={styles.title} numberOfLines={2}>
+              <Text
+                variant="sectionTitle"
+                tone="default"
+                style={styles.title}
+                numberOfLines={2}
+                accessibilityRole="header"
+              >
                 {title}
               </Text>
             ) : (

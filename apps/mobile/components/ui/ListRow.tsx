@@ -64,6 +64,8 @@ type Props = {
    * is announced as nothing at all.
    */
   selected?: boolean;
+  /** Greys the row out (opacity 0.45) and marks it disabled for assistive tech; onPress stops firing. */
+  disabled?: boolean;
   onPress?: () => void;
   style?: ViewStyle;
   testID?: string;
@@ -80,6 +82,7 @@ export function ListRow({
   subtitleTone = 'muted',
   highlighted = false,
   selected,
+  disabled = false,
   onPress,
   style,
   testID,
@@ -126,6 +129,7 @@ export function ListRow({
     <Pressable
       testID={testID}
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
       // ", " and not ". ": when a container has no explicit label, iOS builds
       // one by joining its children with a comma. That is the announcement this
@@ -134,8 +138,8 @@ export function ListRow({
       // tree from the failure read exactly "Partner Requests" — no separator at
       // all — so the count had to come back AND come back joined the same way.
       accessibilityLabel={[title, subtitle, trailingLabel].filter(Boolean).join(', ')}
-      accessibilityState={selected === undefined ? undefined : { selected }}
-      style={({ pressed }) => [...surface, pressed && styles.pressed]}
+      accessibilityState={disabled ? { disabled: true } : selected === undefined ? undefined : { selected }}
+      style={({ pressed }) => [...surface, disabled && styles.disabled, pressed && styles.pressed]}
     >
       {body}
     </Pressable>
@@ -164,6 +168,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.muted,
   },
   highlighted: { backgroundColor: colors.accent },
+  disabled: { opacity: 0.45 },
   leading: { justifyContent: 'center' },
   text: { flex: 1 },
   subtitle: { marginTop: 2 },
