@@ -1,13 +1,12 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { Channel as ChannelType } from 'stream-chat';
 
 import { streamClient } from '@/lib/streamClient';
 import { useT } from '@padel/i18n';
 
 import { useChannelPreview } from './useChannelPreview';
-import { Avatar, Badge, Button, IconButton, ListRow, Text } from '../ui';
+import { Avatar, Badge, IconButton, Text, useActionSheet, useBanner } from '../ui';
 import { colors } from '../../theme';
 
 type Tab = 'active' | 'archived';
@@ -26,8 +25,8 @@ function channelTitle(channel: ChannelType): string {
 export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab }) {
   const { t } = useT('chat');
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [confirm, setConfirm] = useState<null | 'archive' | 'delete'>(null);
+  const show = useActionSheet();
+  const banner = useBanner();
 
   const isDirect = channel.type === 'messaging';
   const { lastMessage, unread } = useChannelPreview(channel);
@@ -37,11 +36,32 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
     try {
       await fn();
     } catch {
-      Alert.alert(t('actionFailed'));
-    } finally {
-      setConfirm(null);
-      setMenuOpen(false);
+      banner.show(t('actionFailed'));
     }
+  };
+
+  const onMenu = async () => {
+    const key = await show({
+      actions:
+        tab === 'archived'
+          ? [{ key: 'unarchive', label: t('unarchive') }]
+          : [
+              { key: 'archive', label: t('archive') },
+              ...(isDirect
+                ? [
+                    {
+                      key: 'delete',
+                      label: t('delete'),
+                      destructive: true,
+                      confirm: { title: t('deleteTitle'), body: t('deleteBody'), confirmLabel: t('delete') },
+                    },
+                  ]
+                : []),
+            ],
+    });
+    if (key === 'unarchive') void run(() => channel.unarchive());
+    if (key === 'archive') void run(() => channel.archive());
+    if (key === 'delete') void run(() => channel.hide(null, true));
   };
 
   return (
@@ -66,65 +86,7 @@ export function ChannelRow({ channel, tab }: { channel: ChannelType; tab: Tab })
         </View>
         {unread > 0 ? <Badge label={String(unread)} tone="primary" /> : null}
       </Pressable>
-      <IconButton icon="•••" accessibilityLabel={t('more')} onPress={() => setMenuOpen(true)} />
-
-      {/* action sheet */}
-      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
-          <View style={styles.sheet}>
-            {/* Action-sheet rows ARE ListRow's shape exactly: a tappable row,
-                one label, no nested control. `titleTone` replaces the inline
-                colour override the delete row used to carry. */}
-            {tab === 'archived' ? (
-              <ListRow title={t('unarchive')} onPress={() => run(() => channel.unarchive())} />
-            ) : (
-              <>
-                <ListRow
-                  title={t('archive')}
-                  onPress={() => {
-                    setMenuOpen(false);
-                    setConfirm('archive');
-                  }}
-                />
-                {isDirect ? (
-                  <ListRow
-                    title={t('delete')}
-                    titleTone="destructive"
-                    onPress={() => {
-                      setMenuOpen(false);
-                      setConfirm('delete');
-                    }}
-                  />
-                ) : null}
-              </>
-            )}
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* confirmation modals */}
-      <Modal visible={confirm !== null} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setConfirm(null)}>
-          <View style={styles.confirm}>
-            <Text variant="sectionTitle">
-              {t(confirm === 'archive' ? 'archiveTitle' : 'deleteTitle')}
-            </Text>
-            <Text variant="body" tone="muted">
-              {t(confirm === 'archive' ? 'archiveBody' : 'deleteBody')}
-            </Text>
-            <View style={styles.confirmActions}>
-              <Button variant="ghost" label={t('cancel')} onPress={() => setConfirm(null)} />
-              {/* The destructive tone was an inline colour override on the label;
-                  as a variant it also gets the right pressed and disabled states. */}
-              <Button
-                variant={confirm === 'delete' ? 'destructive' : 'primary'}
-                label={t(confirm === 'archive' ? 'archive' : 'delete')}
-                onPress={() => run(() => (confirm === 'archive' ? channel.archive() : channel.hide(null, true)))}
-              />
-            </View>
-          </View>
-        </Pressable>
-      </Modal>
+      <IconButton icon="•••" accessibilityLabel={t('more')} onPress={onMenu} />
     </View>
   );
 }
@@ -133,8 +95,4 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   preview: { marginTop: 2 },
-  backdrop: { flex: 1, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center' },
-  sheet: { backgroundColor: colors.card, borderRadius: 12, minWidth: 220, overflow: 'hidden' },
-  confirm: { backgroundColor: colors.card, borderRadius: 14, padding: 20, marginHorizontal: 32, gap: 8 },
-  confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 12, marginTop: 12 },
 });

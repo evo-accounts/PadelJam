@@ -2,16 +2,17 @@ import { startEmailChange, verifyEmailChange } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
-import { Button, TopBar } from '../../components/ui';
+import { Button, TopBar, useBanner } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function ChangeEmailScreen() {
   const { t } = useT('profile');
   const router = useRouter();
+  const banner = useBanner();
   const [phase, setPhase] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -49,7 +50,8 @@ export default function ChangeEmailScreen() {
         setError(t('invalidCode'));
         return;
       }
-      Alert.alert(t('emailChanged'), undefined, [{ text: 'OK', onPress: () => router.back() }]);
+      banner.show(t('emailChanged'), 'success');
+      router.back();
     } finally {
       setBusy(false);
     }

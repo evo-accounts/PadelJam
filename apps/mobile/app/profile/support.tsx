@@ -2,14 +2,15 @@ import { useCreateSupportTicket } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, TopBar } from '../../components/ui';
+import { Button, TopBar, useBanner } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function SupportScreen() {
   const { t } = useT('profile');
   const router = useRouter();
+  const banner = useBanner();
   const create = useCreateSupportTicket();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -27,7 +28,8 @@ export default function SupportScreen() {
     setBusy(true);
     try {
       await create.mutateAsync({ title: title.trim(), description: description.trim() });
-      Alert.alert(t('supportSent'), undefined, [{ text: 'OK', onPress: () => router.back() }]);
+      banner.show(t('supportSent'), 'success');
+      router.back();
     } catch {
       setError(t('supportFailed'));
     } finally {
