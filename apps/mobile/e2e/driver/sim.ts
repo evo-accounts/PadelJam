@@ -29,8 +29,23 @@ export async function launch(opts: { args?: string[]; env?: Record<string, strin
   // simctl launch passes env vars prefixed with SIMCTL_CHILD_.
   const env = Object.fromEntries(Object.entries(opts.env ?? {}).map(([k, v]) => [`SIMCTL_CHILD_${k}`, v]));
   Object.assign(process.env, env);
-  await simctl(['launch', CONFIG.udid, CONFIG.bundleId, ...(opts.args ?? [])], 120_000);
-  for (const k of Object.keys(env)) delete process.env[k];
+  try {
+    // Right after `simctl install`, SpringBoard can still answer "Unknown
+    // application display identifier" for a second or two (seen on the CI
+    // runner in three runs on 2026-09-12). Retry that one error briefly.
+    for (let attempt = 0; ; attempt++) {
+      const r = await run('xcrun', ['simctl', 'launch', CONFIG.udid, CONFIG.bundleId, ...(opts.args ?? [])], { timeoutMs: 120_000 });
+      if (r.code === 0) break;
+      const out = `${r.stderr}${r.stdout}`;
+      if (attempt < 5 && /Unknown application display identifier|NotFound/.test(out)) {
+        await new Promise((res) => setTimeout(res, 2_000));
+        continue;
+      }
+      throw new Error(`xcrun simctl launch ${CONFIG.udid} ${CONFIG.bundleId} ${(opts.args ?? []).join(' ')} failed (${r.code}):\n${out}`);
+    }
+  } finally {
+    for (const k of Object.keys(env)) delete process.env[k];
+  }
   void envArgs;
 }
 
