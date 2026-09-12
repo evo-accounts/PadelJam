@@ -10,7 +10,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
-import { TopBar, useBanner, useConfirm } from '../../components/ui';
+import { EmptyState, emptyIcon, TopBar, useBanner, useConfirm } from '../../components/ui';
 
 export default function PartnerRequestsScreen() {
   const { t } = useT('notifications');
@@ -42,14 +42,27 @@ export default function PartnerRequestsScreen() {
       <TopBar title={t('partnerRequests')} onBack={goBack} />
       {list.isLoading ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
-      ) : list.isError ? (
-        <Text style={styles.empty}>{t('requestsError')}</Text>
-      ) : rows.length === 0 ? (
-        <Text style={styles.empty}>{t('requestsEmpty')}</Text>
       ) : (
         <FlashList
           data={rows}
           keyExtractor={(r) => r.request_id}
+          ListEmptyComponent={
+            list.isError ? (
+              <EmptyState
+                tone="error"
+                title={t('loadError', { ns: 'common' })}
+                action={{ label: t('retry', { ns: 'common' }), onPress: () => list.refetch() }}
+                testID="empty-partner-requests"
+              />
+            ) : (
+              <EmptyState
+                icon={emptyIcon('person.badge.clock')}
+                title={t('requestsEmpty')}
+                body={t('partnerRequestsEmptyBody')}
+                testID="empty-partner-requests"
+              />
+            )
+          }
           renderItem={({ item }) => (
             <View style={styles.row}>
               <Image
@@ -102,5 +115,4 @@ const styles = StyleSheet.create({
   declineText: { color: colors.foreground, fontWeight: '600', fontSize: 13 },
   accept: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.primary },
   acceptText: { color: colors.card, fontWeight: '700', fontSize: 13 },
-  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
 });
