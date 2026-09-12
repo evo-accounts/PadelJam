@@ -204,6 +204,17 @@ export function Overview() {
           <TopBar variant="top" title="Home" actions={[{ icon: '⌕', label: 'Search', onPress: () => {} }]} />
         </Card>
         <Card padding="none" style={styles.stacked}>
+          <TopBar
+            variant="top"
+            title="Home"
+            actions={[
+              { icon: '💬', label: 'Chat', onPress: () => {} },
+              { icon: '🔔', label: 'Notifications', onPress: () => {} },
+              { icon: '⌕', label: 'Search', onPress: () => {} },
+            ]}
+          />
+        </Card>
+        <Card padding="none" style={styles.stacked}>
           <TopBar variant="nav" title="Members" onBack={() => {}} />
         </Card>
         <Card padding="none" style={styles.stacked}>
