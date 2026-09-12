@@ -18,7 +18,7 @@ import { StepIndicator } from '@/components/event/wizard/StepIndicator';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
-import { Button, Text, useConfirm } from '../../../components/ui';
+import { Button, Text, TopBar, useConfirm } from '../../../components/ui';
 import { colors } from '../../../theme';
 
 export default function CreateEventScreen() {
@@ -143,12 +143,13 @@ function CreateEventWizard() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text variant="heading" tone="default">
-          {t('createTitle')}
-        </Text>
-        <Button variant="ghost" size="sm" label={t('close')} onPress={onClose} />
-      </View>
+      <TopBar
+        variant="wizard"
+        title={t('createTitle')}
+        onBack={isFirst ? undefined : goBack}
+        onClose={onClose}
+        testID="event-wizard-bar"
+      />
 
       <StepIndicator stepIndex={stepIndex} total={steps.length} />
 
@@ -172,11 +173,6 @@ function CreateEventWizard() {
       ) : null}
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        {!isFirst ? (
-          <Button variant="secondary" label={t('back')} onPress={goBack} />
-        ) : (
-          <View style={styles.btnSpacer} />
-        )}
         {/* `submitting ? <ActivityIndicator/> : <Text/>` was `loading` written
             longhand — the same shape found twelve times across auth. The
             compound `disabled` splits back into its two real reasons. */}
@@ -195,15 +191,6 @@ function CreateEventWizard() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
   inner: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 },
   footer: {
     flexDirection: 'row',
@@ -214,8 +201,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
-  btnSpacer: { width: 1 },
-  // All that is left is the alignment; Button owns the rest.
-  primaryBtn: { marginLeft: 'auto' },
+  // Back moved to the TopBar; the primary button now owns the whole row.
+  primaryBtn: { width: '100%' },
   error: { paddingHorizontal: 20, paddingBottom: 8 },
 });
