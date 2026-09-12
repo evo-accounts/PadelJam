@@ -1,11 +1,12 @@
 import { useMyGroups, type MyGroup } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../theme';
-import { Button, Chip, EmptyState, ListRow, Text } from '../../components/ui';
+import { Chip, EmptyState, ListRow, Text, TopBar } from '../../components/ui';
 
 export default function YourGroupsScreen() {
   const { t } = useT('home');
@@ -19,21 +20,13 @@ export default function YourGroupsScreen() {
     : all;
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          // "My Groups", per the audit. The key already existed with exactly
-          // that copy; the screen was simply using the wrong one.
-          title: t('myGroups'),
-          headerRight: () => (
-            <Button
-              variant="ghost"
-              size="sm"
-              label={t('newGroupBtn')}
-              onPress={() => router.push('/explore/groups' as never)}
-            />
-          ),
-        }}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar
+        // "My Groups", per the audit. The key already existed with exactly
+        // that copy; the screen was simply using the wrong one.
+        title={t('myGroups')}
+        onBack={() => router.back()}
+        actions={[{ icon: '+', label: t('newGroupBtn'), onPress: () => router.push('/explore/groups' as never) }]}
       />
       <View style={styles.tabs}>
         {(['all', 'managing', 'participating'] as const).map((k) => (
@@ -82,7 +75,7 @@ export default function YourGroupsScreen() {
           )}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

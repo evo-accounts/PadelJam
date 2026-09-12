@@ -2,16 +2,15 @@ import { useStreamToken } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel } from 'stream-chat';
 import { ChannelList } from 'stream-chat-expo';
 
 import { ChannelRow } from '@/components/chat/ChannelRow';
 import { colors, palette } from '../../theme';
-import { Button, Chip, EmptyState, TopBar } from '../../components/ui';
+import { Button, Chip, EmptyState, IconButton } from '../../components/ui';
 
 type Tab = 'active' | 'archived';
 
@@ -50,23 +49,24 @@ export default function ChatListScreen() {
   const Preview = ({ item }: { item: Channel }) => <ChannelRow channel={item} tab={tab} />;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar
-        title={t('title')}
-        onBack={() => router.back()}
-        actions={[
-          {
-            icon: (
-              <SymbolView
-                name={{ ios: 'square.and.pencil', android: 'edit', web: 'edit' }}
-                tintColor={colors.primary}
-                size={22}
-              />
-            ),
-            label: t('newChat'),
-            onPress: () => router.push('/chat/new' as never),
-          },
-        ]}
+    <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          title: t('title'),
+          headerRight: () => (
+            <IconButton
+              icon={
+                <SymbolView
+                  name={{ ios: 'square.and.pencil', android: 'edit', web: 'edit' }}
+                  tintColor={colors.primary}
+                  size={22}
+                />
+              }
+              accessibilityLabel={t('newChat')}
+              onPress={() => router.push('/chat/new' as never)}
+            />
+          ),
+        }}
       />
       <View style={styles.tabs}>
         {(['active', 'archived'] as const).map((k) => (
@@ -90,7 +90,7 @@ export default function ChatListScreen() {
         sort={{ last_message_at: -1 }}
         additionalFlatListProps={{ renderItem: Preview, ListEmptyComponent: ChatEmptyState }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
