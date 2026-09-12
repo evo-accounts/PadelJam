@@ -191,20 +191,21 @@ describe('00 design system', () => {
     expect(query(tree, { text: /delete this\?/i }), 'confirm sheet title').toBeDefined();
     expect(query(tree, { id: 'confirm-sheet-close', text: /^close$/i, type: 'Button' }), 'confirm sheet ✕ is labelled').toBeDefined();
     await tap({ text: /^delete$/i, type: 'Button' });
-    tree = await snapshot();
-    expect(query(tree, { text: /last result: confirmed/i })).toBeDefined();
+    // The sheet is a Modal with accessibilityViewIsModal: while it animates out
+    // the page behind it is absent from the tree, so poll instead of snapshotting.
+    await expectVisible({ text: /last result: confirmed/i }, { timeout: 10_000 });
 
     await tap({ text: /open action sheet/i, type: 'Button' });
+    await expectVisible({ text: /^remove$/i, type: 'Button' }, { timeout: 10_000 });
     await tap({ text: /^remove$/i, type: 'Button' }); // destructive → the host asks to confirm
+    await expectVisible({ text: /^cancel$/i, type: 'Button' }, { timeout: 10_000 }); // the confirm step
     tree = await snapshot();
     expect(query(tree, { text: /^remove$/i, type: 'Button' }), 'destructive row asks for confirmation').toBeDefined();
     await tap({ text: /^cancel$/i, type: 'Button' });
-    tree = await snapshot();
-    expect(query(tree, { text: /last result: dismissed/i })).toBeDefined();
+    await expectVisible({ text: /last result: dismissed/i }, { timeout: 10_000 });
 
     await scrollUntilVisible({ text: /show banner/i });
     await tap({ text: /show banner/i, type: 'Button' });
-    tree = await snapshot();
-    expect(query(tree, { text: /missing information/i }), 'banner text is in the tree').toBeDefined();
+    await expectVisible({ text: /missing information/i }, { timeout: 5_000 });
   }, 180_000);
 });
