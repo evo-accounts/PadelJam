@@ -10,6 +10,7 @@
  * `error` takes precedence over `hint` in the message slot, so a validation
  * failure can never be hidden behind help text.
  */
+import { forwardRef } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
 
 import { colors, radius, space, type } from '../../theme';
@@ -25,7 +26,7 @@ type Props = Omit<TextInputProps, 'style'> & {
   containerStyle?: ViewStyle;
 };
 
-export function Field({
+export const Field = forwardRef<TextInput, Props>(function Field({
   label,
   error,
   hint,
@@ -34,7 +35,7 @@ export function Field({
   editable = true,
   multiline = false,
   ...rest
-}: Props) {
+}, ref) {
   const invalid = Boolean(error);
   const message = error ?? hint ?? null;
 
@@ -54,6 +55,7 @@ export function Field({
       ) : null}
 
       <TextInput
+        ref={ref}
         style={[
           styles.input,
           // A multiline field sizes and aligns itself. Call sites used to pass a
@@ -82,7 +84,7 @@ export function Field({
       ) : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { alignSelf: 'stretch' },

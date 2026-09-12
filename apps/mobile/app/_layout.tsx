@@ -225,6 +225,7 @@ function RootNav({ children }: { children: ReactNode }) {
         <Stack.Screen name="community" />
         <Stack.Screen name="group" />
         <Stack.Screen name="event" />
+        <Stack.Screen name="search" />
       </Stack>
       {children}
     </ThemeProvider>
