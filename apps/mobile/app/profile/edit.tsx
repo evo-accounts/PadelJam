@@ -1,10 +1,9 @@
 import { useMyProfile, useUpdateProfile } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceRow } from '@/components/OnboardingStep';
@@ -12,8 +11,8 @@ import { avatarUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { useDirty } from '@/lib/useDirty';
-import { colors, palette } from '../../theme';
-import { Button, TopBar } from '../../components/ui';
+import { colors } from '../../theme';
+import { Avatar, Button, TopBar } from '../../components/ui';
 
 const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -122,9 +121,7 @@ export default function EditProfileScreen() {
       <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={prefilled && dirty} />
       <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
       <Pressable style={styles.avatarWrap} onPress={onPickAvatar} accessibilityRole="button">
-        <View style={styles.avatar}>
-          {shownAvatar ? <Image source={{ uri: shownAvatar }} style={styles.avatarImg} /> : null}
-        </View>
+        <Avatar uri={shownAvatar} name={fullName || my.data?.full_name} colourKey={uid} size="xl" />
         <Text style={styles.avatarHint}>{t('avatarHint')}</Text>
       </Pressable>
 
@@ -172,8 +169,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: 16, gap: 8, paddingBottom: 48 },
   avatarWrap: { alignItems: 'center', gap: 6, marginBottom: 8 },
-  avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: palette.purple[100], overflow: 'hidden' },
-  avatarImg: { width: 96, height: 96 },
   avatarHint: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },

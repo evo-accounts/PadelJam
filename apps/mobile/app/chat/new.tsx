@@ -2,15 +2,15 @@ import { useFollowing } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { avatarUrl } from '@/lib/community-images';
 import { streamClient } from '@/lib/streamClient';
 import { colors } from '../../theme';
-import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
+import { Avatar, EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
 
 type Person = { id: string; full_name: string | null; avatar_url: string | null };
 
@@ -71,10 +71,11 @@ export default function NewChatScreen() {
           }
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => openChat(item)} disabled={busy} accessibilityRole="button">
-              <Image
-                source={item.avatar_url ? { uri: item.avatar_url } : undefined}
-                style={styles.avatar}
-                contentFit="cover"
+              <Avatar
+                uri={avatarUrl(item.avatar_url)}
+                name={item.full_name}
+                colourKey={item.id}
+                size="md"
               />
               <Text style={styles.name}>{item.full_name ?? '—'}</Text>
             </Pressable>
@@ -89,7 +90,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   search: { backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, margin: 12, fontSize: 15 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, marginHorizontal: 12, marginBottom: 6, borderRadius: 12, padding: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },
   name: { fontSize: 15, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13, marginHorizontal: 12, marginBottom: 4 },
 });

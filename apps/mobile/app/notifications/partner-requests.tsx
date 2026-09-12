@@ -5,12 +5,13 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { avatarUrl } from '@/lib/community-images';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
 import {
+  Avatar,
   EmptyState,
   emptyIcon,
   listEmptyContent,
@@ -75,10 +76,11 @@ export default function PartnerRequestsScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.row}>
-              <Image
-                source={item.requester_avatar ? { uri: item.requester_avatar } : undefined}
-                style={styles.avatar}
-                contentFit="cover"
+              <Avatar
+                uri={avatarUrl(item.requester_avatar)}
+                name={item.requester_name}
+                colourKey={item.requester_id}
+                size="md"
               />
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{item.requester_name ?? '—'}</Text>
@@ -118,7 +120,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: colors.card, marginHorizontal: 12, marginTop: 8, borderRadius: 12, padding: 12,
   },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.muted },
   name: { fontSize: 15, fontWeight: '700', color: colors.foreground },
   context: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
   decline: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.accent },
