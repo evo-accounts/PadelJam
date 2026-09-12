@@ -65,7 +65,9 @@ export function PasswordField({ label, value, showRules = false, error, containe
           secureTextEntry={!visible}
           autoCapitalize="none"
           autoCorrect={false}
-          textContentType={showRules ? 'newPassword' : 'password'}
+          // Not `newPassword`: iOS then presents its own "Use Strong Password?" sheet
+          // over the input, which hides the checklist and blocks typing in the simulator.
+          textContentType="password"
           containerStyle={styles.field}
           testID={testID}
           {...rest}
