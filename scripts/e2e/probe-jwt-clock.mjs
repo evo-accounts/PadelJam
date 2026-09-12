@@ -118,7 +118,9 @@ async function mintViaGrant() {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: anonKey() },
-    body: JSON.stringify({ email: 'demo@padeljam.test', password: 'demo1234' }),
+    // Mirrors infra/seed/seed-e2e.mjs's PW (UX-GLOB-07: GoTrue's password_requirements
+    // now rejects the old plain `demo1234`).
+    body: JSON.stringify({ email: 'demo@padeljam.test', password: 'Demo1234#' }),
   });
   const body = await res.json();
   if (!body.access_token) throw new Error(`grant failed: ${JSON.stringify(body).slice(0, 200)}`);

@@ -150,7 +150,7 @@ export default function CreateAccountScreen() {
         }
         // Dev console gets the full detail; the UI copy may collapse it.
         console.warn('[complete-account] failed:', resp.status, code ?? '(no error code in body)');
-        if (code === 'email_taken' || code === 'phone_taken' || code === 'invalid_phone') {
+        if (code === 'email_taken' || code === 'phone_taken' || code === 'invalid_phone' || code === 'password_weak') {
           banner.show(t(code));
         } else {
           banner.show(tc('somethingWrong'));

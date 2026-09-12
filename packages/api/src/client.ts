@@ -26,6 +26,11 @@ const KNOWN = [
   'invalid_action', 'not_completed', 'already_posted',
   // plans: RPC/validation codes the paywall and plan screens translate directly
   'invalid_plan', 'plan_downgrade_over_limit',
+  // auth: complete-account's weak-password rejection (UX-GLOB-07); the mobile create-account
+  // screen currently reads this straight off the Edge Function's JSON body instead of through
+  // mapPgError, but the code is listed here too so a future Postgres-side password check (or a
+  // caller that does route through mapPgError) resolves to the same i18n key.
+  'password_weak',
 ] as const;
 
 /** Map a Supabase/Postgres error to a stable code the UI translates via i18n. */

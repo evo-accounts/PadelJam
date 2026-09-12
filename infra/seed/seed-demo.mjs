@@ -11,7 +11,8 @@
  * to run against a non-local URL (safety). No external deps — uses global fetch.
  *
  * Primary login: demo@padeljam.test  (email OTP — code via Mailpit http://127.0.0.1:55324).
- * All demo accounts also have password `demo1234`.
+ * All demo accounts also have password `Demo1234#` (UX-GLOB-07: GoTrue's
+ * `password_requirements` now rejects a plain `demo1234` on the admin create-user call).
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -75,7 +76,7 @@ const isoIn = (days, hour = 19) => {
 };
 
 // --- cast ------------------------------------------------------------------
-const PW = 'demo1234';
+const PW = 'Demo1234#';
 const CAST = [
   { key: 'alex',  email: 'demo@padeljam.test',  phone: '+351910000001', name: 'Alex Organizer', gender: 'male',   hand: 'right', side: 'left',  time: 'night' },
   { key: 'maria', email: 'maria@padeljam.test', phone: '+351910000002', name: 'Maria Santos',   gender: 'female', hand: 'right', side: 'right', time: 'evening' },
@@ -291,7 +292,7 @@ async function main() {
   for (const t of ['profiles', 'communities', 'community_members', 'community_posts', 'community_reviews', 'groups', 'group_seasons', 'events', 'event_participants', 'event_matches', 'group_event_results', 'follows', 'partner_requests', 'event_invitations', 'notifications']) {
     console.log(`  ${t}: ${await count(t)}`);
   }
-  console.log('\nLogin: demo@padeljam.test  (email OTP via Mailpit http://127.0.0.1:55324; password demo1234)');
+  console.log('\nLogin: demo@padeljam.test  (email OTP via Mailpit http://127.0.0.1:55324; password Demo1234#)');
 }
 
 main().catch((e) => { console.error('\nSEED FAILED:', e.message); process.exit(1); });
