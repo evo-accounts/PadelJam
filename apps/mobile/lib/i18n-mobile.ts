@@ -70,6 +70,9 @@ const mobileAuth = {
     recoveryDoneTitle: 'A sua palavra-passe foi alterada.',
     recoveryDoneCta: 'Continuar',
     socialTermsDisclosure: 'Ao continuar, aceita os nossos {{termsLink}} e {{privacyLink}}.',
+    invalidCode: 'Código inválido ou expirado.',
+    networkError: 'Verifica a ligação e tenta novamente.',
+    rateLimited: 'Demasiadas tentativas. Tenta novamente daqui a pouco.',
   },
   'pt-BR': {
     identifierLabel: 'E-mail ou celular',
@@ -134,6 +137,9 @@ const mobileAuth = {
     recoveryDoneTitle: 'Sua senha foi alterada.',
     recoveryDoneCta: 'Continuar',
     socialTermsDisclosure: 'Ao continuar, você concorda com nossos {{termsLink}} e {{privacyLink}}.',
+    invalidCode: 'Código inválido ou expirado.',
+    networkError: 'Verifique sua conexão e tente novamente.',
+    rateLimited: 'Muitas tentativas. Tente novamente em instantes.',
   },
   en: {
     identifierLabel: 'Email or phone',
@@ -198,6 +204,9 @@ const mobileAuth = {
     recoveryDoneTitle: 'Your password has been changed.',
     recoveryDoneCta: 'Continue',
     socialTermsDisclosure: 'By continuing, you agree to our {{termsLink}} and {{privacyLink}}.',
+    invalidCode: 'Invalid or expired code.',
+    networkError: 'Check your connection and try again.',
+    rateLimited: 'Too many attempts. Try again in a moment.',
   },
 } as const;
 
