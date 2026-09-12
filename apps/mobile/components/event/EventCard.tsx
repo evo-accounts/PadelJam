@@ -127,7 +127,7 @@ export function EventCard({
         {distanceText}
       </View>
       {badge}
-      <Text style={styled.chevron} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Text style={styled.chevron} accessibilityElementsHidden importantForAccessibility="no">
         ›
       </Text>
     </Card>

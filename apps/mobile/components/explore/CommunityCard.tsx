@@ -81,7 +81,7 @@ export function CommunityCard({
           {location}
         </View>
         {cta ?? (
-          <Text style={styles.chevron} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Text style={styles.chevron} accessibilityElementsHidden importantForAccessibility="no">
             ›
           </Text>
         )}

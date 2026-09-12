@@ -51,7 +51,7 @@ export function PlayerCard({
         <Text style={styles.nameHorizontal} numberOfLines={1}>
           {player.full_name}
         </Text>
-        <Text style={styles.chevron} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Text style={styles.chevron} accessibilityElementsHidden importantForAccessibility="no">
           ›
         </Text>
       </Pressable>

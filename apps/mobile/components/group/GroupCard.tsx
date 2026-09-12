@@ -110,7 +110,7 @@ export function GroupCard({
           ) : null}
         </View>
       </View>
-      <Text style={styles.chevron} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Text style={styles.chevron} accessibilityElementsHidden importantForAccessibility="no">
         ›
       </Text>
     </Pressable>
