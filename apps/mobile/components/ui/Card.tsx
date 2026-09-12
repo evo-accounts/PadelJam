@@ -13,7 +13,7 @@
  * So this is not a bug to fix in passing. If it needs revisiting, the change
  * belongs in `packages/ui` where web gets it too — not a local override here.
  */
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, radius, space } from '../../theme';
 
@@ -26,7 +26,12 @@ type Props = {
   elevated?: boolean;
   /** Makes the whole card a button. Adds the a11y role only when set. */
   onPress?: () => void;
-  style?: ViewStyle;
+  /**
+   * A single style object OR an array (e.g. a base look plus a per-instance
+   * override like a rail card's width) — the same shape every RN style prop
+   * accepts. `ViewStyle` alone rejected the array form.
+   */
+  style?: StyleProp<ViewStyle>;
   testID?: string;
   accessibilityLabel?: string;
 };

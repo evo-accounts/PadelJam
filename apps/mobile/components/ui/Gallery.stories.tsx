@@ -18,6 +18,10 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { CommunityCard } from '../explore/CommunityCard';
+import { PlayerCard } from '../explore/PlayerCard';
+import { EventCard } from '../event/EventCard';
+import { GroupCard } from '../group/GroupCard';
 import { colors, radius, space, type as typeScale } from '../../theme';
 import { Avatar } from './Avatar';
 import { Badge } from './Badge';
@@ -34,6 +38,45 @@ import { Field } from './Field';
 import { PasswordField } from './PasswordField';
 import { Loading, Screen } from './Screen';
 import { Text } from './Text';
+
+/**
+ * One fixture per card kind (UX-GLOB-09), named distinctly from every other
+ * gallery fixture ("Ana Silva", "Maria Costa", …) so a screen-reader dump of
+ * this section is never ambiguous about which control belongs to which demo.
+ */
+const GALLERY_EVENT = {
+  id: 'gallery-event',
+  name: 'Card Gallery Open',
+  event_type: 'americano',
+  specification: 'classic',
+  status: 'scheduled',
+  starts_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
+  distance_m: 2400,
+} as never;
+const GALLERY_GROUP = {
+  id: 'gallery-group',
+  name: 'Card Gallery League',
+  thumbnail_path: null,
+  is_private: false,
+  is_general: true,
+  archived_at: null,
+};
+const GALLERY_COMMUNITY = {
+  id: 'gallery-community',
+  name: 'Card Gallery Club',
+  description: null,
+  privacy: 'request_to_join',
+  location: 'Lisbon, Portugal',
+  cover_image_path: null,
+  thumbnail_path: null,
+};
+const GALLERY_PLAYER = {
+  id: 'gallery-player',
+  full_name: 'Marta Duarte',
+  avatar_url: null,
+  dominant_hand: 'right',
+  court_side: 'left',
+};
 
 /** A titled block. `testID` gives the screenshot suite something to scroll to. */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -301,6 +344,70 @@ export function Overview() {
         </Card>
       </Section>
 
+      {/*
+        UX-GLOB-09: every card that carries an `orientation` prop, shown at
+        both values — `vertical` (a rail's fixed-width card) above its
+        `horizontal` (a list screen's full-width row) counterpart. Each pair
+        gets its own labelled heading so `scrollUntilVisible` in suite 00 has
+        an unambiguous, unique target per card kind, the same rule the module
+        doc above already calls out for the primitive sections.
+      */}
+      <Section title="Cards">
+        <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+          EventCard — vertical
+        </Text>
+        <Row>
+          <EventCard event={GALLERY_EVENT} orientation="vertical" onPress={() => {}} />
+        </Row>
+        <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+          EventCard — horizontal
+        </Text>
+        <EventCard event={GALLERY_EVENT} orientation="horizontal" onPress={() => {}} />
+
+        <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+          GroupCard — vertical
+        </Text>
+        <Row>
+          <GroupCard group={GALLERY_GROUP} orientation="vertical" onPress={() => {}} />
+        </Row>
+        <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+          GroupCard — horizontal
+        </Text>
+        <GroupCard group={GALLERY_GROUP} orientation="horizontal" onPress={() => {}} />
+
+        <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+          CommunityCard — vertical
+        </Text>
+        <Row>
+          <CommunityCard
+            community={GALLERY_COMMUNITY}
+            orientation="vertical"
+            onOpen={() => {}}
+            onRequestJoin={() => {}}
+          />
+        </Row>
+        <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+          CommunityCard — horizontal
+        </Text>
+        <CommunityCard
+          community={GALLERY_COMMUNITY}
+          orientation="horizontal"
+          onOpen={() => {}}
+          onRequestJoin={() => {}}
+        />
+
+        <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+          PlayerCard — vertical
+        </Text>
+        <Row>
+          <PlayerCard player={GALLERY_PLAYER} orientation="vertical" onPress={() => {}} />
+        </Row>
+        <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+          PlayerCard — horizontal
+        </Text>
+        <PlayerCard player={GALLERY_PLAYER} orientation="horizontal" onPress={() => {}} />
+      </Section>
+
       <Section title="Field">
         <Field label="Name" placeholder="Ana Silva" required containerStyle={styles.stacked} />
         <Field
@@ -439,6 +546,7 @@ const styles = StyleSheet.create({
     marginBottom: space[1],
   },
   typeRow: { marginBottom: space[2] },
+  cardKindLabel: { marginTop: space[4], marginBottom: space[2] },
   radiusItem: { alignItems: 'center', gap: space[1] },
   radiusBox: {
     width: 56,

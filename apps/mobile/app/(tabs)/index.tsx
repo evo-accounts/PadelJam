@@ -14,10 +14,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CreateEventFab } from '@/components/CreateEventFab';
 import { ChatHeaderButtonIcon } from '@/components/chat/ChatHeaderButton';
 import { EventCard } from '@/components/event/EventCard';
-import { GroupCard } from '@/components/explore/GroupCard';
+import { GroupCard } from '@/components/group/GroupCard';
 import { NotificationBellIcon } from '@/components/NotificationBell';
 import { colors, palette } from '../../theme';
-import { Button, Card, EmptyState, ListRow, Text, TopBar } from '../../components/ui';
+import { Button, Card, EmptyState, Text, TopBar } from '../../components/ui';
 
 const QUICK_ACTIONS = [
   { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: '/event/create' },
@@ -95,28 +95,28 @@ export default function HomeScreen() {
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
               {events.slice(0, 8).map((e: { id: string }) => (
-                <View key={e.id} style={styles.railItem}>
-                  <EventCard event={e as never} onPress={() => router.push(`/event/${e.id}` as never)} />
-                </View>
+                <EventCard
+                  key={e.id}
+                  event={e as never}
+                  orientation="vertical"
+                  onPress={() => router.push(`/event/${e.id}` as never)}
+                />
               ))}
             </ScrollView>
           )}
 
+          {/* "My Groups" is a plain vertical stack (no ScrollView), so it takes
+              full-width horizontal cards, not the rail's vertical ones. */}
           <SectionHeader title={t('myGroups')} onSeeAll={() => router.push('/groups' as never)} t={t} />
           {groups.length === 0 ? (
             <Text variant="caption" tone="muted">{t('groupsEmpty')}</Text>
           ) : (
             groups.slice(0, 5).map((g) => (
-              <ListRow
+              <GroupCard
                 key={g.group_id}
-                title={g.name}
-                subtitle={g.community_name}
-                trailing={
-                  <Text variant="hint" tone="muted">
-                    {t('memberCount', { count: g.member_count })}
-                  </Text>
-                }
-                trailingLabel={t('memberCount', { count: g.member_count })}
+                group={g as never}
+                memberCount={g.member_count}
+                orientation="horizontal"
                 onPress={() => router.push(`/group/${g.group_id}` as never)}
               />
             ))
@@ -191,9 +191,12 @@ function NoActivityView({
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
           {evRows.map((e: { id: string }) => (
-            <View key={e.id} style={styles.railItem}>
-              <EventCard event={e as never} onPress={() => router.push(`/event/${e.id}` as never)} />
-            </View>
+            <EventCard
+              key={e.id}
+              event={e as never}
+              orientation="vertical"
+              onPress={() => router.push(`/event/${e.id}` as never)}
+            />
           ))}
         </ScrollView>
       )}
@@ -217,10 +220,16 @@ function NoActivityView({
           // groups when they came to make one.
         />
       ) : (
+        // Not a horizontally scrolling rail (no ScrollView wraps this map), so
+        // per the orientation contract it takes full-width horizontal cards —
+        // a vertical (rail-shaped) card must never appear stacked like this.
         grRows.map((g: { id: string }) => (
-          <View key={g.id} style={styles.railItem}>
-            <GroupCard group={g as never} onOpen={() => router.push(`/group/${g.id}` as never)} />
-          </View>
+          <GroupCard
+            key={g.id}
+            group={g as never}
+            orientation="horizontal"
+            onPress={() => router.push(`/group/${g.id}` as never)}
+          />
         ))
       )}
     </>
@@ -249,7 +258,6 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 8 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginTop: 16, marginBottom: 8 },
   rail: { gap: 12, paddingRight: 16 },
-  railItem: { width: 260 },
   banner: { backgroundColor: palette.purple[100], borderRadius: 12, padding: 16, marginTop: 8, gap: 4 },
   empty: { color: colors.mutedForeground, fontSize: 14, paddingVertical: 8 },
   emptyCard: {

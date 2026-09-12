@@ -11,8 +11,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { EventCard } from '@/components/event/EventCard';
 import { CommunityCard } from '@/components/explore/CommunityCard';
-import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
+import { GroupCard } from '@/components/group/GroupCard';
 import { EmptyState, emptyIcon, listEmptyContent } from '@/components/ui';
 import { colors } from '../../theme';
 
@@ -86,18 +86,29 @@ export function ExploreList({
 
   const renderItem = (item: { id: string }) => {
     if (kind === 'players')
-      return <PlayerCard player={item as never} onPress={() => router.push(`/profile/${item.id}`)} />;
+      return (
+        <PlayerCard
+          player={item as never}
+          orientation="horizontal"
+          onPress={() => router.push(`/profile/${item.id}`)}
+        />
+      );
     if (kind === 'events')
-      return <EventCard event={item as never} onPress={() => router.push(`/event/${item.id}`)} />;
+      return (
+        <EventCard event={item as never} orientation="horizontal" onPress={() => router.push(`/event/${item.id}`)} />
+      );
     if (kind === 'communities')
       return (
         <CommunityCard
           community={item as never}
+          orientation="horizontal"
           onOpen={() => router.push(`/community/${item.id}/posts`)}
           onRequestJoin={() => router.push(`/community/${item.id}/join`)}
         />
       );
-    return <GroupCard group={item as never} onOpen={() => router.push(`/group/${item.id}`)} />;
+    return (
+      <GroupCard group={item as never} orientation="horizontal" onPress={() => router.push(`/group/${item.id}`)} />
+    );
   };
 
   if (active.isLoading) {
@@ -108,7 +119,6 @@ export function ExploreList({
     <FlashList
       data={rows}
       keyExtractor={(item) => item.id}
-      numColumns={kind === 'players' ? 3 : 1}
       contentContainerStyle={[styles.list, listEmptyContent]}
       keyboardDismissMode={keyboardDismissMode}
       keyboardShouldPersistTaps={keyboardShouldPersistTaps}

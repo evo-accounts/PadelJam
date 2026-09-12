@@ -15,7 +15,19 @@ export async function boot(): Promise<void> {
   await simctl(['bootstatus', CONFIG.udid, '-b'], 120_000);
 }
 
-export const install = (appPath: string) => simctl(['install', CONFIG.udid, appPath], 300_000);
+export async function install(appPath: string): Promise<void> {
+  await simctl(['install', CONFIG.udid, appPath], 300_000);
+  // `simctl install` returns before SpringBoard has registered the bundle on a
+  // busy device; launching in that window fails with "Unknown application
+  // display identifier". Wait until the container is queryable (CI: up to 60 s).
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    const r = await run('xcrun', ['simctl', 'get_app_container', CONFIG.udid, CONFIG.bundleId], { timeoutMs: 20_000 });
+    if (r.code === 0) return;
+    await new Promise((res) => setTimeout(res, 2_000));
+  }
+  throw new Error(`simctl install: ${CONFIG.bundleId} never became queryable on ${CONFIG.udid}`);
+}
 export const uninstall = () => simctl(['uninstall', CONFIG.udid, CONFIG.bundleId], 120_000);
 
 /**
@@ -29,8 +41,23 @@ export async function launch(opts: { args?: string[]; env?: Record<string, strin
   // simctl launch passes env vars prefixed with SIMCTL_CHILD_.
   const env = Object.fromEntries(Object.entries(opts.env ?? {}).map(([k, v]) => [`SIMCTL_CHILD_${k}`, v]));
   Object.assign(process.env, env);
-  await simctl(['launch', CONFIG.udid, CONFIG.bundleId, ...(opts.args ?? [])], 120_000);
-  for (const k of Object.keys(env)) delete process.env[k];
+  try {
+    // Right after `simctl install`, SpringBoard can still answer "Unknown
+    // application display identifier" for a second or two (seen on the CI
+    // runner in three runs on 2026-09-12). Retry that one error briefly.
+    for (let attempt = 0; ; attempt++) {
+      const r = await run('xcrun', ['simctl', 'launch', CONFIG.udid, CONFIG.bundleId, ...(opts.args ?? [])], { timeoutMs: 120_000 });
+      if (r.code === 0) break;
+      const out = `${r.stderr}${r.stdout}`;
+      if (attempt < 10 && /Unknown application display identifier|NotFound/.test(out)) {
+        await new Promise((res) => setTimeout(res, 3_000));
+        continue;
+      }
+      throw new Error(`xcrun simctl launch ${CONFIG.udid} ${CONFIG.bundleId} ${(opts.args ?? []).join(' ')} failed (${r.code}):\n${out}`);
+    }
+  } finally {
+    for (const k of Object.keys(env)) delete process.env[k];
+  }
   void envArgs;
 }
 

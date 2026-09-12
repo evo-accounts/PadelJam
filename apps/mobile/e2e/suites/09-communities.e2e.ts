@@ -126,7 +126,12 @@ describe('09 communities', () => {
     // pedro belongs to no community, so the Community tab lists nothing for
     // him — reach it through Explore instead.
     await tabTo('Explore');
-    await scrollUntilVisible({ text: /communities/i }, { maxSwipes: 6 });
+    // The "For you" rails now hold fixed-width vertical cards, so a community
+    // further down the rail sits off screen to the right. Switch to the
+    // Communities chip (first "Communities" match in the tree) instead: it
+    // renders every community as a full-width card in a vertical list.
+    await tap({ text: /^communities$/i, type: 'Button' });
+    await sleep(800);
     await scrollUntilVisible({ text: /cascais social/i }, { maxSwipes: 8 });
     await tap({ text: /cascais social/i });
     await sleep(1500);
