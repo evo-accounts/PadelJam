@@ -3,11 +3,11 @@ import { useT } from '@padel/i18n';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useRef, useState } from 'react';
-import { Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Share, StyleSheet, Text, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import { ResultCard } from './ResultCard';
 import { colors } from '../../theme';
-import { Button } from '../../components/ui';
+import { BottomSheet, Button } from '../../components/ui';
 
 export function ShareResultsModal({
   visible,
@@ -60,39 +60,33 @@ export function ShareResultsModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <View style={styles.sheet}>
-          <Text style={styles.title}>{t('shareResultsTitle')}</Text>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          {communityId ? (
-            <Button
-              label={posted ? t('resultPosted') : t('postToFeedCta')}
-              fullWidth
-              loading={postResult.isPending}
-              disabled={posted}
-              onPress={onPost}
-            />
-          ) : null}
-          <Button
-            label={copied ? t('copied') : t('shareExternalCta')}
-            variant="outline"
-            fullWidth
-            onPress={onShare}
-          />
-          <View ref={cardRef} collapsable={false} style={styles.offscreen}>
-            <ResultCard eventId={eventId} eventName={eventName} />
-          </View>
-        </View>
-      </Pressable>
-    </Modal>
+    <BottomSheet visible={visible} onClose={onClose} title={t('shareResultsTitle')} testID="share-results-sheet">
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {communityId ? (
+        <Button
+          label={posted ? t('resultPosted') : t('postToFeedCta')}
+          fullWidth
+          loading={postResult.isPending}
+          disabled={posted}
+          onPress={onPost}
+        />
+      ) : null}
+      <Button
+        label={copied ? t('copied') : t('shareExternalCta')}
+        variant="outline"
+        fullWidth
+        style={styles.shareButton}
+        onPress={onShare}
+      />
+      <View ref={cardRef} collapsable={false} style={styles.offscreen}>
+        <ResultCard eventId={eventId} eventName={eventName} />
+      </View>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 12 },
-  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 14, fontWeight: '600' },
+  shareButton: { marginTop: 8 },
   offscreen: { position: 'absolute', left: -9999, top: 0 },
 });

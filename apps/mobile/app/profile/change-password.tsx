@@ -2,16 +2,17 @@ import { changePassword, useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
-import { Button, TopBar } from '../../components/ui';
+import { Button, TopBar, useBanner } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function ChangePasswordScreen() {
   const { t } = useT('profile');
   const router = useRouter();
+  const banner = useBanner();
   const email = useSession().session?.user.email;
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -35,7 +36,8 @@ export default function ChangePasswordScreen() {
     try {
       const r = await changePassword(supabase, email, current, next);
       if (r.ok) {
-        Alert.alert(t('passwordChanged'), undefined, [{ text: 'OK', onPress: () => router.back() }]);
+        banner.show(t('passwordChanged'), 'success');
+        router.back();
         return;
       }
       setError(r.reason === 'current_password_wrong' ? t('currentPasswordWrong') : t('updateFailed'));

@@ -2,13 +2,13 @@ import { useCommunity, useJoinCommunity } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AckGate } from '@/components/community/AckGate';
 import { CommunityHero } from '@/components/community/CommunityHero';
 import { colors } from '../../../theme';
-import { Button, TopBar } from '../../../components/ui';
+import { Button, TopBar, useBanner } from '../../../components/ui';
 
 const PRIVACY_SUMMARY_KEY: Record<string, string> = {
   public: 'privacySummaryPublic',
@@ -29,6 +29,7 @@ export default function CommunityJoinModal() {
 
   const { data: community, isLoading } = useCommunity(id);
   const join = useJoinCommunity(id);
+  const banner = useBanner();
 
   const [ack, setAck] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -54,7 +55,7 @@ export default function CommunityJoinModal() {
       try {
         const result = await join.mutateAsync(ack);
         if (result === 'joined') {
-          Alert.alert(t('joinedToast'));
+          banner.show(t('joinedToast'), 'success');
           // The bare `/community/[id]` group route resolves at runtime but isn't in
           // the typed-route table; target its first tab, which is the same landing.
           router.replace(`/community/${id}/posts`);

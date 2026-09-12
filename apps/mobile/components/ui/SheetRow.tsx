@@ -12,15 +12,21 @@ type Props = {
   destructive?: boolean;
   disabled?: boolean;
   leading?: ReactNode;
+  /** For rows in a multi-select sheet — see `ListRow`'s `selected`. */
+  selected?: boolean;
+  /** Badge, checkmark, chevron — see `ListRow`'s `trailing`. */
+  trailing?: ReactNode;
   testID?: string;
 };
 
-export function SheetRow({ label, onPress, destructive = false, disabled = false, leading, testID }: Props) {
+export function SheetRow({ label, onPress, destructive = false, disabled = false, leading, selected, trailing, testID }: Props) {
   return (
     <ListRow
       title={label}
       titleTone={destructive ? 'destructive' : 'default'}
       leading={leading}
+      trailing={trailing}
+      selected={selected}
       onPress={onPress}
       disabled={disabled}
       testID={testID}

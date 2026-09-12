@@ -12,14 +12,13 @@ import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, palette, space } from '../../../theme';
-import { Button, Card, Chip, Field, Loading, Text, TopBar } from '../../../components/ui';
+import { BottomSheet, Button, Card, Chip, Field, Loading, Text, TopBar } from '../../../components/ui';
 
 type Channel = 'email' | 'whatsapp';
 
@@ -211,46 +210,40 @@ export default function BlastScreen() {
         </ScrollView>
       )}
 
-      {/* Customize modal (Basic/Pro) */}
-      <Modal visible={editing != null} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <Text variant="sectionTitle">{t('blastCustomizeTitle')}</Text>
-            <Field
-              label={t('blastTitleLabel')}
-              value={editing?.title ?? ''}
-              maxLength={80}
-              containerStyle={styles.cardSpacing}
-              onChangeText={(v) => setEditing((st) => (st ? { ...st, title: v } : st))}
-            />
-            <Field
-              label={t('blastDescLabel')}
-              value={editing?.description ?? ''}
-              maxLength={1000}
-              multiline
-              containerStyle={styles.cardSpacing}
-              onChangeText={(v) => setEditing((st) => (st ? { ...st, description: v } : st))}
-            />
-            <Text variant="hint" tone="subtle" style={styles.label}>{t('blastSendToLabel')}</Text>
-            <Text variant="bodyStrong">{t('blastSendToAll')}</Text>
-            {channelRow}
-            {error ? <Text variant="label" tone="destructive" style={styles.error}>{error}</Text> : null}
-            <Button
-              label={t('blastSendCta')}
-              loading={busy}
-              fullWidth
-              style={styles.cardSpacing}
-              onPress={() => editing && submit(editing)}
-            />
-            <Button
-              label={t('cancel')}
-              variant="outline"
-              fullWidth
-              onPress={() => setEditing(null)}
-            />
-          </View>
-        </View>
-      </Modal>
+      {/* Customize sheet (Basic/Pro) */}
+      <BottomSheet
+        visible={editing != null}
+        onClose={() => setEditing(null)}
+        title={t('blastCustomizeTitle')}
+        testID="blast-customize-sheet"
+      >
+        <Field
+          label={t('blastTitleLabel')}
+          value={editing?.title ?? ''}
+          maxLength={80}
+          containerStyle={styles.cardSpacing}
+          onChangeText={(v) => setEditing((st) => (st ? { ...st, title: v } : st))}
+        />
+        <Field
+          label={t('blastDescLabel')}
+          value={editing?.description ?? ''}
+          maxLength={1000}
+          multiline
+          containerStyle={styles.cardSpacing}
+          onChangeText={(v) => setEditing((st) => (st ? { ...st, description: v } : st))}
+        />
+        <Text variant="hint" tone="subtle" style={styles.label}>{t('blastSendToLabel')}</Text>
+        <Text variant="bodyStrong">{t('blastSendToAll')}</Text>
+        {channelRow}
+        {error ? <Text variant="label" tone="destructive" style={styles.error}>{error}</Text> : null}
+        <Button
+          label={t('blastSendCta')}
+          loading={busy}
+          fullWidth
+          style={styles.cardSpacing}
+          onPress={() => editing && submit(editing)}
+        />
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -274,10 +267,6 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
   channelRow: { flexDirection: 'row', gap: 10 },
   channel: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-
-
-  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.background, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 10, maxHeight: '90%' },
 
   sentBox: { paddingHorizontal: 32, alignItems: 'center', gap: 12 },
 

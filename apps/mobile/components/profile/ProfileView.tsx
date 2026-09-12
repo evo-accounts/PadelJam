@@ -7,9 +7,9 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
-import { BlockModal, ReportModal } from './BlockReportModals';
+import { ReportSheet } from './BlockReportModals';
 import { colors, palette } from '../../theme';
-import { Button, IconButton } from '../../components/ui';
+import { Button, IconButton, useActionSheet } from '../../components/ui';
 
 export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolean }) {
   const { t } = useT('profile');
@@ -19,9 +19,8 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
   const unfollow = useUnfollow();
   const block = useBlock();
   const report = useReport();
-  const [blockOpen, setBlockOpen] = useState(false);
+  const show = useActionSheet();
   const [reportOpen, setReportOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   if (query.isLoading) return <ActivityIndicator color={colors.foreground} style={{ marginTop: 48 }} />;
   const p = query.data;
@@ -73,21 +72,25 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
             <IconButton
               icon={<SymbolView name={{ ios: 'ellipsis', android: 'more_vert', web: 'more_vert' }} tintColor={colors.foreground} size={22} />}
               accessibilityLabel={t('more')}
-              onPress={() => setMenuOpen((v) => !v)}
+              onPress={async () => {
+                const key = await show({
+                  actions: [
+                    { key: 'share', label: t('kebabShare') },
+                    {
+                      key: 'block',
+                      label: t('kebabBlock'),
+                      destructive: true,
+                      confirm: { title: t('blockConfirmTitle'), body: t('blockConfirmBody'), confirmLabel: t('blockConfirm') },
+                    },
+                    { key: 'report', label: t('kebabReport') },
+                  ],
+                });
+                if (key === 'share') void Share.share({ message: p.full_name });
+                if (key === 'block') block.mutate(userId, { onSuccess: () => router.back() });
+                // Safe: `show()` resolves only after the host has dismissed its Modal, so ReportSheet never races it.
+                if (key === 'report') setReportOpen(true);
+              }}
             />
-          </View>
-        )}
-        {menuOpen && !isSelf && (
-          <View style={styles.menu}>
-            <Pressable style={styles.menuItem} onPress={() => { setMenuOpen(false); void Share.share({ message: p.full_name }); }}>
-              <Text style={styles.menuText}>{t('kebabShare')}</Text>
-            </Pressable>
-            <Pressable style={styles.menuItem} onPress={() => { setMenuOpen(false); setBlockOpen(true); }}>
-              <Text style={styles.menuText}>{t('kebabBlock')}</Text>
-            </Pressable>
-            <Pressable style={styles.menuItem} onPress={() => { setMenuOpen(false); setReportOpen(true); }}>
-              <Text style={styles.menuText}>{t('kebabReport')}</Text>
-            </Pressable>
           </View>
         )}
       </View>
@@ -103,12 +106,7 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
         </View>
       </View>
 
-      <BlockModal
-        visible={blockOpen}
-        onCancel={() => setBlockOpen(false)}
-        onConfirm={() => { setBlockOpen(false); block.mutate(userId, { onSuccess: () => router.back() }); }}
-      />
-      <ReportModal
+      <ReportSheet
         visible={reportOpen}
         onCancel={() => setReportOpen(false)}
         onSubmit={(reason, description) => { setReportOpen(false); report.mutate({ targetId: userId, reason, description }); }}
@@ -133,9 +131,6 @@ const styles = StyleSheet.create({
   countLabel: { fontSize: 12, color: colors.mutedForeground, textAlign: 'center' },
   actions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   kebab: { padding: 8 },
-  menu: { alignSelf: 'stretch', backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
-  menuItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  menuText: { fontSize: 15, color: colors.foreground },
   stats: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 24, marginTop: 16 },
   stat: { alignItems: 'center' },
   statNum: { fontSize: 24, fontWeight: '700', color: colors.foreground },

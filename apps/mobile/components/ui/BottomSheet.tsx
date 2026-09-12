@@ -8,7 +8,8 @@
  */
 import { useT } from '@padel/i18n';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, space } from '../../theme';
@@ -18,17 +19,55 @@ import { Text } from './Text';
 type Props = {
   visible: boolean;
   onClose: () => void;
+  /**
+   * Fires once the sheet has actually finished dismissing — not when `visible`
+   * flips to false, but after the Modal itself is gone. On iOS this is the
+   * Modal's own `onDismiss`. Android's Modal has no such callback, so it is
+   * simulated here: a `useEffect` watches `visible` flip true -> false and
+   * fires after a `requestAnimationFrame`, giving the close animation a frame
+   * to start before callers (e.g. a caller `await`ing the sheet's promise)
+   * act on the dismissal. Guarded to fire once per close on both platforms.
+   * Does not fire if the component unmounts while still visible.
+   */
+  onDismissed?: () => void;
   title?: string;
   children: ReactNode;
   style?: ViewStyle;
   testID?: string;
 };
 
-export function BottomSheet({ visible, onClose, title, children, style, testID }: Props) {
+export function BottomSheet({ visible, onClose, onDismissed, title, children, style, testID }: Props) {
   const { t } = useT('common');
   const insets = useSafeAreaInsets();
+  const wasVisible = useRef(visible);
+  const onDismissedRef = useRef(onDismissed);
+
+  // Keep the latest callback available to the emulation effect below without
+  // making it a dependency — see that effect for why.
+  useEffect(() => {
+    onDismissedRef.current = onDismissed;
+  });
+
+  useEffect(() => {
+    const justClosed = wasVisible.current && !visible;
+    wasVisible.current = visible;
+    if (Platform.OS === 'ios' || !justClosed) return;
+    // Depends on `visible` only: `SheetHost` passes an inline `onDismissed`
+    // closure, so including it here would re-run this effect (cancelling and
+    // never rescheduling the frame, since `justClosed` is only true once) on
+    // any re-render between the true -> false flip and the scheduled frame.
+    const handle = requestAnimationFrame(() => onDismissedRef.current?.());
+    return () => cancelAnimationFrame(handle);
+  }, [visible]);
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      onDismiss={onDismissed}
+    >
       <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
         <View
           testID={testID}

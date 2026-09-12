@@ -9,9 +9,10 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../theme';
-import { Button, Chip, ListRow } from '../../components/ui';
+import { Avatar, Button, Chip, useActionSheet, useBanner } from '../../components/ui';
 
 type Participant = {
   id: string;
@@ -19,7 +20,7 @@ type Participant = {
   guest_name: string | null;
   status: string;
   is_standby: boolean;
-  profiles?: { full_name: string | null } | null;
+  profiles?: { full_name: string | null; avatar_url: string | null } | null;
 };
 
 type Slot = 'a' | 'b';
@@ -44,14 +45,11 @@ export function TeamManage({
   const removeFromTeam = useRemoveFromTeam(eventId);
   const switchPlayers = useSwitchPlayers(eventId);
   const removeParticipant = useRemoveParticipant(eventId);
+  const show = useActionSheet();
+  const banner = useBanner();
 
   const [view, setView] = useState<'team' | 'player'>('team');
   const [busy, setBusy] = useState(false);
-  const [assignTarget, setAssignTarget] = useState<{ teamNumber: number; slot: Slot } | null>(null);
-  const [switchTarget, setSwitchTarget] = useState<string | null>(null);
-  const [confirmTarget, setConfirmTarget] = useState<
-    { participant: Participant; teamNumber: number; slot: Slot } | null
-  >(null);
 
   const capacity = numCourts * 4;
   const teamCount = numCourts * 2;
@@ -64,65 +62,94 @@ export function TeamManage({
     if (r.player_a) occupied.add(r.player_a.id);
     if (r.player_b) occupied.add(r.player_b.id);
   });
+  const assignable = participants.filter((p) => !occupied.has(p.id));
+  const confirmedCount = participants.filter((p) => p.status === 'confirmed' && !p.is_standby).length;
 
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);
     try {
       await action();
     } catch (e) {
-      Alert.alert(t(e instanceof Error ? e.message : 'unknown_error'));
+      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     } finally {
       setBusy(false);
     }
   };
 
   const doAssign = (p: Participant, teamNumber: number, slot: Slot) => {
-    setAssignTarget(null);
-    setConfirmTarget(null);
     void run(() =>
       assign.mutateAsync({ participantId: p.id, teamNumber, slot, targetName: pname(p) }),
     );
   };
 
-  const onPickForSlot = (p: Participant) => {
-    if (!assignTarget) return;
-    if (p.status !== 'confirmed') {
-      setConfirmTarget({ participant: p, teamNumber: assignTarget.teamNumber, slot: assignTarget.slot });
-      setAssignTarget(null);
-    } else {
-      doAssign(p, assignTarget.teamNumber, assignTarget.slot);
-    }
-  };
-
-  const onSlotPress = (teamNumber: number, slot: Slot, occupant: TeamSlotPlayer | null) => {
-    if (busy) return;
-    if (!occupant) {
-      setAssignTarget({ teamNumber, slot });
+  const onAssign = async (teamNumber: number, slot: Slot) => {
+    if (assignable.length === 0) {
+      banner.show(t('assignNoneEligible'));
       return;
     }
-    Alert.alert(t('slotActionTitle'), pname(occupant), [
-      { text: t('switchPlayerCta'), onPress: () => setSwitchTarget(occupant.id) },
-      {
-        text: t('removeFromTeamCta'),
-        style: 'destructive',
-        onPress: () => run(() => removeFromTeam.mutateAsync({ participantId: occupant.id, targetName: pname(occupant) })),
-      },
-      { text: t('cancel'), style: 'cancel' },
-    ]);
+    const key = await show({
+      title: t('assignTitle'),
+      actions: assignable.map((p) => ({
+        key: p.id,
+        label: pname(p),
+        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" />,
+        // An unconfirmed player (interested / invited, not yet RSVP'd) gets a
+        // confirmation step before landing on the court — the host morphs the
+        // same Modal from the candidate list straight into this prompt.
+        confirm:
+          p.status !== 'confirmed'
+            ? { title: t('assignConfirmTitle'), body: t('assignConfirmBody', { name: pname(p) }), confirmLabel: t('continue') }
+            : undefined,
+      })),
+    });
+    const picked = assignable.find((p) => p.id === key);
+    if (picked) doAssign(picked, teamNumber, slot);
   };
 
-  const onSwitchPick = (other: Participant) => {
-    const a = switchTarget;
-    setSwitchTarget(null);
-    if (a && a !== other.id) {
-      void run(() => switchPlayers.mutateAsync({ participantA: a, participantB: other.id }));
+  const onSwitch = async (occupant: TeamSlotPlayer) => {
+    const candidates = participants.filter((p) => p.id !== occupant.id);
+    const otherId = await show({
+      title: t('switchTitle'),
+      actions: candidates.map((p) => ({
+        key: p.id,
+        label: pname(p),
+        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" />,
+      })),
+    });
+    if (otherId) {
+      void run(() => switchPlayers.mutateAsync({ participantA: occupant.id, participantB: otherId }));
+    }
+  };
+
+  const onSlotPress = async (teamNumber: number, slot: Slot, occupant: TeamSlotPlayer | null) => {
+    if (busy) return;
+    if (!occupant) {
+      await onAssign(teamNumber, slot);
+      return;
+    }
+    const key = await show({
+      title: pname(occupant),
+      actions: [
+        { key: 'switch', label: t('switchPlayerCta') },
+        {
+          key: 'remove',
+          label: t('removeFromTeamCta'),
+          destructive: true,
+          confirm: { title: t('slotActionTitle'), body: pname(occupant), confirmLabel: t('removeFromTeamCta') },
+        },
+      ],
+    });
+    if (key === 'switch') {
+      // Safe to open a second action sheet right after the first resolves —
+      // `show()` only returns once the host has actually dismissed (see
+      // sheetApi.ts), so there is never a second Modal racing the first.
+      await onSwitch(occupant);
+    } else if (key === 'remove') {
+      void run(() => removeFromTeam.mutateAsync({ participantId: occupant.id, targetName: pname(occupant) }));
     }
   };
 
   if (isLoading) return <ActivityIndicator color={colors.foreground} style={{ marginTop: 24 }} />;
-
-  const assignable = participants.filter((p) => !occupied.has(p.id));
-  const confirmedCount = participants.filter((p) => p.status === 'confirmed' && !p.is_standby).length;
 
   return (
     <View>
@@ -155,7 +182,7 @@ export function TeamManage({
                     <Pressable
                       key={slot}
                       style={[styles.slot, occ ? styles.slotFilled : styles.slotEmpty]}
-                      onPress={() => onSlotPress(n, slot, occ)}
+                      onPress={() => void onSlotPress(n, slot, occ)}
                       accessibilityRole="button"
                       disabled={busy}
                     >
@@ -181,67 +208,6 @@ export function TeamManage({
           }
         />
       )}
-
-      {/* Assign sheet */}
-      <Modal visible={assignTarget != null} transparent animationType="slide" onRequestClose={() => setAssignTarget(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setAssignTarget(null)}>
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>{t('assignTitle')}</Text>
-            {assignable.length === 0 ? (
-              <Text style={styles.sheetEmpty}>{t('assignNoneEligible')}</Text>
-            ) : (
-              <ScrollView>
-                {assignable.map((p) => (
-                  <ListRow key={p.id} title={pname(p)} onPress={() => onPickForSlot(p)} />
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Switch sheet */}
-      <Modal visible={switchTarget != null} transparent animationType="slide" onRequestClose={() => setSwitchTarget(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setSwitchTarget(null)}>
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>{t('switchTitle')}</Text>
-            <ScrollView>
-              {participants
-                .filter((p) => p.id !== switchTarget)
-                .map((p) => (
-                  <ListRow key={p.id} title={pname(p)} onPress={() => onSwitchPick(p)} />
-                ))}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Confirm-player modal (JM-30) */}
-      <Modal visible={confirmTarget != null} transparent animationType="fade" onRequestClose={() => setConfirmTarget(null)}>
-        <View style={styles.backdropCenter}>
-          <View style={styles.dialog}>
-            <Text style={styles.dialogTitle}>{t('assignConfirmTitle')}</Text>
-            <Text style={styles.dialogBody}>
-              {t('assignConfirmBody', { name: confirmTarget ? pname(confirmTarget.participant) : '' })}
-            </Text>
-            <View style={styles.dialogRow}>
-              <Button
-                label={t('cancel')}
-                variant="outline"
-                style={styles.dialogBtn}
-                onPress={() => setConfirmTarget(null)}
-              />
-              <Button
-                label={t('continue')}
-                style={styles.dialogBtn}
-                onPress={() =>
-                  confirmTarget && doAssign(confirmTarget.participant, confirmTarget.teamNumber, confirmTarget.slot)
-                }
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -313,16 +279,4 @@ const styles = StyleSheet.create({
   tab: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center' },
   pvRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
   pvName: { flex: 1, fontSize: 15, color: colors.foreground, fontWeight: '500' },
-
-  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  backdropCenter: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', paddingHorizontal: 24 },
-  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '70%' },
-  sheetTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
-  sheetEmpty: { fontSize: 15, color: colors.mutedForeground, paddingVertical: 12 },
-
-  dialog: { backgroundColor: colors.card, borderRadius: 16, padding: 20, gap: 12 },
-  dialogTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground },
-  dialogBody: { fontSize: 15, color: colors.mutedForeground, lineHeight: 21 },
-  dialogRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  dialogBtn: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 });

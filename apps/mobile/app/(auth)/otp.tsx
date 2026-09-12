@@ -9,7 +9,7 @@ import {
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useEffect, useReducer, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { runAppleSignIn } from '@/lib/appleSignIn';
@@ -19,7 +19,7 @@ import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { decidePostVerifyRoute } from '@/lib/postVerifyRoute';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
-import { Button } from '../../components/ui';
+import { BottomSheet, Button, SheetRow } from '../../components/ui';
 
 export default function OtpScreen() {
   const { t } = useT('auth');
@@ -176,32 +176,18 @@ export default function OtpScreen() {
 
       <Button label={t('tryAnotherWay')} variant="ghost" onPress={() => setSheetOpen(true)} />
 
-      <Modal visible={sheetOpen} transparent animationType="fade" onRequestClose={() => setSheetOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setSheetOpen(false)}>
-          <View style={styles.sheet}>
-            <Pressable
-              style={styles.sheetRow}
-              onPress={() => { setSheetOpen(false); router.push('/(auth)/password' as never); }}
-              accessibilityRole="button"
-            >
-              <Text style={styles.sheetText}>{t('usePassword')}</Text>
-            </Pressable>
-            <Pressable
-              style={styles.sheetRow}
-              onPress={() => { setSheetOpen(false); dispatch({ type: 'reset' }); router.replace('/(auth)/sign-in'); }}
-              accessibilityRole="button"
-            >
-              <Text style={styles.sheetText}>{t('useDifferentId')}</Text>
-            </Pressable>
-            <Pressable style={styles.sheetRow} onPress={onGoogle} accessibilityRole="button">
-              <Text style={styles.sheetText}>{t('continueWithGoogle')}</Text>
-            </Pressable>
-            <Pressable style={styles.sheetRow} onPress={onApple} accessibilityRole="button">
-              <Text style={styles.sheetText}>{t('continueWithApple')}</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+      <BottomSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} title={t('tryAnotherWay')} testID="otp-other-ways-sheet">
+        <SheetRow
+          label={t('usePassword')}
+          onPress={() => { setSheetOpen(false); router.push('/(auth)/password' as never); }}
+        />
+        <SheetRow
+          label={t('useDifferentId')}
+          onPress={() => { setSheetOpen(false); dispatch({ type: 'reset' }); router.replace('/(auth)/sign-in'); }}
+        />
+        <SheetRow label={t('continueWithGoogle')} onPress={onGoogle} />
+        <SheetRow label={t('continueWithApple')} onPress={onApple} />
+      </BottomSheet>
     </View>
   );
 }
@@ -229,8 +215,4 @@ const styles = StyleSheet.create({
   linkButton: { paddingVertical: 14, alignItems: 'center' },
   link: { color: colors.foreground, fontSize: 15, fontWeight: '600' },
   linkMuted: { color: colors.mutedForeground },
-  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 8 },
-  sheetRow: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
-  sheetText: { fontSize: 16, color: colors.foreground, fontWeight: '600' },
 });

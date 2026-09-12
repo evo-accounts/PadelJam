@@ -2,17 +2,18 @@ import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { unregisterForPush } from '@/lib/push';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
-import { Button, TopBar } from '../../components/ui';
+import { Button, TopBar, useConfirm } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function DeleteAccountScreen() {
   const { t } = useT('profile');
   const router = useRouter();
+  const confirm = useConfirm();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,12 +50,16 @@ export default function DeleteAccountScreen() {
     }
   };
 
-  const confirm = () => {
+  const onDeletePress = async () => {
     if (busy) return;
-    Alert.alert(t('deleteWarningTitle'), t('deleteWarningBody'), [
-      { text: t('deleteCancel'), style: 'cancel' },
-      { text: t('deleteConfirm'), style: 'destructive', onPress: () => void doDelete() },
-    ]);
+    const ok = await confirm({
+      title: t('deleteWarningTitle'),
+      body: t('deleteWarningBody'),
+      confirmLabel: t('deleteConfirm'),
+      cancelLabel: t('deleteCancel'),
+      destructive: true,
+    });
+    if (ok) await doDelete();
   };
 
   return (
@@ -67,7 +72,7 @@ export default function DeleteAccountScreen() {
         <Text style={styles.item}>{t('deleteErasedMemberships')}</Text>
         <Text style={styles.item}>{t('deleteErasedSocial')}</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button variant="destructive" fullWidth label={t('deleteConfirm')} onPress={confirm} loading={busy} />
+        <Button variant="destructive" fullWidth label={t('deleteConfirm')} onPress={onDeletePress} loading={busy} />
       </ScrollView>
     </SafeAreaView>
   );

@@ -16,13 +16,14 @@
  * first is still dismissing; one Modal element stays presented and the content morphs underneath it.
  */
 import { useT } from '@padel/i18n';
-import { createContext, useContext, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { space } from '../../theme';
 import { BottomSheet } from './BottomSheet';
 import { Button } from './Button';
 import { createSheetApi, type ActionSheetOptions, type ConfirmOptions, type Request, type SheetAction, type SheetApi } from './sheetApi';
+import { SheetPresence } from './sheetPresence';
 import { SheetRow } from './SheetRow';
 import { SheetQueue } from './sheetQueue';
 import { Text } from './Text';
@@ -35,7 +36,13 @@ export function SheetHost({ children }: { children: ReactNode }) {
   const { t } = useT('common');
   const [queue] = useState(() => new SheetQueue<Request, string>());
   const req = useSyncExternalStore(queue.subscribe, queue.current);
-  const ctx = useMemo(() => createSheetApi(queue), [queue]);
+  const [presence] = useState(() => new SheetPresence());
+  useEffect(() => {
+    if (req != null) presence.markPresented();
+  }, [req, presence]);
+  const waitClosed = useMemo(() => () => presence.waitClosed(queue.current() == null), [queue, presence]);
+  const ctx = useMemo(() => createSheetApi(queue, waitClosed), [queue, waitClosed]);
+  const onDismissed = useCallback(() => presence.markDismissed(), [presence]);
 
   return (
     <SheetContext.Provider value={ctx}>
@@ -43,6 +50,7 @@ export function SheetHost({ children }: { children: ReactNode }) {
       <BottomSheet
         visible={req != null}
         onClose={() => req && queue.dismiss(req.id)}
+        onDismissed={onDismissed}
         title={req?.payload.options.title}
         testID={req?.payload.kind === 'confirm' ? 'confirm-sheet' : 'action-sheet'}
       >
@@ -78,8 +86,9 @@ export function SheetHost({ children }: { children: ReactNode }) {
                 label={a.label}
                 destructive={a.destructive}
                 disabled={a.disabled}
+                leading={a.leading}
                 onPress={() => queue.resolve(req.id, a.key)}
-                testID={`action-sheet-${a.key}`}
+                testID={a.testID ?? `action-sheet-${a.key}`}
               />
             ))
           : null}

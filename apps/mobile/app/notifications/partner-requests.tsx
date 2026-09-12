@@ -6,24 +6,36 @@ import {
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
-import { TopBar } from '../../components/ui';
+import { TopBar, useBanner, useConfirm } from '../../components/ui';
 
 export default function PartnerRequestsScreen() {
   const { t } = useT('notifications');
   const goBack = useGoBack();
   const list = useIncomingPartnerRequests();
   const respond = useRespondToRequest();
+  const confirm = useConfirm();
+  const banner = useBanner();
   const rows = list.data ?? [];
 
-  const act = (item: IncomingPartnerRequest, action: 'accept' | 'decline') =>
+  const act = async (item: IncomingPartnerRequest, action: 'accept' | 'decline') => {
+    if (action === 'decline') {
+      const ok = await confirm({
+        title: t('declineTitle'),
+        body: t('declineBody'),
+        confirmLabel: t('decline'),
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     respond.mutate(
       { kind: item.kind, requestId: item.request_id, action },
-      { onError: () => Alert.alert(t('respondError')) },
+      { onError: () => banner.show(t('respondError')) },
     );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

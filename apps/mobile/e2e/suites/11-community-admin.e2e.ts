@@ -3,7 +3,7 @@ import { query, snapshot } from '../driver/a11y';
 import { scrollUntilVisible, tap, toggleSwitch, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
-import { loginAs, tabTo, tapAlertButton } from '../driver/flows';
+import { loginAs, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
@@ -103,7 +103,11 @@ describe('11 community admin', () => {
     }
 
     await expectVisible({ text: /pedro lopes/i }, { timeout: 20_000 });
+    // Decline now opens a confirm sheet rather than acting immediately — the
+    // row's own Decline button opens it, and the sheet's Decline button (same
+    // label, formerly the alert's destructive button) carries out the action.
     await tap({ text: /^decline$/i });
+    await tap({ text: /^decline$/i, type: 'Button' });
 
     await pollUntil(
       () => select('community_join_requests', `community_id=eq.${m.communities.C}&user_id=eq.${m.users.pedro}&select=status`),
@@ -176,12 +180,12 @@ describe('11 community admin', () => {
     // The CTA counts the selection — "Invite 1 person", not "Invite" — so an
     // anchored /^invite$/ never matches it.
     await tap({ text: /^invite \d+ (person|people)$/i });
-    // Two alerts, and BOTH must be answered: a confirm, then a success notice
-    // whose OK calls router.back(). Leaving the second up blocks the next test —
-    // a system alert makes the app's AX tree empty, so the following navigation
-    // fails with an unrelated-looking "backGesture did not change the screen".
-    await tapAlertButton(/^invite$/i);
-    await tapAlertButton(/^ok$/i);
+    // The confirm sheet's primary button is labelled "Invite" (same label the
+    // alert button used to carry) — tap it like any other in-app control now
+    // that it's a bottom sheet rather than a native alert. Success is a banner
+    // that auto-dismisses and doesn't block navigation, so there's no second
+    // button to answer.
+    await tap({ text: /^invite$/i, type: 'Button' });
 
     await pollUntil(
       () => select('community_invitations', `community_id=eq.${m.communities.C}&invitee_id=eq.${m.users.sofia}&select=status`),

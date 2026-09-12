@@ -18,7 +18,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   ScrollView,
   StyleSheet,
   Switch,
@@ -31,7 +30,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShareResultsModal } from '@/components/event/ShareResultsModal';
 import { TimerTab } from '@/components/event/TimerTab';
 import { colors, palette } from '../../../theme';
-import { Button, Card, Chip, TopBar } from '../../../components/ui';
+import { BottomSheet, Button, Card, Chip, TopBar } from '../../../components/ui';
 
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
 type MatchPlayer = MatchRow['match_players'][number];
@@ -519,151 +518,125 @@ export default function EventLiveScreen() {
         />
       </View>
 
-      {/* Score modal */}
-      <Modal
+      {/* Score sheet */}
+      <BottomSheet
         visible={scoringMatch != null}
-        transparent
-        animationType="fade"
-        onRequestClose={closeScoreModal}
+        onClose={closeScoreModal}
+        title={t('enterScoreTitle')}
+        testID="score-sheet"
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            {scoringMatch != null ? (
+        {scoringMatch != null ? (
+          <>
+            <Text style={styles.modalSide} numberOfLines={2}>
+              {sideNames(scoringMatch.match_players, 'a')}
+            </Text>
+            <Text style={styles.vs}>{t('vsLabel')}</Text>
+            <Text style={styles.modalSide} numberOfLines={2}>
+              {sideNames(scoringMatch.match_players, 'b')}
+            </Text>
+
+            {isPoints ? (
               <>
-                <Text style={styles.modalTitle}>{t('enterScoreTitle')}</Text>
-                <Text style={styles.modalSide} numberOfLines={2}>
-                  {sideNames(scoringMatch.match_players, 'a')}
-                </Text>
-                <Text style={styles.vs}>{t('vsLabel')}</Text>
-                <Text style={styles.modalSide} numberOfLines={2}>
-                  {sideNames(scoringMatch.match_players, 'b')}
-                </Text>
-
-                {isPoints ? (
-                  <>
-                    <Text style={styles.fieldLabel}>{t('sideALabel')}</Text>
-                    <TextInput
-                      style={[styles.input, notPlayed && styles.inputDisabled]}
-                      keyboardType="number-pad"
-                      editable={!notPlayed}
-                      value={sideAInput}
-                      onChangeText={setSideAInput}
-                    />
-                    <Text style={styles.fieldLabel}>{t('sideBLabel')}</Text>
-                    <View style={[styles.input, styles.inputReadonly]}>
-                      <Text style={styles.inputReadonlyText}>{computedSideB}</Text>
-                    </View>
-                    <Text style={styles.hint}>
-                      {t('pointsTotalHint', { total: pointsTotal })}
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.fieldLabel}>{t('sideALabel')}</Text>
-                    <TextInput
-                      style={[styles.input, notPlayed && styles.inputDisabled]}
-                      keyboardType="number-pad"
-                      editable={!notPlayed}
-                      value={sideAInput}
-                      onChangeText={setSideAInput}
-                    />
-                    <Text style={styles.fieldLabel}>{t('sideBLabel')}</Text>
-                    <TextInput
-                      style={[styles.input, notPlayed && styles.inputDisabled]}
-                      keyboardType="number-pad"
-                      editable={!notPlayed}
-                      value={sideBInput}
-                      onChangeText={setSideBInput}
-                    />
-                  </>
-                )}
-
-                <View style={styles.toggleRow}>
-                  <Text style={styles.toggleLabel}>{t('notPlayedToggle')}</Text>
-                  <Switch value={notPlayed} onValueChange={setNotPlayed} disabled={busy} />
+                <Text style={styles.fieldLabel}>{t('sideALabel')}</Text>
+                <TextInput
+                  style={[styles.input, notPlayed && styles.inputDisabled]}
+                  keyboardType="number-pad"
+                  editable={!notPlayed}
+                  value={sideAInput}
+                  onChangeText={setSideAInput}
+                />
+                <Text style={styles.fieldLabel}>{t('sideBLabel')}</Text>
+                <View style={[styles.input, styles.inputReadonly]}>
+                  <Text style={styles.inputReadonlyText}>{computedSideB}</Text>
                 </View>
-
-                {error != null ? <Text style={styles.error}>{t(error)}</Text> : null}
-
-                <View style={styles.modalActions}>
-                  <Button
-                    label={t('cancel')}
-                    variant="outline"
-                    disabled={busy}
-                    onPress={closeScoreModal}
-                  />
-                  <Button
-                    label={t('saveScoreCta')}
-                    disabled={busy}
-                    onPress={() => onSaveScore(scoringMatch)}
-                  />
-                </View>
+                <Text style={styles.hint}>
+                  {t('pointsTotalHint', { total: pointsTotal })}
+                </Text>
               </>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
+            ) : (
+              <>
+                <Text style={styles.fieldLabel}>{t('sideALabel')}</Text>
+                <TextInput
+                  style={[styles.input, notPlayed && styles.inputDisabled]}
+                  keyboardType="number-pad"
+                  editable={!notPlayed}
+                  value={sideAInput}
+                  onChangeText={setSideAInput}
+                />
+                <Text style={styles.fieldLabel}>{t('sideBLabel')}</Text>
+                <TextInput
+                  style={[styles.input, notPlayed && styles.inputDisabled]}
+                  keyboardType="number-pad"
+                  editable={!notPlayed}
+                  value={sideBInput}
+                  onChangeText={setSideBInput}
+                />
+              </>
+            )}
 
-      {/* Finish modal */}
-      <Modal
-        visible={finishOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setFinishOpen(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {allScored ? t('finishConfirmTitle') : t('finishEarlyTitle')}
-            </Text>
-            <Text style={styles.modalBody}>
-              {allScored ? t('finishConfirmBody') : t('finishEarlyBody')}
-            </Text>
-
-            <Text style={styles.fieldLabel}>{t('finishMessageLabel')}</Text>
-            <TextInput
-              style={[styles.input, styles.inputMultiline]}
-              placeholder={t('finishMessagePlaceholder')}
-              placeholderTextColor={palette.slate[400]}
-              multiline
-              maxLength={280}
-              value={finishMessage}
-              onChangeText={setFinishMessage}
-            />
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>{t('notPlayedToggle')}</Text>
+              <Switch value={notPlayed} onValueChange={setNotPlayed} disabled={busy} />
+            </View>
 
             {error != null ? <Text style={styles.error}>{t(error)}</Text> : null}
 
-            {isPublicGroup ? (
-              <View style={styles.modalActions}>
-                <Button
-                  label={t('rankingExcludeCta')}
-                  variant="outline"
-                  disabled={busy}
-                  onPress={() => onFinish(false)}
-                />
-                <Button
-                  label={t('rankingIncludeCta')}
-                  disabled={busy}
-                  onPress={() => onFinish(true)}
-                />
-              </View>
-            ) : (
-              <Button
-                label={t('finishCta')}
-                disabled={busy}
-                onPress={() => onFinish(undefined)}
-              />
-            )}
-
             <Button
-              label={t('cancel')}
+              label={t('saveScoreCta')}
+              fullWidth
+              disabled={busy}
+              onPress={() => onSaveScore(scoringMatch)}
+            />
+          </>
+        ) : null}
+      </BottomSheet>
+
+      {/* Finish sheet */}
+      <BottomSheet
+        visible={finishOpen}
+        onClose={() => setFinishOpen(false)}
+        title={allScored ? t('finishConfirmTitle') : t('finishEarlyTitle')}
+        testID="finish-event-sheet"
+      >
+        <Text style={styles.modalBody}>
+          {allScored ? t('finishConfirmBody') : t('finishEarlyBody')}
+        </Text>
+
+        <Text style={styles.fieldLabel}>{t('finishMessageLabel')}</Text>
+        <TextInput
+          style={[styles.input, styles.inputMultiline]}
+          placeholder={t('finishMessagePlaceholder')}
+          placeholderTextColor={palette.slate[400]}
+          multiline
+          maxLength={280}
+          value={finishMessage}
+          onChangeText={setFinishMessage}
+        />
+
+        {error != null ? <Text style={styles.error}>{t(error)}</Text> : null}
+
+        {isPublicGroup ? (
+          <View style={styles.modalActions}>
+            <Button
+              label={t('rankingExcludeCta')}
               variant="outline"
               disabled={busy}
-              onPress={() => setFinishOpen(false)}
+              onPress={() => onFinish(false)}
+            />
+            <Button
+              label={t('rankingIncludeCta')}
+              disabled={busy}
+              onPress={() => onFinish(true)}
             />
           </View>
-        </View>
-      </Modal>
+        ) : (
+          <Button
+            label={t('finishCta')}
+            disabled={busy}
+            onPress={() => onFinish(undefined)}
+          />
+        )}
+      </BottomSheet>
 
       <ShareResultsModal
         visible={shareOpen}
@@ -822,22 +795,7 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
 
-  // Modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    width: '100%',
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 20,
-    gap: 8,
-  },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: colors.foreground, textAlign: 'center' },
+  // Sheet content (shared by the score sheet and the finish sheet)
   modalBody: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', marginBottom: 4 },
   modalSide: { fontSize: 16, fontWeight: '600', color: colors.foreground, textAlign: 'center' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
