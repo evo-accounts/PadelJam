@@ -15,7 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { StreamChatProvider } from '@/components/chat/StreamChatProvider';
-import { SheetHost } from '@/components/ui';
+import { BannerProvider, SheetHost } from '@/components/ui';
 import { useColorScheme } from '@/components/useColorScheme';
 import { registerMobileCopy } from '@/lib/i18n-mobile';
 import { resolveLocale } from '@/lib/locale';
@@ -98,9 +98,11 @@ export default function RootLayout() {
         <SessionProvider client={supabase}>
           <QueryClientProvider client={queryClient}>
             <StreamChatProvider>
-              <SheetHost>
-                <Boot />
-              </SheetHost>
+              <BannerProvider>
+                <SheetHost>
+                  <Boot />
+                </SheetHost>
+              </BannerProvider>
             </StreamChatProvider>
           </QueryClientProvider>
         </SessionProvider>

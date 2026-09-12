@@ -13,6 +13,7 @@
  */
 export { Avatar, initialsOf, type AvatarSize } from './Avatar';
 export { Badge, type BadgeTone } from './Badge';
+export { BannerProvider, useBanner } from './Banner';
 export { BottomSheet } from './BottomSheet';
 export { Button, type ButtonSize, type ButtonVariant } from './Button';
 export { Card, type CardPadding } from './Card';
