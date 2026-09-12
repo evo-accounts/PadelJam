@@ -7,11 +7,11 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, palette } from '../../../../theme';
-import { TopBar } from '../../../../components/ui';
+import { TopBar, useBanner, useConfirm } from '../../../../components/ui';
 
 const START_ERROR_KEYS = new Set(['forbidden', 'not_a_member', 'group_not_found']);
 const ARCHIVE_ERROR_KEYS = new Set(['forbidden', 'groups_per_community', 'group_not_found', 'general_group_only_group']);
@@ -27,6 +27,8 @@ export default function GroupManageSeasonsScreen() {
   const startSeason = useStartNewSeason(id);
   const archive = useArchiveGroup();
   const unarchive = useUnarchiveGroup();
+  const confirm = useConfirm();
+  const banner = useBanner();
 
   if (!group) {
     return (
@@ -41,56 +43,48 @@ export default function GroupManageSeasonsScreen() {
   const isArchived = !!group.archived_at;
   const communityId = group.community_id;
 
-  const onStartSeason = () => {
+  const onStartSeason = async () => {
     const currentNumber = current?.season_number ?? 0;
-    Alert.alert(
-      t('startSeasonCta'),
-      t('startSeasonConfirm', { current: currentNumber, next: currentNumber + 1 }),
-      [
-        { text: t('cancel'), style: 'cancel' },
-        {
-          text: t('confirm'),
-          onPress: async () => {
-            try {
-              await startSeason.mutateAsync();
-            } catch (e) {
-              const code = e instanceof Error ? e.message : 'unknown_error';
-              Alert.alert(t('errorTitle'), t(START_ERROR_KEYS.has(code) ? code : 'unknown_error'));
-            }
-          },
-        },
-      ],
-    );
+    const ok = await confirm({
+      title: t('startSeasonCta'),
+      body: t('startSeasonConfirm', { current: currentNumber, next: currentNumber + 1 }),
+      confirmLabel: t('confirm'),
+      cancelLabel: t('cancel'),
+    });
+    if (!ok) return;
+    try {
+      await startSeason.mutateAsync();
+    } catch (e) {
+      const code = e instanceof Error ? e.message : 'unknown_error';
+      banner.show(t(START_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+    }
   };
 
-  const onToggleArchive = () => {
+  const onToggleArchive = async () => {
     if (isArchived) {
-      void (async () => {
-        try {
-          await unarchive.mutateAsync({ groupId: id, communityId });
-        } catch (e) {
-          const code = e instanceof Error ? e.message : 'unknown_error';
-          Alert.alert(t('errorTitle'), t(ARCHIVE_ERROR_KEYS.has(code) ? code : 'unknown_error'));
-        }
-      })();
+      try {
+        await unarchive.mutateAsync({ groupId: id, communityId });
+      } catch (e) {
+        const code = e instanceof Error ? e.message : 'unknown_error';
+        banner.show(t(ARCHIVE_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+      }
       return;
     }
-    Alert.alert(t('archiveCta'), t('archiveConfirm'), [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: t('archiveCta'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await archive.mutateAsync({ groupId: id, communityId });
-            router.back();
-          } catch (e) {
-            const code = e instanceof Error ? e.message : 'unknown_error';
-            Alert.alert(t('errorTitle'), t(ARCHIVE_ERROR_KEYS.has(code) ? code : 'unknown_error'));
-          }
-        },
-      },
-    ]);
+    const ok = await confirm({
+      title: t('archiveCta'),
+      body: t('archiveConfirm'),
+      confirmLabel: t('archiveCta'),
+      cancelLabel: t('cancel'),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await archive.mutateAsync({ groupId: id, communityId });
+      router.back();
+    } catch (e) {
+      const code = e instanceof Error ? e.message : 'unknown_error';
+      banner.show(t(ARCHIVE_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+    }
   };
 
   const archivePending = archive.isPending || unarchive.isPending;

@@ -9,12 +9,12 @@ import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../theme';
-import { TopBar } from '../../../components/ui';
+import { TopBar, useBanner, useConfirm } from '../../../components/ui';
 
 type Candidate = {
   user_id: string;
@@ -40,6 +40,8 @@ export default function GroupInviteScreen() {
   const { data: communityMembers } = useCommunityMembers(communityId);
   const { data: groupMembers } = useGroupMembers(id);
   const invite = useInviteToGroup(id);
+  const confirm = useConfirm();
+  const banner = useBanner();
 
   const [query, setQuery] = useState('');
   const [invited, setInvited] = useState<Record<string, true>>({});
@@ -55,30 +57,25 @@ export default function GroupInviteScreen() {
       ) as Candidate[];
   }, [communityMembers, groupMembers, query]);
 
-  const doInvite = (person: Candidate) => {
-    Alert.alert(
-      t('inviteTitle'),
-      t('inviteConfirm', { community: community?.name ?? '' }),
-      [
-        { text: t('cancel'), style: 'cancel' },
-        {
-          text: t('confirm'),
-          onPress: async () => {
-            setPendingId(person.user_id);
-            try {
-              await invite.mutateAsync(person.user_id);
-              setInvited((s) => ({ ...s, [person.user_id]: true }));
-              Alert.alert(t('inviteSentTitle'), t('inviteSentToast'));
-            } catch (e) {
-              const code = e instanceof Error ? e.message : 'unknown_error';
-              Alert.alert(t('errorTitle'), t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
-            } finally {
-              setPendingId(null);
-            }
-          },
-        },
-      ],
-    );
+  const doInvite = async (person: Candidate) => {
+    const ok = await confirm({
+      title: t('inviteTitle'),
+      body: t('inviteConfirm', { community: community?.name ?? '' }),
+      confirmLabel: t('confirm'),
+      cancelLabel: t('cancel'),
+    });
+    if (!ok) return;
+    setPendingId(person.user_id);
+    try {
+      await invite.mutateAsync(person.user_id);
+      setInvited((s) => ({ ...s, [person.user_id]: true }));
+      banner.show(t('inviteSentToast'), 'success');
+    } catch (e) {
+      const code = e instanceof Error ? e.message : 'unknown_error';
+      banner.show(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+    } finally {
+      setPendingId(null);
+    }
   };
 
   return (

@@ -3,12 +3,12 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GroupMemberRow, type GroupMember } from '@/components/group/GroupMemberRow';
 import { colors } from '../../../../theme';
-import { TopBar } from '../../../../components/ui';
+import { TopBar, useBanner, useConfirm } from '../../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -25,24 +25,24 @@ export default function GroupManageMembersScreen() {
 
   const { data: members, isLoading } = useGroupMembers(id);
   const remove = useRemoveGroupMember(id);
+  const confirm = useConfirm();
+  const banner = useBanner();
 
-  const onRemove = (member: GroupMember) => {
+  const onRemove = async (member: GroupMember) => {
     const name = member.profiles?.full_name ?? '—';
-    Alert.alert(t('removeMemberConfirm', { name }), '', [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: t('removeMemberCta'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await remove.mutateAsync(member.user_id);
-          } catch (e) {
-            const code = e instanceof Error ? e.message : 'unknown_error';
-            Alert.alert(t('errorTitle'), t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
-          }
-        },
-      },
-    ]);
+    const ok = await confirm({
+      title: t('removeMemberConfirm', { name }),
+      confirmLabel: t('removeMemberCta'),
+      cancelLabel: t('cancel'),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await remove.mutateAsync(member.user_id);
+    } catch (e) {
+      const code = e instanceof Error ? e.message : 'unknown_error';
+      banner.show(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+    }
   };
 
   if (isLoading) {

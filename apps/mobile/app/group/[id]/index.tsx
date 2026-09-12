@@ -17,8 +17,6 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Modal,
   Pressable,
   ScrollView,
   Share,
@@ -33,7 +31,7 @@ import { RankingList } from '@/components/group/RankingList';
 import { avatarUrl } from '@/lib/community-images';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors, palette } from '../../../theme';
-import { Button, Chip, ListRow, Text, TopBar } from '../../../components/ui';
+import { Avatar, BottomSheet, Button, Chip, ListRow, SheetRow, Text, TopBar, useActionSheet, useBanner } from '../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -87,6 +85,8 @@ export default function GroupHomeScreen() {
 
   const leave = useLeaveGroup();
   const ensureChannel = useEnsureChannel();
+  const show = useActionSheet();
+  const banner = useBanner();
   const openGroupChat = async () => {
     if (ensureChannel.isPending) return;
     try {
@@ -125,50 +125,43 @@ export default function GroupHomeScreen() {
 
   const err = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';
-    Alert.alert(t('errorTitle'), t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+    banner.show(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
   };
 
   const onShare = () => {
     void Share.share({ message: t('shareCta') + ': ' + group.name });
   };
 
-  const onLeave = () => {
+  // The action sheet auto-confirms the destructive 'leave' row before
+  // returning its key (see useActionSheet), so this runs the mutation
+  // directly rather than asking again.
+  const doLeave = async () => {
     if (!communityId) return;
-    Alert.alert(t('leaveGroupConfirm'), '', [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: t('leaveGroupCta'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await leave.mutateAsync({ groupId: id, communityId });
-            router.back();
-          } catch (e) {
-            if (e instanceof Error && e.message === 'sole_admin_must_add_another') {
-              setSelectedAdmins([]);
-              setAddAdminOpen(true);
-            } else {
-              err(e);
-            }
-          }
-        },
-      },
-    ]);
+    try {
+      await leave.mutateAsync({ groupId: id, communityId });
+      router.back();
+    } catch (e) {
+      if (e instanceof Error && e.message === 'sole_admin_must_add_another') {
+        setSelectedAdmins([]);
+        setAddAdminOpen(true);
+      } else {
+        err(e);
+      }
+    }
   };
 
-  const onMore = () => {
-    const options: { text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }[] = [
-      { text: t('shareCta'), onPress: onShare },
-    ];
-    if (canManage) {
-      options.push({
-        text: t('manageCta'),
-        onPress: () => router.push(`/group/${id}/manage` as Href),
-      });
-    }
-    options.push({ text: t('leaveGroupCta'), style: 'destructive', onPress: onLeave });
-    options.push({ text: t('cancel'), style: 'cancel' });
-    Alert.alert(t('moreCta'), '', options);
+  const onMore = async () => {
+    const key = await show({
+      title: t('moreCta'),
+      actions: [
+        { key: 'share', label: t('shareCta') },
+        ...(canManage ? [{ key: 'manage', label: t('manageCta') }] : []),
+        { key: 'leave', label: t('leaveGroupCta'), destructive: true, confirm: { title: t('leaveGroupConfirm'), confirmLabel: t('leaveGroupCta') } },
+      ],
+    });
+    if (key === 'share') onShare();
+    else if (key === 'manage') router.push(`/group/${id}/manage` as Href);
+    else if (key === 'leave') await doLeave();
   };
 
   return (
@@ -311,52 +304,52 @@ export default function GroupHomeScreen() {
         {community ? <View style={styles.spacer} /> : null}
       </ScrollView>
 
-      <Modal
+      <BottomSheet
         visible={addAdminOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAddAdminOpen(false)}
+        onClose={() => setAddAdminOpen(false)}
+        title={t('addAdminTitle')}
+        testID="add-admin-sheet"
       >
-        <Pressable style={styles.backdrop} onPress={() => setAddAdminOpen(false)}>
-          <View style={styles.sheet}>
-            <Text variant="sectionTitle">{t('addAdminTitle')}</Text>
-            <Text variant="body" tone="muted">{t('addAdminBody')}</Text>
-            {eligibleAdmins.length === 0 ? (
-              <Text variant="caption" tone="muted">{t('noEligibleAdmins')}</Text>
-            ) : (
-              eligibleAdmins.map((m) => (
-                <ListRow
-                  key={m.user_id}
-                  title={m.profiles?.full_name ?? '—'}
-                  trailing={selectedAdmins.includes(m.user_id) ? <Text variant="body">✓</Text> : null}
-                  selected={selectedAdmins.includes(m.user_id)}
-                  onPress={() =>
-                    setSelectedAdmins((s) =>
-                      s.includes(m.user_id) ? s.filter((x) => x !== m.user_id) : [...s, m.user_id],
-                    )
-                  }
-                />
-              ))
-            )}
-            <Button
-              label={t('addAdminCta')}
-              fullWidth
-              loading={addAdmins.isPending}
-              disabled={selectedAdmins.length === 0}
-              onPress={async () => {
-                try {
-                  await addAdmins.mutateAsync(selectedAdmins);
-                  setAddAdminOpen(false);
-                  if (communityId) await leave.mutateAsync({ groupId: id, communityId });
-                  router.back();
-                } catch (e2) {
-                  err(e2);
+        <Text variant="body" tone="muted" style={styles.addAdminBody}>{t('addAdminBody')}</Text>
+        {eligibleAdmins.length === 0 ? (
+          <Text variant="caption" tone="muted" style={styles.addAdminBody}>{t('noEligibleAdmins')}</Text>
+        ) : (
+          eligibleAdmins.map((m) => {
+            const name = m.profiles?.full_name ?? '—';
+            const selected = selectedAdmins.includes(m.user_id);
+            return (
+              <SheetRow
+                key={m.user_id}
+                label={selected ? `${name}  ✓` : name}
+                leading={<Avatar name={name} uri={avatarUrl(m.profiles?.avatar_url)} colourKey={m.user_id} size="sm" />}
+                onPress={() =>
+                  setSelectedAdmins((s) =>
+                    s.includes(m.user_id) ? s.filter((x) => x !== m.user_id) : [...s, m.user_id],
+                  )
                 }
-              }}
-            />
-          </View>
-        </Pressable>
-      </Modal>
+                testID={`add-admin-row-${m.user_id}`}
+              />
+            );
+          })
+        )}
+        <Button
+          label={t('addAdminCta')}
+          fullWidth
+          style={styles.addAdminCta}
+          loading={addAdmins.isPending}
+          disabled={selectedAdmins.length === 0}
+          onPress={async () => {
+            try {
+              await addAdmins.mutateAsync(selectedAdmins);
+              setAddAdminOpen(false);
+              if (communityId) await leave.mutateAsync({ groupId: id, communityId });
+              router.back();
+            } catch (e2) {
+              err(e2);
+            }
+          }}
+        />
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -385,6 +378,6 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: 12, marginTop: 12, overflow: 'hidden' },
   spacer: { height: 8 },
   periodRow: { flexDirection: 'row', gap: 8, marginBottom: 8, marginTop: 12, flexWrap: 'wrap' },
-  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center' },
-  sheet: { backgroundColor: colors.card, borderRadius: 14, margin: 24, padding: 20, gap: 8 },
+  addAdminBody: { paddingHorizontal: 8, marginBottom: 12 },
+  addAdminCta: { marginTop: 12, marginHorizontal: 8 },
 });
