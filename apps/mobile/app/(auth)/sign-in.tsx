@@ -7,17 +7,20 @@ import { KeyboardAvoidingView, Linking, Platform, StyleSheet, Text, TextInput, V
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { runAppleSignIn } from '@/lib/appleSignIn';
+import { safeAuthMessage } from '@/lib/authErrors';
 import { detectKind, setAuthTarget } from '@/lib/auth-flow';
 import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { supabase } from '@/lib/supabase';
 import { colors, palette } from '../../theme';
-import { Button } from '../../components/ui';
+import { Button, useBanner } from '../../components/ui';
 
 export default function SignInScreen() {
   const TERMS_URL = 'https://padeljam.app/terms';
   const PRIVACY_URL = 'https://padeljam.app/privacy';
   const { t } = useT('auth');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const [disclosureBefore, disclosureRest] = t('socialTermsDisclosure').split('{{termsLink}}');
   const [disclosureMiddle, disclosureAfter] = (disclosureRest ?? '').split('{{privacyLink}}');
   const router = useRouter();
@@ -25,25 +28,25 @@ export default function SignInScreen() {
 
   const [identifier, setIdentifier] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
   useEffect(() => {
     if (Platform.OS === 'ios') AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
   }, []);
 
   const onContinue = async () => {
+    if (busy) return;
     const value = identifier.trim();
-    if (!value || busy) return;
+    if (!value) { banner.show(tc('missingInformation')); return; }
     const kind = detectKind(value);
     setBusy(true);
-    setError(null);
     try {
       const { error: otpError } =
         kind === 'phone'
           ? await startPhoneOtp(supabase, value)
           : await startEmailOtp(supabase, value);
       if (otpError) {
-        setError(otpError.message);
+        const { ns, key } = safeAuthMessage(otpError);
+        banner.show(t(key, { ns }));
         return;
       }
       setAuthTarget(value, kind);
@@ -56,12 +59,11 @@ export default function SignInScreen() {
   const onGoogle = async () => {
     if (busy) return;
     setBusy(true);
-    setError(null);
     try {
       await runGoogleSignIn();
       router.replace((await resolvePostAuthRoute()) as never);
     } catch (e) {
-      setError(t(e instanceof Error ? e.message : 'oauth_failed'));
+      banner.show(t(e instanceof Error ? e.message : 'oauth_failed'));
     } finally {
       setBusy(false);
     }
@@ -70,13 +72,12 @@ export default function SignInScreen() {
   const onApple = async () => {
     if (busy) return;
     setBusy(true);
-    setError(null);
     try {
       await runAppleSignIn();
       router.replace((await resolvePostAuthRoute()) as never);
     } catch (e) {
       if (e instanceof Error && e.message === 'oauth_cancelled') { setBusy(false); return; }
-      setError(t(e instanceof Error ? e.message : 'oauth_failed'));
+      banner.show(t(e instanceof Error ? e.message : 'oauth_failed'));
     } finally {
       setBusy(false);
     }
@@ -102,7 +103,6 @@ export default function SignInScreen() {
           autoComplete="email"
           editable={!busy}
         />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
         <Button
           label={t('continue')}
           fullWidth
@@ -168,7 +168,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
-  error: { color: colors.destructive, marginBottom: 16 },
   button: {
     backgroundColor: colors.primary,
     paddingVertical: 16,
