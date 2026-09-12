@@ -187,7 +187,7 @@ describe('00 design system', () => {
     await tap({ text: /open confirm/i, type: 'Button' });
     let tree = await snapshot();
     expect(query(tree, { text: /delete this\?/i }), 'confirm sheet title').toBeDefined();
-    expect(query(tree, { text: /^close$/i, type: 'Button' }), 'confirm sheet ✕ is labelled').toBeDefined();
+    expect(query(tree, { id: 'confirm-sheet-close', text: /^close$/i, type: 'Button' }), 'confirm sheet ✕ is labelled').toBeDefined();
     await tap({ text: /^delete$/i, type: 'Button' });
     tree = await snapshot();
     expect(query(tree, { text: /last result: confirmed/i })).toBeDefined();
