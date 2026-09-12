@@ -4,11 +4,12 @@ import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { colors } from '../../theme';
+import { TopBar } from '../../components/ui';
 
 const FILTERS: MyEventsFilter[] = ['all', 'organizing', 'going'];
 
@@ -23,7 +24,8 @@ export default function EventsScreen() {
   const label = { all: t('filterAll'), organizing: t('filterOrganizing'), going: t('filterGoing') };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar variant="top" title={t('title')} />
       <View style={styles.chips}>
         {FILTERS.map((f) => (
           <Pressable
@@ -59,7 +61,7 @@ export default function EventsScreen() {
         />
       )}
       <CreateEventFab />
-    </View>
+    </SafeAreaView>
   );
 }
 

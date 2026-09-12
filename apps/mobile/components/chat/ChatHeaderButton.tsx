@@ -1,18 +1,21 @@
-import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useStreamUnread } from '@/components/chat/useStreamUnread';
 import { colors } from '../../theme';
 
-export function ChatHeaderButton() {
-  const router = useRouter();
+/**
+ * The chat glyph + unread dot, with no `Pressable` of its own — meant to be
+ * passed as `TopBar.actions[].icon`, which wraps it in its own pressable
+ * `IconButton`.
+ */
+export function ChatHeaderButtonIcon() {
   const unread = useStreamUnread();
   return (
-    <Pressable onPress={() => router.push('/chat' as never)} accessibilityRole="button" accessibilityLabel="Chat" hitSlop={10} style={styles.wrap}>
+    <View style={styles.wrap}>
       <SymbolView name={{ ios: 'bubble.left.and.bubble.right.fill', android: 'chat', web: 'chat' }} size={22} tintColor={colors.foreground} />
       {unread > 0 ? <View style={styles.dot} /> : null}
-    </Pressable>
+    </View>
   );
 }
 

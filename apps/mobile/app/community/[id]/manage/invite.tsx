@@ -4,11 +4,11 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
-import { Chip } from '../../../../components/ui';
+import { Chip, TopBar } from '../../../../components/ui';
 
 type Profile = { id: string; full_name: string | null; avatar_url: string | null };
 type Group = { id: string; name: string; is_general: boolean };
@@ -97,6 +97,7 @@ export default function ManageInviteScreen() {
   };
 
   const selectedList = Object.values(selected);
+  const dirty = selectedList.length > 0;
   const hasMultipleGroups = groups.length > 1;
   const chosenGroupIds = Object.entries(selectedGroups)
     .filter(([, v]) => v)
@@ -133,7 +134,8 @@ export default function ManageInviteScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <SafeAreaView style={[styles.container, { paddingBottom: insets.bottom }]} edges={['top']}>
+      <TopBar variant="edit" title={t('manageInvite')} onClose={() => router.back()} dirty={dirty} />
       <View style={styles.searchWrap}>
         <TextInput
           style={styles.search}
@@ -237,7 +239,7 @@ export default function ManageInviteScreen() {
           </Text>
         )}
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 

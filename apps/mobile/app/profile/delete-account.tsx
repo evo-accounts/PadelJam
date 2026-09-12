@@ -1,12 +1,13 @@
 import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { unregisterForPush } from '@/lib/push';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
-import { Button } from '../../components/ui';
+import { Button, TopBar } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function DeleteAccountScreen() {
@@ -57,16 +58,18 @@ export default function DeleteAccountScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('deleteAccount') }} />
-      <Text style={styles.title}>{t('deleteWarningTitle')}</Text>
-      <Text style={styles.body}>{t('deleteWarningBody')}</Text>
-      <Text style={styles.item}>{t('deleteErasedProfile')}</Text>
-      <Text style={styles.item}>{t('deleteErasedMemberships')}</Text>
-      <Text style={styles.item}>{t('deleteErasedSocial')}</Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Button variant="destructive" fullWidth label={t('deleteConfirm')} onPress={confirm} loading={busy} />
-    </ScrollView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar variant="nav" title={t('deleteAccount')} onBack={() => router.back()} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.title}>{t('deleteWarningTitle')}</Text>
+        <Text style={styles.body}>{t('deleteWarningBody')}</Text>
+        <Text style={styles.item}>{t('deleteErasedProfile')}</Text>
+        <Text style={styles.item}>{t('deleteErasedMemberships')}</Text>
+        <Text style={styles.item}>{t('deleteErasedSocial')}</Text>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Button variant="destructive" fullWidth label={t('deleteConfirm')} onPress={confirm} loading={busy} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

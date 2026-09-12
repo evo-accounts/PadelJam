@@ -11,6 +11,7 @@ import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { colors, palette } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 import {
   ActivityIndicator,
   Alert,
@@ -21,6 +22,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Member = {
   user_id: string;
@@ -118,80 +120,83 @@ export default function ManageIndexScreen() {
   const otherMembers = (members as Member[] | undefined)?.filter((m) => m.user_id !== uid) ?? [];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
-      <Section title={t('manageGroupCommunity')}>
-        <NavRow label={t('manageSettings')} onPress={() => router.push(`/community/${id}/manage/settings`)} />
-        <NavRow label={t('managePermissions')} onPress={() => router.push(`/community/${id}/manage/permissions`)} />
-      </Section>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('manageTitle')} onBack={() => router.back()} backLabel={t('back')} />
+      <ScrollView contentContainerStyle={styles.inner}>
+        <Section title={t('manageGroupCommunity')}>
+          <NavRow label={t('manageSettings')} onPress={() => router.push(`/community/${id}/manage/settings`)} />
+          <NavRow label={t('managePermissions')} onPress={() => router.push(`/community/${id}/manage/permissions`)} />
+        </Section>
 
-      <Section title={t('manageGroupPeople')}>
-        <NavRow label={t('manageMembers')} onPress={() => router.push(`/community/${id}/manage/members`)} />
-        {showRequests ? (
-          <NavRow
-            label={t('manageRequests')}
-            badge={pendingCount}
-            onPress={() => router.push(`/community/${id}/manage/requests`)}
-          />
-        ) : null}
-        <NavRow label={t('manageInvite')} onPress={() => router.push(`/community/${id}/manage/invite`)} />
-      </Section>
+        <Section title={t('manageGroupPeople')}>
+          <NavRow label={t('manageMembers')} onPress={() => router.push(`/community/${id}/manage/members`)} />
+          {showRequests ? (
+            <NavRow
+              label={t('manageRequests')}
+              badge={pendingCount}
+              onPress={() => router.push(`/community/${id}/manage/requests`)}
+            />
+          ) : null}
+          <NavRow label={t('manageInvite')} onPress={() => router.push(`/community/${id}/manage/invite`)} />
+        </Section>
 
-      <Section title={t('manageGroupAdvanced')}>
-        <ActionRow
-          label={isArchived ? t('unarchive') : t('archive')}
-          pending={archive.isPending}
-          onPress={onArchive}
-        />
-        {isOwner ? (
+        <Section title={t('manageGroupAdvanced')}>
           <ActionRow
-            label={t('transferOwnership')}
-            pending={transfer.isPending}
-            onPress={() => setTransferOpen(true)}
+            label={isArchived ? t('unarchive') : t('archive')}
+            pending={archive.isPending}
+            onPress={onArchive}
           />
-        ) : null}
-        <ActionRow
-          label={t('leave')}
-          destructive
-          pending={leave.isPending}
-          onPress={onLeave}
-        />
-      </Section>
+          {isOwner ? (
+            <ActionRow
+              label={t('transferOwnership')}
+              pending={transfer.isPending}
+              onPress={() => setTransferOpen(true)}
+            />
+          ) : null}
+          <ActionRow
+            label={t('leave')}
+            destructive
+            pending={leave.isPending}
+            onPress={onLeave}
+          />
+        </Section>
 
-      <Modal visible={transferOpen} animationType="slide" transparent onRequestClose={() => setTransferOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('transferPickTitle')}</Text>
-            <ScrollView style={styles.modalList}>
-              {otherMembers.length === 0 ? (
-                <Text style={styles.modalEmpty}>{t('transferNoMembers')}</Text>
-              ) : (
-                otherMembers.map((m) => (
-                  <Pressable
-                    key={m.user_id}
-                    style={styles.modalRow}
-                    onPress={() =>
-                      Alert.alert(
-                        t('transferConfirmTitle'),
-                        t('transferConfirmBody', { name: m.profiles?.full_name ?? '—' }),
-                        [
-                          { text: t('cancel'), style: 'cancel' },
-                          { text: t('transferOwnership'), onPress: () => onTransfer(m.user_id) },
-                        ],
-                      )
-                    }
-                  >
-                    <Text style={styles.modalRowText}>{m.profiles?.full_name ?? '—'}</Text>
-                  </Pressable>
-                ))
-              )}
-            </ScrollView>
-            <Pressable style={styles.modalCancel} onPress={() => setTransferOpen(false)}>
-              <Text style={styles.modalCancelText}>{t('cancel')}</Text>
-            </Pressable>
+        <Modal visible={transferOpen} animationType="slide" transparent onRequestClose={() => setTransferOpen(false)}>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>{t('transferPickTitle')}</Text>
+              <ScrollView style={styles.modalList}>
+                {otherMembers.length === 0 ? (
+                  <Text style={styles.modalEmpty}>{t('transferNoMembers')}</Text>
+                ) : (
+                  otherMembers.map((m) => (
+                    <Pressable
+                      key={m.user_id}
+                      style={styles.modalRow}
+                      onPress={() =>
+                        Alert.alert(
+                          t('transferConfirmTitle'),
+                          t('transferConfirmBody', { name: m.profiles?.full_name ?? '—' }),
+                          [
+                            { text: t('cancel'), style: 'cancel' },
+                            { text: t('transferOwnership'), onPress: () => onTransfer(m.user_id) },
+                          ],
+                        )
+                      }
+                    >
+                      <Text style={styles.modalRowText}>{m.profiles?.full_name ?? '—'}</Text>
+                    </Pressable>
+                  ))
+                )}
+              </ScrollView>
+              <Pressable style={styles.modalCancel} onPress={() => setTransferOpen(false)}>
+                <Text style={styles.modalCancelText}>{t('cancel')}</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </ScrollView>
+        </Modal>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

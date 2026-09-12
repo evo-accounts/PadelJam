@@ -1,11 +1,12 @@
 import { startEmailChange, verifyEmailChange } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
-import { Button } from '../../components/ui';
+import { Button, TopBar } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function ChangeEmailScreen() {
@@ -16,6 +17,7 @@ export default function ChangeEmailScreen() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dirty = email.trim().length > 0 || code.trim().length > 0;
 
   const onSend = async () => {
     if (busy || !email.trim()) return;
@@ -54,8 +56,9 @@ export default function ChangeEmailScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('changeEmail') }} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar variant="edit" title={t('changeEmail')} onClose={() => router.back()} dirty={dirty} />
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
       {phase === 'email' ? (
         <>
           <Text style={styles.label}>{t('newEmailLabel')}</Text>
@@ -72,12 +75,14 @@ export default function ChangeEmailScreen() {
           <Button fullWidth label={t('verify')} onPress={onVerify} loading={busy} />
         </>
       )}
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   content: { padding: 16, gap: 8 },
   hint: { color: colors.mutedForeground, fontSize: 14 },
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },

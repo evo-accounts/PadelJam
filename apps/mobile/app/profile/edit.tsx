@@ -2,16 +2,18 @@ import { useMyProfile, useUpdateProfile } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
-import { Stack, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceRow } from '@/components/OnboardingStep';
 import { avatarUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
+import { useDirty } from '@/lib/useDirty';
 import { colors, palette } from '../../theme';
-import { Button } from '../../components/ui';
+import { Button, TopBar } from '../../components/ui';
 
 const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -33,6 +35,7 @@ export default function EditProfileScreen() {
   const [picked, setPicked] = useState<PickedImage | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
     const p = my.data;
@@ -45,7 +48,22 @@ export default function EditProfileScreen() {
     setTime(p.preferred_time ?? null);
     setDob(p.date_of_birth ?? '');
     setAvatarPath(p.avatar_url ?? null);
+    setPrefilled(true);
   }, [my.data]);
+
+  const initial = useMemo(
+    () => ({
+      fullName: my.data?.full_name ?? '',
+      bio: my.data?.description ?? '',
+      hand: my.data?.dominant_hand ?? null,
+      side: my.data?.court_side ?? null,
+      gender: my.data?.gender ?? null,
+      time: my.data?.preferred_time ?? null,
+      dob: my.data?.date_of_birth ?? '',
+    }),
+    [my.data],
+  );
+  const dirty = useDirty({ fullName, bio, hand, side, gender, time, dob }, initial) || picked != null;
 
   const onPickAvatar = async () => {
     setError(null);
@@ -88,13 +106,21 @@ export default function EditProfileScreen() {
     }
   };
 
-  if (my.isLoading) return <ActivityIndicator color={colors.foreground} style={{ marginTop: 48 }} />;
+  if (my.isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
+        <ActivityIndicator color={colors.foreground} />
+      </SafeAreaView>
+    );
+  }
 
   const shownAvatar = picked ? picked.uri : avatarUrl(avatarPath);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('editTitle') }} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Gate on `prefilled`: `initial` tracks the query result but the form fields are seeded a render later, so `dirty` is briefly true after load. */}
+      <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={prefilled && dirty} />
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
       <Pressable style={styles.avatarWrap} onPress={onPickAvatar} accessibilityRole="button">
         <View style={styles.avatar}>
           {shownAvatar ? <Image source={{ uri: shownAvatar }} style={styles.avatarImg} /> : null}
@@ -135,12 +161,15 @@ export default function EditProfileScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Button label={t('save')} fullWidth loading={saving} onPress={onSave} />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  flex: { flex: 1 },
   content: { padding: 16, gap: 8, paddingBottom: 48 },
   avatarWrap: { alignItems: 'center', gap: 6, marginBottom: 8 },
   avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: palette.purple[100], overflow: 'hidden' },

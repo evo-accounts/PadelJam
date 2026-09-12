@@ -1,10 +1,13 @@
 import { useFollowers } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { colors } from '../../../theme';
+import { TopBar } from '../../../components/ui';
 
 export default function FollowersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -14,8 +17,8 @@ export default function FollowersScreen() {
   const query = useFollowers(id, search);
   const rows = (query.data?.pages.flat() ?? []) as ReadonlyArray<{ id: string; full_name: string }>;
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: t('followersCount') }} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('followersCount')} onBack={() => router.back()} />
       <TextInput style={styles.search} value={search} onChangeText={setSearch} placeholder={t('searchPlaceholder')} />
       <FlashList
         data={rows}
@@ -33,7 +36,7 @@ export default function FollowersScreen() {
           </Pressable>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -6,14 +6,16 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventCard } from '@/components/event/EventCard';
 import { CommunityCard } from '@/components/explore/CommunityCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
 import { colors } from '../../theme';
+import { TopBar } from '../../components/ui';
 
 type ExploreType = 'players' | 'events' | 'communities' | 'groups';
 
@@ -65,8 +67,8 @@ export default function ExploreSeeAllScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: t(titleKey) }} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t(titleKey)} onBack={() => router.back()} />
       {active.isLoading ? (
         <ActivityIndicator color={colors.foreground} style={styles.state} />
       ) : (
@@ -85,7 +87,7 @@ export default function ExploreSeeAllScreen() {
           renderItem={({ item }) => renderItem(item)}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

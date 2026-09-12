@@ -11,11 +11,13 @@ import {
 import { useT } from '@padel/i18n';
 import { notificationRoute } from '@padel/utils';
 import { FlashList } from '@shopify/flash-list';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
-import { Button, IconButton, ListRow, Text, useActionSheet } from '../../components/ui';
+import { Button, ListRow, Text, TopBar, useActionSheet } from '../../components/ui';
 
 function targetHref(n: NotificationRow): string | null {
   return notificationRoute(n);
@@ -31,6 +33,7 @@ function ctaDoneLabel(t: (k: string) => string, type: string): string {
 export default function NotificationsScreen() {
   const { t } = useT('notifications');
   const router = useRouter();
+  const goBack = useGoBack();
   const list = useNotifications();
   const summary = usePartnerRequestSummary();
   const markRead = useMarkRead();
@@ -50,32 +53,31 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: t('title'),
-          headerRight: () => (
-            <IconButton
-              icon="•••"
-              accessibilityLabel={t('more')}
-              onPress={async () => {
-                const key = await show({
-                  actions: [
-                    { key: 'markAllRead', label: t('markAllRead') },
-                    {
-                      key: 'clearAll',
-                      label: t('clearAll'),
-                      destructive: true,
-                      confirm: { title: t('clearAllTitle'), body: t('clearAllBody'), confirmLabel: t('clearAll') },
-                    },
-                  ],
-                });
-                if (key === 'markAllRead') markAllRead.mutate();
-                if (key === 'clearAll') clearAll.mutate();
-              }}
-            />
-          ),
-        }}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar
+        title={t('title')}
+        onBack={goBack}
+        actions={[
+          {
+            icon: '•••',
+            label: t('more'),
+            onPress: async () => {
+              const key = await show({
+                actions: [
+                  { key: 'markAllRead', label: t('markAllRead') },
+                  {
+                    key: 'clearAll',
+                    label: t('clearAll'),
+                    destructive: true,
+                    confirm: { title: t('clearAllTitle'), body: t('clearAllBody'), confirmLabel: t('clearAll') },
+                  },
+                ],
+              });
+              if (key === 'markAllRead') markAllRead.mutate();
+              if (key === 'clearAll') clearAll.mutate();
+            },
+          },
+        ]}
       />
 
       {pending > 0 && (
@@ -139,7 +141,7 @@ export default function NotificationsScreen() {
           )}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

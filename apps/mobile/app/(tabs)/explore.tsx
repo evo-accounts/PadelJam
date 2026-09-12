@@ -8,7 +8,7 @@ import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
@@ -17,7 +17,7 @@ import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
 import { ExploreList } from '@/components/explore/ExploreList';
 import { SuggestionRail } from '@/components/explore/SuggestionRail';
-import { Chip } from '@/components/ui';
+import { Chip, TopBar } from '@/components/ui';
 import { colors, radius } from '../../theme';
 
 const TABS = ['foryou', 'events', 'groups', 'communities', 'players'] as const;
@@ -41,7 +41,8 @@ export default function ExploreScreen() {
   const [query, setQuery] = useState('');
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar variant="top" title={t('title')} />
       <View style={styles.searchWrap}>
         {/* No autoFocus: arriving on Explore should not summon the keyboard. */}
         <TextInput
@@ -80,7 +81,7 @@ export default function ExploreScreen() {
       {tab === 'foryou' ? <ForYou query={query} /> : <ExploreList kind={tab} query={query} />}
 
       <CreateEventFab />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -83,9 +83,7 @@ export default function GroupInviteScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.topBar}>
-        <TopBar title={t('inviteTitle')} onBack={() => router.back()} backLabel={t('back')} />
-      </View>
+      <TopBar title={t('inviteTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
       <View style={styles.searchWrap}>
         <TextInput
@@ -146,15 +144,6 @@ export default function GroupInviteScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
   searchWrap: { padding: 16 },
   search: {
     borderWidth: 1,

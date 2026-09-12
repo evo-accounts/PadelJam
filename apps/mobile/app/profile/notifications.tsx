@@ -1,16 +1,25 @@
 import { useMySettings, useUpdateSettings, type NotificationSettings } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { Stack } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { colors } from '../../theme';
+import { TopBar } from '../../components/ui';
 
 export default function NotificationsScreen() {
   const { t } = useT('profile');
+  const router = useRouter();
   const settings = useMySettings();
   const update = useUpdateSettings();
 
   if (settings.isLoading || !settings.data) {
-    return <ActivityIndicator color={colors.foreground} style={{ marginTop: 48 }} />;
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+        <TopBar title={t('notifications')} onBack={() => router.back()} />
+        <ActivityIndicator color={colors.foreground} style={{ marginTop: 48 }} />
+      </SafeAreaView>
+    );
   }
 
   const value = settings.data;
@@ -24,15 +33,17 @@ export default function NotificationsScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('notifications') }} />
-      {ROWS.map((r) => (
-        <View key={r.key} style={styles.row}>
-          <Text style={styles.rowLabel}>{r.label}</Text>
-          <Switch value={value[r.key]} onValueChange={toggle(r.key)} />
-        </View>
-      ))}
-    </ScrollView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('notifications')} onBack={() => router.back()} />
+      <ScrollView contentContainerStyle={styles.content}>
+        {ROWS.map((r) => (
+          <View key={r.key} style={styles.row}>
+            <Text style={styles.rowLabel}>{r.label}</Text>
+            <Switch value={value[r.key]} onValueChange={toggle(r.key)} />
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

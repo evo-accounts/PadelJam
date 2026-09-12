@@ -31,6 +31,7 @@ import { EventCard } from '@/components/event/EventCard';
 import { GroupHeader } from '@/components/group/GroupHeader';
 import { RankingList } from '@/components/group/RankingList';
 import { avatarUrl } from '@/lib/community-images';
+import { useGoBack } from '@/lib/useGoBack';
 import { colors, palette } from '../../../theme';
 import { Button, Chip, ListRow, Text, TopBar } from '../../../components/ui';
 
@@ -45,6 +46,7 @@ const KNOWN_ERROR_KEYS = new Set([
 export default function GroupHomeScreen() {
   const { t } = useT('group');
   const router = useRouter();
+  const goBack = useGoBack();
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = useSession().session?.user.id;
 
@@ -172,9 +174,9 @@ export default function GroupHomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar
-        onBack={() => router.back()}
+        onBack={goBack}
         backLabel={t('back')}
-        action={{ icon: '•••', label: t('more'), onPress: onMore }}
+        actions={[{ icon: '•••', label: t('more'), onPress: onMore }]}
       />
 
       <ScrollView contentContainerStyle={styles.content}>

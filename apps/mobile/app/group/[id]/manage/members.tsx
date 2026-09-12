@@ -3,10 +3,12 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GroupMemberRow, type GroupMember } from '@/components/group/GroupMemberRow';
 import { colors } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -45,16 +47,17 @@ export default function GroupManageMembersScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <ActivityIndicator color={colors.foreground} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   const rows = (members ?? []) as GroupMember[];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('membersTitle')} onBack={() => router.back()} backLabel={t('back')} />
       <FlashList
         data={rows}
         keyExtractor={(m) => m.user_id}
@@ -80,7 +83,7 @@ export default function GroupManageMembersScreen() {
           />
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

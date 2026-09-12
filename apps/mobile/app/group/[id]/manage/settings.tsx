@@ -2,14 +2,15 @@ import { useGroup, useUpdateGroup } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GroupComposer, type GroupComposerValues } from '@/components/group/GroupComposer';
 import { thumbnailUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { uploadCommunityImage } from '@/lib/storage';
 import { colors } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set(['forbidden', 'name_required', 'group_not_found']);
 
@@ -23,12 +24,13 @@ export default function GroupManageSettingsScreen() {
   const update = useUpdateGroup(id, group?.community_id ?? '');
 
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   if (!group) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <ActivityIndicator color={colors.foreground} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -61,25 +63,28 @@ export default function GroupManageSettingsScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 24 }]}
-      keyboardShouldPersistTaps="handled"
-    >
-      <GroupComposer
-        mode="edit"
-        submitting={update.isPending}
-        error={error}
-        initial={{
-          name: group.name,
-          description: group.description,
-          isPrivate: group.is_private,
-          thumbnailPath: group.thumbnail_path,
-          thumbnailUrl: thumbnailUrl(group.thumbnail_path),
-        }}
-        onSubmit={onSubmit}
-      />
-    </ScrollView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={dirty} />
+      <ScrollView
+        contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 24 }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <GroupComposer
+          mode="edit"
+          submitting={update.isPending}
+          error={error}
+          initial={{
+            name: group.name,
+            description: group.description,
+            isPrivate: group.is_private,
+            thumbnailPath: group.thumbnail_path,
+            thumbnailUrl: thumbnailUrl(group.thumbnail_path),
+          }}
+          onSubmit={onSubmit}
+          onDirtyChange={setDirty}
+        />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

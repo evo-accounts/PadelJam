@@ -2,7 +2,7 @@ import { reviewSchema, useCommunityReviews, useUpsertReview } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -17,7 +17,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { StarRating } from '@/components/community/StarRating';
+import { useDirty } from '@/lib/useDirty';
 import { colors, palette } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 // Maps a thrown mutation error code to an existing community-namespace i18n key.
 const ERROR_KEY_MAP: Record<string, string> = {
@@ -42,6 +44,12 @@ export default function WriteReviewModal() {
 
   const { mutateAsync, isPending } = useUpsertReview(id);
 
+  const initial = useMemo(
+    () => ({ rating: existing?.rating ?? 0, body: existing?.body ?? '' }),
+    [existing?.rating, existing?.body],
+  );
+  const dirty = useDirty({ rating, body }, initial);
+
   async function handleSubmit() {
     setError(null);
 
@@ -64,7 +72,8 @@ export default function WriteReviewModal() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <TopBar variant="edit" title={t('reviewsWriteTitle')} onClose={() => router.back()} dirty={dirty} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -95,18 +104,10 @@ export default function WriteReviewModal() {
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </ScrollView>
 
-        {/* Footer actions */}
+        {/* Footer action */}
         <View style={styles.footer}>
           <Pressable
-            style={styles.cancelBtn}
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            disabled={isPending}
-          >
-            <Text style={styles.cancelText}>{t('cancel')}</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.saveBtn, isPending && styles.saveBtnDisabled]}
+            style={[styles.saveBtn, styles.saveBtnFull, isPending && styles.saveBtnDisabled]}
             onPress={handleSubmit}
             accessibilityRole="button"
             disabled={isPending}
@@ -148,15 +149,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  cancelText: { fontSize: 16, fontWeight: '600', color: colors.mutedForeground },
+  saveBtnFull: { flex: 1 },
   saveBtn: {
     flex: 2,
     paddingVertical: 13,

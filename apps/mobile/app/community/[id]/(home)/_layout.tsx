@@ -1,13 +1,16 @@
-import { useCommunity } from '@padel/api';
+import { useCommunity, useCommunityMembers } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { TopTabs } from 'expo-router/js-top-tabs';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CommunityHero } from '@/components/community/CommunityHero';
 import { CommunityIdProvider } from '@/components/community/CommunityIdContext';
+import { useGoBack } from '@/lib/useGoBack';
 import { colors, palette } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 /**
  * Persistent community hero above Expo Router's SDK-56 Material Top Tabs
@@ -21,8 +24,14 @@ import { colors, palette } from '../../../../theme';
  */
 export default function CommunityHomeLayout() {
   const { t } = useT('community');
+  const router = useRouter();
+  const goBack = useGoBack();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isError } = useCommunity(id);
+  const uid = useSession().session?.user.id;
+  const { data: members } = useCommunityMembers(id);
+  const myRole = members?.find((m) => m.user_id === uid)?.role;
+  const canManage = myRole === 'owner' || myRole === 'admin';
 
   // `id` is always present on this route, but guard rather than hand `undefined`
   // to the provider: a missing id must surface as "not found", never as tabs that
@@ -30,6 +39,7 @@ export default function CommunityHomeLayout() {
   if (isError || !id) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <TopBar variant="nav" onBack={goBack} />
         <View style={styles.notFound}>
           <Text style={styles.notFoundTitle}>{t('notFoundTitle')}</Text>
           <Text style={styles.notFoundBody}>{t('notFoundBody')}</Text>
@@ -40,6 +50,11 @@ export default function CommunityHomeLayout() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar
+        variant="nav"
+        onBack={goBack}
+        actions={canManage ? [{ icon: '⚙', label: t('manageTitle'), onPress: () => router.push(`/community/${id}/manage`) }] : []}
+      />
       <CommunityHero communityId={id} />
       <CommunityIdProvider id={id}>
         <TopTabs

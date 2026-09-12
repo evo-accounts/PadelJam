@@ -8,7 +8,7 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,14 +26,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommentList, type PostComment } from '@/components/community/CommentList';
 import { PostImage } from '@/components/community/PostImage';
 import { avatarUrl } from '@/lib/community-images';
+import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../../../theme';
-import { Button } from '@/components/ui';
+import { Button, TopBar } from '@/components/ui';
 
 const KNOWN_ERROR_KEYS = new Set(['unknown_error']);
 
 export default function PostDetailScreen() {
   const { t } = useT('community');
-  const router = useRouter();
+  const goBack = useGoBack();
   const { id, postId } = useLocalSearchParams<{ id: string; postId: string }>();
 
   const { data: post, isLoading } = usePost(postId);
@@ -81,10 +82,7 @@ export default function PostDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.navbar}>
-        <Button variant="ghost" size="sm" label={`‹ ${t('close')}`} onPress={() => router.back()} />
-      </View>
+      <TopBar title={t('postTitle')} onBack={goBack} backLabel={t('back')} />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -166,13 +164,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
-  navbar: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.card,
-  },
   scroll: { padding: 16 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.muted },

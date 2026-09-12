@@ -7,16 +7,19 @@ import {
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
 import { colors, palette } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 };
 
 export default function ManageMembersScreen() {
   const { t } = useT('community');
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = useSession().session?.user.id;
 
@@ -95,9 +98,9 @@ export default function ManageMembersScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <ActivityIndicator color={colors.foreground} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -109,7 +112,8 @@ export default function ManageMembersScreen() {
     canManage && m.role !== 'owner' && m.user_id !== uid;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('manageMembers')} onBack={() => router.back()} backLabel={t('back')} />
       <FlashList
         data={rows}
         keyExtractor={(m) => m.user_id}
@@ -133,7 +137,7 @@ export default function ManageMembersScreen() {
           </Pressable>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

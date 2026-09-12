@@ -18,6 +18,7 @@ import { Step8Preferences } from '@/components/event/wizard/steps/Step8Preferenc
 import { geocodeAddress } from '@/lib/geocode';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
+import { useDirty } from '@/lib/useDirty';
 import { colors, palette } from '../../../theme';
 import { Button, Text, TopBar } from '../../../components/ui';
 
@@ -70,6 +71,10 @@ export default function EditEventScreen() {
   const d = draft ?? seeded;
   const patch = (partial: Partial<EventDraft>) =>
     setDraft((prev) => ({ ...(prev ?? seeded!), ...partial }));
+
+  const dirty =
+    useDirty((d ?? {}) as Record<string, unknown>, (seeded ?? {}) as Record<string, unknown>) ||
+    picked != null;
 
   if (isLoading || !d) {
     return (
@@ -148,7 +153,7 @@ export default function EditEventScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar title={t('editTitle')} onBack={() => router.back()} backLabel={t('back')} />
+      <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={dirty} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Details */}

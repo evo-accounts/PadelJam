@@ -1,29 +1,27 @@
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PostComposer } from '@/components/community/PostComposer';
 import { colors } from '../../../theme';
+import { TopBar } from '../../../components/ui';
 
 export default function CommunityComposeModal() {
   const { t } = useT('community');
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [dirty, setDirty] = useState(false);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('composeTitle')}</Text>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={8}>
-          <Text style={styles.close}>{t('close')}</Text>
-        </Pressable>
-      </View>
+      <TopBar variant="edit" title={t('composeTitle')} onClose={() => router.back()} dirty={dirty} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <PostComposer communityId={id} onDone={() => router.back()} />
+        <PostComposer communityId={id} onDone={() => router.back()} onDirtyChange={setDirty} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -32,15 +30,4 @@ export default function CommunityComposeModal() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  title: { fontSize: 18, fontWeight: '700', color: colors.foreground },
-  close: { fontSize: 16, fontWeight: '600', color: colors.primary },
 });

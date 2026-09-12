@@ -6,11 +6,13 @@ import {
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 type JoinRequest = {
   id: string;
@@ -23,6 +25,7 @@ type JoinRequest = {
 
 export default function ManageRequestsScreen() {
   const { t } = useT('community');
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: requests, isLoading } = useCommunityRequests(id);
@@ -54,14 +57,15 @@ export default function ManageRequestsScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <ActivityIndicator color={colors.foreground} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('manageRequests')} onBack={() => router.back()} backLabel={t('back')} />
       <FlashList
         data={(requests ?? []) as JoinRequest[]}
         keyExtractor={(r) => r.id}
@@ -107,7 +111,7 @@ export default function ManageRequestsScreen() {
           );
         }}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

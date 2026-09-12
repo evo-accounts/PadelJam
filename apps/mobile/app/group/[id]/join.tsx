@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GroupHeader } from '@/components/group/GroupHeader';
 import { colors, palette } from '../../../theme';
-import { Button } from '../../../components/ui';
+import { Button, TopBar } from '../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -94,6 +94,7 @@ export default function GroupJoinModal() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar onBack={() => router.back()} backLabel={t('back')} />
       <GroupHeader
         name={group.name}
         description={group.description}

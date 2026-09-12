@@ -1,6 +1,6 @@
 import { createGroupSchema, updateGroupSchema } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,6 +13,7 @@ import {
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
+import { isDirty } from '@/lib/useDirty';
 import { colors } from '../../theme';
 
 export type GroupComposerValues = {
@@ -47,12 +48,15 @@ export function GroupComposer({
   submitting,
   error,
   onSubmit,
+  onDirtyChange,
 }: {
   mode: 'create' | 'edit';
   initial?: GroupComposerInitial;
   submitting: boolean;
   error?: string | null;
   onSubmit: (values: GroupComposerValues) => void;
+  /** Reports whether the form differs from `initial`, so the caller's TopBar can confirm before closing. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { t } = useT('group');
 
@@ -64,6 +68,17 @@ export function GroupComposer({
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const previewUri = thumbnail?.uri ?? initial?.thumbnailUrl ?? null;
+
+  useEffect(() => {
+    const dirty =
+      thumbnail != null ||
+      isDirty(
+        { name, description, isPrivate },
+        { name: initial?.name ?? '', description: initial?.description ?? '', isPrivate: initial?.isPrivate ?? false },
+      );
+    onDirtyChange?.(dirty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, description, isPrivate, thumbnail]);
 
   const pickThumbnail = async () => {
     setPickError(null);
