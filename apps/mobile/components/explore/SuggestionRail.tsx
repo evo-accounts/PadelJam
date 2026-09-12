@@ -1,6 +1,8 @@
+import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme';
+import { EmptyState, emptyIcon } from '../ui';
 
 type Props<T> = {
   title: string;
@@ -13,6 +15,12 @@ type Props<T> = {
   errorLabel: string;
   keyExtractor: (item: T) => string;
   renderItem: (item: T) => React.ReactElement;
+  /**
+   * Retry the failed fetch. Optional: a caller that has not wired a refetch
+   * callback through yet still gets the error-tone card, just without the
+   * button — better than the old bare line either way.
+   */
+  onRetry?: () => void;
 };
 
 export function SuggestionRail<T>({
@@ -26,7 +34,9 @@ export function SuggestionRail<T>({
   errorLabel,
   keyExtractor,
   renderItem,
+  onRetry,
 }: Props<T>) {
+  const { t } = useT('common');
   return (
     <View style={styles.section}>
       <View style={styles.header}>
@@ -38,9 +48,14 @@ export function SuggestionRail<T>({
       {isLoading ? (
         <ActivityIndicator color={colors.foreground} style={styles.state} />
       ) : isError ? (
-        <Text style={styles.stateText}>{errorLabel}</Text>
+        <EmptyState
+          tone="error"
+          title={errorLabel}
+          action={onRetry ? { label: t('retry'), onPress: onRetry } : undefined}
+          testID="empty-suggestion-rail"
+        />
       ) : data.length === 0 ? (
-        <Text style={styles.stateText}>{emptyLabel}</Text>
+        <EmptyState icon={emptyIcon('magnifyingglass')} title={emptyLabel} testID="empty-suggestion-rail" />
       ) : (
         <FlashList
           horizontal
@@ -63,5 +78,4 @@ const styles = StyleSheet.create({
   seeAll: { fontSize: 14, fontWeight: '600', color: colors.primary },
   listContent: { paddingHorizontal: 16 },
   state: { paddingVertical: 16 },
-  stateText: { paddingHorizontal: 16, paddingVertical: 12, color: colors.mutedForeground, fontSize: 14 },
 });
