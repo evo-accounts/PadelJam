@@ -18,7 +18,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   ScrollView,
   StyleSheet,
   Switch,
@@ -592,66 +591,52 @@ export default function EventLiveScreen() {
         ) : null}
       </BottomSheet>
 
-      {/* Finish modal */}
-      <Modal
+      {/* Finish sheet */}
+      <BottomSheet
         visible={finishOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setFinishOpen(false)}
+        onClose={() => setFinishOpen(false)}
+        title={allScored ? t('finishConfirmTitle') : t('finishEarlyTitle')}
+        testID="finish-event-sheet"
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {allScored ? t('finishConfirmTitle') : t('finishEarlyTitle')}
-            </Text>
-            <Text style={styles.modalBody}>
-              {allScored ? t('finishConfirmBody') : t('finishEarlyBody')}
-            </Text>
+        <Text style={styles.modalBody}>
+          {allScored ? t('finishConfirmBody') : t('finishEarlyBody')}
+        </Text>
 
-            <Text style={styles.fieldLabel}>{t('finishMessageLabel')}</Text>
-            <TextInput
-              style={[styles.input, styles.inputMultiline]}
-              placeholder={t('finishMessagePlaceholder')}
-              placeholderTextColor={palette.slate[400]}
-              multiline
-              maxLength={280}
-              value={finishMessage}
-              onChangeText={setFinishMessage}
-            />
+        <Text style={styles.fieldLabel}>{t('finishMessageLabel')}</Text>
+        <TextInput
+          style={[styles.input, styles.inputMultiline]}
+          placeholder={t('finishMessagePlaceholder')}
+          placeholderTextColor={palette.slate[400]}
+          multiline
+          maxLength={280}
+          value={finishMessage}
+          onChangeText={setFinishMessage}
+        />
 
-            {error != null ? <Text style={styles.error}>{t(error)}</Text> : null}
+        {error != null ? <Text style={styles.error}>{t(error)}</Text> : null}
 
-            {isPublicGroup ? (
-              <View style={styles.modalActions}>
-                <Button
-                  label={t('rankingExcludeCta')}
-                  variant="outline"
-                  disabled={busy}
-                  onPress={() => onFinish(false)}
-                />
-                <Button
-                  label={t('rankingIncludeCta')}
-                  disabled={busy}
-                  onPress={() => onFinish(true)}
-                />
-              </View>
-            ) : (
-              <Button
-                label={t('finishCta')}
-                disabled={busy}
-                onPress={() => onFinish(undefined)}
-              />
-            )}
-
+        {isPublicGroup ? (
+          <View style={styles.modalActions}>
             <Button
-              label={t('cancel')}
+              label={t('rankingExcludeCta')}
               variant="outline"
               disabled={busy}
-              onPress={() => setFinishOpen(false)}
+              onPress={() => onFinish(false)}
+            />
+            <Button
+              label={t('rankingIncludeCta')}
+              disabled={busy}
+              onPress={() => onFinish(true)}
             />
           </View>
-        </View>
-      </Modal>
+        ) : (
+          <Button
+            label={t('finishCta')}
+            disabled={busy}
+            onPress={() => onFinish(undefined)}
+          />
+        )}
+      </BottomSheet>
 
       <ShareResultsModal
         visible={shareOpen}
@@ -810,22 +795,7 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
 
-  // Modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    width: '100%',
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 20,
-    gap: 8,
-  },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: colors.foreground, textAlign: 'center' },
+  // Sheet content (shared by the score sheet and the finish sheet)
   modalBody: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', marginBottom: 4 },
   modalSide: { fontSize: 16, fontWeight: '600', color: colors.foreground, textAlign: 'center' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
