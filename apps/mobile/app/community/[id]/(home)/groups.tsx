@@ -7,7 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { GroupCard } from '@/components/group/GroupCard';
 import { colors } from '../../../../theme';
-import { EmptyState, emptyIcon } from '../../../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent } from '../../../../components/ui';
 
 export default function CommunityGroupsScreen() {
   const { t } = useT('group');
@@ -41,7 +41,7 @@ export default function CommunityGroupsScreen() {
       <FlashList
         data={rows}
         keyExtractor={(g) => g.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, listEmptyContent]}
         ListHeaderComponent={newGroupButton ? <View style={styles.header}>{newGroupButton}</View> : null}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
@@ -50,6 +50,7 @@ export default function CommunityGroupsScreen() {
         ListEmptyComponent={
           isError ? (
             <EmptyState
+              fill
               tone="error"
               title={t('loadError', { ns: 'common' })}
               action={{ label: t('retry', { ns: 'common' }), onPress: () => refetch() }}
@@ -57,6 +58,7 @@ export default function CommunityGroupsScreen() {
             />
           ) : (
             <EmptyState
+              fill
               icon={emptyIcon('person.3')}
               title={t('emptyAll')}
               body={t('communityGroupsEmptyBody')}

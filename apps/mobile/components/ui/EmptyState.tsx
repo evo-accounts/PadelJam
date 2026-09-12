@@ -48,12 +48,28 @@ type Props = {
    * list. `action` is expected to be a Retry in this tone.
    */
   tone?: 'default' | 'error';
+  /**
+   * This is the only content of a `FlashList`/`FlatList`'s `ListEmptyComponent`,
+   * so it should fill and centre in the space the rows would have occupied
+   * rather than hugging the top of the list. Pair with `listEmptyContent` on
+   * the list's own `contentContainerStyle` — that gives the scroll view
+   * something to stretch, and this centres inside it.
+   */
+  fill?: boolean;
 };
 
-export function EmptyState({ title, body, icon, action, style, testID, tone = 'default' }: Props) {
+/**
+ * `contentContainerStyle` for any `FlashList`/`FlatList` that renders an
+ * `EmptyState` (with `fill`) as its `ListEmptyComponent`: without `flexGrow: 1`
+ * the container shrinks to the empty content's own height and centring has
+ * nothing to centre within.
+ */
+export const listEmptyContent: ViewStyle = { flexGrow: 1 };
+
+export function EmptyState({ title, body, icon, action, style, testID, tone = 'default', fill }: Props) {
   const resolvedIcon = icon ?? (tone === 'error' ? emptyIcon('exclamationmark.triangle') : undefined);
   return (
-    <Card testID={testID} padding="lg" style={StyleSheet.flatten([styles.card, style])}>
+    <Card testID={testID} padding="lg" style={StyleSheet.flatten([styles.card, fill && styles.fill, style])}>
       {resolvedIcon ? <View style={styles.icon}>{resolvedIcon}</View> : null}
 
       <Text variant="sectionTitle" tone={tone === 'error' ? 'destructive' : 'default'} style={styles.title}>
@@ -88,6 +104,7 @@ const styles = StyleSheet.create({
     marginHorizontal: space[4],
     marginVertical: space[4],
   },
+  fill: { flex: 1, justifyContent: 'center' },
   icon: { marginBottom: space[3] },
   title: { textAlign: 'center' },
   body: { textAlign: 'center', marginTop: space[2], marginBottom: space[5] },

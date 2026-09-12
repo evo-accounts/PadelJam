@@ -8,7 +8,15 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
-import { Chip, EmptyState, emptyIcon, TopBar, useBanner, useConfirm } from '../../../../components/ui';
+import {
+  Chip,
+  EmptyState,
+  emptyIcon,
+  listEmptyContent,
+  TopBar,
+  useBanner,
+  useConfirm,
+} from '../../../../components/ui';
 
 type Profile = { id: string; full_name: string | null; avatar_url: string | null };
 type Group = { id: string; name: string; is_general: boolean };
@@ -168,6 +176,7 @@ export default function ManageInviteScreen() {
         data={results}
         keyExtractor={(p) => p.id}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={listEmptyContent}
         ListEmptyComponent={
           searching ? (
             <View style={styles.center}>
@@ -175,6 +184,7 @@ export default function ManageInviteScreen() {
             </View>
           ) : query.trim().length > 0 ? (
             <EmptyState
+              fill
               icon={emptyIcon('magnifyingglass')}
               title={t('inviteNoResults')}
               body={t('manageInviteEmptyBody')}
@@ -182,6 +192,7 @@ export default function ManageInviteScreen() {
             />
           ) : (
             <EmptyState
+              fill
               icon={emptyIcon('magnifyingglass')}
               title={t('inviteSearchHint')}
               testID="empty-invite-hint"

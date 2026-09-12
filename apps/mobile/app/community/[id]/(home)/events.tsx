@@ -9,7 +9,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { EventCard } from '@/components/event/EventCard';
 import { colors } from '../../../../theme';
-import { Chip, EmptyState, emptyIcon } from '../../../../components/ui';
+import { Chip, EmptyState, emptyIcon, listEmptyContent } from '../../../../components/ui';
 
 type Filter = 'all' | 'organizing';
 
@@ -52,7 +52,7 @@ export default function CommunityEventsScreen() {
       <FlashList
         data={visible}
         keyExtractor={(e) => e.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, listEmptyContent]}
         ListHeaderComponent={header}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
@@ -61,6 +61,7 @@ export default function CommunityEventsScreen() {
         ListEmptyComponent={
           isError ? (
             <EmptyState
+              fill
               tone="error"
               title={t('loadError', { ns: 'common' })}
               action={{ label: t('retry', { ns: 'common' }), onPress: () => refetch() }}
@@ -68,6 +69,7 @@ export default function CommunityEventsScreen() {
             />
           ) : (
             <EmptyState
+              fill
               icon={emptyIcon('calendar')}
               title={filter === 'organizing' ? t('eventsEmptyOrganizing') : t('eventsEmpty')}
               body={t('communityEventsEmptyBody')}

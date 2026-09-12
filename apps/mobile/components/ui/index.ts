@@ -18,7 +18,7 @@ export { BottomSheet } from './BottomSheet';
 export { Button, type ButtonSize, type ButtonVariant } from './Button';
 export { Card, type CardPadding } from './Card';
 export { Chip } from './Chip';
-export { EmptyState } from './EmptyState';
+export { EmptyState, listEmptyContent } from './EmptyState';
 export { emptyIcon } from './emptyIcon';
 export { Field } from './Field';
 export { IconButton, type IconButtonSize } from './IconButton';

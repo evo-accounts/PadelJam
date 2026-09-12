@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { streamClient } from '@/lib/streamClient';
 import { colors, palette } from '../../../theme';
-import { EmptyState, emptyIcon, TopBar } from '../../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
 
 const COLS = 3;
 const GAP = 2;
@@ -73,12 +73,13 @@ export default function ChatDetailsScreen() {
           numColumns={COLS}
           keyExtractor={(u, i) => u + i}
           columnWrapperStyle={{ gap: GAP }}
-          contentContainerStyle={{ gap: GAP }}
+          contentContainerStyle={[{ gap: GAP }, listEmptyContent]}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
           ListEmptyComponent={
             hasMore ? null : (
               <EmptyState
+                fill
                 icon={emptyIcon('photo')}
                 title={t('noPhotos')}
                 body={t('chatMediaEmptyBody')}

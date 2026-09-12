@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../theme';
-import { EmptyState, emptyIcon, TopBar } from '../../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
 
 /** Map an activity row to a localized one-line sentence. */
 function lineFor(t: (k: string, o?: Record<string, unknown>) => string, row: ActivityRow): string {
@@ -70,9 +70,10 @@ export default function EventActivityScreen() {
       <FlashList
         data={rows ?? []}
         keyExtractor={(r) => r.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, listEmptyContent]}
         ListEmptyComponent={
           <EmptyState
+            fill
             icon={emptyIcon('clock')}
             title={t('activityEmpty')}
             body={t('activityEmptyBody')}

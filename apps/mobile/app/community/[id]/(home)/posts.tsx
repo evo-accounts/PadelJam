@@ -6,7 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { PostCard, type CommunityPost } from '@/components/community/PostCard';
-import { EmptyState, emptyIcon } from '../../../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent } from '../../../../components/ui';
 import { colors } from '../../../../theme';
 
 export default function CommunityPostsScreen() {
@@ -44,10 +44,11 @@ export default function CommunityPostsScreen() {
             onPress={() => router.push(`/community/${id}/post/${item.id}`)}
           />
         )}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, listEmptyContent]}
         ListEmptyComponent={
           isError ? (
             <EmptyState
+              fill
               tone="error"
               title={t('loadError', { ns: 'common' })}
               action={{ label: t('retry', { ns: 'common' }), onPress: () => refetch() }}
@@ -55,6 +56,7 @@ export default function CommunityPostsScreen() {
             />
           ) : (
             <EmptyState
+              fill
               icon={emptyIcon('text.bubble')}
               title={t('noPosts')}
               body={t('communityPostsEmptyBody')}

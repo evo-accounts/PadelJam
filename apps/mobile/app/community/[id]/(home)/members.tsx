@@ -7,7 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
 import { colors } from '../../../../theme';
-import { EmptyState, emptyIcon } from '../../../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent } from '../../../../components/ui';
 
 const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 };
 
@@ -38,6 +38,7 @@ export default function CommunityMembersScreen() {
       <FlashList
         data={rows}
         keyExtractor={(m) => m.user_id}
+        contentContainerStyle={listEmptyContent}
         ListHeaderComponent={
           canInvite ? (
             <Pressable
@@ -52,6 +53,7 @@ export default function CommunityMembersScreen() {
         ListEmptyComponent={
           isError ? (
             <EmptyState
+              fill
               tone="error"
               title={t('loadError', { ns: 'common' })}
               action={{ label: t('retry', { ns: 'common' }), onPress: () => refetch() }}
@@ -59,6 +61,7 @@ export default function CommunityMembersScreen() {
             />
           ) : (
             <EmptyState
+              fill
               icon={emptyIcon('person.2')}
               title={t('noMembers')}
               body={t('communityMembersEmptyBody')}

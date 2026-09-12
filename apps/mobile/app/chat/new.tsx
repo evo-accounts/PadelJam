@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { streamClient } from '@/lib/streamClient';
 import { colors } from '../../theme';
-import { EmptyState, emptyIcon, TopBar } from '../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
 
 type Person = { id: string; full_name: string | null; avatar_url: string | null };
 
@@ -55,8 +55,10 @@ export default function NewChatScreen() {
         <FlashList
           data={rows}
           keyExtractor={(p) => p.id}
+          contentContainerStyle={listEmptyContent}
           ListEmptyComponent={
             <EmptyState
+              fill
               icon={emptyIcon('bubble.left.and.bubble.right')}
               title={t('noFollows')}
               body={t('chatNewEmptyBody')}
