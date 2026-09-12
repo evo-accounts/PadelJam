@@ -1,9 +1,8 @@
 import { useT } from '@padel/i18n';
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import { colors } from '../../theme';
-import { Card, ListRow, Text } from '../ui';
+import { StyleSheet, View } from 'react-native';
+import { BottomSheet, Card, SheetRow, Text } from '../ui';
 import type { PendingAction } from '@/lib/pendingActions';
 
 type Props = { actions: PendingAction[] };
@@ -50,30 +49,16 @@ export function PendingActionsSheet({ actions }: Props) {
         </View>
       </Card>
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} accessible={false}>
-          {/* A responder-claiming View so taps inside the sheet do not reach the backdrop. */}
-          <View style={styles.sheet} accessibilityViewIsModal onStartShouldSetResponder={() => true}>
-            <Text variant="sectionTitle" style={styles.sheetTitle}>
-              {t('pendingActionsTitle', { count: actions.length })}
-            </Text>
-            {actions.map((a) => (
-              <ListRow
-                key={a.key}
-                title={label(a)}
-                trailing={
-                  <Text variant="hint" tone="muted" accessibilityElementsHidden importantForAccessibility="no">
-                    ›
-                  </Text>
-                }
-                onPress={() => go(a)}
-                testID={`pending-action-${a.key}`}
-              />
-            ))}
-            <ListRow title={t('pendingActionsClose')} onPress={() => setOpen(false)} testID="pending-actions-close" />
-          </View>
-        </Pressable>
-      </Modal>
+      <BottomSheet
+        visible={open}
+        onClose={() => setOpen(false)}
+        title={t('pendingActionsTitle', { count: actions.length })}
+        testID="pending-actions-sheet"
+      >
+        {actions.map((a) => (
+          <SheetRow key={a.key} label={label(a)} onPress={() => go(a)} testID={`pending-action-${a.key}`} />
+        ))}
+      </BottomSheet>
     </>
   );
 }
@@ -82,14 +67,4 @@ const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginTop: 20 },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardText: { flex: 1, gap: 4 },
-  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
-    paddingHorizontal: 8,
-  },
-  sheetTitle: { paddingHorizontal: 8, marginBottom: 8 },
 });

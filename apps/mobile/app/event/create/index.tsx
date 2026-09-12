@@ -5,7 +5,6 @@ import { geocodeQuery } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,7 +18,7 @@ import { StepIndicator } from '@/components/event/wizard/StepIndicator';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
-import { Button, Text } from '../../../components/ui';
+import { Button, Text, useConfirm } from '../../../components/ui';
 import { colors } from '../../../theme';
 
 export default function CreateEventScreen() {
@@ -42,21 +41,25 @@ function CreateEventWizard() {
     useEventWizard();
   const create = useCreateEvent();
   const uid = useSession().session?.user.id;
+  const confirm = useConfirm();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const step = steps[stepIndex];
   const canAdvance = step ? step.isValid(draft) : false;
 
-  const onClose = () => {
+  const onClose = async () => {
     if (isDirty) {
-      Alert.alert(t('discardTitle'), t('discardBody'), [
-        { text: t('discardCancel'), style: 'cancel' },
-        { text: t('discardConfirm'), style: 'destructive', onPress: () => router.back() },
-      ]);
-    } else {
-      router.back();
+      const ok = await confirm({
+        title: t('discardTitle'),
+        body: t('discardBody'),
+        confirmLabel: t('discardConfirm'),
+        cancelLabel: t('discardCancel'),
+        destructive: true,
+      });
+      if (!ok) return;
     }
+    router.back();
   };
 
   const finalize = async () => {
