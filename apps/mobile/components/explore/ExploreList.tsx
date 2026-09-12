@@ -19,6 +19,16 @@ import { colors } from '../../theme';
 export type ExploreKind = 'players' | 'events' | 'communities' | 'groups';
 
 /**
+ * The tab strip shared by the Explore TAB and the `/search` screen (UX-GLOB-08)
+ * — `foryou` is Explore-only (its curated rails), everything else is a
+ * {@link ExploreKind} this list can render directly. Hoisted here, rather than
+ * duplicated per screen, so the two chip rows can never drift out of order or
+ * out of sync with each other.
+ */
+export const EXPLORE_TABS = ['foryou', 'events', 'groups', 'communities', 'players'] as const;
+export type ExploreTab = (typeof EXPLORE_TABS)[number];
+
+/**
  * The paginated list for one explore kind.
  *
  * Extracted from `app/explore/[type].tsx` so the Explore TAB and the "see all"
@@ -30,7 +40,18 @@ export type ExploreKind = 'players' | 'events' | 'communities' | 'groups';
  * one is enabled; that was already true in the route and is why this extraction
  * is a move rather than a rewrite.
  */
-export function ExploreList({ kind, query = '' }: { kind: ExploreKind; query?: string }) {
+export function ExploreList({
+  kind,
+  query = '',
+  keyboardDismissMode,
+  keyboardShouldPersistTaps,
+}: {
+  kind: ExploreKind;
+  query?: string;
+  /** Passed by `/search` only: its Field stays focused while the list is dragged or tapped. */
+  keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
+  keyboardShouldPersistTaps?: boolean | 'always' | 'never' | 'handled';
+}) {
   const { t } = useT('discovery');
   const router = useRouter();
 
@@ -89,6 +110,8 @@ export function ExploreList({ kind, query = '' }: { kind: ExploreKind; query?: s
       keyExtractor={(item) => item.id}
       numColumns={kind === 'players' ? 3 : 1}
       contentContainerStyle={[styles.list, listEmptyContent]}
+      keyboardDismissMode={keyboardDismissMode}
+      keyboardShouldPersistTaps={keyboardShouldPersistTaps}
       ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListEmptyComponent={
         active.isError ? (

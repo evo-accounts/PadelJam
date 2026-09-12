@@ -16,16 +16,15 @@ import { EventCard } from '@/components/event/EventCard';
 import { CommunityCard } from '@/components/explore/CommunityCard';
 import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
-import { ExploreList } from '@/components/explore/ExploreList';
+import { EXPLORE_TABS, ExploreList, type ExploreTab } from '@/components/explore/ExploreList';
 import { SuggestionRail } from '@/components/explore/SuggestionRail';
 import { Chip, TopBar } from '@/components/ui';
 import { colors } from '../../theme';
 
-const TABS = ['foryou', 'events', 'groups', 'communities', 'players'] as const;
-type TabKey = (typeof TABS)[number];
+type TabKey = ExploreTab;
 
 /** The tab key as it appears in `?tab=` — `players` is labelled "People". */
-const isTabKey = (v: unknown): v is TabKey => TABS.includes(v as TabKey);
+const isTabKey = (v: unknown): v is TabKey => EXPLORE_TABS.includes(v as TabKey);
 
 export default function ExploreScreen() {
   const { t } = useT('discovery');
@@ -61,7 +60,7 @@ export default function ExploreScreen() {
         contentContainerStyle={styles.tabs}
         style={styles.tabsWrap}
       >
-        {TABS.map((k) => (
+        {EXPLORE_TABS.map((k) => (
           <Chip key={k} label={t(`tab_${k}`)} selected={tab === k} onPress={() => setOverride(k)} />
         ))}
       </ScrollView>

@@ -10,6 +10,9 @@
  *
  * Both side slots are pinned to the same width — SIDE, doubled for two actions or
  * tripled for three — so the title stays centred by construction either way.
+ *
+ * `centre` replaces the title slot's content wholesale (e.g. the search screen's
+ * autofocused `Field`, UX-GLOB-08) — it is not a decoration alongside a title.
  */
 import { useT } from '@padel/i18n';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
@@ -25,6 +28,16 @@ export type TopBarAction = { icon: string | React.ReactNode; label: string; onPr
 type Props = {
   variant?: TopBarVariant;
   title?: string;
+  /**
+   * Replaces the title slot's content (e.g. the search screen's autofocused
+   * `Field`, UX-GLOB-08). When set, `title` text is not rendered — the prop
+   * stays on the type so a caller can still pass both without a type error,
+   * but only `centre` renders. We do NOT fold `title` into an accessibilityLabel
+   * on the wrapping view instead: that flattens the slot into one accessibility
+   * element the way ListRow's unconditional label once did, which would hide
+   * `centre`'s own children (e.g. the Field's TextInput) from a screen reader.
+   */
+  centre?: React.ReactNode;
   /** Back affordance (nav, wizard). */
   onBack?: () => void;
   /** Close affordance (edit, wizard). Wrapped in a discard confirmation when `dirty`. */
@@ -42,7 +55,7 @@ type Props = {
 
 const SIDE = 44;
 
-export function TopBar({ variant = 'nav', title, onBack, onClose, dirty = false, actions, action, backLabel, style, testID }: Props) {
+export function TopBar({ variant = 'nav', title, centre, onBack, onClose, dirty = false, actions, action, backLabel, style, testID }: Props) {
   const { t } = useT('common');
   const confirm = useConfirm();
   const rightActions = (actions ?? (action ? [action] : [])).slice(0, 3);
@@ -77,7 +90,9 @@ export function TopBar({ variant = 'nav', title, onBack, onClose, dirty = false,
         <View style={[styles.side, sideStyle]}>{layout.left === 'back' ? backButton : closeButton}</View>
       ) : null}
 
-      {title ? (
+      {centre ? (
+        <View style={styles.title}>{centre}</View>
+      ) : title ? (
         <Text
           variant={layout.titleVariant}
           tone="default"
