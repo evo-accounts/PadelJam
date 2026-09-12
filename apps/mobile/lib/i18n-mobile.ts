@@ -2865,6 +2865,8 @@ const mobileDiscovery = {
   'pt-PT': {
     tab: 'Explorar',
     title: 'Explorar',
+    searchTitle: 'Procurar',
+    search: 'Procurar',
     railPlayers: 'Jogadores que talvez conheças',
     tab_foryou: 'Para ti',
     tab_events: 'Eventos',
@@ -2894,6 +2896,8 @@ const mobileDiscovery = {
   'pt-BR': {
     tab: 'Explorar',
     title: 'Explorar',
+    searchTitle: 'Buscar',
+    search: 'Buscar',
     railPlayers: 'Jogadores que você talvez conheça',
     tab_foryou: 'Para você',
     tab_events: 'Eventos',
@@ -2923,6 +2927,8 @@ const mobileDiscovery = {
   en: {
     tab: 'Explore',
     title: 'Explore',
+    searchTitle: 'Search',
+    search: 'Search',
     railPlayers: 'Players you might know',
     tab_foryou: 'For you',
     tab_events: 'Events',

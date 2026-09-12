@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { query, queryAll, snapshot } from '../driver/a11y';
-import { backGesture, scrollUntilVisible, swipe, tap } from '../driver/actions';
+import { query, queryAll, snapshot, type AxElement } from '../driver/a11y';
+import { backGesture, scrollUntilVisible, swipe, tap, typeText } from '../driver/actions';
+import { CONFIG } from '../driver/config';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { loginAs, switchUser, tabTo } from '../driver/flows';
@@ -70,6 +71,38 @@ describe('03 home & tabs', () => {
     await tap({ text: /see all/i, nth: 1 }).catch(async () => tap({ text: /see all/i }));
     await expectVisible({ text: /tuesday americano|full house|team cup/i }, { timeout: 20_000 });
     await backGesture(); // pop the pushed see-all screen so the tab bar is reachable again
+  });
+
+  it('explore header search icon opens /search focused, sharing ExploreList with the tab', async () => {
+    // UX-GLOB-08: Explore no longer embeds its own input — the header
+    // magnifying glass is the only way in, and it lands on the standalone
+    // /search screen (autofocused Field + the same tab chips).
+    await tabTo('Explore');
+    await tap({ label: 'Search' });
+    await expectVisible({ id: 'search-input' }, { timeout: 15_000 });
+    // `alex` (Alex Organizer) is the LOGGED-IN user here, and explore_players
+    // (infra/supabase/migrations/0052_explore_rpcs.sql) excludes `auth.uid()`
+    // from its own candidates — so a real "alex" result can never render for
+    // this session, seeded or not. `expectVisible({ text: /alex/i })` was
+    // passing anyway, because the Field's own AXValue becomes "alex" the
+    // moment you type it, which satisfies a bare text-visibility check without
+    // a single player card on screen. "maria" (Maria Santos, the only seeded
+    // player whose name contains it — infra/seed/seed-e2e.mjs) shares alex's
+    // community and group, so she IS a valid explore_players candidate.
+    await typeText({ id: 'search-input' }, 'maria');
+    const deadline = Date.now() + 20_000;
+    let results: AxElement[] = [];
+    while (Date.now() < deadline) {
+      // PlayerCard is a Pressable (type 'Button'); excluding `search-input` by
+      // id guards against ever matching the input itself, whatever its type.
+      results = queryAll(await snapshot(), { text: /maria/i }).filter(
+        (el) => el.AXUniqueId !== 'search-input' && el.type === 'Button',
+      );
+      if (results.length >= 1) break;
+      await new Promise((r) => setTimeout(r, CONFIG.pollIntervalMs));
+    }
+    expect(results.length, 'a player result card for "maria"').toBeGreaterThanOrEqual(1);
+    await backGesture(); // pop /search so the tab bar is reachable again
   });
 
   it('home shows the add-location banner for a user without location', async () => {

@@ -204,10 +204,30 @@ export function Overview() {
           <TopBar variant="top" title="Home" actions={[{ icon: '⌕', label: 'Search', onPress: () => {} }]} />
         </Card>
         <Card padding="none" style={styles.stacked}>
+          <TopBar
+            variant="top"
+            title="Home"
+            actions={[
+              { icon: '💬', label: 'Chat', onPress: () => {} },
+              { icon: '🔔', label: 'Notifications', onPress: () => {} },
+              { icon: '⌕', label: 'Search', onPress: () => {} },
+            ]}
+          />
+        </Card>
+        <Card padding="none" style={styles.stacked}>
           <TopBar variant="nav" title="Members" onBack={() => {}} />
         </Card>
         <Card padding="none" style={styles.stacked}>
           <TopBar variant="nav" onBack={() => {}} actions={[{ icon: '⋯', label: 'More', onPress: () => {} }]} />
+        </Card>
+        <Card padding="none" style={styles.stacked}>
+          {/* UX-GLOB-08: the search screen's nav bar carries the search Field
+              in place of a title — no separate title text is rendered. */}
+          <TopBar
+            variant="nav"
+            onBack={() => {}}
+            centre={<Field placeholder="Search" accessibilityLabel="Search" testID="gallery-topbar-search" />}
+          />
         </Card>
         <Card padding="none" style={styles.stacked}>
           <TopBar variant="edit" title="Edit profile" onClose={() => {}} />

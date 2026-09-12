@@ -7,14 +7,14 @@ export type TopBarLayout = {
   divider: boolean;
   /**
    * Both side slots take this width, so the title stays centred by construction —
-   * 'double' only when two actions sit on the right, otherwise 'single'.
+   * 'double' for two actions, 'triple' for three, otherwise 'single'.
    */
-  sideWidth: 'single' | 'double';
+  sideWidth: 'single' | 'double' | 'triple';
 };
 
 /** UX-GLOB-01: the three header patterns, plus the wizard's two-control case. */
 export function topBarLayout(variant: TopBarVariant, opts: { actionCount: number }): TopBarLayout {
-  const sideWidth: TopBarLayout['sideWidth'] = opts.actionCount > 1 ? 'double' : 'single';
+  const sideWidth: TopBarLayout['sideWidth'] = opts.actionCount > 2 ? 'triple' : opts.actionCount > 1 ? 'double' : 'single';
   switch (variant) {
     case 'top':
       return { left: 'none', titleAlign: 'left', titleVariant: 'title', right: 'actions', divider: false, sideWidth };

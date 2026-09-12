@@ -39,9 +39,10 @@ describe('topBarLayout', () => {
     });
   });
 
-  it('sideWidth is single for 0 or 1 actions and double for 2, so both side slots match', () => {
+  it('sideWidth is single for 0 or 1 actions, double for 2 and triple for 3, so both side slots match', () => {
     expect(topBarLayout('nav', { actionCount: 0 }).sideWidth).toBe('single');
     expect(topBarLayout('nav', { actionCount: 1 }).sideWidth).toBe('single');
     expect(topBarLayout('nav', { actionCount: 2 }).sideWidth).toBe('double');
+    expect(topBarLayout('nav', { actionCount: 3 }).sideWidth).toBe('triple');
   });
 });
