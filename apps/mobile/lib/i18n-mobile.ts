@@ -538,6 +538,7 @@ const mobileCommunity = {
       'Transfira a propriedade para outro membro antes de sair.',
     new_owner_not_member: 'O novo proprietário tem de ser membro da comunidade.',
     forbidden: 'Não tem permissão para realizar esta ação.',
+    postTitle: 'Publicação',
     // --- Task 20: reviews ---
     reviewsTitle: 'Avaliações',
     reviewsWriteTitle: 'Escrever avaliação',
@@ -751,6 +752,7 @@ const mobileCommunity = {
       'Transfira a propriedade para outro membro antes de sair.',
     new_owner_not_member: 'O novo proprietário precisa ser membro da comunidade.',
     forbidden: 'Você não tem permissão para realizar esta ação.',
+    postTitle: 'Publicação',
     // --- Task 20: reviews ---
     reviewsTitle: 'Avaliações',
     reviewsWriteTitle: 'Escrever avaliação',
@@ -961,6 +963,7 @@ const mobileCommunity = {
     transfer_ownership_first: 'Transfer ownership to another member before leaving.',
     new_owner_not_member: 'The new owner must be a member of the community.',
     forbidden: 'You do not have permission to perform this action.',
+    postTitle: 'Post',
     // --- Task 20: reviews ---
     reviewsTitle: 'Reviews',
     reviewsWriteTitle: 'Write a review',
@@ -2717,6 +2720,7 @@ const mobileEvent = {
 const mobileDiscovery = {
   'pt-PT': {
     tab: 'Explorar',
+    title: 'Explorar',
     railPlayers: 'Jogadores que talvez conheças',
     tab_foryou: 'Para ti',
     tab_events: 'Eventos',
@@ -2744,6 +2748,7 @@ const mobileDiscovery = {
   },
   'pt-BR': {
     tab: 'Explorar',
+    title: 'Explorar',
     railPlayers: 'Jogadores que você talvez conheça',
     tab_foryou: 'Para você',
     tab_events: 'Eventos',
@@ -2771,6 +2776,7 @@ const mobileDiscovery = {
   },
   en: {
     tab: 'Explore',
+    title: 'Explore',
     railPlayers: 'Players you might know',
     tab_foryou: 'For you',
     tab_events: 'Events',
@@ -3017,6 +3023,7 @@ const mobileNotifications = {
 const mobileEvents = {
   'pt-PT': {
     tab: 'Eventos',
+    title: 'Eventos',
     filterAll: 'Todos',
     filterOrganizing: 'A organizar',
     filterGoing: 'Vou',
@@ -3025,6 +3032,7 @@ const mobileEvents = {
   },
   'pt-BR': {
     tab: 'Eventos',
+    title: 'Eventos',
     filterAll: 'Todos',
     filterOrganizing: 'Organizando',
     filterGoing: 'Vou',
@@ -3033,6 +3041,7 @@ const mobileEvents = {
   },
   en: {
     tab: 'Events',
+    title: 'Events',
     filterAll: 'All',
     filterOrganizing: 'Organizing',
     filterGoing: 'Going',
@@ -3044,6 +3053,7 @@ const mobileEvents = {
 const mobileProfile = {
   'pt-PT': {
     tab: 'Perfil',
+    title: 'Perfil',
     placeholder: 'O teu perfil estará disponível em breve.',
     follow: 'Seguir',
     following: 'A seguir',
@@ -3156,6 +3166,7 @@ const mobileProfile = {
   },
   'pt-BR': {
     tab: 'Perfil',
+    title: 'Perfil',
     placeholder: 'Seu perfil estará disponível em breve.',
     follow: 'Seguir',
     following: 'Seguindo',
@@ -3268,6 +3279,7 @@ const mobileProfile = {
   },
   en: {
     tab: 'Profile',
+    title: 'Profile',
     placeholder: 'Your profile is coming soon.',
     follow: 'Follow',
     following: 'Following',

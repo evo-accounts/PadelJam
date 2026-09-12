@@ -9,12 +9,15 @@ import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CreateEventFab } from '@/components/CreateEventFab';
+import { ChatHeaderButtonIcon } from '@/components/chat/ChatHeaderButton';
 import { EventCard } from '@/components/event/EventCard';
 import { GroupCard } from '@/components/explore/GroupCard';
+import { NotificationBellIcon } from '@/components/NotificationBell';
 import { colors, palette } from '../../theme';
-import { Button, Card, EmptyState, ListRow, Text } from '../../components/ui';
+import { Button, Card, EmptyState, ListRow, Text, TopBar } from '../../components/ui';
 
 const QUICK_ACTIONS = [
   { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: '/event/create' },
@@ -37,8 +40,24 @@ export default function HomeScreen() {
   const hasActivity = events.length > 0 || groups.length > 0;
 
   return (
-    <View style={styles.container}>
-    <ScrollView contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar
+        variant="top"
+        title={t('title')}
+        actions={[
+          {
+            icon: <ChatHeaderButtonIcon />,
+            label: t('title', { ns: 'chat' }),
+            onPress: () => router.push('/chat' as never),
+          },
+          {
+            icon: <NotificationBellIcon />,
+            label: t('title', { ns: 'notifications' }),
+            onPress: () => router.push('/notifications' as never),
+          },
+        ]}
+      />
+      <ScrollView contentContainerStyle={styles.content}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -100,9 +119,9 @@ export default function HomeScreen() {
       ) : (
         <NoActivityView profileHasLocation={!!profile.data?.location_text} router={router} t={t} />
       )}
-    </ScrollView>
+      </ScrollView>
       <CreateEventFab />
-    </View>
+    </SafeAreaView>
   );
 }
 

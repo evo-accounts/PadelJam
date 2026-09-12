@@ -3,12 +3,14 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { streamClient } from '@/lib/streamClient';
 import { colors } from '../../theme';
+import { TopBar } from '../../components/ui';
 
 type Person = { id: string; full_name: string | null; avatar_url: string | null };
 
@@ -37,8 +39,8 @@ export default function NewChatScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: t('newChat') }} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('newChat')} onBack={() => router.back()} />
       <TextInput
         style={styles.search}
         placeholder={t('searchPeople')}
@@ -67,7 +69,7 @@ export default function NewChatScreen() {
           )}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

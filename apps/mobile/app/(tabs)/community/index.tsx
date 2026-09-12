@@ -8,7 +8,7 @@ import {
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   CommunitySwitcher,
@@ -18,11 +18,11 @@ import {
 import { EmptyState } from '@/components/community/EmptyState';
 import type { SuggestedCommunity } from '@/components/community/SuggestedCommunityCard';
 import { colors } from '../../../theme';
+import { TopBar } from '../../../components/ui';
 
 export default function CommunityHomeScreen() {
   const { t } = useT('community');
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const communitiesQuery = useCommunities();
   const canCreateQuery = useCanCreateCommunity();
@@ -52,9 +52,12 @@ export default function CommunityHomeScreen() {
 
   if (communitiesQuery.isLoading) {
     return (
-      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator color={colors.foreground} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <TopBar variant="top" title={t('title')} />
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.foreground} />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -83,11 +86,14 @@ export default function CommunityHomeScreen() {
     );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>{content}</View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar variant="top" title={t('title')} />
+      {content}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
-  center: { alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

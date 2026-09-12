@@ -17,7 +17,6 @@ export function EmptyState({ suggested, canCreate, onPressSuggested, onCreate }:
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('title')}</Text>
       <Text style={styles.emptyTitle}>{t('emptyTitle')}</Text>
       <Text style={styles.emptySubtitle}>{t('emptySubtitle')}</Text>
 
@@ -55,8 +54,7 @@ export function EmptyState({ suggested, canCreate, onPressSuggested, onCreate }:
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24 },
-  title: { fontSize: 28, fontWeight: '700', color: colors.foreground, marginBottom: 24 },
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.foreground, marginBottom: 6 },
   emptySubtitle: { fontSize: 15, color: colors.mutedForeground, marginBottom: 24 },
   section: { marginBottom: 28 },
