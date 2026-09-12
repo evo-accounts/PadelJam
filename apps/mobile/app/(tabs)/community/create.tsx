@@ -15,7 +15,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,15 +24,18 @@ import { RulesToggle } from '@/components/community/RulesToggle';
 import { SegmentedType } from '@/components/community/SegmentedType';
 import { setPendingCommunityImages } from '@/lib/community-image-handoff';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
+import { validateCommunityForm, type CommunityFormFieldKey } from '@/lib/communityFormValidate';
 import { useDirty } from '@/lib/useDirty';
 import { colors } from '../../../theme';
-import { TopBar } from '../../../components/ui';
+import { Field, TopBar, useBanner } from '../../../components/ui';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
 
 export default function CreateCommunityScreen() {
   const { t } = useT('community');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const createCommunity = useCreateCommunity();
@@ -48,8 +50,7 @@ export default function CreateCommunityScreen() {
   const [rulesEnabled, setRulesEnabled] = useState(false);
   const [rulesText, setRulesText] = useState('');
 
-  const [rulesError, setRulesError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<CommunityFormFieldKey, string>>>({});
 
   const pending = createCommunity.isPending;
 
@@ -57,19 +58,24 @@ export default function CreateCommunityScreen() {
   const dirty = useDirty({ name, description, location, rules: rulesText }, initial);
 
   const pick = async (setter: (img: PickedImage) => void) => {
-    setError(null);
     try {
       const picked = await pickAndValidateImage();
       if (picked) setter(picked);
     } catch (e) {
-      setError(t(e instanceof Error ? e.message : 'unknown_error'));
+      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     }
   };
 
   const submit = async () => {
     if (pending) return;
-    setError(null);
-    setRulesError(null);
+
+    const errors = validateCommunityForm({ name, rulesEnabled, rulesText });
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      banner.show(tc('missingInformation'));
+      return;
+    }
+    setFieldErrors({});
 
     const parsed = createCommunitySchema.safeParse({
       name: name.trim(),
@@ -81,9 +87,7 @@ export default function CreateCommunityScreen() {
     });
 
     if (!parsed.success) {
-      const rulesIssue = parsed.error.issues.find((i) => i.path.includes('rules'));
-      if (rulesIssue) setRulesError(t('rules_text_required'));
-      setError(t('validation_error'));
+      banner.show(tc('missingInformation'));
       return;
     }
 
@@ -94,7 +98,7 @@ export default function CreateCommunityScreen() {
       router.replace({ pathname: '/(tabs)/community/created', params: { id: id as string } });
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';
-      setError(t(code, { defaultValue: t('unknown_error') }));
+      banner.show(t(code, { defaultValue: t('unknown_error') }));
     }
   };
 
@@ -112,32 +116,33 @@ export default function CreateCommunityScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.label}>{t('nameLabel')}</Text>
-        <TextInput
-          style={styles.input}
+        <Field
+          label={t('nameLabel')}
           value={name}
           onChangeText={setName}
           placeholder={t('namePlaceholder')}
           editable={!pending}
+          error={fieldErrors.name ? tc('required') : undefined}
+          containerStyle={styles.field}
         />
 
-        <Text style={styles.label}>{t('descriptionLabel')}</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
+        <Field
+          label={t('descriptionLabel')}
           value={description}
           onChangeText={setDescription}
           placeholder={t('descriptionPlaceholder')}
           multiline
           editable={!pending}
+          containerStyle={styles.field}
         />
 
-        <Text style={styles.label}>{t('locationLabel')}</Text>
-        <TextInput
-          style={styles.input}
+        <Field
+          label={t('locationLabel')}
           value={location}
           onChangeText={setLocation}
           placeholder={t('locationPlaceholder')}
           editable={!pending}
+          containerStyle={styles.field}
         />
 
         <Text style={styles.label}>{t('typeLabel')}</Text>
@@ -166,11 +171,9 @@ export default function CreateCommunityScreen() {
           text={rulesText}
           onToggle={setRulesEnabled}
           onChangeText={setRulesText}
-          error={rulesError}
+          error={fieldErrors.rules ? t('rules_text_required') : null}
           disabled={pending}
         />
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Pressable
           style={[styles.button, pending && styles.buttonDisabled]}
@@ -195,17 +198,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   inner: { paddingHorizontal: 24 },
   label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  multiline: { minHeight: 88, textAlignVertical: 'top' },
-  error: { color: colors.destructive, marginBottom: 16 },
+  field: { marginBottom: 16 },
   button: {
     backgroundColor: colors.primary,
     paddingVertical: 16,

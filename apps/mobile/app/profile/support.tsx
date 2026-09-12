@@ -2,36 +2,49 @@ import { useCreateSupportTicket } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, TopBar, useBanner } from '../../components/ui';
+import { Button, Field, TopBar, useBanner } from '../../components/ui';
 import { colors } from '../../theme';
+
+type SupportFieldKey = 'title' | 'description';
+
+/** Pure: both fields are required to file a ticket. */
+function validateSupport(values: { title: string; description: string }): Partial<Record<SupportFieldKey, string>> {
+  const errors: Partial<Record<SupportFieldKey, string>> = {};
+  if (!values.title.trim()) errors.title = 'required';
+  if (!values.description.trim()) errors.description = 'required';
+  return errors;
+}
 
 export default function SupportScreen() {
   const { t } = useT('profile');
+  const { t: tc } = useT('common');
   const router = useRouter();
   const banner = useBanner();
   const create = useCreateSupportTicket();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<SupportFieldKey, string>>>({});
   const dirty = title.trim().length > 0 || description.trim().length > 0;
 
   const onSend = async () => {
     if (busy) return;
-    if (!title.trim() || !description.trim()) {
-      setError(t('supportFailed'));
+    const errors = validateSupport({ title, description });
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      banner.show(tc('missingInformation'));
       return;
     }
-    setError(null);
+    setFieldErrors({});
     setBusy(true);
     try {
       await create.mutateAsync({ title: title.trim(), description: description.trim() });
       banner.show(t('supportSent'), 'success');
       router.back();
     } catch {
-      setError(t('supportFailed'));
+      banner.show(t('supportFailed'));
     } finally {
       setBusy(false);
     }
@@ -41,11 +54,21 @@ export default function SupportScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={t('contactSupport')} onClose={() => router.back()} dirty={dirty} />
       <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-        <Text style={styles.label}>{t('supportTitle')}</Text>
-        <TextInput style={styles.input} value={title} onChangeText={setTitle} />
-        <Text style={styles.label}>{t('supportDescription')}</Text>
-        <TextInput style={[styles.input, styles.multiline]} value={description} onChangeText={setDescription} multiline />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Field
+          label={t('supportTitle')}
+          value={title}
+          onChangeText={setTitle}
+          error={fieldErrors.title ? tc('required') : undefined}
+          containerStyle={styles.field}
+        />
+        <Field
+          label={t('supportDescription')}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          error={fieldErrors.description ? tc('required') : undefined}
+          containerStyle={styles.field}
+        />
         <Button fullWidth label={t('supportSend')} onPress={onSend} loading={busy} />
       </ScrollView>
     </SafeAreaView>
@@ -56,8 +79,5 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   content: { padding: 16, gap: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
-  multiline: { minHeight: 100, textAlignVertical: 'top' },
-  error: { color: colors.destructive, fontSize: 13 },
+  field: { marginTop: 8 },
 });

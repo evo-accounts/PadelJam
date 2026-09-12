@@ -3,7 +3,7 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceRow } from '@/components/OnboardingStep';
@@ -12,12 +12,23 @@ import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { useDirty } from '@/lib/useDirty';
 import { colors } from '../../theme';
-import { Avatar, Button, TopBar } from '../../components/ui';
+import { Avatar, Button, Field, TopBar, useBanner } from '../../components/ui';
 
 const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+type EditProfileFieldKey = 'dob';
+
+/** Pure: the only field-level rule on this form is the date-of-birth format. */
+export function validateEditProfile(values: { dob: string }): Partial<Record<EditProfileFieldKey, string>> {
+  const errors: Partial<Record<EditProfileFieldKey, string>> = {};
+  if (values.dob.trim() && !DOB_RE.test(values.dob.trim())) errors.dob = 'dobInvalid';
+  return errors;
+}
+
 export default function EditProfileScreen() {
   const { t } = useT('profile');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const uid = useSession().session?.user.id;
   const my = useMyProfile();
@@ -33,7 +44,7 @@ export default function EditProfileScreen() {
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [picked, setPicked] = useState<PickedImage | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<EditProfileFieldKey, string>>>({});
   const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
@@ -65,22 +76,23 @@ export default function EditProfileScreen() {
   const dirty = useDirty({ fullName, bio, hand, side, gender, time, dob }, initial) || picked != null;
 
   const onPickAvatar = async () => {
-    setError(null);
     try {
       const img = await pickAndValidateImage();
       if (img) setPicked(img);
     } catch (e) {
-      setError(t(e instanceof Error ? e.message : 'unknown_error'));
+      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     }
   };
 
   const onSave = async () => {
     if (saving || !uid) return;
-    if (dob.trim() && !DOB_RE.test(dob.trim())) {
-      setError(t('dobInvalid'));
+    const errors = validateEditProfile({ dob });
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      banner.show(tc('missingInformation'));
       return;
     }
-    setError(null);
+    setFieldErrors({});
     setSaving(true);
     try {
       let nextAvatar = avatarPath;
@@ -99,7 +111,7 @@ export default function EditProfileScreen() {
       });
       router.back();
     } catch (e) {
-      setError(t(e instanceof Error ? e.message : 'unknown_error'));
+      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     } finally {
       setSaving(false);
     }
@@ -125,11 +137,21 @@ export default function EditProfileScreen() {
         <Text style={styles.avatarHint}>{t('avatarHint')}</Text>
       </Pressable>
 
-      <Text style={styles.label}>{t('name')}</Text>
-      <TextInput style={styles.input} value={fullName} onChangeText={setFullName} autoCapitalize="words" />
+      <Field
+        label={t('name')}
+        value={fullName}
+        onChangeText={setFullName}
+        autoCapitalize="words"
+        containerStyle={styles.field}
+      />
 
-      <Text style={styles.label}>{t('bio')}</Text>
-      <TextInput style={[styles.input, styles.multiline]} value={bio} onChangeText={setBio} multiline />
+      <Field
+        label={t('bio')}
+        value={bio}
+        onChangeText={setBio}
+        multiline
+        containerStyle={styles.field}
+      />
 
       <Text style={styles.label}>{t('handLabel')}</Text>
       <ChoiceRow value={hand} onChange={setHand} options={[{ key: 'left', label: t('handLeft') }, { key: 'right', label: t('handRight') }]} />
@@ -152,10 +174,15 @@ export default function EditProfileScreen() {
         ]}
       />
 
-      <Text style={styles.label}>{t('dobLabel')}</Text>
-      <TextInput style={styles.input} value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" autoCapitalize="none" />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Field
+        label={t('dobLabel')}
+        value={dob}
+        onChangeText={setDob}
+        placeholder="YYYY-MM-DD"
+        autoCapitalize="none"
+        error={fieldErrors.dob ? t(fieldErrors.dob) : undefined}
+        containerStyle={styles.field}
+      />
 
       <Button label={t('save')} fullWidth loading={saving} onPress={onSave} />
       </ScrollView>
@@ -171,7 +198,5 @@ const styles = StyleSheet.create({
   avatarWrap: { alignItems: 'center', gap: 6, marginBottom: 8 },
   avatarHint: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
-  multiline: { minHeight: 72, textAlignVertical: 'top' },
-  error: { color: colors.destructive, fontSize: 13 },
+  field: { marginTop: 8 },
 });
