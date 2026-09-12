@@ -12,6 +12,7 @@
 // profile — pure UX (fast feedback before an OTP is sent); ownership is enforced by verification.
 // Requires the service-role key, so this must run server-side only.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { PASSWORD_OK } from '../_shared/passwordOk.ts';
 
 const E164 = /^\+[1-9]\d{6,14}$/;
 const json = (body: unknown, status = 200) =>
@@ -43,8 +44,10 @@ Deno.serve(async (req) => {
   }
   const { phone, email, password, full_name } = body;
 
-  // Server-side validation (the admin API can bypass weak-password/format checks).
-  if (!password || password.length < 8) return json({ error: 'password_too_short' }, 400);
+  // Server-side validation (the admin API can bypass weak-password/format checks). Mirrors the
+  // client's passwordRules and GoTrue's `lower_upper_letters_digits_symbols` password_requirements
+  // (infra/supabase/config.toml) so a request that slips past the client checklist still 400s here.
+  if (!password || !PASSWORD_OK(password)) return json({ error: 'password_weak' }, 400);
   if (phone && !E164.test(phone)) return json({ error: 'invalid_phone' }, 400);
   if (!full_name || !full_name.trim()) return json({ error: 'full_name_required' }, 400);
 

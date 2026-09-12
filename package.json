@@ -17,6 +17,7 @@
     "seed:audit": "node infra/seed/audit/run.ts",
     "seed:audit:test": "node --test \"infra/seed/audit/**/*.test.ts\"",
     "test:db": "for f in infra/supabase/tests/*.test.mjs; do node \"$f\" || exit 1; done",
+    "test:functions": "node --test \"infra/supabase/functions/**/*.test.ts\"",
     "tokens:build": "node scripts/tokens.mjs --write",
     "tokens:check": "node scripts/tokens.mjs",
     "i18n:check": "node scripts/check-i18n-keys.mjs",

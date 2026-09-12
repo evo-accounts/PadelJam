@@ -23,6 +23,7 @@ export { emptyIcon } from './emptyIcon';
 export { Field } from './Field';
 export { IconButton, type IconButtonSize } from './IconButton';
 export { ListRow, type ListRowVariant } from './ListRow';
+export { PasswordField } from './PasswordField';
 export { SheetHost, useConfirm, useActionSheet, type ConfirmOptions, type ActionSheetOptions, type SheetAction } from './SheetHost';
 export { SheetRow } from './SheetRow';
 export { TopBar } from './TopBar';

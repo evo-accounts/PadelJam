@@ -12,7 +12,9 @@
  * Run AFTER a DB reset (scripts/e2e/run.mjs orchestrates this):
  *   node infra/seed/seed-e2e.mjs [--profile minimal|full]
  *
- * Local-only: refuses non-local SUPABASE_URL. All accounts use password `demo1234`.
+ * Local-only: refuses non-local SUPABASE_URL. All accounts use password `Demo1234#` (UX-GLOB-07:
+ * GoTrue's `password_requirements` enforces uppercase/digit/symbol on the admin create-user call
+ * too, so a plain `demo1234` is now refused).
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -85,7 +87,7 @@ const isoIn = (days, hour = 19) => {
 const hoursFromNow = (h) => new Date(Date.now() + h * 3600_000).toISOString();
 
 // --- cast ------------------------------------------------------------------
-const PW = 'demo1234';
+const PW = 'Demo1234#';
 const CAST = [
   { key: 'alex',  email: 'demo@padeljam.test',  phone: '+351910000001', name: 'Alex Organizer', gender: 'male',   hand: 'right', side: 'left',  time: 'night' },
   { key: 'maria', email: 'maria@padeljam.test', phone: '+351910000002', name: 'Maria Santos',   gender: 'female', hand: 'right', side: 'right', time: 'evening' },

@@ -102,7 +102,7 @@ Two things to know, since the runner is a developer's own Mac:
 ## Test data
 
 `infra/seed/seed-e2e.mjs` (fork of seed-demo with **NOW-relative dates**) seeds 12
-personas (password `demo1234`), 5 communities, groups, and events E1–E12 covering
+personas (password `Demo1234#`), 5 communities, groups, and events E1–E12 covering
 scheduled/team/in-progress/completed/recurring plus error fixtures (join-cutoff, full,
 private, review-gated, sole-owner). Suites call `resetDb('minimal'|'full')` in
 `beforeAll`; the wipe preserves migration-seeded reference tables (`plans`,

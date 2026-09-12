@@ -2,11 +2,12 @@ import { changePassword, useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { passwordValid } from '@/lib/passwordRules';
 import { supabase } from '@/lib/supabase';
-import { Button, TopBar, useBanner } from '../../components/ui';
+import { Button, PasswordField, TopBar, useBanner } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function ChangePasswordScreen() {
@@ -18,18 +19,20 @@ export default function ChangePasswordScreen() {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [repeat, setRepeat] = useState('');
+  const [repeatError, setRepeatError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const dirty = current.length > 0 || next.length > 0 || repeat.length > 0;
 
   const onSave = async () => {
     if (busy) return;
+    setRepeatError(null);
     if (!email || !current || !next || !repeat) { banner.show(tc('missingInformation')); return; }
-    if (next.length < 8) {
-      banner.show(t('passwordTooShort'));
+    if (!passwordValid(next)) {
+      banner.show(t('password_weak'));
       return;
     }
     if (next !== repeat) {
-      banner.show(t('passwordsDontMatch'));
+      setRepeatError(t('passwordsDontMatch'));
       return;
     }
     setBusy(true);
@@ -50,12 +53,32 @@ export default function ChangePasswordScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={t('changePassword')} onClose={() => router.back()} dirty={dirty} />
       <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-        <Text style={styles.label}>{t('currentPassword')}</Text>
-        <TextInput style={styles.input} value={current} onChangeText={setCurrent} secureTextEntry autoCapitalize="none" />
-        <Text style={styles.label}>{t('newPassword')}</Text>
-        <TextInput style={styles.input} value={next} onChangeText={setNext} secureTextEntry autoCapitalize="none" />
-        <Text style={styles.label}>{t('repeatPassword')}</Text>
-        <TextInput style={styles.input} value={repeat} onChangeText={setRepeat} secureTextEntry autoCapitalize="none" />
+        <PasswordField
+          label={t('currentPassword')}
+          value={current}
+          onChangeText={setCurrent}
+          testID="current-password-input"
+        />
+        <PasswordField
+          label={t('newPassword')}
+          value={next}
+          onChangeText={(v) => {
+            setNext(v);
+            if (repeatError) setRepeatError(null);
+          }}
+          showRules
+          testID="new-password-input"
+        />
+        <PasswordField
+          label={t('repeatPassword')}
+          value={repeat}
+          onChangeText={(v) => {
+            setRepeat(v);
+            if (repeatError) setRepeatError(null);
+          }}
+          error={repeatError}
+          testID="repeat-password-input"
+        />
         <Button fullWidth label={t('changePassword')} onPress={onSave} loading={busy} />
       </ScrollView>
     </SafeAreaView>
@@ -66,6 +89,4 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   content: { padding: 16, gap: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
 });

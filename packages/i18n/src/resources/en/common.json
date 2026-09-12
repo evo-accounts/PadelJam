@@ -11,5 +11,13 @@
   "somethingWrong": "Something isn't right",
   "loadError": "Couldn't load this",
   "retry": "Retry",
-  "required": "Required"
+  "required": "Required",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "ruleMinLength": "Minimum 8 characters",
+  "ruleUppercase": "At least one uppercase letter",
+  "ruleNumber": "At least one number",
+  "ruleSymbol": "At least one symbol",
+  "ruleMet": "met",
+  "ruleMissing": "missing"
 }

@@ -73,6 +73,7 @@ describe('00 design system', () => {
       { file: '09-listrow.png', heading: /^listrow$/i },
       { file: '10-card.png', heading: /^card$/i },
       { file: '11-field.png', heading: /^field$/i },
+      { file: '11b-password-field.png', heading: /^passwordfield$/i },
       { file: '12-empty-loading.png', heading: /^loading$/i },
     ];
 

@@ -1,5 +1,8 @@
-/** Mirrors infra/seed/seed-e2e.mjs — keep in sync. All passwords are `demo1234`. */
-export const PASSWORD = 'demo1234';
+/**
+ * Mirrors infra/seed/seed-e2e.mjs — keep in sync. All passwords are `Demo1234#` (UX-GLOB-07:
+ * GoTrue's password_requirements rejects a plain `demo1234` on the admin create-user call).
+ */
+export const PASSWORD = 'Demo1234#';
 
 export type PersonaKey =
   | 'alex' | 'maria' | 'joao' | 'sofia' | 'bruno' | 'rita' | 'pedro'

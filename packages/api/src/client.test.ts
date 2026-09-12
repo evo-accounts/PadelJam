@@ -24,4 +24,8 @@ describe('mapPgError', () => {
     expect(mapPgError({ message: 'invalid_plan' })).toBe('invalid_plan');
     expect(mapPgError({ message: 'plan_downgrade_over_limit' })).toBe('plan_downgrade_over_limit');
   });
+
+  it('maps the weak-password rejection', () => {
+    expect(mapPgError({ message: 'password_weak' })).toBe('password_weak');
+  });
 });
