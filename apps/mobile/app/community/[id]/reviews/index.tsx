@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ReviewCard, type ReviewRow } from '@/components/community/ReviewCard';
 import { StarRating } from '@/components/community/StarRating';
 import { colors, palette } from '../../../../theme';
-import { Button, Chip } from '../../../../components/ui';
+import { Button, Chip, TopBar } from '../../../../components/ui';
 
 type SortKey = 'newest' | 'highest' | 'lowest';
 type RatingFilter = 0 | 1 | 2 | 3 | 4 | 5; // 0 = all
@@ -73,7 +73,9 @@ export default function ReviewsScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <TopBar title={t('reviewsTitle')} onBack={() => router.back()} backLabel={t('back')} />
+
       {/* Summary header */}
       <View style={styles.summaryBlock}>
         {average != null ? (

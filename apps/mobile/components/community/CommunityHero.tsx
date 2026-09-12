@@ -1,9 +1,7 @@
 import { useCommunity, useCommunityMembers } from '@padel/api';
-import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { coverUrl, thumbnailUrl } from '@/lib/community-images';
 import { colors } from '../../theme';
@@ -27,8 +25,6 @@ const TYPE_KEY: Record<string, string> = {
  */
 export function CommunityHero({ communityId }: { communityId: string }) {
   const { t } = useT('community');
-  const router = useRouter();
-  const uid = useSession().session?.user.id;
   const { data: community } = useCommunity(communityId);
   const { data: members } = useCommunityMembers(communityId);
 
@@ -41,8 +37,6 @@ export function CommunityHero({ communityId }: { communityId: string }) {
   const typeLabel = t(TYPE_KEY[community.type] ?? 'typeClub');
   const privacyLabel = t(PRIVACY_KEY[community.privacy] ?? 'privacyPublicTitle');
   const memberCount = members?.length ?? 0;
-  const myRole = members?.find((m) => m.user_id === uid)?.role;
-  const canManage = myRole === 'owner' || myRole === 'admin';
 
   return (
     <View style={styles.container}>
@@ -51,17 +45,6 @@ export function CommunityHero({ communityId }: { communityId: string }) {
       ) : (
         <View style={[styles.cover, styles.coverFallback]} />
       )}
-      {canManage ? (
-        <Pressable
-          style={styles.manageButton}
-          accessibilityRole="button"
-          accessibilityLabel={t('manageTitle')}
-          onPress={() => router.push(`/community/${communityId}/manage`)}
-          hitSlop={8}
-        >
-          <Text style={styles.manageIcon}>⚙</Text>
-        </Pressable>
-      ) : null}
       <View style={styles.thumbWrap}>
         {thumb ? (
           <Image source={{ uri: thumb }} style={styles.thumb} contentFit="cover" transition={150} />
@@ -94,18 +77,6 @@ export function CommunityHero({ communityId }: { communityId: string }) {
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.card, paddingBottom: 12 },
   cover: { width: '100%', height: 120, backgroundColor: colors.muted },
-  manageButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.overlay,
-  },
-  manageIcon: { color: colors.card, fontSize: 18, lineHeight: 20 },
   coverFallback: { backgroundColor: colors.primary },
   coverPlaceholder: { width: '100%', height: 120, backgroundColor: colors.muted },
   thumbWrap: {

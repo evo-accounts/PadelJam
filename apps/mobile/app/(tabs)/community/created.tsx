@@ -5,12 +5,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@padel/auth';
 import { consumePendingCommunityImages } from '@/lib/community-image-handoff';
 import { uploadCommunityImage } from '@/lib/storage';
-import { Button, Text } from '../../../components/ui';
+import { Button, Text, TopBar } from '../../../components/ui';
 import { colors } from '../../../theme';
 
 const THUMBNAIL_BUCKET = 'community-thumbnails';
@@ -92,44 +92,44 @@ export default function CommunityCreatedScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
-      <Text variant="display" tone="default" style={styles.title}>
-        {t('createdTitle')}
-      </Text>
-      <Text variant="body" tone="muted" style={styles.subtitle}>
-        {t('createdSubtitle')}
-      </Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('createdTitle')} onBack={() => router.back()} backLabel={t('back')} />
+      <View style={[styles.body, { paddingBottom: insets.bottom + 24 }]}>
+        <Text variant="body" tone="muted" style={styles.subtitle}>
+          {t('createdSubtitle')}
+        </Text>
 
-      <View style={styles.actions}>
-        <Button fullWidth label={t('share')} onPress={onShare} />
-        <Button
-          variant="outline"
-          fullWidth
-          label={copied ? t('linkCopied') : t('copyLink')}
-          onPress={onCopy}
-        />
-        <Button variant="outline" fullWidth label={t('qrCode')} onPress={onQr} />
-        {/* Still disabled, and still announced as such: Button forwards
-            accessibilityState.disabled, which the hand-rolled version did not —
-            it dimmed to 0.45 opacity and told a screen reader nothing. */}
-        <Button
-          variant="outline"
-          fullWidth
-          disabled
-          label={`${t('createEvent')} (${t('comingSoon')})`}
-          onPress={() => {}}
-        />
+        <View style={styles.actions}>
+          <Button fullWidth label={t('share')} onPress={onShare} />
+          <Button
+            variant="outline"
+            fullWidth
+            label={copied ? t('linkCopied') : t('copyLink')}
+            onPress={onCopy}
+          />
+          <Button variant="outline" fullWidth label={t('qrCode')} onPress={onQr} />
+          {/* Still disabled, and still announced as such: Button forwards
+              accessibilityState.disabled, which the hand-rolled version did not —
+              it dimmed to 0.45 opacity and told a screen reader nothing. */}
+          <Button
+            variant="outline"
+            fullWidth
+            disabled
+            label={`${t('createEvent')} (${t('comingSoon')})`}
+            onPress={() => {}}
+          />
+        </View>
+
+        <Button fullWidth label={t('manageCommunity')} onPress={onManage} />
       </View>
-
-      <Button fullWidth label={t('manageCommunity')} onPress={onManage} />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.card, paddingHorizontal: 24 },
+  container: { flex: 1, backgroundColor: colors.card },
+  body: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
   // Spacing only — size, weight and colour now come from the variant/tone.
-  title: { marginBottom: 8 },
   subtitle: { marginBottom: 32 },
   actions: { gap: 12, flex: 1 },
 });

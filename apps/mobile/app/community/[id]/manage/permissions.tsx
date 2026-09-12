@@ -1,14 +1,18 @@
 import { useCommunityPermissions, useUpdatePermissions } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { colors, palette } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 type PermKey = 'invite_members' | 'approve_join_requests' | 'create_posts';
 
 export default function ManagePermissionsScreen() {
   const { t } = useT('community');
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: perms, isLoading } = useCommunityPermissions(id);
@@ -46,9 +50,9 @@ export default function ManagePermissionsScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <ActivityIndicator color={colors.foreground} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -63,29 +67,33 @@ export default function ManagePermissionsScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.intro}>{t('permissionsIntro')}</Text>
-      <View style={styles.card}>
-        {rows.map((r) => (
-          <View key={r.key} style={styles.row}>
-            <View style={styles.rowText}>
-              <Text style={styles.rowLabel}>{r.label}</Text>
-              <Text style={styles.rowDesc}>{r.desc}</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('managePermissions')} onBack={() => router.back()} backLabel={t('back')} />
+      <View style={styles.body}>
+        <Text style={styles.intro}>{t('permissionsIntro')}</Text>
+        <View style={styles.card}>
+          {rows.map((r) => (
+            <View key={r.key} style={styles.row}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowLabel}>{r.label}</Text>
+                <Text style={styles.rowDesc}>{r.desc}</Text>
+              </View>
+              <Switch
+                value={state[r.key]}
+                onValueChange={(v) => toggle(r.key, v)}
+                disabled={update.isPending}
+              />
             </View>
-            <Switch
-              value={state[r.key]}
-              onValueChange={(v) => toggle(r.key, v)}
-              disabled={update.isPending}
-            />
-          </View>
-        ))}
+          ))}
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: 16 },
+  container: { flex: 1, backgroundColor: colors.background },
+  body: { padding: 16 },
   center: { alignItems: 'center', justifyContent: 'center' },
   intro: { fontSize: 14, color: colors.mutedForeground, marginBottom: 12, lineHeight: 20 },
   card: { backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },

@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AckGate } from '@/components/community/AckGate';
 import { CommunityHero } from '@/components/community/CommunityHero';
 import { colors } from '../../../theme';
-import { Button } from '../../../components/ui';
+import { Button, TopBar } from '../../../components/ui';
 
 const PRIVACY_SUMMARY_KEY: Record<string, string> = {
   public: 'privacySummaryPublic',
@@ -70,6 +70,7 @@ export default function CommunityJoinModal() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar onBack={() => router.back()} backLabel={t('back')} />
       <CommunityHero communityId={id} />
       <View style={styles.body}>
         {requested ? (
