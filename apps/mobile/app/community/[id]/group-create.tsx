@@ -14,7 +14,7 @@ import { GroupComposer, type GroupComposerValues } from '@/components/group/Grou
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../../theme';
-import { TopBar } from '../../../components/ui';
+import { TopBar, useBanner } from '../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -25,6 +25,7 @@ const KNOWN_ERROR_KEYS = new Set([
 
 export default function GroupCreateModal() {
   const { t } = useT('group');
+  const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,12 +35,10 @@ export default function GroupCreateModal() {
   const update = useUpdateGroup(groupId ?? '', id);
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
   const onSubmit = (values: GroupComposerValues) => {
     if (submitting) return;
-    setError(null);
     setSubmitting(true);
     void (async () => {
       try {
@@ -72,7 +71,7 @@ export default function GroupCreateModal() {
         router.replace(`/group/${newId}` as Href);
       } catch (e) {
         const code = e instanceof Error ? e.message : 'unknown_error';
-        setError(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+        banner.show(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
         setSubmitting(false);
       }
     })();
@@ -93,7 +92,6 @@ export default function GroupCreateModal() {
           <GroupComposer
             mode="create"
             submitting={submitting}
-            error={error}
             onSubmit={onSubmit}
             onDirtyChange={setDirty}
           />

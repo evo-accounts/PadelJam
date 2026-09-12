@@ -10,12 +10,13 @@ import { thumbnailUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { uploadCommunityImage } from '@/lib/storage';
 import { colors } from '../../../../theme';
-import { TopBar } from '../../../../components/ui';
+import { TopBar, useBanner } from '../../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set(['forbidden', 'name_required', 'group_not_found']);
 
 export default function GroupManageSettingsScreen() {
   const { t } = useT('group');
+  const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,7 +24,6 @@ export default function GroupManageSettingsScreen() {
   const { data: group } = useGroup(id);
   const update = useUpdateGroup(id, group?.community_id ?? '');
 
-  const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
   if (!group) {
@@ -35,7 +35,6 @@ export default function GroupManageSettingsScreen() {
   }
 
   const onSubmit = (values: GroupComposerValues) => {
-    setError(null);
     void (async () => {
       try {
         let thumbnailPath = group.thumbnail_path ?? null;
@@ -57,7 +56,7 @@ export default function GroupManageSettingsScreen() {
         router.back();
       } catch (e) {
         const code = e instanceof Error ? e.message : 'unknown_error';
-        setError(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+        banner.show(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
       }
     })();
   };
@@ -72,7 +71,6 @@ export default function GroupManageSettingsScreen() {
         <GroupComposer
           mode="edit"
           submitting={update.isPending}
-          error={error}
           initial={{
             name: group.name,
             description: group.description,

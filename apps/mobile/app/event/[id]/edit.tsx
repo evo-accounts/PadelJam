@@ -4,7 +4,7 @@ import { useT } from '@padel/i18n';
 import { geocodeQuery } from '@padel/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
@@ -20,10 +20,19 @@ import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/
 import { supabase } from '@/lib/supabase';
 import { useDirty } from '@/lib/useDirty';
 import { colors, palette } from '../../../theme';
-import { Button, Text, TopBar } from '../../../components/ui';
+import { Button, Field, Text, TopBar, useBanner } from '../../../components/ui';
+
+type EditEventFieldKey = 'name';
+
+/** Pure: the name is the only required field owned directly by this screen. */
+function validateEditEvent(values: { name: string }): Partial<Record<EditEventFieldKey, string>> {
+  return values.name.trim() ? {} : { name: 'name_required' };
+}
 
 export default function EditEventScreen() {
   const { t } = useT('event');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: event, isLoading } = useEvent(id);
@@ -32,7 +41,7 @@ export default function EditEventScreen() {
   const uid = useSession().session?.user.id;
   const [draft, setDraft] = useState<EventDraft | null>(null);
   const [picked, setPicked] = useState<PickedImage | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<EditEventFieldKey, string>>>({});
   const [busy, setBusy] = useState(false);
 
   // Seed the draft once from the event row (covers every field the reused steps read).
@@ -93,14 +102,20 @@ export default function EditEventScreen() {
         const result = await pickAndValidateImage();
         if (result) setPicked(result);
       } catch (e) {
-        setError(t(e instanceof Error ? e.message : 'unknown_error'));
+        banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
       }
     })();
   };
 
   const onSave = () => {
+    const errors = validateEditEvent({ name: d.name });
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      banner.show(tc('missingInformation'));
+      return;
+    }
+    setFieldErrors({});
     setBusy(true);
-    setError(null);
     void (async () => {
       try {
         let thumbnailPath = d.thumbnailPath;
@@ -138,13 +153,13 @@ export default function EditEventScreen() {
           locationLng: lng,
         });
         if (!parsed.success) {
-          setError(t(parsed.error.issues[0]?.message ?? 'name_required'));
+          banner.show(t(parsed.error.issues[0]?.message ?? 'name_required'));
           return;
         }
         await update.mutateAsync({ values: parsed.data, groupId: event!.group_id });
         router.back();
       } catch (e) {
-        setError(t(e instanceof Error ? e.message : 'unknown_error'));
+        banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
       } finally {
         setBusy(false);
       }
@@ -158,11 +173,15 @@ export default function EditEventScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Details */}
         <Text variant="label" tone="muted" style={styles.section}>{t('editDetailsSection')}</Text>
-        <Text variant="hint" tone="muted" style={styles.label}>{t('editNameLabel')}</Text>
-        <TextInput style={styles.input} value={d.name} onChangeText={(name) => patch({ name })} maxLength={80} />
-        <Text variant="hint" tone="muted" style={styles.label}>{t('editDescriptionLabel')}</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
+        <Field
+          label={t('editNameLabel')}
+          value={d.name}
+          onChangeText={(name) => patch({ name })}
+          maxLength={80}
+          error={fieldErrors.name ? tc('required') : undefined}
+        />
+        <Field
+          label={t('editDescriptionLabel')}
           value={d.description ?? ''}
           onChangeText={(description) => patch({ description })}
           maxLength={500}
@@ -203,7 +222,6 @@ export default function EditEventScreen() {
           disabled={busy}
         />
 
-        {error ? <Text variant="label" tone="destructive" style={styles.error}>{error}</Text> : null}
         <Button label={t('saveCta')} loading={busy} fullWidth onPress={onSave} />
       </ScrollView>
     </SafeAreaView>
@@ -215,8 +233,4 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, gap: 16 },
   section: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase', marginTop: 8 },
-  label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: colors.foreground, backgroundColor: colors.card },
-  multiline: { minHeight: 90, textAlignVertical: 'top' },
-  error: { color: colors.destructive, fontSize: 14, fontWeight: '600', textAlign: 'center' },
 });

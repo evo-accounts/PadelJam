@@ -18,12 +18,28 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, palette, space } from '../../../theme';
-import { BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, Field, Loading, Text, TopBar } from '../../../components/ui';
+import { BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, Field, Loading, Text, TopBar, useBanner } from '../../../components/ui';
 
 type Channel = 'email' | 'whatsapp';
+type BlastFieldKey = 'title' | 'description' | 'channels';
+
+/** Pure: mirrors `blastSchema`'s required-ness at the field level. */
+function validateBlast(values: {
+  title: string;
+  description: string;
+  channels: Channel[];
+}): Partial<Record<BlastFieldKey, string>> {
+  const errors: Partial<Record<BlastFieldKey, string>> = {};
+  if (!values.title.trim()) errors.title = 'required';
+  if (!values.description.trim()) errors.description = 'required';
+  if (values.channels.length === 0) errors.channels = 'blastChannelsRequired';
+  return errors;
+}
 
 export default function BlastScreen() {
   const { t } = useT('event');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -38,7 +54,7 @@ export default function BlastScreen() {
   const [tab, setTab] = useState<'templates' | 'yours'>('templates');
   const [editing, setEditing] = useState<{ template: BlastTemplate | null; title: string; description: string } | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<BlastFieldKey, string>>>({});
   const [sentCount, setSentCount] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -50,7 +66,7 @@ export default function BlastScreen() {
   const openCustomize = (tpl: BlastTemplate) => {
     setEditing({ template: tpl, title: tpl.title, description: tpl.description });
     setChannels([]);
-    setError(null);
+    setFieldErrors({});
   };
 
   const submit = async (args: {
@@ -58,13 +74,19 @@ export default function BlastScreen() {
     title: string;
     description: string;
   }) => {
-    const parsed = blastSchema.safeParse({ title: args.title, description: args.description, channels });
-    if (!parsed.success) {
-      setError(t('blastChannelsRequired'));
+    const errors = validateBlast({ title: args.title, description: args.description, channels });
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      banner.show(tc('missingInformation'));
       return;
     }
+    const parsed = blastSchema.safeParse({ title: args.title, description: args.description, channels });
+    if (!parsed.success) {
+      banner.show(tc('missingInformation'));
+      return;
+    }
+    setFieldErrors({});
     setBusy(true);
-    setError(null);
     try {
       const count = await sendBlast.mutateAsync({
         sourceTemplateId: args.template?.id ?? null,
@@ -76,7 +98,7 @@ export default function BlastScreen() {
       setEditing(null);
       setSentCount(count);
     } catch (e) {
-      setError(t(e instanceof Error ? e.message : 'unknown_error'));
+      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     } finally {
       setBusy(false);
     }
@@ -120,8 +142,6 @@ export default function BlastScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('blastTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
-      {error ? <Text variant="label" tone="destructive" style={styles.error}>{error}</Text> : null}
-
       {!canCustomize ? (
         // --- Starter: read-only default template + channels + send ---
         <ScrollView contentContainerStyle={styles.content}>
@@ -137,7 +157,7 @@ export default function BlastScreen() {
           <Button
             label={t('blastSendCta')}
             loading={busy}
-            disabled={!defaultTemplate || channels.length === 0}
+            disabled={!defaultTemplate}
             fullWidth
             onPress={() =>
               defaultTemplate &&
@@ -204,7 +224,7 @@ export default function BlastScreen() {
                     onPress={() => {
                       setRetrying(b.id);
                       retryBlast.mutateAsync(b.id)
-                        .catch((e) => setError(t(e instanceof Error ? e.message : 'unknown_error')))
+                        .catch((e) => banner.show(t(e instanceof Error ? e.message : 'unknown_error')))
                         .finally(() => setRetrying(null));
                     }}
                   />
@@ -228,6 +248,7 @@ export default function BlastScreen() {
           maxLength={80}
           containerStyle={styles.cardSpacing}
           onChangeText={(v) => setEditing((st) => (st ? { ...st, title: v } : st))}
+          error={fieldErrors.title ? tc('required') : undefined}
         />
         <Field
           label={t('blastDescLabel')}
@@ -236,11 +257,11 @@ export default function BlastScreen() {
           multiline
           containerStyle={styles.cardSpacing}
           onChangeText={(v) => setEditing((st) => (st ? { ...st, description: v } : st))}
+          error={fieldErrors.description ? tc('required') : undefined}
         />
         <Text variant="hint" tone="subtle" style={styles.label}>{t('blastSendToLabel')}</Text>
         <Text variant="bodyStrong">{t('blastSendToAll')}</Text>
         {channelRow}
-        {error ? <Text variant="label" tone="destructive" style={styles.error}>{error}</Text> : null}
         <Button
           label={t('blastSendCta')}
           loading={busy}
@@ -258,7 +279,6 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   back: { fontSize: 32, color: colors.foreground, lineHeight: 32, width: 32 },
   content: { padding: 16, gap: 12 },
-  error: { color: colors.destructive, fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 16, paddingTop: 8 },
 
   tabs: { flexDirection: 'row', backgroundColor: colors.accent, borderRadius: 10, padding: 3 },
   tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },

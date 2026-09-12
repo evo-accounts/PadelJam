@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -15,6 +14,8 @@ import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
 import { isDirty } from '@/lib/useDirty';
 import { colors } from '../../theme';
+import { Field, useBanner } from '../ui';
+import { validateGroupComposer, type GroupComposerFieldKey } from './groupComposerValidate';
 
 export type GroupComposerValues = {
   name: string;
@@ -46,26 +47,25 @@ export function GroupComposer({
   mode,
   initial,
   submitting,
-  error,
   onSubmit,
   onDirtyChange,
 }: {
   mode: 'create' | 'edit';
   initial?: GroupComposerInitial;
   submitting: boolean;
-  error?: string | null;
   onSubmit: (values: GroupComposerValues) => void;
   /** Reports whether the form differs from `initial`, so the caller's TopBar can confirm before closing. */
   onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { t } = useT('group');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
 
   const [name, setName] = useState(initial?.name ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [isPrivate, setIsPrivate] = useState(initial?.isPrivate ?? false);
   const [thumbnail, setThumbnail] = useState<PickedImage | null>(null);
-  const [pickError, setPickError] = useState<string | null>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<GroupComposerFieldKey, string>>>({});
 
   const previewUri = thumbnail?.uri ?? initial?.thumbnailUrl ?? null;
 
@@ -81,21 +81,26 @@ export function GroupComposer({
   }, [name, description, isPrivate, thumbnail]);
 
   const pickThumbnail = async () => {
-    setPickError(null);
     try {
       const picked = await pickAndValidateImage();
       if (picked) setThumbnail(picked);
     } catch (e) {
-      setPickError(t(e instanceof Error ? e.message : 'unknown_error'));
+      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     }
   };
 
   const submit = () => {
     if (submitting) return;
-    setValidationError(null);
 
     const trimmedName = name.trim();
     const trimmedDescription = description.trim() || undefined;
+
+    const errors = validateGroupComposer({ name: trimmedName });
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      banner.show(tc('missingInformation'));
+      return;
+    }
 
     const schema =
       mode === 'create'
@@ -108,10 +113,10 @@ export function GroupComposer({
     });
 
     if (!parsed.success) {
-      const nameIssue = parsed.error.issues.find((i) => i.path.includes('name'));
-      setValidationError(t(nameIssue ? 'name_required' : 'unknown_error'));
+      banner.show(tc('missingInformation'));
       return;
     }
+    setFieldErrors({});
 
     onSubmit({
       name: trimmedName,
@@ -123,23 +128,24 @@ export function GroupComposer({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{t('nameLabel')}</Text>
-      <TextInput
-        style={styles.input}
+      <Field
+        label={t('nameLabel')}
         value={name}
         onChangeText={setName}
         placeholder={t('namePlaceholder')}
         editable={!submitting}
+        error={fieldErrors.name ? t(fieldErrors.name) : undefined}
+        containerStyle={styles.field}
       />
 
-      <Text style={styles.label}>{t('descriptionLabel')}</Text>
-      <TextInput
-        style={[styles.input, styles.multiline]}
+      <Field
+        label={t('descriptionLabel')}
         value={description}
         onChangeText={setDescription}
         placeholder={t('descriptionPlaceholder')}
         multiline
         editable={!submitting}
+        containerStyle={styles.field}
       />
 
       <ImagePickerRow
@@ -149,7 +155,6 @@ export function GroupComposer({
         onPress={pickThumbnail}
         disabled={submitting}
       />
-      {pickError ? <Text style={styles.error}>{pickError}</Text> : null}
 
       <Text style={styles.label}>{t('privacyLabel')}</Text>
       <View style={styles.privacyRow}>
@@ -161,9 +166,6 @@ export function GroupComposer({
         </View>
         <Switch value={isPrivate} onValueChange={setIsPrivate} disabled={submitting} />
       </View>
-
-      {validationError ? <Text style={styles.error}>{validationError}</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Pressable
         style={[styles.button, submitting && styles.buttonDisabled]}
@@ -184,16 +186,7 @@ export function GroupComposer({
 const styles = StyleSheet.create({
   container: { gap: 0 },
   label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  multiline: { minHeight: 88, textAlignVertical: 'top' },
+  field: { marginBottom: 16 },
   privacyRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -206,7 +199,6 @@ const styles = StyleSheet.create({
   privacyText: { flex: 1, paddingRight: 12 },
   privacyTitle: { fontSize: 15, fontWeight: '600', color: colors.foreground },
   privacyHelp: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
-  error: { color: colors.destructive, marginBottom: 16 },
   button: {
     backgroundColor: colors.primary,
     paddingVertical: 16,

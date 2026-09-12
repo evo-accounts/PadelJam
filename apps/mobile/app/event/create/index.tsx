@@ -3,7 +3,7 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { geocodeQuery } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +18,7 @@ import { StepIndicator } from '@/components/event/wizard/StepIndicator';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
-import { Button, Text, TopBar, useConfirm } from '../../../components/ui';
+import { Button, TopBar, useBanner, useConfirm } from '../../../components/ui';
 import { colors } from '../../../theme';
 
 export default function CreateEventScreen() {
@@ -35,6 +35,8 @@ export default function CreateEventScreen() {
 
 function CreateEventWizard() {
   const { t } = useT('event');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { draft, patch, stepIndex, goNext, goBack, steps, isFirst, isLast, isDirty } =
@@ -43,10 +45,15 @@ function CreateEventWizard() {
   const uid = useSession().session?.user.id;
   const confirm = useConfirm();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [stepErrors, setStepErrors] = useState<string[]>([]);
 
   const step = steps[stepIndex];
-  const canAdvance = step ? step.isValid(draft) : false;
+
+  // A step's failing fields are only shown after a Next tap on that step; moving
+  // to a new step (forward or back) clears the flagged fields until the next tap.
+  useEffect(() => {
+    setStepErrors([]);
+  }, [stepIndex]);
 
   const onClose = async () => {
     if (isDirty) {
@@ -77,7 +84,7 @@ function CreateEventWizard() {
           draft.thumbnail.mimeType,
         );
       } catch {
-        setError('unknown_error');
+        banner.show(t('unknown_error'));
         return;
       }
     }
@@ -118,7 +125,6 @@ function CreateEventWizard() {
     };
 
     setSubmitting(true);
-    setError(null);
     try {
       await create.mutateAsync(input);
       // TODO(Phase 6): route to /event/${id} once the detail screen exists
@@ -128,7 +134,7 @@ function CreateEventWizard() {
         router.back();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'unknown_error');
+      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
       setSubmitting(false);
     }
   };
@@ -138,6 +144,13 @@ function CreateEventWizard() {
       void finalize();
       return;
     }
+    const failing = step ? step.validate(draft) : [];
+    if (failing.length) {
+      setStepErrors(failing);
+      banner.show(tc('missingInformation'));
+      return;
+    }
+    setStepErrors([]);
     goNext();
   };
 
@@ -162,25 +175,15 @@ function CreateEventWizard() {
           contentContainerStyle={styles.inner}
           keyboardShouldPersistTaps="handled"
         >
-          {step ? <step.Component draft={draft} patch={patch} /> : null}
+          {step ? <step.Component draft={draft} patch={patch} errors={stepErrors} /> : null}
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {error ? (
-        <Text variant="label" tone="destructive" style={styles.error}>
-          {t(error)}
-        </Text>
-      ) : null}
-
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        {/* `submitting ? <ActivityIndicator/> : <Text/>` was `loading` written
-            longhand — the same shape found twelve times across auth. The
-            compound `disabled` splits back into its two real reasons. */}
         <Button
           label={isLast ? t('finish') : t('next')}
           onPress={onPrimary}
           loading={submitting}
-          disabled={!canAdvance}
           style={styles.primaryBtn}
         />
       </View>
@@ -203,5 +206,4 @@ const styles = StyleSheet.create({
   },
   // Back moved to the TopBar; the primary button now owns the whole row.
   primaryBtn: { width: '100%' },
-  error: { paddingHorizontal: 20, paddingBottom: 8 },
 });

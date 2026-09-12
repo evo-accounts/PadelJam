@@ -8,6 +8,7 @@ import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/
 import { supabase } from '@/lib/supabase';
 import { Button, Field, IconButton, useBanner } from '../ui';
 import { colors, palette } from '../../theme';
+import { validatePostComposer, type PostComposerFieldKey } from './postComposerValidate';
 
 const POST_IMAGE_BUCKET = 'community-post-images';
 const KNOWN_ERROR_KEYS = new Set([
@@ -15,16 +16,6 @@ const KNOWN_ERROR_KEYS = new Set([
   'image_too_large',
   'image_type_unsupported',
 ]);
-
-export type PostComposerFieldKey = 'body';
-
-/** Pure: `postSchema` requires a body or an image; the body is the only `Field` here. */
-export function validatePostComposer(values: {
-  body: string;
-  hasImage: boolean;
-}): Partial<Record<PostComposerFieldKey, string>> {
-  return values.body.trim() || values.hasImage ? {} : { body: 'post_empty' };
-}
 
 /**
  * Compose a community post: a multiline body + an optional photo. The photo is

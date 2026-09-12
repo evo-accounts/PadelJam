@@ -1,14 +1,16 @@
 import { useT } from '@padel/i18n';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { pickAndValidateImage } from '@/lib/storage';
 
 import type { WizardStepProps } from '../draft';
-import { colors, palette } from '../../../../theme';
+import { colors } from '../../../../theme';
+import { Field } from '../../../ui';
 
-export function Step9Details({ draft, patch }: WizardStepProps) {
+export function Step9Details({ draft, patch, errors }: WizardStepProps) {
   const { t } = useT('event');
+  const { t: tc } = useT('common');
 
   const onPickThumbnail = () => {
     void (async () => {
@@ -21,33 +23,23 @@ export function Step9Details({ draft, patch }: WizardStepProps) {
     <View style={styles.container}>
       <Text style={styles.title}>{t('step9Title')}</Text>
 
-      <View style={styles.field}>
-        <Text style={styles.label}>{t('nameLabel')}</Text>
-        <TextInput
-          style={styles.input}
-          value={draft.name}
-          onChangeText={(name) => patch({ name })}
-          placeholder={t('namePlaceholder')}
-          placeholderTextColor={palette.slate[400]}
-          maxLength={80}
-          accessibilityLabel={t('nameLabel')}
-        />
-      </View>
+      <Field
+        label={t('nameLabel')}
+        value={draft.name}
+        onChangeText={(name) => patch({ name })}
+        placeholder={t('namePlaceholder')}
+        maxLength={80}
+        error={errors?.includes('name') ? tc('required') : undefined}
+      />
 
-      <View style={styles.field}>
-        <Text style={styles.label}>{t('descriptionLabel')}</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          value={draft.description ?? ''}
-          onChangeText={(text) => patch({ description: text || undefined })}
-          placeholder={t('descriptionPlaceholder')}
-          placeholderTextColor={palette.slate[400]}
-          maxLength={500}
-          multiline
-          textAlignVertical="top"
-          accessibilityLabel={t('descriptionLabel')}
-        />
-      </View>
+      <Field
+        label={t('descriptionLabel')}
+        value={draft.description ?? ''}
+        onChangeText={(text) => patch({ description: text || undefined })}
+        placeholder={t('descriptionPlaceholder')}
+        maxLength={500}
+        multiline
+      />
 
       <View style={styles.field}>
         <Text style={styles.label}>{t('editThumbnailLabel')}</Text>
@@ -67,15 +59,4 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   field: { gap: 8 },
   label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.foreground,
-    backgroundColor: colors.card,
-  },
-  multiline: { minHeight: 120 },
 });
