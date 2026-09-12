@@ -15,4 +15,18 @@ describe('safeAuthMessage', () => {
     expect(safeAuthMessage(new Error('Network request failed'))).toEqual({ ns: 'auth', key: 'networkError' });
     expect(safeAuthMessage(new Error('over_email_send_rate_limit'))).toEqual({ ns: 'auth', key: 'rateLimited' });
   });
+  it('recognizes Supabase cooldown text as rate limiting', () => {
+    expect(safeAuthMessage(new Error('For security purposes, you can only request this after 57 seconds.'))).toEqual({
+      ns: 'auth',
+      key: 'rateLimited',
+    });
+  });
+  it('does not let a bare "otp" substring or account-existence text pass as a safe code error', () => {
+    expect(safeAuthMessage(new Error('User already registered'))).toEqual({ ns: 'common', key: 'somethingWrong' });
+    expect(safeAuthMessage(new Error('Signups not allowed for this instance'))).toEqual({
+      ns: 'common',
+      key: 'somethingWrong',
+    });
+    expect(safeAuthMessage(new Error('otp_disabled'))).toEqual({ ns: 'common', key: 'somethingWrong' });
+  });
 });

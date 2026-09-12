@@ -63,7 +63,9 @@ export default function SignInScreen() {
       await runGoogleSignIn();
       router.replace((await resolvePostAuthRoute()) as never);
     } catch (e) {
-      banner.show(t(e instanceof Error ? e.message : 'oauth_failed'));
+      if (e instanceof Error && e.message === 'oauth_cancelled') { setBusy(false); return; }
+      const { ns, key } = safeAuthMessage(e);
+      banner.show(t(key, { ns }));
     } finally {
       setBusy(false);
     }
@@ -77,7 +79,8 @@ export default function SignInScreen() {
       router.replace((await resolvePostAuthRoute()) as never);
     } catch (e) {
       if (e instanceof Error && e.message === 'oauth_cancelled') { setBusy(false); return; }
-      banner.show(t(e instanceof Error ? e.message : 'oauth_failed'));
+      const { ns, key } = safeAuthMessage(e);
+      banner.show(t(key, { ns }));
     } finally {
       setBusy(false);
     }

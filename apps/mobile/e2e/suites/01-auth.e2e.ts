@@ -30,7 +30,7 @@ describe('01 auth', () => {
     // Auth screens show only the generic banner for anything that isn't a known,
     // safe-to-name code/network/rate-limit problem (UX-GLOB-06) — never the raw
     // server message.
-    await expectVisible({ text: /something isn't right/i }, { timeout: 4_000 });
+    await expectVisible({ text: /something isn't right/i }, { timeout: 3_000 });
     await clearText({ type: 'TextField' }, 12);
   });
 
@@ -97,7 +97,7 @@ describe('01 auth', () => {
     await tap({ label: 'Verify', type: 'Button' });
     // The banner (UX-GLOB-06) replaces the inline error text and is only in the
     // tree for 4s (auto-dismiss), so check it promptly with a short timeout.
-    await expectVisible({ text: /invalid or expired code/i }, { timeout: 4_000 });
+    await expectVisible({ text: /invalid or expired code/i }, { timeout: 3_000 });
     await expectVisible({ text: /resend in \d+/i });
     // Recover with the real code so the suite leaves a clean state.
     const code = await latestOtp(PERSONAS.maria.email, sentAt);
