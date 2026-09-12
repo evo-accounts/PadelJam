@@ -16,13 +16,14 @@
  * first is still dismissing; one Modal element stays presented and the content morphs underneath it.
  */
 import { useT } from '@padel/i18n';
-import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { space } from '../../theme';
 import { BottomSheet } from './BottomSheet';
 import { Button } from './Button';
 import { createSheetApi, type ActionSheetOptions, type ConfirmOptions, type Request, type SheetAction, type SheetApi } from './sheetApi';
+import { SheetPresence } from './sheetPresence';
 import { SheetRow } from './SheetRow';
 import { SheetQueue } from './sheetQueue';
 import { Text } from './Text';
@@ -30,40 +31,6 @@ import { Text } from './Text';
 export type { ActionSheetOptions, ConfirmOptions, SheetAction };
 
 const SheetContext = createContext<SheetApi | null>(null);
-
-/**
- * Whether the host's Modal is currently presented, plus the resolvers for
- * callers awaiting its NEXT full dismissal — see `waitClosed` below and the
- * comment on BottomSheet's `onDismissed`. Its state changes only through its
- * own methods (mirroring `SheetQueue` below), never through a raw field
- * write at the call site: a `useRef`, or a plain object mutated directly by
- * the component, both trip the "no ref access / no useState mutation during
- * render" lint rules once threaded through a memoized value handed to
- * context — a class instance mutating itself from its own methods does not.
- */
-class SheetPresence {
-  private presented = false;
-  private resolvers: Array<() => void> = [];
-
-  markPresented(): void {
-    this.presented = true;
-  }
-
-  markDismissed(): void {
-    this.presented = false;
-    const resolvers = this.resolvers;
-    this.resolvers = [];
-    resolvers.forEach((resolve) => resolve());
-  }
-
-  /** Resolves once presented is false AND the caller confirms nothing is queued. */
-  waitClosed(queueEmpty: boolean): Promise<void> {
-    return new Promise((resolve) => {
-      if (queueEmpty && !this.presented) resolve();
-      else this.resolvers.push(resolve);
-    });
-  }
-}
 
 export function SheetHost({ children }: { children: ReactNode }) {
   const { t } = useT('common');
@@ -75,6 +42,7 @@ export function SheetHost({ children }: { children: ReactNode }) {
   }, [req, presence]);
   const waitClosed = useMemo(() => () => presence.waitClosed(queue.current() == null), [queue, presence]);
   const ctx = useMemo(() => createSheetApi(queue, waitClosed), [queue, waitClosed]);
+  const onDismissed = useCallback(() => presence.markDismissed(), [presence]);
 
   return (
     <SheetContext.Provider value={ctx}>
@@ -82,7 +50,7 @@ export function SheetHost({ children }: { children: ReactNode }) {
       <BottomSheet
         visible={req != null}
         onClose={() => req && queue.dismiss(req.id)}
-        onDismissed={() => presence.markDismissed()}
+        onDismissed={onDismissed}
         title={req?.payload.options.title}
         testID={req?.payload.kind === 'confirm' ? 'confirm-sheet' : 'action-sheet'}
       >

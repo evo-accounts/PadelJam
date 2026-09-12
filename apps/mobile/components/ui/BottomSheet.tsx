@@ -27,6 +27,7 @@ type Props = {
    * fires after a `requestAnimationFrame`, giving the close animation a frame
    * to start before callers (e.g. a caller `await`ing the sheet's promise)
    * act on the dismissal. Guarded to fire once per close on both platforms.
+   * Does not fire if the component unmounts while still visible.
    */
   onDismissed?: () => void;
   title?: string;
@@ -39,14 +40,25 @@ export function BottomSheet({ visible, onClose, onDismissed, title, children, st
   const { t } = useT('common');
   const insets = useSafeAreaInsets();
   const wasVisible = useRef(visible);
+  const onDismissedRef = useRef(onDismissed);
+
+  // Keep the latest callback available to the emulation effect below without
+  // making it a dependency — see that effect for why.
+  useEffect(() => {
+    onDismissedRef.current = onDismissed;
+  });
 
   useEffect(() => {
     const justClosed = wasVisible.current && !visible;
     wasVisible.current = visible;
     if (Platform.OS === 'ios' || !justClosed) return;
-    const handle = requestAnimationFrame(() => onDismissed?.());
+    // Depends on `visible` only: `SheetHost` passes an inline `onDismissed`
+    // closure, so including it here would re-run this effect (cancelling and
+    // never rescheduling the frame, since `justClosed` is only true once) on
+    // any re-render between the true -> false flip and the scheduled frame.
+    const handle = requestAnimationFrame(() => onDismissedRef.current?.());
     return () => cancelAnimationFrame(handle);
-  }, [visible, onDismissed]);
+  }, [visible]);
 
   return (
     <Modal
