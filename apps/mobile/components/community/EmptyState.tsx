@@ -1,9 +1,10 @@
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { SuggestedCommunityCard, type SuggestedCommunity } from './SuggestedCommunityCard';
 import { colors } from '../../theme';
+import { EmptyState as EmptyStatePrimitive, emptyIcon, Text } from '../ui';
 
 type Props = {
   suggested: SuggestedCommunity[];
@@ -12,17 +13,28 @@ type Props = {
   onCreate: () => void;
 };
 
+/**
+ * The community tab's empty state. Composes the generic `EmptyState`
+ * primitive for the "nothing here yet" card (UX-GLOB-03 Task 4) and keeps
+ * its own suggested-communities rail below it — that part is specific to
+ * this screen and has no equivalent in the primitive.
+ */
 export function EmptyState({ suggested, canCreate, onPressSuggested, onCreate }: Props) {
   const { t } = useT('community');
 
   return (
     <View style={styles.container}>
-      <Text style={styles.emptyTitle}>{t('emptyTitle')}</Text>
-      <Text style={styles.emptySubtitle}>{t('emptySubtitle')}</Text>
+      <EmptyStatePrimitive
+        icon={emptyIcon('person.3')}
+        title={t('emptyTitle')}
+        body={t('emptySubtitle')}
+        action={canCreate ? { label: t('createCardCta'), onPress: onCreate } : undefined}
+        testID="empty-community"
+      />
 
       {suggested.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('suggestedTitle')}</Text>
+          <Text variant="sectionTitle" style={styles.sectionTitle}>{t('suggestedTitle')}</Text>
           <View style={styles.rail}>
             <FlashList
               horizontal
@@ -39,36 +51,13 @@ export function EmptyState({ suggested, canCreate, onPressSuggested, onCreate }:
           </View>
         </View>
       ) : null}
-
-      {canCreate ? (
-        <View style={styles.createCard}>
-          <Text style={styles.createCardTitle}>{t('createCardTitle')}</Text>
-          <Text style={styles.createCardBody}>{t('createCardBody')}</Text>
-          <Pressable style={styles.cta} onPress={onCreate} accessibilityRole="button">
-            <Text style={styles.ctaText}>{t('createCardCta')}</Text>
-          </Pressable>
-        </View>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.foreground, marginBottom: 6 },
-  emptySubtitle: { fontSize: 15, color: colors.mutedForeground, marginBottom: 24 },
   section: { marginBottom: 28 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
+  sectionTitle: { color: colors.foreground, marginBottom: 12 },
   rail: { height: 130 },
-  createCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 20,
-    backgroundColor: colors.background,
-  },
-  createCardTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, marginBottom: 6 },
-  createCardBody: { fontSize: 15, color: colors.mutedForeground, marginBottom: 16 },
-  cta: { backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  ctaText: { color: colors.card, fontSize: 16, fontWeight: '600' },
 });
