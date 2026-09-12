@@ -8,7 +8,8 @@
  *           task and confirms first when `dirty`
  *   wizard  multi-step creation: back left to step back, ✕ right to leave the flow
  *
- * Both side slots are pinned to one width so the title is centred by construction.
+ * Both side slots are pinned to the same width — SIDE, or double that when two actions
+ * sit on the right — so the title stays centred by construction either way.
  */
 import { useT } from '@padel/i18n';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
@@ -44,8 +45,9 @@ const SIDE = 44;
 export function TopBar({ variant = 'nav', title, onBack, onClose, dirty = false, actions, action, backLabel, style, testID }: Props) {
   const { t } = useT('common');
   const confirm = useConfirm();
-  const layout = topBarLayout(variant, { hasTitle: Boolean(title) });
   const rightActions = (actions ?? (action ? [action] : [])).slice(0, 2);
+  const layout = topBarLayout(variant, { actionCount: rightActions.length });
+  const wide = layout.sideWidth === 'double';
 
   const close = async () => {
     if (!onClose) return;
@@ -71,7 +73,7 @@ export function TopBar({ variant = 'nav', title, onBack, onClose, dirty = false,
   return (
     <View testID={testID} style={[styles.bar, layout.divider && styles.divider, style]}>
       {layout.left !== 'none' ? (
-        <View style={styles.side}>{layout.left === 'back' ? backButton : closeButton}</View>
+        <View style={[styles.side, wide && styles.sideWide]}>{layout.left === 'back' ? backButton : closeButton}</View>
       ) : null}
 
       {title ? (
@@ -88,11 +90,11 @@ export function TopBar({ variant = 'nav', title, onBack, onClose, dirty = false,
         <View style={styles.title} />
       )}
 
-      <View style={[styles.side, styles.sideRight, rightActions.length > 1 && styles.sideWide]}>
+      <View style={[styles.side, styles.sideRight, wide && styles.sideWide]}>
         {layout.right === 'close'
           ? closeButton
           : rightActions.map((a) => (
-              <IconButton key={a.label} icon={a.icon} accessibilityLabel={a.label} size="lg" onPress={a.onPress} testID={a.testID} />
+              <IconButton key={a.testID ?? a.label} icon={a.icon} accessibilityLabel={a.label} size="lg" onPress={a.onPress} testID={a.testID} />
             ))}
       </View>
     </View>

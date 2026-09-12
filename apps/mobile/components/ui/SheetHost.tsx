@@ -27,7 +27,7 @@ import { SheetRow } from './SheetRow';
 import { SheetQueue } from './sheetQueue';
 import { Text } from './Text';
 
-export type { ActionSheetOptions, ConfirmOptions, Request, SheetAction };
+export type { ActionSheetOptions, ConfirmOptions, SheetAction };
 
 const SheetContext = createContext<SheetApi | null>(null);
 

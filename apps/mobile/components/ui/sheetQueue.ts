@@ -11,7 +11,9 @@ export class SheetQueue<P, R = string | null> {
   private listeners = new Set<(r: SheetRequest<P> | null) => void>();
   // Cached so `current()` is referentially stable between emits — required by
   // useSyncExternalStore, whose getSnapshot must return the same reference
-  // when nothing has changed or React re-renders in a loop.
+  // when nothing has changed or React re-renders in a loop. `current()` reflects
+  // the last *emitted* snapshot, not necessarily the very latest `open_` — see
+  // the deferred emit in resolve()/dismiss() below.
   private snapshot: SheetRequest<P> | null = null;
 
   // Arrow properties, not methods: useSyncExternalStore(queue.subscribe, queue.current)
@@ -36,20 +38,32 @@ export class SheetQueue<P, R = string | null> {
     if (!this.open_ || this.open_.id !== id) return;
     const { resolve } = this.open_;
     this.open_ = null;
-    this.emit();
+    // `resolve(value)` runs before the deferred emit below, so if the awaiting
+    // continuation synchronously opens a new request (the destructive-row ->
+    // confirm hand-off), its own `open()` — and the synchronous emit inside it —
+    // runs first, in the microtask `resolve(value)` just enqueued. This emit
+    // only re-confirms whatever is current by the time it runs, so subscribers
+    // (React's useSyncExternalStore included) never observe a `null` snapshot
+    // in between: no dismiss/re-present flicker across the hand-off.
     resolve(value);
+    queueMicrotask(() => this.emit());
   }
 
   dismiss(id: number): void {
     if (!this.open_ || this.open_.id !== id) return;
     const { resolve } = this.open_;
     this.open_ = null;
-    this.emit();
     resolve(null);
+    queueMicrotask(() => this.emit());
   }
 
   private emit() {
-    this.snapshot = this.open_ ? { id: this.open_.id, payload: this.open_.payload } : null;
+    const next = this.open_ ? { id: this.open_.id, payload: this.open_.payload } : null;
+    // Reuse the cached reference when the request itself hasn't changed (same id),
+    // so a deferred emit that fires after a synchronous reopen re-notifies with the
+    // identical snapshot rather than a fresh object useSyncExternalStore would treat
+    // as a change.
+    this.snapshot = next && this.snapshot && next.id === this.snapshot.id ? this.snapshot : next;
     for (const fn of this.listeners) fn(this.snapshot);
   }
 }

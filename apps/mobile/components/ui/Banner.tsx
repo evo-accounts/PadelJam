@@ -21,12 +21,15 @@ const BannerContext = createContext<Ctx | null>(null);
 
 export function BannerProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<BannerState>(null);
-  const timer = useMemo(() => new BannerTimer(AUTO_DISMISS_MS, setState), []);
+  const [timer] = useState(() => new BannerTimer(AUTO_DISMISS_MS, setState));
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (state) AccessibilityInfo.announceForAccessibility(state.message);
   }, [state]);
+
+  // Unmounting mid-timeout must not fire setState on a gone component.
+  useEffect(() => () => timer.dismiss(), [timer]);
 
   const ctx = useMemo<Ctx>(() => ({ show: (message, tone = 'error') => timer.show(message, tone) }), [timer]);
 

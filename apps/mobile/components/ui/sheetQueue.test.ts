@@ -37,4 +37,29 @@ describe('SheetQueue', () => {
     q.dismiss(1);
     await expect(p).resolves.toBeNull();
   });
+
+  it('a synchronous reopen in the resolve continuation is one notification, never null', async () => {
+    const q = new SheetQueue<string, string>();
+    const seen: (string | null)[] = [];
+    q.subscribe(() => seen.push(q.current()?.payload ?? null));
+    const flow = q.open('action').then(() => q.open('confirm'));
+    q.resolve(q.current()!.id, 'del');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(seen).not.toContain(null);
+    expect(q.current()?.payload).toBe('confirm');
+    q.resolve(q.current()!.id, 'confirm');
+    await expect(flow).resolves.toBe('confirm');
+  });
+
+  it('a plain dismiss still notifies with null', async () => {
+    const q = new SheetQueue<string, string>();
+    const seen: (string | null)[] = [];
+    q.subscribe(() => seen.push(q.current()?.payload ?? null));
+    const p = q.open('a');
+    q.dismiss(q.current()!.id);
+    await Promise.resolve();
+    expect(seen).toContain(null);
+    await expect(p).resolves.toBeNull();
+  });
 });

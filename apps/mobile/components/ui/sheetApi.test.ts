@@ -49,4 +49,17 @@ describe('createSheetApi', () => {
     q.resolve(q.current()!.id, 'confirm');
     await expect(p).resolves.toBe('del');
   });
+
+  it('a new request while the destructive confirm is pending resolves the superseded show() to null', async () => {
+    const { q, api } = setup();
+    const p = api.show({ actions: [{ key: 'del', label: 'Delete', destructive: true }] });
+    q.resolve(q.current()!.id, 'del');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(q.current()!.payload.kind).toBe('confirm');
+    const p2 = api.confirm({ title: 'Other', confirmLabel: 'Ok' });
+    await expect(p).resolves.toBe(null);
+    q.resolve(q.current()!.id, 'confirm');
+    await expect(p2).resolves.toBe(true);
+  });
 });

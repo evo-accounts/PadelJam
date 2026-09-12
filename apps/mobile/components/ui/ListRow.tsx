@@ -138,7 +138,11 @@ export function ListRow({
       // tree from the failure read exactly "Partner Requests" — no separator at
       // all — so the count had to come back AND come back joined the same way.
       accessibilityLabel={[title, subtitle, trailingLabel].filter(Boolean).join(', ')}
-      accessibilityState={disabled ? { disabled: true } : selected === undefined ? undefined : { selected }}
+      accessibilityState={
+        selected === undefined && !disabled
+          ? undefined
+          : { ...(selected === undefined ? {} : { selected }), ...(disabled ? { disabled: true } : {}) }
+      }
       style={({ pressed }) => [...surface, disabled && styles.disabled, pressed && styles.pressed]}
     >
       {body}
