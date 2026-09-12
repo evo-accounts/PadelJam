@@ -3,13 +3,9 @@ import { useNotificationsRealtime } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
-import { View } from 'react-native';
 
 import Colors from '@/constants/Colors';
-import { ChatHeaderButton } from '@/components/chat/ChatHeaderButton';
-import { NotificationBell } from '@/components/NotificationBell';
 import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { registerForPush } from '@/lib/push';
 
 export default function TabLayout() {
@@ -29,21 +25,12 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme].tint,
-        headerShown: useClientOnlyValue(false, true),
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: t('tab', { ns: 'home' }),
-          headerRight: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingRight: 12 }}>
-              {/* No search action here: search lives at the top of Explore,
-                  which is its own tab. A magnifying glass in the header that
-                  only jumps to that tab was a second front door to one room. */}
-              <ChatHeaderButton />
-              <NotificationBell />
-            </View>
-          ),
           tabBarIcon: ({ color }) => (
             <SymbolView name={{ ios: 'house.fill', android: 'home', web: 'home' }} tintColor={color} size={28} />
           ),
