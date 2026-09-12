@@ -185,7 +185,16 @@ describe('11 community admin', () => {
     // that it's a bottom sheet rather than a native alert. Success is a banner
     // that auto-dismisses and doesn't block navigation, so there's no second
     // button to answer.
-    await tap({ text: /^invite$/i, type: 'Button' });
+    //
+    // Matched by testID, not `{ text, type: 'Button' }`: the sheet's primary
+    // CTA (SheetHost's confirm Button, non-destructive variant here) has been
+    // observed reporting as AX type GenericElement rather than Button even
+    // though it renders with accessibilityRole="button" like every other
+    // Button — the same "enabled" unreliability documented on tap() in
+    // actions.ts, but for `type`. AXUniqueId (testID="confirm-sheet-confirm")
+    // doesn't depend on that trait and is exactly what suite 00 already uses
+    // for the sheet's close button.
+    await tap({ id: 'confirm-sheet-confirm' });
 
     await pollUntil(
       () => select('community_invitations', `community_id=eq.${m.communities.C}&invitee_id=eq.${m.users.sofia}&select=status`),
