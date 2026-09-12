@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../theme';
-import { TopBar, useBanner, useConfirm } from '../../../components/ui';
+import { EmptyState, emptyIcon, TopBar, useBanner, useConfirm } from '../../../components/ui';
 
 type Candidate = {
   user_id: string;
@@ -98,9 +98,7 @@ export default function GroupInviteScreen() {
         keyExtractor={(p) => p.user_id}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.empty}>{t('inviteEmpty')}</Text>
-          </View>
+          <EmptyState icon={emptyIcon('person.2')} title={t('inviteEmpty')} testID="empty-group-invite" />
         }
         renderItem={({ item }) => {
           const name = item.profiles?.full_name ?? '—';
@@ -150,8 +148,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
   },
-  center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',
