@@ -8,7 +8,7 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -81,7 +81,6 @@ export default function PostDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Stack.Screen options={{ headerShown: false }} />
       <TopBar title={t('postTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
       <KeyboardAvoidingView

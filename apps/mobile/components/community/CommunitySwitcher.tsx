@@ -119,8 +119,6 @@ export function CommunitySwitcher({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>{t('title')}</Text>
-
       <View style={styles.toggle}>
         <Chip
           label={t('active')}
@@ -147,7 +145,6 @@ export function CommunitySwitcher({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 24, paddingBottom: 32 },
-  title: { fontSize: 28, fontWeight: '700', color: colors.foreground, marginBottom: 20 },
   toggle: {
     flexDirection: 'row',
     backgroundColor: colors.accent,

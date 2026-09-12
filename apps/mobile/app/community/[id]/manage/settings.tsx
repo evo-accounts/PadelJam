@@ -165,7 +165,8 @@ export default function ManageSettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar variant="edit" title={t('manageSettings')} onClose={() => router.back()} dirty={dirty} />
+      {/* Gate on `prefilled`: `initial` tracks the query result but the form fields are seeded a render later, so `dirty` is briefly true after load. */}
+      <TopBar variant="edit" title={t('manageSettings')} onClose={() => router.back()} dirty={prefilled && dirty} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

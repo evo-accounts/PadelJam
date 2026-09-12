@@ -1006,7 +1006,6 @@ const mobileGroup = {
     privateHelp: 'Apenas jogadores convidados podem ver o grupo',
     createTitle: 'Novo grupo',
     createCta: 'Criar grupo',
-    close: 'Fechar',
     saveCta: 'Guardar',
     editTitle: 'Definições do grupo',
     // --- List tabs + empties ---
@@ -1118,7 +1117,6 @@ const mobileGroup = {
     privateHelp: 'Apenas jogadores convidados podem ver o grupo',
     createTitle: 'Novo grupo',
     createCta: 'Criar grupo',
-    close: 'Fechar',
     saveCta: 'Salvar',
     editTitle: 'Configurações do grupo',
     // --- List tabs + empties ---
@@ -1230,7 +1228,6 @@ const mobileGroup = {
     privateHelp: 'Only invited players can see the group',
     createTitle: 'New group',
     createCta: 'Create group',
-    close: 'Close',
     saveCta: 'Save',
     editTitle: 'Group settings',
     // --- List tabs + empties ---
@@ -1341,7 +1338,6 @@ const mobileEvent = {
   'pt-PT': {
     // --- Wizard chrome ---
     createTitle: 'Criar evento',
-    close: 'Fechar',
     next: 'Seguinte',
     back: 'Voltar',
     finish: 'Criar evento',
@@ -1800,7 +1796,6 @@ const mobileEvent = {
   'pt-BR': {
     // --- Wizard chrome ---
     createTitle: 'Criar evento',
-    close: 'Fechar',
     next: 'Próximo',
     back: 'Voltar',
     finish: 'Criar evento',
@@ -2259,7 +2254,6 @@ const mobileEvent = {
   en: {
     // --- Wizard chrome ---
     createTitle: 'Create event',
-    close: 'Close',
     next: 'Next',
     back: 'Back',
     finish: 'Create event',

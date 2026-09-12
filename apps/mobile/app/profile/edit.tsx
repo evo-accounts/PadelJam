@@ -35,6 +35,7 @@ export default function EditProfileScreen() {
   const [picked, setPicked] = useState<PickedImage | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
     const p = my.data;
@@ -47,6 +48,7 @@ export default function EditProfileScreen() {
     setTime(p.preferred_time ?? null);
     setDob(p.date_of_birth ?? '');
     setAvatarPath(p.avatar_url ?? null);
+    setPrefilled(true);
   }, [my.data]);
 
   const initial = useMemo(
@@ -116,7 +118,8 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={dirty} />
+      {/* Gate on `prefilled`: `initial` tracks the query result but the form fields are seeded a render later, so `dirty` is briefly true after load. */}
+      <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={prefilled && dirty} />
       <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
       <Pressable style={styles.avatarWrap} onPress={onPickAvatar} accessibilityRole="button">
         <View style={styles.avatar}>
