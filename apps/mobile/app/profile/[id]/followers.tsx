@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '../../../theme';
-import { EmptyState, emptyIcon, TopBar } from '../../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
 
 export default function FollowersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,15 +23,20 @@ export default function FollowersScreen() {
       <FlashList
         data={rows}
         keyExtractor={(it) => it.id}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={[{ padding: 16 }, listEmptyContent]}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         ListEmptyComponent={
-          <EmptyState
-            icon={emptyIcon('person.2')}
-            title={t('emptyFollowers')}
-            body={t('followersEmptyBody')}
-            testID="empty-followers"
-          />
+          // `query.isLoading` gates this so the empty card doesn't flash before
+          // the first page of followers arrives.
+          query.isLoading ? null : (
+            <EmptyState
+              fill
+              icon={emptyIcon('person.2')}
+              title={t('emptyFollowers')}
+              body={t('followersEmptyBody')}
+              testID="empty-followers"
+            />
+          )
         }
         onEndReachedThreshold={0.5}
         onEndReached={() => {

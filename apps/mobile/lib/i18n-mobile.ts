@@ -1410,6 +1410,7 @@ const mobileEvent = {
     noGroupOption: 'Continuar sem grupo',
     noGroupHint: 'Os eventos independentes são privados e não contam para nenhum ranking de grupo.',
     noGroupsYet: 'Ainda não geres nenhum grupo. Cria primeiro um grupo, ou cria um evento independente.',
+    step1GroupEmptyBody: 'Junta-te a um grupo ou cria um primeiro.',
 
     // --- Step 2: type ---
     step2Title: 'Formato',
@@ -1801,6 +1802,7 @@ const mobileEvent = {
     blastTemplatesTab: 'Modelos',
     blastYourBlastsTab: 'Os teus comunicados',
     blastYourEmpty: 'Ainda não enviaste nenhum comunicado. Escolhe um modelo para começar.',
+    blastYoursEmptyBody: 'Os blasts que enviares aparecem aqui.',
     blastCustomizeTitle: 'Personalizar comunicado',
     blastTitleLabel: 'Título',
     blastDescLabel: 'Mensagem',
@@ -1876,6 +1878,7 @@ const mobileEvent = {
     noGroupOption: 'Continuar sem grupo',
     noGroupHint: 'Os eventos independentes são privados e não contam para nenhum ranking de grupo.',
     noGroupsYet: 'Você ainda não gerencia nenhum grupo. Crie primeiro um grupo, ou crie um evento independente.',
+    step1GroupEmptyBody: 'Entre em um grupo ou crie um primeiro.',
 
     // --- Step 2: type ---
     step2Title: 'Formato',
@@ -2267,6 +2270,7 @@ const mobileEvent = {
     blastTemplatesTab: 'Modelos',
     blastYourBlastsTab: 'Seus comunicados',
     blastYourEmpty: 'Você ainda não enviou nenhum comunicado. Escolha um modelo para começar.',
+    blastYoursEmptyBody: 'Os blasts que você enviar aparecem aqui.',
     blastCustomizeTitle: 'Personalizar comunicado',
     blastTitleLabel: 'Título',
     blastDescLabel: 'Mensagem',
@@ -2342,6 +2346,7 @@ const mobileEvent = {
     noGroupOption: 'Continue without a group',
     noGroupHint: 'Standalone events are private and won\'t feed any group ranking.',
     noGroupsYet: 'You don\'t manage any groups yet. Create a group first, or run a standalone event.',
+    step1GroupEmptyBody: 'Join or create a group first.',
 
     // --- Step 2: type ---
     step2Title: 'Format',
@@ -2733,6 +2738,7 @@ const mobileEvent = {
     blastTemplatesTab: 'Templates',
     blastYourBlastsTab: 'Your blasts',
     blastYourEmpty: "You haven't sent any blasts yet. Pick a template to start.",
+    blastYoursEmptyBody: 'Your sent blasts appear here.',
     blastCustomizeTitle: 'Customize blast',
     blastTitleLabel: 'Title',
     blastDescLabel: 'Message',

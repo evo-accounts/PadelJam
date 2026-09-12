@@ -167,7 +167,12 @@ export default function BlastScreen() {
               </Card>
             ))
           ) : (yourBlasts ?? []).length === 0 ? (
-            <EmptyState icon={emptyIcon('megaphone')} title={t('blastYourEmpty')} testID="empty-blast" />
+            <EmptyState
+              icon={emptyIcon('megaphone')}
+              title={t('blastYourEmpty')}
+              body={t('blastYoursEmptyBody')}
+              testID="empty-blast"
+            />
           ) : (
             (yourBlasts ?? []).map((b) => (
               <Card

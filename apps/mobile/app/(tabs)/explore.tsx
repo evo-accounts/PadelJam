@@ -112,6 +112,8 @@ function ForYou({ query }: { query: string }) {
           errorLabel={t('loadError')}
           keyExtractor={(p) => p.id}
           renderItem={(p) => <PlayerCard player={p} onPress={() => router.push(`/profile/${p.id}`)} />}
+          onRetry={() => players.refetch()}
+          testID="empty-rail-players"
         />
         <SuggestionRail
           title={t('railEvents')}
@@ -128,6 +130,8 @@ function ForYou({ query }: { query: string }) {
               <EventCard event={e} onPress={() => router.push(`/event/${e.id}`)} />
             </View>
           )}
+          onRetry={() => events.refetch()}
+          testID="empty-rail-events"
         />
         <SuggestionRail
           title={t('railCommunities')}
@@ -146,6 +150,8 @@ function ForYou({ query }: { query: string }) {
               onRequestJoin={() => router.push(`/community/${c.id}/join`)}
             />
           )}
+          onRetry={() => communities.refetch()}
+          testID="empty-rail-communities"
         />
         <SuggestionRail
           title={t('railGroups')}
@@ -158,6 +164,8 @@ function ForYou({ query }: { query: string }) {
           errorLabel={t('loadError')}
           keyExtractor={(g) => g.id}
           renderItem={(g) => <GroupCard group={g} onOpen={() => router.push(`/group/${g.id}`)} />}
+          onRetry={() => groups.refetch()}
+          testID="empty-rail-groups"
         />
       </ScrollView>
   );

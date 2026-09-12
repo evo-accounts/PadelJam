@@ -14,7 +14,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../theme';
-import { EmptyState, emptyIcon, TopBar, useBanner, useConfirm } from '../../../components/ui';
+import {
+  EmptyState,
+  emptyIcon,
+  listEmptyContent,
+  TopBar,
+  useBanner,
+  useConfirm,
+} from '../../../components/ui';
 
 type Candidate = {
   user_id: string;
@@ -37,8 +44,11 @@ export default function GroupInviteScreen() {
   // Undefined until useGroup resolves; the hooks stay disabled until then.
   const communityId = group?.community_id;
   const { data: community } = useCommunity(communityId);
-  const { data: communityMembers } = useCommunityMembers(communityId);
-  const { data: groupMembers } = useGroupMembers(id);
+  const { data: communityMembers, isLoading: communityMembersLoading } = useCommunityMembers(communityId);
+  const { data: groupMembers, isLoading: groupMembersLoading } = useGroupMembers(id);
+  // Both queries feed `candidates`; either still loading means the empty state
+  // below hasn't earned the right to say "nothing here" yet.
+  const isLoading = communityMembersLoading || groupMembersLoading;
   const invite = useInviteToGroup(id);
   const confirm = useConfirm();
   const banner = useBanner();
@@ -97,8 +107,11 @@ export default function GroupInviteScreen() {
         data={candidates}
         keyExtractor={(p) => p.user_id}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={listEmptyContent}
         ListEmptyComponent={
-          <EmptyState icon={emptyIcon('person.2')} title={t('inviteEmpty')} testID="empty-group-invite" />
+          isLoading ? null : (
+            <EmptyState fill icon={emptyIcon('person.2')} title={t('inviteEmpty')} testID="empty-group-invite" />
+          )
         }
         renderItem={({ item }) => {
           const name = item.profiles?.full_name ?? '—';

@@ -9,7 +9,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { colors } from '../../theme';
-import { EmptyState, emptyIcon, TopBar } from '../../components/ui';
+import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
 
 const FILTERS: MyEventsFilter[] = ['all', 'organizing', 'going'];
 
@@ -43,18 +43,20 @@ export default function EventsScreen() {
         <FlashList
           data={rows}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 96 }}
+          contentContainerStyle={[{ padding: 16, paddingBottom: insets.bottom + 96 }, listEmptyContent]}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           ListEmptyComponent={
             query.isError ? (
               <EmptyState
+                fill
                 tone="error"
-                title={t('loadError', { ns: 'common' })}
+                title={t('loadError')}
                 action={{ label: t('retry', { ns: 'common' }), onPress: () => query.refetch() }}
                 testID="empty-events"
               />
             ) : (
               <EmptyState
+                fill
                 icon={emptyIcon('calendar')}
                 title={t('empty')}
                 body={t('eventsEmptyBody')}

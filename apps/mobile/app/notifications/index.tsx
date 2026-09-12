@@ -17,7 +17,16 @@ import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
-import { Button, EmptyState, emptyIcon, ListRow, Text, TopBar, useActionSheet } from '../../components/ui';
+import {
+  Button,
+  EmptyState,
+  emptyIcon,
+  listEmptyContent,
+  ListRow,
+  Text,
+  TopBar,
+  useActionSheet,
+} from '../../components/ui';
 
 function targetHref(n: NotificationRow): string | null {
   return notificationRoute(n);
@@ -99,16 +108,19 @@ export default function NotificationsScreen() {
           data={rows}
           keyExtractor={(n) => n.id}
           onEndReached={() => list.hasNextPage && list.fetchNextPage()}
+          contentContainerStyle={listEmptyContent}
           ListEmptyComponent={
             list.isError ? (
               <EmptyState
+                fill
                 tone="error"
-                title={t('loadError', { ns: 'common' })}
+                title={t('loadError')}
                 action={{ label: t('retry', { ns: 'common' }), onPress: () => list.refetch() }}
                 testID="empty-notifications"
               />
             ) : (
               <EmptyState
+                fill
                 icon={emptyIcon('bell')}
                 title={t('empty')}
                 body={t('notificationsEmptyBody')}

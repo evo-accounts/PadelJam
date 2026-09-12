@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ReviewCard, type ReviewRow } from '@/components/community/ReviewCard';
 import { StarRating } from '@/components/community/StarRating';
 import { colors, palette } from '../../../../theme';
-import { Button, Chip, EmptyState, emptyIcon, TopBar } from '../../../../components/ui';
+import { Button, Chip, EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../../components/ui';
 
 type SortKey = 'newest' | 'highest' | 'lowest';
 type RatingFilter = 0 | 1 | 2 | 3 | 4 | 5; // 0 = all
@@ -21,7 +21,7 @@ export default function ReviewsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = useSession().session?.user.id;
 
-  const { data } = useCommunityReviews(id);
+  const { data, isLoading } = useCommunityReviews(id);
   const reviews = data?.reviews ?? [];
   const average = data?.average ?? null;
   const count = data?.count ?? 0;
@@ -142,13 +142,20 @@ export default function ReviewsScreen() {
         renderItem={({ item }) => (
           <ReviewCard review={item} />
         )}
+        contentContainerStyle={listEmptyContent}
         ListEmptyComponent={
-          <EmptyState
-            icon={emptyIcon('star')}
-            title={t('noReviews')}
-            body={t('reviewsEmptyBody')}
-            testID="empty-reviews"
-          />
+          // Gated on `isLoading`: `data` is undefined until the query resolves, so
+          // `filtered` reads as an empty array during the initial fetch — without
+          // this the empty card would flash before the first page of reviews does.
+          isLoading ? null : (
+            <EmptyState
+              fill
+              icon={emptyIcon('star')}
+              title={t('noReviews')}
+              body={t('reviewsEmptyBody')}
+              testID="empty-reviews"
+            />
+          )
         }
       />
     </SafeAreaView>

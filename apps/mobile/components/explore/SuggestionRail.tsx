@@ -21,6 +21,12 @@ type Props<T> = {
    * button — better than the old bare line either way.
    */
   onRetry?: () => void;
+  /**
+   * Distinguishes each rail's empty/error card in tests — four rails on one
+   * screen would otherwise all answer to the same `empty-suggestion-rail`.
+   * Defaults to that shared id so existing callers keep working unchanged.
+   */
+  testID?: string;
 };
 
 export function SuggestionRail<T>({
@@ -35,6 +41,7 @@ export function SuggestionRail<T>({
   keyExtractor,
   renderItem,
   onRetry,
+  testID = 'empty-suggestion-rail',
 }: Props<T>) {
   const { t } = useT('common');
   return (
@@ -52,10 +59,10 @@ export function SuggestionRail<T>({
           tone="error"
           title={errorLabel}
           action={onRetry ? { label: t('retry'), onPress: onRetry } : undefined}
-          testID="empty-suggestion-rail"
+          testID={testID}
         />
       ) : data.length === 0 ? (
-        <EmptyState icon={emptyIcon('magnifyingglass')} title={emptyLabel} testID="empty-suggestion-rail" />
+        <EmptyState icon={emptyIcon('magnifyingglass')} title={emptyLabel} testID={testID} />
       ) : (
         <FlashList
           horizontal

@@ -10,7 +10,14 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
-import { EmptyState, emptyIcon, TopBar, useBanner, useConfirm } from '../../components/ui';
+import {
+  EmptyState,
+  emptyIcon,
+  listEmptyContent,
+  TopBar,
+  useBanner,
+  useConfirm,
+} from '../../components/ui';
 
 export default function PartnerRequestsScreen() {
   const { t } = useT('notifications');
@@ -46,16 +53,19 @@ export default function PartnerRequestsScreen() {
         <FlashList
           data={rows}
           keyExtractor={(r) => r.request_id}
+          contentContainerStyle={listEmptyContent}
           ListEmptyComponent={
             list.isError ? (
               <EmptyState
+                fill
                 tone="error"
-                title={t('loadError', { ns: 'common' })}
+                title={t('requestsError')}
                 action={{ label: t('retry', { ns: 'common' }), onPress: () => list.refetch() }}
                 testID="empty-partner-requests"
               />
             ) : (
               <EmptyState
+                fill
                 icon={emptyIcon('person.badge.clock')}
                 title={t('requestsEmpty')}
                 body={t('partnerRequestsEmptyBody')}

@@ -29,7 +29,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamManage } from '@/components/event/TeamManage';
 import { colors, palette } from '../../../theme';
-import { Button, Chip, Field, Text, TopBar, useActionSheet, useBanner, useConfirm } from '../../../components/ui';
+import {
+  Button,
+  Chip,
+  EmptyState,
+  emptyIcon,
+  Field,
+  Text,
+  TopBar,
+  useActionSheet,
+  useBanner,
+  useConfirm,
+} from '../../../components/ui';
 
 /** Display name for a participant row: profile name, then guest name, then dash. */
 function rowName(p: { profiles?: { full_name: string | null } | null; guest_name: string | null }): string {
@@ -360,7 +371,17 @@ export default function EventManageScreen() {
           <TeamManage eventId={id} numCourts={event.num_courts} participants={participants} />
         ) : !hasRoster ? (
           <View style={styles.section}>
-            <Text variant="caption" tone="muted">{t('noRoster')}</Text>
+            <EmptyState
+              icon={emptyIcon('person.2')}
+              title={t('noRoster')}
+              body={t('rosterEmptyBody')}
+              action={
+                isOrganizer
+                  ? { label: t('rosterEmptyCta'), onPress: () => router.push(`/event/${id}/blast` as never) }
+                  : undefined
+              }
+              testID="empty-roster"
+            />
           </View>
         ) : (
           <>
