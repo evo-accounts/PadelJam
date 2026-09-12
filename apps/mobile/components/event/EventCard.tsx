@@ -23,13 +23,23 @@ function formatWhen(iso: string): string {
 /**
  * A tappable card summarising one event: name, format meta, date/time and a
  * status badge. Presentational — the caller supplies the row and an onPress.
+ *
+ * Two arrangements of the same content (UX-GLOB-09): `vertical` is a fixed-width
+ * card for a horizontally scrolling rail (image on top, text below); `horizontal`
+ * (the default, and the only look this card had before) is a full-width row for
+ * a list screen, with a trailing chevron. Nothing about WHAT is shown changes
+ * between the two — only how it is arranged.
  */
 export function EventCard({
   event,
   onPress,
+  orientation = 'horizontal',
+  railWidth = 260,
 }: {
   event: EventRow & { distance_m?: number | null };
   onPress: () => void;
+  orientation?: 'vertical' | 'horizontal';
+  railWidth?: number;
 }) {
   const { t } = useT('event');
   const { t: td } = useT('discovery');
@@ -64,28 +74,62 @@ export function EventCard({
           ? styled.badgeTextDone
           : styled.badgeTextScheduled;
 
-  return (
-    <Card padding="none" style={styled.card} onPress={onPress}>
-      <View style={styled.thumb} />
-      <View style={styled.body}>
-        <View style={styled.headerRow}>
+  const badge = (
+    <View style={[styled.badge, badgeStyle]}>
+      <Text style={[styled.badgeText, badgeTextStyle]} numberOfLines={1}>
+        {t(status)}
+      </Text>
+    </View>
+  );
+  const meta = (
+    <Text style={styled.meta} numberOfLines={1}>
+      {`${typeLabel} · ${specLabel}`}
+    </Text>
+  );
+  const when = (
+    <Text style={styled.when} numberOfLines={1}>
+      {formatWhen(event.starts_at)}
+    </Text>
+  );
+  const distanceText = distance ? <Text style={styled.distance}>{distance}</Text> : null;
+
+  if (orientation === 'vertical') {
+    return (
+      <Card
+        padding="none"
+        style={[styled.cardVertical, { width: railWidth }]}
+        onPress={onPress}
+        testID={`event-card-${event.id}`}
+      >
+        <View style={styled.thumbTop} />
+        <View style={styled.bodyVertical}>
           <Text style={styled.name} numberOfLines={2}>
             {event.name}
           </Text>
-          <View style={[styled.badge, badgeStyle]}>
-            <Text style={[styled.badgeText, badgeTextStyle]} numberOfLines={1}>
-              {t(status)}
-            </Text>
-          </View>
+          {meta}
+          {when}
+          {distanceText}
+          {badge}
         </View>
-        <Text style={styled.meta} numberOfLines={1}>
-          {`${typeLabel} · ${specLabel}`}
+      </Card>
+    );
+  }
+
+  return (
+    <Card padding="none" style={styled.card} onPress={onPress} testID={`event-card-${event.id}`}>
+      <View style={styled.thumb} />
+      <View style={styled.body}>
+        <Text style={styled.name} numberOfLines={1}>
+          {event.name}
         </Text>
-        <Text style={styled.when} numberOfLines={1}>
-          {formatWhen(event.starts_at)}
-        </Text>
-        {distance ? <Text style={styled.distance}>{distance}</Text> : null}
+        {meta}
+        {when}
+        {distanceText}
       </View>
+      {badge}
+      <Text style={styled.chevron} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        ›
+      </Text>
     </Card>
   );
 }
@@ -101,10 +145,18 @@ const styled = StyleSheet.create({
     padding: 12,
     gap: 12,
   },
+  cardVertical: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
   thumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.muted },
+  thumbTop: { height: 96, backgroundColor: colors.muted },
   body: { flex: 1, gap: 4 },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  name: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.foreground },
+  bodyVertical: { padding: 12, gap: 4, alignItems: 'flex-start' },
+  name: { fontSize: 16, fontWeight: '700', color: colors.foreground },
   meta: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
   when: { fontSize: 13, color: colors.foreground, fontWeight: '500' },
   distance: { fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
@@ -118,4 +170,5 @@ const styled = StyleSheet.create({
   badgeTextLive: { color: colors.successStrong },
   badgeDone: { backgroundColor: colors.muted },
   badgeTextDone: { color: colors.mutedForeground },
+  chevron: { fontSize: 24, color: palette.slate[400], marginLeft: 4 },
 });
