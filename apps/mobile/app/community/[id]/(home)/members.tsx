@@ -7,6 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
 import { colors } from '../../../../theme';
+import { EmptyState, emptyIcon } from '../../../../components/ui';
 
 const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 };
 
@@ -15,7 +16,7 @@ export default function CommunityMembersScreen() {
   const router = useRouter();
   const id = useCommunityId();
 
-  const { data: members, isLoading, isError } = useCommunityMembers(id);
+  const { data: members, isLoading, isError, refetch } = useCommunityMembers(id);
   const { data: ability } = useAbility(id);
   // Ability is already scoped to this community; type-only check is sufficient.
   const canInvite = ability?.can('create', 'Member') ?? false;
@@ -49,11 +50,29 @@ export default function CommunityMembersScreen() {
           ) : null
         }
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={[styles.empty, isError && styles.error]}>
-              {isError ? t('loadError') : t('noMembers')}
-            </Text>
-          </View>
+          isError ? (
+            <EmptyState
+              tone="error"
+              title={t('loadError', { ns: 'common' })}
+              action={{ label: t('retry', { ns: 'common' }), onPress: () => refetch() }}
+              testID="empty-members"
+            />
+          ) : (
+            <EmptyState
+              icon={emptyIcon('person.2')}
+              title={t('noMembers')}
+              body={t('communityMembersEmptyBody')}
+              action={
+                canInvite
+                  ? {
+                      label: t('communityMembersEmptyCta'),
+                      onPress: () => router.push(`/community/${id}/manage/invite`),
+                    }
+                  : undefined
+              }
+              testID="empty-members"
+            />
+          )
         }
         renderItem={({ item }) => <MemberRow member={item} />}
       />
@@ -64,8 +83,6 @@ export default function CommunityMembersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: colors.mutedForeground },
-  error: { color: colors.destructive, fontWeight: '600' },
   invite: {
     paddingVertical: 14,
     paddingHorizontal: 16,

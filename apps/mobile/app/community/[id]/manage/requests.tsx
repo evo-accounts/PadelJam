@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../../theme';
-import { TopBar, useBanner, useConfirm } from '../../../../components/ui';
+import { EmptyState, emptyIcon, TopBar, useBanner, useConfirm } from '../../../../components/ui';
 
 type JoinRequest = {
   id: string;
@@ -80,9 +80,12 @@ export default function ManageRequestsScreen() {
         data={(requests ?? []) as JoinRequest[]}
         keyExtractor={(r) => r.id}
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.empty}>{t('noRequests')}</Text>
-          </View>
+          <EmptyState
+            icon={emptyIcon('person.badge.clock')}
+            title={t('noRequests')}
+            body={t('manageRequestsEmptyBody')}
+            testID="empty-requests"
+          />
         }
         renderItem={({ item }) => {
           const name = item.profiles?.full_name ?? '—';
@@ -128,7 +131,6 @@ export default function ManageRequestsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: colors.mutedForeground },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

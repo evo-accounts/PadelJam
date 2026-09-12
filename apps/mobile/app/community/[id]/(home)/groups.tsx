@@ -7,12 +7,13 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { GroupCard } from '@/components/group/GroupCard';
 import { colors } from '../../../../theme';
+import { EmptyState, emptyIcon } from '../../../../components/ui';
 
 export default function CommunityGroupsScreen() {
   const { t } = useT('group');
   const router = useRouter();
   const id = useCommunityId();
-  const { data: groups, isLoading, isError } = useCommunityGroups(id);
+  const { data: groups, isLoading, isError, refetch } = useCommunityGroups(id);
   const { data: canCreate } = useCanCreateGroup(id);
 
   const newGroupButton = canCreate ? (
@@ -35,19 +36,6 @@ export default function CommunityGroupsScreen() {
 
   const rows = groups ?? [];
 
-  if (rows.length === 0) {
-    return (
-      <View style={styles.container}>
-        {newGroupButton ? <View style={styles.header}>{newGroupButton}</View> : null}
-        <View style={styles.center}>
-          <Text style={[styles.empty, isError && styles.error]}>
-            {isError ? t('loadError') : t('emptyAll')}
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <FlashList
@@ -59,6 +47,31 @@ export default function CommunityGroupsScreen() {
         renderItem={({ item }) => (
           <GroupCard group={item} onPress={() => router.push(`/group/${item.id}` as Href)} />
         )}
+        ListEmptyComponent={
+          isError ? (
+            <EmptyState
+              tone="error"
+              title={t('loadError', { ns: 'common' })}
+              action={{ label: t('retry', { ns: 'common' }), onPress: () => refetch() }}
+              testID="empty-groups"
+            />
+          ) : (
+            <EmptyState
+              icon={emptyIcon('person.3')}
+              title={t('emptyAll')}
+              body={t('communityGroupsEmptyBody')}
+              action={
+                canCreate
+                  ? {
+                      label: t('communityGroupsEmptyCta'),
+                      onPress: () => router.push(`/community/${id}/group-create` as Href),
+                    }
+                  : undefined
+              }
+              testID="empty-groups"
+            />
+          )
+        }
       />
     </View>
   );
@@ -67,8 +80,6 @@ export default function CommunityGroupsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: colors.mutedForeground },
-  error: { color: colors.destructive, fontWeight: '600' },
   listContent: { paddingHorizontal: 12, paddingVertical: 8 },
   header: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
   newButton: {

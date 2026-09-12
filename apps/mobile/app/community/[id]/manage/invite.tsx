@@ -8,7 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
-import { Chip, TopBar, useBanner, useConfirm } from '../../../../components/ui';
+import { Chip, EmptyState, emptyIcon, TopBar, useBanner, useConfirm } from '../../../../components/ui';
 
 type Profile = { id: string; full_name: string | null; avatar_url: string | null };
 type Group = { id: string; name: string; is_general: boolean };
@@ -174,13 +174,18 @@ export default function ManageInviteScreen() {
               <ActivityIndicator color={colors.foreground} />
             </View>
           ) : query.trim().length > 0 ? (
-            <View style={styles.center}>
-              <Text style={styles.empty}>{t('inviteNoResults')}</Text>
-            </View>
+            <EmptyState
+              icon={emptyIcon('magnifyingglass')}
+              title={t('inviteNoResults')}
+              body={t('manageInviteEmptyBody')}
+              testID="empty-invite"
+            />
           ) : (
-            <View style={styles.center}>
-              <Text style={styles.empty}>{t('inviteSearchHint')}</Text>
-            </View>
+            <EmptyState
+              icon={emptyIcon('magnifyingglass')}
+              title={t('inviteSearchHint')}
+              testID="empty-invite-hint"
+            />
           )
         }
         renderItem={({ item }) => {
@@ -267,7 +272,6 @@ const styles = StyleSheet.create({
     maxWidth: 180,
   },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center' },
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ReviewCard, type ReviewRow } from '@/components/community/ReviewCard';
 import { StarRating } from '@/components/community/StarRating';
 import { colors, palette } from '../../../../theme';
-import { Button, Chip, TopBar } from '../../../../components/ui';
+import { Button, Chip, EmptyState, emptyIcon, TopBar } from '../../../../components/ui';
 
 type SortKey = 'newest' | 'highest' | 'lowest';
 type RatingFilter = 0 | 1 | 2 | 3 | 4 | 5; // 0 = all
@@ -136,19 +136,21 @@ export default function ReviewsScreen() {
       </View>
 
       {/* List */}
-      {filtered.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>{t('noReviews')}</Text>
-        </View>
-      ) : (
-        <FlashList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ReviewCard review={item} />
-          )}
-        />
-      )}
+      <FlashList
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ReviewCard review={item} />
+        )}
+        ListEmptyComponent={
+          <EmptyState
+            icon={emptyIcon('star')}
+            title={t('noReviews')}
+            body={t('reviewsEmptyBody')}
+            testID="empty-reviews"
+          />
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -184,6 +186,4 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.mutedForeground },
   chipTextActive: { color: colors.card },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyText: { fontSize: 16, color: palette.slate[400], textAlign: 'center' },
 });

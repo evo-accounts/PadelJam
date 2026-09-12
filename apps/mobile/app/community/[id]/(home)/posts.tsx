@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { PostCard, type CommunityPost } from '@/components/community/PostCard';
+import { EmptyState, emptyIcon } from '../../../../components/ui';
 import { colors } from '../../../../theme';
 
 export default function CommunityPostsScreen() {
@@ -14,7 +15,7 @@ export default function CommunityPostsScreen() {
   const id = useCommunityId();
 
   useCommunityFeedRealtime(id);
-  const { data: posts, isLoading, isError } = useCommunityPosts(id);
+  const { data: posts, isLoading, isError, refetch } = useCommunityPosts(id);
   const { data: ability } = useAbility(id);
   // The ability is already scoped to this community (built from the member's role
   // + permissions for `id`), so a type-only check evaluates its community_id
@@ -33,26 +34,43 @@ export default function CommunityPostsScreen() {
 
   return (
     <View style={styles.container}>
-      {rows.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={[styles.empty, isError && styles.error]}>
-            {isError ? t('loadError') : t('noPosts')}
-          </Text>
-        </View>
-      ) : (
-        <FlashList
-          data={rows}
-          keyExtractor={(p) => p.id}
-          renderItem={({ item }) => (
-            <PostCard
-              post={item}
-              communityId={id}
-              onPress={() => router.push(`/community/${id}/post/${item.id}`)}
+      <FlashList
+        data={rows}
+        keyExtractor={(p) => p.id}
+        renderItem={({ item }) => (
+          <PostCard
+            post={item}
+            communityId={id}
+            onPress={() => router.push(`/community/${id}/post/${item.id}`)}
+          />
+        )}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          isError ? (
+            <EmptyState
+              tone="error"
+              title={t('loadError', { ns: 'common' })}
+              action={{ label: t('retry', { ns: 'common' }), onPress: () => refetch() }}
+              testID="empty-posts"
             />
-          )}
-          contentContainerStyle={styles.list}
-        />
-      )}
+          ) : (
+            <EmptyState
+              icon={emptyIcon('text.bubble')}
+              title={t('noPosts')}
+              body={t('communityPostsEmptyBody')}
+              action={
+                canCompose
+                  ? {
+                      label: t('communityPostsEmptyCta'),
+                      onPress: () => router.push(`/community/${id}/compose`),
+                    }
+                  : undefined
+              }
+              testID="empty-posts"
+            />
+          )
+        }
+      />
       {canCompose ? (
         <Pressable
           style={styles.fab}
@@ -70,8 +88,6 @@ export default function CommunityPostsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  empty: { fontSize: 15, color: colors.mutedForeground },
-  error: { color: colors.destructive, fontWeight: '600' },
   list: { paddingVertical: 8 },
   fab: {
     position: 'absolute',

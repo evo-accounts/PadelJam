@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../theme';
+import { EmptyState, emptyIcon } from '../ui';
 
 export type PostComment = {
   id: string;
@@ -30,9 +31,12 @@ export function CommentList({ comments }: { comments: PostComment[] }) {
 
   if (comments.length === 0) {
     return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyText}>{t('noComments')}</Text>
-      </View>
+      <EmptyState
+        icon={emptyIcon('bubble.left')}
+        title={t('noComments')}
+        body={t('commentsEmptyBody')}
+        testID="empty-comments"
+      />
     );
   }
 
@@ -68,8 +72,6 @@ export function CommentList({ comments }: { comments: PostComment[] }) {
 
 const styles = StyleSheet.create({
   list: { gap: 14, paddingVertical: 8 },
-  empty: { paddingVertical: 24, alignItems: 'center' },
-  emptyText: { fontSize: 15, color: colors.mutedForeground },
   row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.muted },
   avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
