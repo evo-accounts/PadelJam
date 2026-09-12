@@ -183,7 +183,9 @@ describe('00 design system', () => {
    * that failed to attach from one that is merely off screen.
    */
   it('sheet and banner primitives are reachable and labelled', async () => {
-    await scrollUntilVisible({ text: /open confirm/i });
+    // The screenshot pass leaves the gallery scrolled to the bottom; the sheet
+    // demo sits above the viewport, so scroll the content back DOWN to it.
+    await scrollUntilVisible({ text: /open confirm/i }, { direction: 'down', maxSwipes: 10 });
     await tap({ text: /open confirm/i, type: 'Button' });
     let tree = await snapshot();
     expect(query(tree, { text: /delete this\?/i }), 'confirm sheet title').toBeDefined();
@@ -200,6 +202,7 @@ describe('00 design system', () => {
     tree = await snapshot();
     expect(query(tree, { text: /last result: dismissed/i })).toBeDefined();
 
+    await scrollUntilVisible({ text: /show banner/i });
     await tap({ text: /show banner/i, type: 'Button' });
     tree = await snapshot();
     expect(query(tree, { text: /missing information/i }), 'banner text is in the tree').toBeDefined();
