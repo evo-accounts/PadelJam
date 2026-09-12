@@ -1,4 +1,5 @@
-import { useCreateGroup, useUpdateGroup } from '@padel/api';
+import { useCommunityMembers, useCreateGroup, useUpdateGroup } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { GroupComposer, type GroupComposerValues } from '@/components/group/GroupComposer';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +31,13 @@ export default function GroupCreateModal() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const uid = useSession().session?.user.id;
+
+  // can_create_group already requires is_community_admin, so whoever reaches this modal is
+  // an owner or admin — resolve which, so UpgradePrompt's "See plans" can be scoped correctly.
+  const { data: communityMembers } = useCommunityMembers(id);
+  const myRole = communityMembers?.find((m) => m.user_id === uid)?.role;
+  const canManagePlan = myRole === 'owner' || myRole === 'admin';
 
   const create = useCreateGroup();
   const [groupId, setGroupId] = useState<string | null>(null);
@@ -36,6 +45,7 @@ export default function GroupCreateModal() {
 
   const [submitting, setSubmitting] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const onSubmit = (values: GroupComposerValues) => {
     if (submitting) return;
@@ -71,6 +81,13 @@ export default function GroupCreateModal() {
         router.replace(`/group/${newId}` as Href);
       } catch (e) {
         const code = e instanceof Error ? e.message : 'unknown_error';
+        if (code === 'groups_per_community') {
+          // can_create_group already requires is_community_admin, so whoever reaches
+          // this modal can act on the community's plan — see UpgradePrompt.
+          setShowUpgrade(true);
+          setSubmitting(false);
+          return;
+        }
         banner.show(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
         setSubmitting(false);
       }
@@ -97,6 +114,13 @@ export default function GroupCreateModal() {
           />
         </ScrollView>
       </KeyboardAvoidingView>
+      <UpgradePrompt
+        visible={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        communityId={id}
+        message={t('upgradeGroupsCap', { ns: 'community' })}
+        canManage={canManagePlan}
+      />
     </SafeAreaView>
   );
 }

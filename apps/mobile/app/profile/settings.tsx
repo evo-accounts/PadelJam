@@ -1,4 +1,4 @@
-import { useUpdateProfile } from '@padel/api';
+import { useAccountPlan, useUpdateProfile } from '@padel/api';
 import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
@@ -24,9 +24,15 @@ export default function SettingsScreen() {
   const { t, i18n } = useT('profile');
   const router = useRouter();
   const update = useUpdateProfile();
+  const accountPlan = useAccountPlan();
   const [langOpen, setLangOpen] = useState(false);
 
   const current = (LANGS.find((l) => l.code === i18n.language) ?? LANGS[0])!;
+  // Neutral while the plan query is loading: `data` is undefined then, and defaulting to
+  // "planJammer" would flash the free label at a Jammer+ member before it resolves.
+  const planLabel = accountPlan.isLoading
+    ? undefined
+    : t(accountPlan.data === 'jammer_plus' ? 'planJammerPlus' : 'planJammer');
 
   const onSelectLang = (code: string) => {
     void i18n.changeLanguage(code);
@@ -59,6 +65,12 @@ export default function SettingsScreen() {
         <ListRow title={t('notifications')} onPress={() => router.push('/profile/notifications')} />
 
         <Text style={styles.section}>{t('account')}</Text>
+        <ListRow
+          title={t('planRow')}
+          trailing={planLabel ? <Text variant="body" tone="muted">{planLabel}</Text> : undefined}
+          trailingLabel={planLabel}
+          onPress={() => router.push('/profile/plan')}
+        />
         <ListRow title={t('changePassword')} onPress={() => router.push('/profile/change-password')} />
         <ListRow title={t('changeEmail')} onPress={() => router.push('/profile/change-email')} />
         <ListRow

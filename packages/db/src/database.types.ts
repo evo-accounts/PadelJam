@@ -2291,6 +2291,7 @@ export type Database = {
         Returns: boolean
       }
       account_plan: { Args: { u: string }; Returns: string }
+      account_plan_of_caller: { Args: never; Returns: string }
       add_manual_participant: {
         Args: { p_event_id: string; p_gender?: string; p_name: string }
         Returns: string
@@ -2364,7 +2365,10 @@ export type Database = {
         Returns: boolean
       }
       community_limit: { Args: { c: string; key: string }; Returns: number }
+      community_limit_for_plan: { Args: { p_plan: string; p_key: string }; Returns: number }
       community_plan: { Args: { c: string }; Returns: string }
+      set_account_plan: { Args: { p_plan: string }; Returns: string }
+      set_community_plan: { Args: { p_community_id: string; p_plan: string }; Returns: string }
       create_community_with_personal_tenant: {
         Args: {
           p_cancellation_rules_enabled?: boolean

@@ -8,10 +8,12 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
+import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { colors, palette } from '../../../../theme';
 import {
   EmptyState,
@@ -36,6 +38,7 @@ export default function ManageMembersScreen() {
   const removeMember = useRemoveMember(id);
   const show = useActionSheet();
   const banner = useBanner();
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const myRole = (members as CommunityMember[] | undefined)?.find((m) => m.user_id === uid)?.role;
   const canManage = myRole === 'owner' || myRole === 'admin';
@@ -50,6 +53,13 @@ export default function ManageMembersScreen() {
     try {
       await makeAdmin.mutateAsync(userId);
     } catch (e) {
+      const code = e instanceof Error ? e.message : 'unknown_error';
+      if (code === 'co_organizers_limit_reached') {
+        // Only actionable from here by an owner/admin (canManage above), who can
+        // act on the community's plan — see UpgradePrompt.
+        setShowUpgrade(true);
+        return;
+      }
       err(e);
     }
   };
@@ -169,6 +179,13 @@ export default function ManageMembersScreen() {
             </View>
           </Pressable>
         )}
+      />
+      <UpgradePrompt
+        visible={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        communityId={id}
+        message={t('upgradeCoOrganizersCap')}
+        canManage={canManage}
       />
     </SafeAreaView>
   );

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AckGate } from '@/components/community/AckGate';
 import { CommunityHero } from '@/components/community/CommunityHero';
+import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { colors } from '../../../theme';
 import { Button, TopBar, useBanner } from '../../../components/ui';
 
@@ -34,6 +35,7 @@ export default function CommunityJoinModal() {
   const [ack, setAck] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [requested, setRequested] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   if (isLoading || !community) {
     return (
@@ -64,6 +66,12 @@ export default function CommunityJoinModal() {
         }
       } catch (e) {
         const code = e instanceof Error ? e.message : 'unknown_error';
+        if (code === 'community_full') {
+          // The joiner is by definition not yet a member, so they can't act on the
+          // community's plan — UpgradePrompt shows the message with an OK close.
+          setShowUpgrade(true);
+          return;
+        }
         setErrorKey(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error');
       }
     })();
@@ -104,6 +112,13 @@ export default function CommunityJoinModal() {
           </>
         )}
       </View>
+      <UpgradePrompt
+        visible={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        communityId={id}
+        message={t('upgradeMembersCap')}
+        canManage={false}
+      />
     </SafeAreaView>
   );
 }

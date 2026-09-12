@@ -9,8 +9,10 @@ import {
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRef } from 'react';
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
+import { PlanSection } from '../../../../components/community/PlanSection';
 import { Avatar, TopBar, useActionSheet, useBanner, useConfirm } from '../../../../components/ui';
 import {
   ActivityIndicator,
@@ -19,6 +21,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -31,8 +34,11 @@ type Member = {
 export default function ManageIndexScreen() {
   const { t } = useT('community');
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, section } = useLocalSearchParams<{ id: string; section?: string }>();
   const uid = useSession().session?.user.id;
+  const scrollRef = useRef<ScrollView>(null);
+  const planY = useRef(0);
+  const scrolledToPlan = useRef(false);
 
   const { data: community } = useCommunity(id);
   const { data: members } = useCommunityMembers(id);
@@ -47,6 +53,7 @@ export default function ManageIndexScreen() {
 
   const myRole = (members as Member[] | undefined)?.find((m) => m.user_id === uid)?.role;
   const isOwner = myRole === 'owner';
+  const isAdmin = myRole === 'admin';
   const isArchived = !!community?.archived_at;
   const pendingCount = requests?.length ?? 0;
   const otherMembers = (members as Member[] | undefined)?.filter((m) => m.user_id !== uid) ?? [];
@@ -134,10 +141,18 @@ export default function ManageIndexScreen() {
 
   const showRequests = community?.privacy === 'request_to_join';
 
+  const onPlanLayout = (event: LayoutChangeEvent) => {
+    planY.current = event.nativeEvent.layout.y;
+    if (section === 'plan' && !scrolledToPlan.current) {
+      scrolledToPlan.current = true;
+      scrollRef.current?.scrollTo({ y: planY.current, animated: true });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('manageTitle')} onBack={() => router.back()} backLabel={t('back')} />
-      <ScrollView contentContainerStyle={styles.inner}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.inner}>
         <Section title={t('manageGroupCommunity')}>
           <NavRow label={t('manageSettings')} onPress={() => router.push(`/community/${id}/manage/settings`)} />
           <NavRow label={t('managePermissions')} onPress={() => router.push(`/community/${id}/manage/permissions`)} />
@@ -154,6 +169,10 @@ export default function ManageIndexScreen() {
           ) : null}
           <NavRow label={t('manageInvite')} onPress={() => router.push(`/community/${id}/manage/invite`)} />
         </Section>
+
+        {isOwner || isAdmin ? (
+          <PlanSection communityId={id} canAct={isOwner} onLayout={onPlanLayout} />
+        ) : null}
 
         <Section title={t('manageGroupAdvanced')}>
           <ActionRow

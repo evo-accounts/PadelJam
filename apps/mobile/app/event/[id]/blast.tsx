@@ -2,12 +2,16 @@ import {
   blastSchema,
   useBlastTemplates,
   useCanCustomizeBlast,
+  useCommunityMembers,
+  useEvent,
   useEventBlastDeliveries,
   useEventBlasts,
+  useGroup,
   useRetryBlast,
   useSendBlast,
   type BlastTemplate,
 } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -18,6 +22,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFieldErrors } from '@/lib/useFieldErrors';
+import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { colors, palette, space } from '../../../theme';
 import { BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, Field, Loading, Text, TopBar, useBanner } from '../../../components/ui';
 
@@ -43,6 +48,7 @@ export default function BlastScreen() {
   const banner = useBanner();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const uid = useSession().session?.user.id;
 
   const { data: canCustomize, isLoading: loadingTier } = useCanCustomizeBlast(id);
   const { data: templates } = useBlastTemplates();
@@ -51,6 +57,16 @@ export default function BlastScreen() {
   const { data: deliveries } = useEventBlastDeliveries(id);
   const retryBlast = useRetryBlast(id);
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  // Starter's "Customize" button routes to the Plan section (UX-GLOB-10 Task 6);
+  // that needs the event's community, and whether the viewer can act there.
+  const { data: event } = useEvent(id);
+  const { data: group } = useGroup(event?.group_id);
+  const communityId = group?.community_id;
+  const { data: communityMembers } = useCommunityMembers(communityId);
+  const myRole = communityMembers?.find((m) => m.user_id === uid)?.role;
+  const canManagePlan = myRole === 'owner' || myRole === 'admin';
 
   const [tab, setTab] = useState<'templates' | 'yours'>('templates');
   const [editing, setEditing] = useState<{ template: BlastTemplate | null; title: string; description: string } | null>(null);
@@ -174,6 +190,13 @@ export default function BlastScreen() {
               submit({ template: defaultTemplate, title: defaultTemplate.title, description: defaultTemplate.description })
             }
           />
+          <Button
+            label={t('blastCustomizeTitle')}
+            variant="outline"
+            fullWidth
+            onPress={() => setShowUpgrade(true)}
+            testID="blast-customize-upgrade-cta"
+          />
         </ScrollView>
       ) : (
         // --- Basic/Pro: tabs + customize modal ---
@@ -280,6 +303,16 @@ export default function BlastScreen() {
           onPress={() => editing && submit(editing)}
         />
       </BottomSheet>
+
+      {communityId ? (
+        <UpgradePrompt
+          visible={showUpgrade}
+          onClose={() => setShowUpgrade(false)}
+          communityId={communityId}
+          message={t('upgradeBlast', { ns: 'community' })}
+          canManage={canManagePlan}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
