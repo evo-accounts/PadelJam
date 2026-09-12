@@ -41,7 +41,7 @@ export function RankingList({ rows }: { rows: RankingRow[] }) {
           <View key={row.userId} style={styles.row}>
             <Text style={[styles.rank, styles.rankCol]}>{row.rank}</Text>
             <View style={[styles.playerCol, styles.player]}>
-              <Avatar uri={avatarUrl(row.avatarUrl)} name={name} colourKey={row.userId} size="md" />
+              <Avatar uri={avatarUrl(row.avatarUrl)} name={name} colourKey={row.userId} size="md" decorative />
               <View style={styles.playerText}>
                 <Text style={styles.name} numberOfLines={1}>
                   {name}

@@ -574,14 +574,13 @@ export default function EventDetailScreen() {
                 return (
                   <View key={p.id} style={styles.playerRow}>
                     {/* Decorative: the player's name is right beside it as its own Text node. */}
-                    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                      <Avatar
-                        uri={avatarUrl(p.profiles?.avatar_url)}
-                        name={pName}
-                        colourKey={p.profiles?.id ?? p.user_id}
-                        size="sm"
-                      />
-                    </View>
+                    <Avatar
+                      uri={avatarUrl(p.profiles?.avatar_url)}
+                      name={pName}
+                      colourKey={p.profiles?.id ?? p.user_id}
+                      size="sm"
+                      decorative
+                    />
                     <Text style={styles.playerName}>{pName}</Text>
                   </View>
                 );

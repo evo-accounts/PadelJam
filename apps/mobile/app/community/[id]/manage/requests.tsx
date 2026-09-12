@@ -111,9 +111,7 @@ export default function ManageRequestsScreen() {
           return (
             <View style={styles.row}>
               {/* Decorative: the name is right beside it as its own Text node. */}
-              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Avatar uri={avatarUrl(item.profiles?.avatar_url)} name={name} colourKey={item.user_id} size="md" />
-              </View>
+              <Avatar uri={avatarUrl(item.profiles?.avatar_url)} name={name} colourKey={item.user_id} size="md" decorative />
               <Text style={styles.name} numberOfLines={1}>
                 {name}
               </Text>

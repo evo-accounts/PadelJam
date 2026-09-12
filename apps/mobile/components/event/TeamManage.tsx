@@ -189,14 +189,13 @@ export function TeamManage({
                       {occ ? (
                         <View style={styles.slotFilledContent}>
                           {/* Decorative: the occupant's name is right beside it as its own Text node. */}
-                          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                            <Avatar
-                              uri={avatarUrl(occ.profiles?.avatar_url)}
-                              name={pname(occ)}
-                              colourKey={occ.profiles?.id ?? occ.user_id}
-                              size="sm"
-                            />
-                          </View>
+                          <Avatar
+                            uri={avatarUrl(occ.profiles?.avatar_url)}
+                            name={pname(occ)}
+                            colourKey={occ.profiles?.id ?? occ.user_id}
+                            size="sm"
+                            decorative
+                          />
                           <Text style={styles.slotName} numberOfLines={1}>
                             {pname(occ)}
                           </Text>

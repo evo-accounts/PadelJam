@@ -127,9 +127,7 @@ export default function GroupInviteScreen() {
               {/* The whole row is one accessible button whose label already
                   includes the name (below); hide the avatar itself so a
                   screen reader doesn't announce the name a second time. */}
-              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Avatar uri={avatarUrl(item.profiles?.avatar_url)} name={name} colourKey={item.user_id} size="md" />
-              </View>
+              <Avatar uri={avatarUrl(item.profiles?.avatar_url)} name={name} colourKey={item.user_id} size="md" decorative />
               <Text style={styles.name} numberOfLines={1}>
                 {name}
               </Text>

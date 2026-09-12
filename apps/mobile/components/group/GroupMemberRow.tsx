@@ -39,6 +39,7 @@ export function GroupMemberRow({
         name={name}
         colourKey={member.user_id}
         size="md"
+        decorative
       />
       <Text style={styles.name} numberOfLines={1}>
         {name}

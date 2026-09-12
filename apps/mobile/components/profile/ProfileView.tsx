@@ -28,7 +28,7 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Avatar uri={avatarUrl(p.avatar_url)} name={p.full_name} colourKey={userId} size="xl" />
+        <Avatar uri={avatarUrl(p.avatar_url)} name={p.full_name} colourKey={userId} size="xl" decorative />
         <Text style={styles.name}>{p.full_name}</Text>
         {p.description ? <Text style={styles.bio}>{p.description}</Text> : null}
         {isSelf && (

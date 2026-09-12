@@ -32,6 +32,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
           name={name}
           colourKey={review.user_id}
           size="md"
+          decorative
         />
         <View style={styles.meta}>
           <Text style={styles.name} numberOfLines={1}>

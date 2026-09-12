@@ -87,6 +87,7 @@ function GroupMemberList({
                   name={name}
                   colourKey={member.user_id}
                   size="sm"
+                  decorative
                 />
                 <Text style={[styles.memberName, selected && styles.memberNameSelected]}>{name}</Text>
               </Pressable>
@@ -177,9 +178,10 @@ function ManualInvitees({
               key={`${inv.name ?? ''}-${inv.email ?? ''}-${inv.phone ?? ''}-${index}`}
               onPress={() => remove(inv)}
               accessibilityRole="button"
+              accessibilityLabel={`${t('removeCta')}: ${inv.name ?? ''}`}
               style={styles.chip}
             >
-              <Avatar name={inv.name} size="xs" />
+              <Avatar name={inv.name} size="xs" decorative />
               <Text style={styles.chipText}>{inv.name ?? '—'}</Text>
               <Text style={styles.chipRemove}>×</Text>
             </Pressable>

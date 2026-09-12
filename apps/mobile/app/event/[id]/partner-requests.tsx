@@ -115,14 +115,13 @@ export default function PartnerRequestsScreen() {
               <View key={r.id} style={styles.card}>
                 <View style={styles.requestRow}>
                   {/* Decorative: the requester's name is already part of the sentence beside it. */}
-                  <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                    <Avatar
-                      uri={avatarUrl(r.requester?.avatar_url)}
-                      name={r.requester?.full_name}
-                      colourKey={r.requester?.id ?? r.requester_id}
-                      size="sm"
-                    />
-                  </View>
+                  <Avatar
+                    uri={avatarUrl(r.requester?.avatar_url)}
+                    name={r.requester?.full_name}
+                    colourKey={r.requester?.id ?? r.requester_id}
+                    size="sm"
+                    decorative
+                  />
                   <Text variant="body" style={styles.requestText}>
                     {t('partnerIncoming', { name: r.requester?.full_name ?? '—' })}
                   </Text>
@@ -143,14 +142,13 @@ export default function PartnerRequestsScreen() {
               <View key={r.id} style={styles.row}>
                 <View style={styles.requestRow}>
                   {/* Decorative: the target's name is right beside it as its own Text node. */}
-                  <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                    <Avatar
-                      uri={avatarUrl(r.target?.avatar_url)}
-                      name={r.target?.full_name}
-                      colourKey={r.target?.id ?? r.target_id}
-                      size="sm"
-                    />
-                  </View>
+                  <Avatar
+                    uri={avatarUrl(r.target?.avatar_url)}
+                    name={r.target?.full_name}
+                    colourKey={r.target?.id ?? r.target_id}
+                    size="sm"
+                    decorative
+                  />
                   <Text variant="body">{r.target?.full_name ?? '—'}</Text>
                 </View>
                 <Text variant="hint" tone="muted">{t('partnerRequestPending')}</Text>
@@ -228,14 +226,13 @@ function CandidateList({
         <View key={m.user_id} style={styles.row}>
           <View style={styles.requestRow}>
             {/* Decorative: the candidate's name is right beside it as its own Text node. */}
-            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <Avatar
-                uri={avatarUrl(m.profiles?.avatar_url)}
-                name={m.profiles?.full_name}
-                colourKey={m.profiles?.id ?? m.user_id}
-                size="sm"
-              />
-            </View>
+            <Avatar
+              uri={avatarUrl(m.profiles?.avatar_url)}
+              name={m.profiles?.full_name}
+              colourKey={m.profiles?.id ?? m.user_id}
+              size="sm"
+              decorative
+            />
             <Text variant="body">{m.profiles?.full_name ?? '—'}</Text>
           </View>
           <Button

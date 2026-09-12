@@ -62,14 +62,13 @@ function SidePlayers({ players, side }: { players: MatchPlayer[]; side: 'a' | 'b
         return (
           <View key={mp.id} style={styles.sidePlayerRow}>
             {/* Decorative: the player's name is right beside it as its own Text node. */}
-            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <Avatar
-                uri={avatarUrl(ep?.profiles?.avatar_url)}
-                name={name}
-                colourKey={ep?.profiles?.id ?? ep?.user_id}
-                size="sm"
-              />
-            </View>
+            <Avatar
+              uri={avatarUrl(ep?.profiles?.avatar_url)}
+              name={name}
+              colourKey={ep?.profiles?.id ?? ep?.user_id}
+              size="sm"
+              decorative
+            />
             <Text style={styles.sideNames} numberOfLines={1}>
               {name}
             </Text>
@@ -484,14 +483,13 @@ export default function EventLiveScreen() {
                     return (
                       <View key={p.id} style={styles.restingRow}>
                         {/* Decorative: the resting player's name is right beside it as its own Text node. */}
-                        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                          <Avatar
-                            uri={avatarUrl(info?.avatarUrl)}
-                            name={info?.name}
-                            colourKey={info?.colourKey}
-                            size="sm"
-                          />
-                        </View>
+                        <Avatar
+                          uri={avatarUrl(info?.avatarUrl)}
+                          name={info?.name}
+                          colourKey={info?.colourKey}
+                          size="sm"
+                          decorative
+                        />
                         <Text style={styles.restingName}>{info?.name ?? '—'}</Text>
                       </View>
                     );
@@ -528,14 +526,13 @@ export default function EventLiveScreen() {
                   <View style={styles.colPlayer}>
                     {!s.is_team ? (
                       // Decorative: the standing's name is right beside it as its own Text node.
-                      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                        <Avatar
-                          uri={avatarUrl(info?.avatarUrl)}
-                          name={name}
-                          colourKey={info?.colourKey}
-                          size="sm"
-                        />
-                      </View>
+                      <Avatar
+                        uri={avatarUrl(info?.avatarUrl)}
+                        name={name}
+                        colourKey={info?.colourKey}
+                        size="sm"
+                        decorative
+                      />
                     ) : null}
                     <Text style={styles.colPlayerText} numberOfLines={1}>
                       {name}

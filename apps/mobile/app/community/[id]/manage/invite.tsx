@@ -206,9 +206,7 @@ export default function ManageInviteScreen() {
             <Pressable style={styles.personRow} onPress={() => toggleSelect(item)}>
               {/* The row's name Text already labels this button; hide the
                   avatar from the accessibility tree so it isn't announced twice. */}
-              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Avatar uri={avatarUrl(item.avatar_url)} name={name} colourKey={item.id} size="md" />
-              </View>
+              <Avatar uri={avatarUrl(item.avatar_url)} name={name} colourKey={item.id} size="md" decorative />
               <Text style={styles.name} numberOfLines={1}>
                 {name}
               </Text>

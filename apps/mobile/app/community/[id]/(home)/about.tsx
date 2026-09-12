@@ -114,15 +114,14 @@ export default function CommunityAboutScreen() {
           {admins.map((a) => (
             <View key={a.user_id} style={styles.adminRow}>
               {/* Decorative: the admin's name is right beside it as its own Text node. */}
-              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Avatar
-                  uri={avatarUrl(a.profiles?.avatar_url)}
-                  name={a.profiles?.full_name}
-                  colourKey={a.user_id}
-                  size="md"
-                  style={styles.adminAvatar}
-                />
-              </View>
+              <Avatar
+                uri={avatarUrl(a.profiles?.avatar_url)}
+                name={a.profiles?.full_name}
+                colourKey={a.user_id}
+                size="md"
+                style={styles.adminAvatar}
+                decorative
+              />
               <Text style={styles.adminName} numberOfLines={1}>
                 {a.profiles?.full_name ?? '—'}
               </Text>

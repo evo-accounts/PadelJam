@@ -81,6 +81,7 @@ export default function PartnerRequestsScreen() {
                 name={item.requester_name}
                 colourKey={item.requester_id}
                 size="md"
+                decorative
               />
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{item.requester_name ?? '—'}</Text>

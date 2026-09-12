@@ -24,6 +24,16 @@ type Props = {
   size?: AvatarSize;
   style?: ViewStyle;
   testID?: string;
+  /**
+   * Hides the avatar from assistive tech instead of announcing "image, <name>".
+   *
+   * Use it whenever a name is rendered next to the avatar — the visible name is
+   * already the accessible text, so the avatar's own label would double-announce
+   * it. Leave it off when the avatar is the only representation of the person
+   * (an avatar stack, the own-profile picture picker) — there it needs its own
+   * accessible label.
+   */
+  decorative?: boolean;
 };
 
 const diameters: Record<AvatarSize, number> = {
@@ -58,16 +68,16 @@ export function initialsOf(name: string | null | undefined): string {
   return (first + last).toUpperCase();
 }
 
-export function Avatar({ uri, name, colourKey, size = 'md', style, testID }: Props) {
+export function Avatar({ uri, name, colourKey, size = 'md', style, testID, decorative }: Props) {
   const d = diameters[size];
   const shape = { width: d, height: d, borderRadius: radius.full };
 
   return (
     <View
       testID={testID}
-      accessible
-      accessibilityRole="image"
-      accessibilityLabel={name ?? undefined}
+      {...(decorative
+        ? { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' as const }
+        : { accessible: true, accessibilityRole: 'image' as const, accessibilityLabel: name ?? undefined })}
       style={[styles.base, shape, !uri && { backgroundColor: avatarColour(colourKey ?? name) }, style]}
     >
       {uri ? (

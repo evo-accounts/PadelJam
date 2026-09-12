@@ -45,7 +45,7 @@ export function CommentList({ comments }: { comments: PostComment[] }) {
         const name = c.author?.full_name ?? '—';
         return (
           <View key={c.id} style={styles.row}>
-            <Avatar uri={avatarUrl(c.author?.avatar_url)} name={name} colourKey={c.author_id} size="sm" />
+            <Avatar uri={avatarUrl(c.author?.avatar_url)} name={name} colourKey={c.author_id} size="sm" decorative />
             <View style={styles.bubble}>
               <View style={styles.metaRow}>
                 <Text style={styles.author} numberOfLines={1}>

@@ -171,6 +171,12 @@ export function Overview() {
           <Avatar name="Rui Trindade" colourKey="user-a" size="lg" />
           <Avatar name="Sara Lima" colourKey="user-b" size="lg" />
         </Row>
+        {/* decorative: the visible name is the accessible text, so the avatar
+            itself must not also announce "image, Ana Silva". */}
+        <Row>
+          <Avatar name="Ana Silva" size="md" decorative />
+          <Text variant="body">Ana Silva</Text>
+        </Row>
       </Section>
 
       <Section title="Badge">

@@ -76,6 +76,7 @@ export default function NewChatScreen() {
                 name={item.full_name}
                 colourKey={item.id}
                 size="md"
+                decorative
               />
               <Text style={styles.name}>{item.full_name ?? '—'}</Text>
             </Pressable>

@@ -256,14 +256,13 @@ export default function EventManageScreen() {
     return (
       <View key={p.id} style={styles.row}>
         {/* Decorative: the participant's name is right beside it as its own Text node. */}
-        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Avatar
-            uri={avatarUrl(p.profiles?.avatar_url)}
-            name={name}
-            colourKey={p.profiles?.id ?? p.user_id}
-            size="sm"
-          />
-        </View>
+        <Avatar
+          uri={avatarUrl(p.profiles?.avatar_url)}
+          name={name}
+          colourKey={p.profiles?.id ?? p.user_id}
+          size="sm"
+          decorative
+        />
         <Text variant="body" numberOfLines={1} style={styles.rowName}>
           {name}
         </Text>
@@ -419,14 +418,13 @@ export default function EventManageScreen() {
                   return (
                     <View key={inv.id} style={styles.row}>
                       {/* Decorative: the invitee's name is right beside it as its own Text node. */}
-                      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                        <Avatar
-                          uri={avatarUrl(inv.invitee?.avatar_url)}
-                          name={name}
-                          colourKey={inv.invitee?.id ?? inv.invitee_id}
-                          size="sm"
-                        />
-                      </View>
+                      <Avatar
+                        uri={avatarUrl(inv.invitee?.avatar_url)}
+                        name={name}
+                        colourKey={inv.invitee?.id ?? inv.invitee_id}
+                        size="sm"
+                        decorative
+                      />
                       <Text variant="body" numberOfLines={1} style={styles.rowName}>
                         {name}
                       </Text>

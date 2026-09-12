@@ -48,6 +48,7 @@ function CommunityListItem({
         name={community.name}
         colourKey={community.id}
         size="lg"
+        decorative
       />
       <View style={styles.itemBody}>
         <Text style={styles.itemName} numberOfLines={1}>
