@@ -5,8 +5,9 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GroupCard } from '@/components/group/GroupCard';
 import { colors } from '../../theme';
-import { Chip, EmptyState, ListRow, Text, TopBar } from '../../components/ui';
+import { Chip, EmptyState, TopBar } from '../../components/ui';
 
 export default function YourGroupsScreen() {
   const { t } = useT('home');
@@ -59,20 +60,19 @@ export default function YourGroupsScreen() {
         <FlashList
           data={rows}
           keyExtractor={(g: MyGroup) => g.group_id}
+          contentContainerStyle={styles.list}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           renderItem={({ item }) => (
-            <ListRow
-              variant="card"
-              title={item.name}
-              subtitle={item.community_name}
-              trailing={
-                <Text variant="caption" tone="muted">
-                  {t('memberCount', { count: item.member_count })}
-                </Text>
-              }
-              // Without this the count is not announced at all: ListRow sets an
-              // accessibilityLabel, which makes the row a single element and
-              // drops its children from the tree.
-              trailingLabel={t('memberCount', { count: item.member_count })}
+            // `my_groups` (an RPC, not a plain select) doesn't return the
+            // thumbnail/is_private/is_general/archived_at columns GroupCard's
+            // badge affordances use — same loose-cast the explore list already
+            // takes for this reason. `community_name` IS on `MyGroup`, and the
+            // merged card renders it as a second line for exactly this screen
+            // (a list that spans communities) — so nothing here is lost.
+            <GroupCard
+              group={item as never}
+              memberCount={item.member_count}
+              orientation="horizontal"
               onPress={() => router.push(`/group/${item.group_id}` as never)}
             />
           )}
@@ -85,4 +85,5 @@ export default function YourGroupsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   tabs: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
+  list: { padding: 16 },
 });

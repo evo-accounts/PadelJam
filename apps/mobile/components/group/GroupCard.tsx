@@ -5,32 +5,77 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { thumbnailUrl } from '@/lib/community-images';
 import { colors, palette } from '../../theme';
 
-/** Minimal group row shape used to render a card in a list. */
+/**
+ * Minimal group row shape used to render a card in a list.
+ *
+ * `community_name` is optional: most callers already scope the list to one
+ * community, so there is nothing to say. Home's "My Groups" spans several
+ * communities, so it supplies it and the card shows a second line.
+ */
 export type GroupCardGroup = {
   id: string;
   name: string;
-  thumbnail_path: string | null;
-  is_private: boolean;
-  is_general: boolean;
-  archived_at: string | null;
+  thumbnail_path?: string | null;
+  is_private?: boolean;
+  is_general?: boolean;
+  archived_at?: string | null;
+  community_name?: string | null;
 };
 
 /**
- * A tappable row/card for a group in a list: thumbnail, name, applicable tags
- * (General / Private / Archived) and an optional member count. Presentational —
- * the caller supplies the group row and an onPress handler.
+ * A tappable group card: thumbnail, name, applicable tags (General / Private /
+ * Archived) and an optional member count. Presentational — the caller supplies
+ * the group row and an onPress handler.
+ *
+ * One `GroupCard` for both arrangements (UX-GLOB-09), replacing the separate
+ * `explore/GroupCard` (vertical-only rail card): `vertical` is a fixed-width
+ * card for a rail (thumbnail on top, name below); `horizontal` (the default)
+ * is the full-width row this component always was. Same content either way —
+ * only the layout switches.
  */
 export function GroupCard({
   group,
   memberCount,
   onPress,
+  orientation = 'horizontal',
+  railWidth = 160,
 }: {
   group: GroupCardGroup;
   memberCount?: number;
   onPress?: () => void;
+  orientation?: 'vertical' | 'horizontal';
+  railWidth?: number;
 }) {
   const { t } = useT('group');
   const thumb = thumbnailUrl(group.thumbnail_path);
+
+  if (orientation === 'vertical') {
+    return (
+      <Pressable
+        style={[styles.cardVertical, { width: railWidth }]}
+        onPress={onPress}
+        disabled={!onPress}
+        accessibilityRole="button"
+        testID={`group-card-${group.id}`}
+      >
+        {thumb ? (
+          <Image
+            source={{ uri: thumb }}
+            style={styles.thumbVertical}
+            contentFit="cover"
+            transition={120}
+          />
+        ) : (
+          <View style={[styles.thumbVertical, styles.thumbFallback]}>
+            <Text style={styles.thumbInitial}>{(group.name.charAt(0) || '?').toUpperCase()}</Text>
+          </View>
+        )}
+        <Text style={styles.nameVertical} numberOfLines={2}>
+          {group.name}
+        </Text>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -38,6 +83,7 @@ export function GroupCard({
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole="button"
+      testID={`group-card-${group.id}`}
     >
       {thumb ? (
         <Image source={{ uri: thumb }} style={styles.thumb} contentFit="cover" transition={120} />
@@ -50,6 +96,11 @@ export function GroupCard({
         <Text style={styles.name} numberOfLines={1}>
           {group.name}
         </Text>
+        {group.community_name ? (
+          <Text style={styles.community} numberOfLines={1}>
+            {group.community_name}
+          </Text>
+        ) : null}
         <View style={styles.tags}>
           {group.is_general ? <Tag label={t('generalGroup')} /> : null}
           {group.is_private ? <Tag label={t('privateTag')} /> : null}
@@ -59,7 +110,9 @@ export function GroupCard({
           ) : null}
         </View>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <Text style={styles.chevron} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        ›
+      </Text>
     </Pressable>
   );
 }
@@ -81,11 +134,22 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 12,
   },
+  cardVertical: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: 12,
+    gap: 6,
+  },
   thumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.muted },
+  thumbVertical: { height: 72, borderRadius: 10, backgroundColor: colors.muted },
   thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
   thumbInitial: { color: colors.card, fontSize: 22, fontWeight: '700' },
   body: { flex: 1, gap: 4 },
   name: { fontSize: 16, fontWeight: '700', color: colors.foreground },
+  nameVertical: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  community: { fontSize: 12, color: colors.mutedForeground, fontWeight: '600' },
   tags: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   tag: { backgroundColor: colors.accent, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   tagMuted: { backgroundColor: colors.background },
