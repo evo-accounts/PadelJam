@@ -15,9 +15,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { safeAuthMessage } from '@/lib/authErrors';
 import { getAuthTarget } from '@/lib/auth-flow';
+import { passwordValid } from '@/lib/passwordRules';
 import { supabase } from '@/lib/supabase';
 import { colors, palette } from '../../theme';
-import { Button, useBanner } from '../../components/ui';
+import { Button, PasswordField, useBanner } from '../../components/ui';
 
 type Step = 'code' | 'password' | 'done';
 
@@ -97,7 +98,7 @@ export default function RecoveryScreen() {
 
   const savePassword = async () => {
     if (busy) return;
-    if (pw.length < 8) { banner.show(t('passwordTooShort')); return; }
+    if (!passwordValid(pw)) { banner.show(tc('missingInformation')); return; }
     if (pw !== pw2) { banner.show(t('passwordsDontMatch')); return; }
     setBusy(true);
     try {
@@ -146,10 +147,22 @@ export default function RecoveryScreen() {
       ) : step === 'password' ? (
         <>
           <Text style={styles.title}>{t('newPasswordTitle')}</Text>
-          <Text style={styles.label}>{t('newPasswordLabel')}</Text>
-          <TextInput style={styles.input} value={pw} onChangeText={setPw} secureTextEntry autoCapitalize="none" editable={!busy} />
-          <Text style={[styles.label, { marginTop: 12 }]}>{t('confirmPasswordLabel')}</Text>
-          <TextInput style={styles.input} value={pw2} onChangeText={setPw2} secureTextEntry autoCapitalize="none" editable={!busy} />
+          <PasswordField
+            label={t('newPasswordLabel')}
+            value={pw}
+            onChangeText={setPw}
+            showRules
+            editable={!busy}
+            testID="new-password-input"
+          />
+          <PasswordField
+            label={t('confirmPasswordLabel')}
+            value={pw2}
+            onChangeText={setPw2}
+            editable={!busy}
+            testID="confirm-password-input"
+            containerStyle={styles.confirmField}
+          />
           <Button
             label={t('continue')}
             fullWidth
@@ -171,8 +184,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 24 },
   title: { fontSize: 24, fontWeight: '800', color: colors.foreground, marginBottom: 8 },
   help: { fontSize: 14, color: colors.mutedForeground, marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginBottom: 6 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
+  confirmField: { marginTop: 12 },
   button: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: colors.card, fontWeight: '700', fontSize: 16 },

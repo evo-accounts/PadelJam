@@ -6,7 +6,7 @@ import { freshInstall } from '../driver/app';
 import { dismissSavePasswordSheetIfPresent, loginAs, passWelcomeIfPresent } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
 import { latestOtp } from '../fixtures/mailpit';
-import { PERSONAS, TEST_PHONE, TEST_PHONE_OTP } from '../fixtures/personas';
+import { PASSWORD, PERSONAS, TEST_PHONE, TEST_PHONE_OTP } from '../fixtures/personas';
 
 describe('01 auth', () => {
   beforeAll(async () => {
@@ -49,7 +49,7 @@ describe('01 auth', () => {
     await expectVisible({ text: /complete your account/i });
     await typeText({ text: /your name/i, type: 'TextField' }, 'Test E2E User');
     await typeText({ text: /name@example\.com/i, type: 'TextField' }, secondaryEmail);
-    await typeText({ type: 'TextField', nth: 2 }, 'e2ePass1234');
+    await typeText({ type: 'TextField', nth: 2 }, PASSWORD);
     // Terms unchecked → submit must not navigate.
     await tap({ label: 'Create account', type: 'Button' });
     await expectVisible({ text: /complete your account/i }); // still on the form

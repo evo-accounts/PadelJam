@@ -18,9 +18,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { safeAuthMessage } from '@/lib/authErrors';
 import { detectKind, getAuthTarget } from '@/lib/auth-flow';
+import { passwordValid } from '@/lib/passwordRules';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
-import { Button, useBanner } from '../../components/ui';
+import { Button, PasswordField, useBanner } from '../../components/ui';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
@@ -103,7 +104,7 @@ export default function CreateAccountScreen() {
   const submit = async () => {
     if (busy) return;
     const name = fullName.trim();
-    if (!name || !secondaryValue || !password || !agreed) {
+    if (!name || !secondaryValue || !password || !agreed || !passwordValid(password)) {
       banner.show(tc('missingInformation'));
       return;
     }
@@ -343,14 +344,14 @@ export default function CreateAccountScreen() {
           editable={!busy}
         />
 
-        <Text style={styles.label}>{t('passwordLabel')}</Text>
-        <TextInput
-          style={styles.input}
+        <PasswordField
+          label={t('passwordLabel')}
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
+          showRules
           editable={!busy}
+          containerStyle={styles.passwordField}
+          testID="password-input"
         />
 
         <Pressable style={styles.termsRow} onPress={() => setAgreed((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }}>
@@ -403,6 +404,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputDisabled: { backgroundColor: colors.muted, color: colors.mutedForeground },
+  passwordField: { marginBottom: 16 },
   button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
