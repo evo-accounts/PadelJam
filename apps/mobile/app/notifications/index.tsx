@@ -13,9 +13,9 @@ import { notificationRoute } from '@padel/utils';
 import { FlashList } from '@shopify/flash-list';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { colors } from '../../theme';
-import { Button, IconButton, ListRow, Text } from '../../components/ui';
+import { Button, IconButton, ListRow, Text, useActionSheet } from '../../components/ui';
 
 function targetHref(n: NotificationRow): string | null {
   return notificationRoute(n);
@@ -37,7 +37,7 @@ export default function NotificationsScreen() {
   const markAllRead = useMarkAllRead();
   const clearAll = useClearAll();
   const completeCta = useCompleteNotificationCta();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const show = useActionSheet();
   const [ctaError, setCtaError] = useState<{ id: string; code: string } | null>(null);
 
   const rows = list.data?.pages.flat() ?? [];
@@ -55,7 +55,25 @@ export default function NotificationsScreen() {
         options={{
           title: t('title'),
           headerRight: () => (
-            <IconButton icon="•••" accessibilityLabel={t('more')} onPress={() => setMenuOpen(true)} />
+            <IconButton
+              icon="•••"
+              accessibilityLabel={t('more')}
+              onPress={async () => {
+                const key = await show({
+                  actions: [
+                    { key: 'markAllRead', label: t('markAllRead') },
+                    {
+                      key: 'clearAll',
+                      label: t('clearAll'),
+                      destructive: true,
+                      confirm: { title: t('clearAllTitle'), body: t('clearAllBody'), confirmLabel: t('clearAll') },
+                    },
+                  ],
+                });
+                if (key === 'markAllRead') markAllRead.mutate();
+                if (key === 'clearAll') clearAll.mutate();
+              }}
+            />
           ),
         }}
       />
@@ -121,33 +139,6 @@ export default function NotificationsScreen() {
           )}
         />
       )}
-
-      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
-          <View style={styles.sheet}>
-            <Pressable
-              style={styles.sheetRow}
-              onPress={() => {
-                markAllRead.mutate();
-                setMenuOpen(false);
-              }}
-              accessibilityRole="button"
-            >
-              <Text variant="body">{t('markAllRead')}</Text>
-            </Pressable>
-            <Pressable
-              style={styles.sheetRow}
-              onPress={() => {
-                clearAll.mutate();
-                setMenuOpen(false);
-              }}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.sheetText, { color: colors.destructive }]}>{t('clearAll')}</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -155,8 +146,4 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
-  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-start', alignItems: 'flex-end' },
-  sheet: { backgroundColor: colors.card, borderRadius: 12, margin: 12, marginTop: 48, minWidth: 200, overflow: 'hidden' },
-  sheetRow: { paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
-  sheetText: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
 });

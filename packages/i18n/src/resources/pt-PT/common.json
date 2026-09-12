@@ -1,1 +1,12 @@
-{ "appName": "Padel Jam" }
+{
+  "appName": "Padel Jam",
+  "back": "Voltar",
+  "close": "Fechar",
+  "cancel": "Cancelar",
+  "confirm": "Confirmar",
+  "discardTitle": "Descartar alterações?",
+  "discardBody": "O que escreveste vai perder-se.",
+  "discardConfirm": "Descartar",
+  "missingInformation": "Falta informação",
+  "somethingWrong": "Algo não está certo"
+}

@@ -57,6 +57,10 @@ vi.mock('@padel/i18n', () => ({
   useT: () => ({ t: (k: string) => k }),
 }));
 vi.mock('@/components/chat/StreamChatProvider', () => ({ StreamChatProvider: passthrough }));
+vi.mock('@/components/ui', () => ({
+  SheetHost: ({ children }: { children: unknown }) => children,
+  BannerProvider: ({ children }: { children: unknown }) => children,
+}));
 vi.mock('@/components/useColorScheme', () => ({ useColorScheme: () => 'light' }));
 vi.mock('@/lib/i18n-mobile', () => ({ registerMobileCopy: () => {} }));
 vi.mock('@/lib/locale', () => ({ resolveLocale: () => 'en' }));

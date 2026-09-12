@@ -168,7 +168,14 @@ let dynamicCount = 0;
 let checked = 0;
 
 for (const file of SCAN.flatMap((d) => walk(join(ROOT, d)))) {
-  const src = readFileSync(file, 'utf8');
+  // Strip block comments before scanning: a docstring showing call-site usage
+  // (e.g. SheetHost's `t('remove')` example) is not a real `t()` call, and
+  // without this it reads as one — and as a literal key that may not resolve
+  // in every locale.
+  // NOT string-literal aware: a `/*` inside a string literal is not distinguished
+  // from a real comment opener, so it would swallow real code up to the next `*/`.
+  let src = readFileSync(file, 'utf8');
+  src = src.replace(/\/\*[\s\S]*?\*\//g, '');
   dynamicCount += (src.match(DYNAMIC) ?? []).length;
   // Only trust a file's namespace when it declares exactly one.
   const declared = [...new Set([...src.matchAll(USE_T)].map((m) => m[1]))];

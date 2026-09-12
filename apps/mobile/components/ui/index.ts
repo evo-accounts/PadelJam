@@ -13,6 +13,8 @@
  */
 export { Avatar, initialsOf, type AvatarSize } from './Avatar';
 export { Badge, type BadgeTone } from './Badge';
+export { BannerProvider, useBanner } from './Banner';
+export { BottomSheet } from './BottomSheet';
 export { Button, type ButtonSize, type ButtonVariant } from './Button';
 export { Card, type CardPadding } from './Card';
 export { Chip } from './Chip';
@@ -20,6 +22,8 @@ export { EmptyState } from './EmptyState';
 export { Field } from './Field';
 export { IconButton, type IconButtonSize } from './IconButton';
 export { ListRow, type ListRowVariant } from './ListRow';
+export { SheetHost, useConfirm, useActionSheet, type ConfirmOptions, type ActionSheetOptions, type SheetAction } from './SheetHost';
+export { SheetRow } from './SheetRow';
 export { TopBar } from './TopBar';
 export { Loading, Screen } from './Screen';
 export { Text, type TextTone, type TextVariant } from './Text';

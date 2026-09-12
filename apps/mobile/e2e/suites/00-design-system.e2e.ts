@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { query, queryAll, snapshot } from '../driver/a11y';
-import { scrollUntilVisible } from '../driver/actions';
+import { scrollUntilVisible, tap } from '../driver/actions';
 import { freshInstall } from '../driver/app';
 import { CONFIG } from '../driver/config';
 import { expectVisible } from '../driver/expect';
@@ -131,6 +131,13 @@ describe('00 design system', () => {
     // not passing because the label became ONLY the trailing.
     expect(unreadRow?.AXLabel ?? '').toMatch(/ana silva/i);
 
+    // 3. Every TopBar control has a real name, and the variants are all mounted.
+    for (const label of ['Search', 'More', 'Close', 'Back']) {
+      expect(queryAll(tree, { text: new RegExp(`^${label}$`, 'i'), type: 'Button' }).length, `a TopBar control named ${label}`).toBeGreaterThan(0);
+    }
+    // The wizard bar carries both: the heading text sits between a Back and a Close.
+    expect(query(tree, { text: /create event/i }), 'wizard bar title').toBeDefined();
+
     // 2. No control may announce a bare glyph, or a blank name.
     //
     //    The glyph half is the runtime twin of a11y/glyph-button-needs-label:
@@ -165,5 +172,40 @@ describe('00 design system', () => {
       unusable,
       'these controls announce a punctuation character, or nothing at all',
     ).toEqual([]);
+  }, 180_000);
+
+  /**
+   * The sheet and banner primitives render inside their own Modal / overlay
+   * (SheetHost, BannerProvider), mounted above the gallery route rather than
+   * inside its ScrollView. Confirming they are reachable — a real tap opens
+   * them, their content is labelled, and the demo reports back what happened —
+   * is the only way to exercise that wiring; a screenshot cannot tell a Modal
+   * that failed to attach from one that is merely off screen.
+   */
+  it('sheet and banner primitives are reachable and labelled', async () => {
+    // The screenshot pass leaves the gallery scrolled to the bottom; the sheet
+    // demo sits above the viewport, so scroll the content back DOWN to it.
+    await scrollUntilVisible({ text: /open confirm/i }, { direction: 'down', maxSwipes: 10 });
+    await tap({ text: /open confirm/i, type: 'Button' });
+    let tree = await snapshot();
+    expect(query(tree, { text: /delete this\?/i }), 'confirm sheet title').toBeDefined();
+    expect(query(tree, { id: 'confirm-sheet-close', text: /^close$/i, type: 'Button' }), 'confirm sheet ✕ is labelled').toBeDefined();
+    await tap({ text: /^delete$/i, type: 'Button' });
+    // The sheet is a Modal with accessibilityViewIsModal: while it animates out
+    // the page behind it is absent from the tree, so poll instead of snapshotting.
+    await expectVisible({ text: /last result: confirmed/i }, { timeout: 10_000 });
+
+    await tap({ text: /open action sheet/i, type: 'Button' });
+    await expectVisible({ text: /^remove$/i, type: 'Button' }, { timeout: 10_000 });
+    await tap({ text: /^remove$/i, type: 'Button' }); // destructive → the host asks to confirm
+    await expectVisible({ text: /^cancel$/i, type: 'Button' }, { timeout: 10_000 }); // the confirm step
+    tree = await snapshot();
+    expect(query(tree, { text: /^remove$/i, type: 'Button' }), 'destructive row asks for confirmation').toBeDefined();
+    await tap({ text: /^cancel$/i, type: 'Button' });
+    await expectVisible({ text: /last result: dismissed/i }, { timeout: 10_000 });
+
+    await scrollUntilVisible({ text: /show banner/i });
+    await tap({ text: /show banner/i, type: 'Button' });
+    await expectVisible({ text: /missing information/i }, { timeout: 5_000 });
   }, 180_000);
 });

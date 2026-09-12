@@ -8,7 +8,8 @@
  */
 import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { colors, radius } from '../../theme';
+import { radius } from '../../theme';
+import { avatarColour } from './avatarColour';
 import { Text, type TextVariant } from './Text';
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -18,6 +19,8 @@ type Props = {
   uri?: string | null;
   /** Full display name. Used for the initials AND the accessibility label. */
   name?: string | null;
+  /** user id; falls back to `name` */
+  colourKey?: string | null;
   size?: AvatarSize;
   style?: ViewStyle;
   testID?: string;
@@ -55,7 +58,7 @@ export function initialsOf(name: string | null | undefined): string {
   return (first + last).toUpperCase();
 }
 
-export function Avatar({ uri, name, size = 'md', style, testID }: Props) {
+export function Avatar({ uri, name, colourKey, size = 'md', style, testID }: Props) {
   const d = diameters[size];
   const shape = { width: d, height: d, borderRadius: radius.full };
 
@@ -65,15 +68,12 @@ export function Avatar({ uri, name, size = 'md', style, testID }: Props) {
       accessible
       accessibilityRole="image"
       accessibilityLabel={name ?? undefined}
-      style={[styles.base, shape, style]}
+      style={[styles.base, shape, !uri && { backgroundColor: avatarColour(colourKey ?? name) }, style]}
     >
       {uri ? (
         <Image source={{ uri }} style={shape} resizeMode="cover" />
       ) : (
-        // Dark on the purple fill, matching Button's primary variant. The
-        // canonical `primary` is a LIGHT purple, so white initials land at
-        // roughly 2.3:1 contrast — legible in a mock, not on a phone.
-        <Text variant={labelFor[size]} tone="default">
+        <Text variant={labelFor[size]} tone="inverse">
           {initialsOf(name)}
         </Text>
       )}
@@ -86,6 +86,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: colors.primary,
   },
 });

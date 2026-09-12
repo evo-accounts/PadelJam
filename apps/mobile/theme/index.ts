@@ -43,6 +43,22 @@ export const colors = light;
  */
 export { palette };
 
+/**
+ * Avatar fallback backgrounds (UX-GLOB-04): eight saturated 700-step colours from the shared
+ * ramps, each contrast-checked against white in avatarColour.test.ts. Picked per user id so a
+ * person keeps their colour everywhere and is never a grey circle.
+ */
+export const avatarRamp = [
+  palette.purple[700],
+  palette.teal[700],
+  palette.green[700],
+  palette.sky[700],
+  palette.blue[700],
+  palette.rose[700],
+  palette.orange[700],
+  palette.red[700],
+] as const;
+
 export const radius = sharedRadius;
 export const space = sharedSpace;
 export const weight = sharedWeight;

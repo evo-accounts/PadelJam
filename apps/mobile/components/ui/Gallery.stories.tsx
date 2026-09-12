@@ -15,17 +15,20 @@
  *   - card borders, which get LIGHTER and may read as flat
  *   - dark label on the purple fill, not white — the light purple demands it
  */
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { colors, radius, space, type as typeScale } from '../../theme';
 import { Avatar } from './Avatar';
 import { Badge } from './Badge';
+import { useBanner } from './Banner';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Chip } from './Chip';
 import { EmptyState } from './EmptyState';
 import { IconButton } from './IconButton';
 import { ListRow } from './ListRow';
+import { useActionSheet, useConfirm } from './SheetHost';
 import { TopBar } from './TopBar';
 import { Field } from './Field';
 import { Loading, Screen } from './Screen';
@@ -164,6 +167,10 @@ export function Overview() {
           <Avatar name="No Name Given" size="lg" />
           <Avatar size="lg" />
         </Row>
+        <Row>
+          <Avatar name="Rui Trindade" colourKey="user-a" size="lg" />
+          <Avatar name="Sara Lima" colourKey="user-b" size="lg" />
+        </Row>
       </Section>
 
       <Section title="Badge">
@@ -187,16 +194,28 @@ export function Overview() {
 
       <Section title="TopBar">
         <Card padding="none" style={styles.stacked}>
-          <TopBar title="Members" onBack={() => {}} backLabel="Back" />
+          <TopBar variant="top" title="Home" actions={[{ icon: '⌕', label: 'Search', onPress: () => {} }]} />
+        </Card>
+        <Card padding="none" style={styles.stacked}>
+          <TopBar variant="nav" title="Members" onBack={() => {}} />
+        </Card>
+        <Card padding="none" style={styles.stacked}>
+          <TopBar variant="nav" onBack={() => {}} actions={[{ icon: '⋯', label: 'More', onPress: () => {} }]} />
+        </Card>
+        <Card padding="none" style={styles.stacked}>
+          <TopBar variant="edit" title="Edit profile" onClose={() => {}} />
         </Card>
         <Card padding="none">
-          <TopBar
-            title="Event"
-            onBack={() => {}}
-            backLabel="Back"
-            action={{ icon: '⋯', label: 'More', onPress: () => {} }}
-          />
+          <TopBar variant="wizard" title="Create event" onBack={() => {}} onClose={() => {}} />
         </Card>
+      </Section>
+
+      <Section title="BottomSheet">
+        <GallerySheetDemo />
+      </Section>
+
+      <Section title="Banner">
+        <GalleryBannerDemo />
       </Section>
 
       <Section title="IconButton">
@@ -289,6 +308,50 @@ export function Overview() {
       </Section>
     </Screen>
   );
+}
+
+function GallerySheetDemo() {
+  const confirm = useConfirm();
+  const show = useActionSheet();
+  const [last, setLast] = useState<string>('');
+  return (
+    <View style={{ gap: space[2] }}>
+      <Button
+        label="Open confirm"
+        variant="outline"
+        onPress={async () =>
+          setLast(
+            (await confirm({ title: 'Delete this?', body: 'It cannot be undone.', confirmLabel: 'Delete', destructive: true }))
+              ? 'confirmed'
+              : 'cancelled',
+          )
+        }
+      />
+      <Button
+        label="Open action sheet"
+        variant="outline"
+        onPress={async () =>
+          setLast(
+            (await show({
+              title: 'Ana Silva',
+              actions: [
+                { key: 'msg', label: 'Message' },
+                { key: 'remove', label: 'Remove', destructive: true },
+              ],
+            })) ?? 'dismissed',
+          )
+        }
+      />
+      <Text variant="caption" tone="muted">
+        Last result: {last || '—'}
+      </Text>
+    </View>
+  );
+}
+
+function GalleryBannerDemo() {
+  const banner = useBanner();
+  return <Button label="Show banner" variant="outline" onPress={() => banner.show('Missing information')} />;
 }
 
 export default {
