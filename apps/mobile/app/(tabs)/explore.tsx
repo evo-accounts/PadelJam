@@ -8,14 +8,14 @@ import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateEventFab } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { CommunityCard } from '@/components/explore/CommunityCard';
-import { GroupCard } from '@/components/explore/GroupCard';
 import { PlayerCard } from '@/components/explore/PlayerCard';
+import { GroupCard } from '@/components/group/GroupCard';
 import { EXPLORE_TABS, ExploreList, type ExploreTab } from '@/components/explore/ExploreList';
 import { SuggestionRail } from '@/components/explore/SuggestionRail';
 import { Chip, TopBar } from '@/components/ui';
@@ -94,7 +94,9 @@ function ForYou() {
           emptyLabel={t('emptyPlayers')}
           errorLabel={t('loadError')}
           keyExtractor={(p) => p.id}
-          renderItem={(p) => <PlayerCard player={p} onPress={() => router.push(`/profile/${p.id}`)} />}
+          renderItem={(p) => (
+            <PlayerCard player={p} orientation="vertical" onPress={() => router.push(`/profile/${p.id}`)} />
+          )}
           onRetry={() => players.refetch()}
           testID="empty-rail-players"
         />
@@ -109,9 +111,7 @@ function ForYou() {
           errorLabel={t('loadError')}
           keyExtractor={(e) => e.id}
           renderItem={(e) => (
-            <View style={{ width: 280 }}>
-              <EventCard event={e} onPress={() => router.push(`/event/${e.id}`)} />
-            </View>
+            <EventCard event={e} orientation="vertical" onPress={() => router.push(`/event/${e.id}`)} />
           )}
           onRetry={() => events.refetch()}
           testID="empty-rail-events"
@@ -129,6 +129,7 @@ function ForYou() {
           renderItem={(c) => (
             <CommunityCard
               community={c}
+              orientation="vertical"
               onOpen={() => router.push(`/community/${c.id}/posts`)}
               onRequestJoin={() => router.push(`/community/${c.id}/join`)}
             />
@@ -146,7 +147,9 @@ function ForYou() {
           emptyLabel={t('emptyGroups')}
           errorLabel={t('loadError')}
           keyExtractor={(g) => g.id}
-          renderItem={(g) => <GroupCard group={g} onOpen={() => router.push(`/group/${g.id}`)} />}
+          renderItem={(g) => (
+            <GroupCard group={g} orientation="vertical" onPress={() => router.push(`/group/${g.id}`)} />
+          )}
           onRetry={() => groups.refetch()}
           testID="empty-rail-groups"
         />
