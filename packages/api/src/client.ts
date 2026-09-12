@@ -24,6 +24,8 @@ const KNOWN = [
   'no_community', 'channels_required', 'invalid_channel', 'blast_incomplete',
   // timer + share-results: RPC codes the timer/share screens translate directly
   'invalid_action', 'not_completed', 'already_posted',
+  // plans: RPC/validation codes the paywall and plan screens translate directly
+  'invalid_plan', 'plan_downgrade_over_limit',
 ] as const;
 
 /** Map a Supabase/Postgres error to a stable code the UI translates via i18n. */
