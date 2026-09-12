@@ -13,13 +13,15 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MemberRow, type CommunityMember } from '@/components/community/MemberRow';
+import { avatarUrl } from '@/lib/community-images';
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { colors, palette } from '../../../../theme';
 import {
+  Avatar,
   EmptyState,
+  TopBar,
   emptyIcon,
   listEmptyContent,
-  TopBar,
   useActionSheet,
   useBanner,
 } from '../../../../components/ui';
@@ -85,20 +87,23 @@ export default function ManageMembersScreen() {
     if (!canManage || member.role === 'owner' || member.user_id === uid) return;
     const name = member.profiles?.full_name ?? '—';
 
-    // UX-GLOB-04: this sheet should show the member's Avatar next to `name`
-    // in the title. `ActionSheetOptions.title` (components/ui/sheetApi.ts) is
-    // a plain string and `SheetAction` has no `leading` slot — SheetHost maps
-    // actions straight to `SheetRow` without ever reading one — so a node
-    // can't reach the sheet through this API today. Adding it means changing
-    // the shared sheet primitive (sheetApi.ts + SheetHost.tsx), which is out
-    // of scope for this screen; flagged as a follow-up instead of widening
-    // scope here.
+    // UX-GLOB-04: the member's avatar rides on the first action row (the sheet
+    // title is plain text); the row label carries the name, so it is decorative.
+    const avatar = (
+      <Avatar
+        name={name}
+        uri={avatarUrl(member.profiles?.avatar_url)}
+        colourKey={member.user_id}
+        size="sm"
+        decorative
+      />
+    );
     const key = await show({
       title: name,
       actions: [
         member.role === 'admin'
-          ? { key: 'removeAdmin', label: t('removeAdmin') }
-          : { key: 'makeAdmin', label: t('makeAdmin') },
+          ? { key: 'removeAdmin', label: t('removeAdmin'), leading: avatar }
+          : { key: 'makeAdmin', label: t('makeAdmin'), leading: avatar },
         {
           key: 'removeMember',
           label: t('removeMember'),
