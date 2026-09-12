@@ -8,7 +8,10 @@ import {
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { colors, palette } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 const START_ERROR_KEYS = new Set(['forbidden', 'not_a_member', 'group_not_found']);
 const ARCHIVE_ERROR_KEYS = new Set(['forbidden', 'groups_per_community', 'group_not_found', 'general_group_only_group']);
@@ -27,9 +30,9 @@ export default function GroupManageSeasonsScreen() {
 
   if (!group) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <ActivityIndicator color={colors.foreground} />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -93,57 +96,60 @@ export default function GroupManageSeasonsScreen() {
   const archivePending = archive.isPending || unarchive.isPending;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
-      <Text style={styles.sectionTitle}>{t('currentSeasonLabel')}</Text>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>
-            {current ? t('seasonTag', { number: current.season_number }) : '—'}
-          </Text>
-        </View>
-      </View>
-
-      <Pressable
-        style={[styles.button, startSeason.isPending && styles.buttonDisabled]}
-        onPress={onStartSeason}
-        disabled={startSeason.isPending}
-        accessibilityRole="button"
-      >
-        {startSeason.isPending ? (
-          <ActivityIndicator color={colors.card} />
-        ) : (
-          <Text style={styles.buttonText}>{t('startSeasonCta')}</Text>
-        )}
-      </Pressable>
-
-      {previous.length > 0 ? (
-        <>
-          <Text style={[styles.sectionTitle, styles.sectionSpacing]}>
-            {t('previousSeasonsTitle')}
-          </Text>
-          <View style={styles.card}>
-            {previous.map((s) => (
-              <View key={s.id} style={styles.row}>
-                <Text style={styles.rowLabel}>{t('seasonTag', { number: s.season_number })}</Text>
-              </View>
-            ))}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('seasonsTitle')} onBack={() => router.back()} backLabel={t('back')} />
+      <ScrollView contentContainerStyle={styles.inner}>
+        <Text style={styles.sectionTitle}>{t('currentSeasonLabel')}</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>
+              {current ? t('seasonTag', { number: current.season_number }) : '—'}
+            </Text>
           </View>
-        </>
-      ) : null}
+        </View>
 
-      <Pressable
-        style={[styles.archiveButton, archivePending && styles.buttonDisabled]}
-        onPress={onToggleArchive}
-        disabled={archivePending}
-        accessibilityRole="button"
-      >
-        {archivePending ? (
-          <ActivityIndicator color={colors.destructive} />
-        ) : (
-          <Text style={styles.archiveText}>{isArchived ? t('unarchiveCta') : t('archiveCta')}</Text>
-        )}
-      </Pressable>
-    </ScrollView>
+        <Pressable
+          style={[styles.button, startSeason.isPending && styles.buttonDisabled]}
+          onPress={onStartSeason}
+          disabled={startSeason.isPending}
+          accessibilityRole="button"
+        >
+          {startSeason.isPending ? (
+            <ActivityIndicator color={colors.card} />
+          ) : (
+            <Text style={styles.buttonText}>{t('startSeasonCta')}</Text>
+          )}
+        </Pressable>
+
+        {previous.length > 0 ? (
+          <>
+            <Text style={[styles.sectionTitle, styles.sectionSpacing]}>
+              {t('previousSeasonsTitle')}
+            </Text>
+            <View style={styles.card}>
+              {previous.map((s) => (
+                <View key={s.id} style={styles.row}>
+                  <Text style={styles.rowLabel}>{t('seasonTag', { number: s.season_number })}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        <Pressable
+          style={[styles.archiveButton, archivePending && styles.buttonDisabled]}
+          onPress={onToggleArchive}
+          disabled={archivePending}
+          accessibilityRole="button"
+        >
+          {archivePending ? (
+            <ActivityIndicator color={colors.destructive} />
+          ) : (
+            <Text style={styles.archiveText}>{isArchived ? t('unarchiveCta') : t('archiveCta')}</Text>
+          )}
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

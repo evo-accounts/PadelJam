@@ -174,7 +174,7 @@ export default function GroupHomeScreen() {
       <TopBar
         onBack={() => router.back()}
         backLabel={t('back')}
-        action={{ icon: '•••', label: t('more'), onPress: onMore }}
+        actions={[{ icon: '•••', label: t('more'), onPress: onMore }]}
       />
 
       <ScrollView contentContainerStyle={styles.content}>

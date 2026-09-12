@@ -1,7 +1,10 @@
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { colors, palette } from '../../../../theme';
+import { TopBar } from '../../../../components/ui';
 
 export default function GroupManageIndexScreen() {
   const { t } = useT('group');
@@ -9,13 +12,16 @@ export default function GroupManageIndexScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
-      <View style={styles.card}>
-        <NavRow label={t('settingsRow')} onPress={() => router.push(`/group/${id}/manage/settings` as Href)} />
-        <NavRow label={t('membersRow')} onPress={() => router.push(`/group/${id}/manage/members` as Href)} />
-        <NavRow label={t('seasonsRow')} onPress={() => router.push(`/group/${id}/manage/seasons` as Href)} />
-      </View>
-    </ScrollView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('manageTitle')} onBack={() => router.back()} backLabel={t('back')} />
+      <ScrollView contentContainerStyle={styles.inner}>
+        <View style={styles.card}>
+          <NavRow label={t('settingsRow')} onPress={() => router.push(`/group/${id}/manage/settings` as Href)} />
+          <NavRow label={t('membersRow')} onPress={() => router.push(`/group/${id}/manage/members` as Href)} />
+          <NavRow label={t('seasonsRow')} onPress={() => router.push(`/group/${id}/manage/seasons` as Href)} />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

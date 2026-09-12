@@ -3,11 +3,12 @@ import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GroupMemberRow, type GroupMember } from '@/components/group/GroupMemberRow';
 import { colors } from '../../../theme';
+import { TopBar } from '../../../components/ui';
 
 export default function GroupMembersScreen() {
   const { t } = useT('group');
@@ -26,18 +27,7 @@ export default function GroupMembersScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('back')}
-          hitSlop={12}
-        >
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-        <Text style={styles.title}>{t('membersTitle')}</Text>
-        <View style={styles.backSpacer} />
-      </View>
+      <TopBar title={t('membersTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
       <View style={styles.searchWrap}>
         <TextInput
@@ -72,18 +62,6 @@ export default function GroupMembersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
-  backSpacer: { width: 24 },
-  title: { fontSize: 17, fontWeight: '700', color: colors.foreground },
   searchWrap: { padding: 16 },
   search: {
     borderWidth: 1,
