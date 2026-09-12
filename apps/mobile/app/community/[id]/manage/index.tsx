@@ -9,10 +9,9 @@ import {
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
-import { Avatar, BottomSheet, SheetRow, TopBar, useBanner, useConfirm } from '../../../../components/ui';
+import { Avatar, TopBar, useActionSheet, useBanner, useConfirm } from '../../../../components/ui';
 import {
   ActivityIndicator,
   Pressable,
@@ -43,14 +42,14 @@ export default function ManageIndexScreen() {
   const transfer = useTransferOwnership(id);
   const leave = useLeaveCommunity();
   const confirm = useConfirm();
+  const show = useActionSheet();
   const banner = useBanner();
-
-  const [transferOpen, setTransferOpen] = useState(false);
 
   const myRole = (members as Member[] | undefined)?.find((m) => m.user_id === uid)?.role;
   const isOwner = myRole === 'owner';
   const isArchived = !!community?.archived_at;
   const pendingCount = requests?.length ?? 0;
+  const otherMembers = (members as Member[] | undefined)?.filter((m) => m.user_id !== uid) ?? [];
 
   const err = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';
@@ -87,16 +86,27 @@ export default function ManageIndexScreen() {
     }
   };
 
-  const onPickTransfer = async (member: Member) => {
-    const ok = await confirm({
-      title: t('transferConfirmTitle'),
-      body: t('transferConfirmBody', { name: member.profiles?.full_name ?? '—' }),
-      confirmLabel: t('transferOwnership'),
-      cancelLabel: t('cancel'),
+  const onPickTransfer = async () => {
+    if (otherMembers.length === 0) {
+      banner.show(t('transferNoMembers'));
+      return;
+    }
+    const newOwnerId = await show({
+      title: t('transferPickTitle'),
+      actions: otherMembers.map((m) => ({
+        key: m.user_id,
+        label: m.profiles?.full_name ?? '—',
+        leading: <Avatar name={m.profiles?.full_name} uri={avatarUrl(m.profiles?.avatar_url)} colourKey={m.user_id} size="sm" />,
+        destructive: true,
+        confirm: {
+          title: t('transferConfirmTitle'),
+          body: t('transferConfirmBody', { name: m.profiles?.full_name ?? '—' }),
+          confirmLabel: t('transferOwnership'),
+        },
+        testID: `transfer-row-${m.user_id}`,
+      })),
     });
-    if (!ok) return;
-    setTransferOpen(false);
-    await onTransfer(member.user_id);
+    if (newOwnerId) await onTransfer(newOwnerId);
   };
 
   const onLeave = async () => {
@@ -123,7 +133,6 @@ export default function ManageIndexScreen() {
   };
 
   const showRequests = community?.privacy === 'request_to_join';
-  const otherMembers = (members as Member[] | undefined)?.filter((m) => m.user_id !== uid) ?? [];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -156,7 +165,7 @@ export default function ManageIndexScreen() {
             <ActionRow
               label={t('transferOwnership')}
               pending={transfer.isPending}
-              onPress={() => setTransferOpen(true)}
+              onPress={() => void onPickTransfer()}
             />
           ) : null}
           <ActionRow
@@ -167,34 +176,6 @@ export default function ManageIndexScreen() {
           />
         </Section>
       </ScrollView>
-
-      <BottomSheet
-        visible={transferOpen}
-        onClose={() => setTransferOpen(false)}
-        title={t('transferPickTitle')}
-        testID="transfer-ownership-sheet"
-      >
-        {otherMembers.length === 0 ? (
-          <Text style={styles.transferEmpty}>{t('transferNoMembers')}</Text>
-        ) : (
-          otherMembers.map((m) => (
-            <SheetRow
-              key={m.user_id}
-              label={m.profiles?.full_name ?? '—'}
-              leading={
-                <Avatar
-                  name={m.profiles?.full_name}
-                  uri={avatarUrl(m.profiles?.avatar_url)}
-                  colourKey={m.user_id}
-                  size="sm"
-                />
-              }
-              onPress={() => onPickTransfer(m)}
-              testID={`transfer-row-${m.user_id}`}
-            />
-          ))
-        )}
-      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -279,5 +260,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { color: colors.card, fontSize: 12, fontWeight: '700' },
-  transferEmpty: { fontSize: 15, color: colors.mutedForeground, paddingVertical: 16 },
 });

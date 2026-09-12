@@ -35,6 +35,8 @@ export type SheetAction = {
    * a non-destructive action that merely asks first).
    */
   confirm?: Pick<ConfirmOptions, 'title' | 'body' | 'confirmLabel'>;
+  /** Overrides the row's default `action-sheet-<key>` testID — for a call site that had its own convention before migrating to `useActionSheet`. */
+  testID?: string;
 };
 export type ActionSheetOptions = { title?: string; actions: SheetAction[] };
 

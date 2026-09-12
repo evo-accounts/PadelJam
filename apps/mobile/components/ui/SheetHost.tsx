@@ -120,7 +120,7 @@ export function SheetHost({ children }: { children: ReactNode }) {
                 disabled={a.disabled}
                 leading={a.leading}
                 onPress={() => queue.resolve(req.id, a.key)}
-                testID={`action-sheet-${a.key}`}
+                testID={a.testID ?? `action-sheet-${a.key}`}
               />
             ))
           : null}

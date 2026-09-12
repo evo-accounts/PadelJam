@@ -87,6 +87,7 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
                 });
                 if (key === 'share') void Share.share({ message: p.full_name });
                 if (key === 'block') block.mutate(userId, { onSuccess: () => router.back() });
+                // Safe: `show()` resolves only after the host has dismissed its Modal, so ReportSheet never races it.
                 if (key === 'report') setReportOpen(true);
               }}
             />

@@ -31,7 +31,7 @@ import { RankingList } from '@/components/group/RankingList';
 import { avatarUrl } from '@/lib/community-images';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors, palette } from '../../../theme';
-import { Avatar, BottomSheet, Button, Chip, ListRow, SheetRow, Text, TopBar, useActionSheet, useBanner } from '../../../components/ui';
+import { Avatar, Badge, BottomSheet, Button, Chip, ListRow, SheetRow, Text, TopBar, useActionSheet, useBanner } from '../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
@@ -142,6 +142,9 @@ export default function GroupHomeScreen() {
       router.back();
     } catch (e) {
       if (e instanceof Error && e.message === 'sole_admin_must_add_another') {
+        // Safe to open this BottomSheet here: `show()` (called by `onMore`,
+        // above) only resolves once the host has actually dismissed its own
+        // Modal (see sheetApi.ts), so there is no Modal still animating out.
         setSelectedAdmins([]);
         setAddAdminOpen(true);
       } else {
@@ -320,8 +323,10 @@ export default function GroupHomeScreen() {
             return (
               <SheetRow
                 key={m.user_id}
-                label={selected ? `${name}  ✓` : name}
+                label={name}
                 leading={<Avatar name={name} uri={avatarUrl(m.profiles?.avatar_url)} colourKey={m.user_id} size="sm" />}
+                selected={selected}
+                trailing={selected ? <Badge label="✓" /> : undefined}
                 onPress={() =>
                   setSelectedAdmins((s) =>
                     s.includes(m.user_id) ? s.filter((x) => x !== m.user_id) : [...s, m.user_id],
