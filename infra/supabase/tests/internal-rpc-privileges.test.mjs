@@ -21,7 +21,6 @@ const INTERNAL = [
   ['viewer_distance_m', { p: 'SRID=4326;POINT(-9.14 38.72)' }],
   ['placement_points', { p: 1 }],
   ['account_plan', { u: ZERO }],
-  ['community_plan', { c: ZERO }],
   ['add_member_to_community', { p_community: ZERO, p_user: ZERO }],
   ['event_group_community', { e: ZERO }],
   ['event_capacity', { e: ZERO }],

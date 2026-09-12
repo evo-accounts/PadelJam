@@ -38,7 +38,9 @@ revoke execute on function notif_blocked(uuid, uuid)                         fro
 revoke execute on function viewer_distance_m(geography)                      from public, anon, authenticated;
 revoke execute on function placement_points(integer)                         from public, anon, authenticated;
 revoke execute on function account_plan(uuid)                                from public, anon, authenticated;
-revoke execute on function community_plan(uuid)                              from public, anon, authenticated;
+-- community_plan(uuid) stays callable by authenticated: the app reads a community's plan tier
+-- through it (UX-GLOB-10, migration 0095 re-grants it explicitly) and it exposes nothing beyond
+-- the tier shown on the Manage Community screen.
 revoke execute on function event_group_community(uuid)                       from public, anon, authenticated;
 revoke execute on function event_capacity(uuid)                              from public, anon, authenticated;
 revoke execute on function is_event_invitee(uuid, uuid)                      from public, anon, authenticated;
@@ -53,7 +55,7 @@ begin
   where p.pronamespace = 'public'::regnamespace
     and p.proname in ('_build_fours_arrangement','_persist_round_matches','_reconcile_team','_clear_team_slot',
                       '_csv_field','add_member_to_community','notif_blocked','viewer_distance_m','placement_points',
-                      'account_plan','community_plan','event_group_community','event_capacity',
+                      'account_plan','event_group_community','event_capacity',
                       'is_event_invitee','is_event_participant')
     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
   if v_open is not null then
