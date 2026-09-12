@@ -28,6 +28,7 @@ import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { validateCommunityForm, type CommunityFormFieldKey } from '@/lib/communityFormValidate';
 import { useDirty } from '@/lib/useDirty';
+import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors, palette } from '../../../../theme';
 import { Field, TopBar, useBanner } from '../../../../components/ui';
 
@@ -56,7 +57,7 @@ export default function ManageSettingsScreen() {
   const [rulesEnabled, setRulesEnabled] = useState(false);
   const [rulesText, setRulesText] = useState('');
 
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<CommunityFormFieldKey, string>>>({});
+  const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<CommunityFormFieldKey>();
   const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
@@ -182,7 +183,7 @@ export default function ManageSettingsScreen() {
         <Field
           label={t('nameLabel')}
           value={name}
-          onChangeText={setName}
+          onChangeText={(v) => { setName(v); clearFieldError('name'); }}
           placeholder={t('namePlaceholder')}
           editable={!pending}
           error={fieldErrors.name ? tc('required') : undefined}
@@ -233,7 +234,7 @@ export default function ManageSettingsScreen() {
           enabled={rulesEnabled}
           text={rulesText}
           onToggle={setRulesEnabled}
-          onChangeText={setRulesText}
+          onChangeText={(v) => { setRulesText(v); clearFieldError('rules'); }}
           error={fieldErrors.rules ? t('rules_text_required') : null}
           disabled={pending}
         />

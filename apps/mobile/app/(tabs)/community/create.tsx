@@ -26,6 +26,7 @@ import { setPendingCommunityImages } from '@/lib/community-image-handoff';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
 import { validateCommunityForm, type CommunityFormFieldKey } from '@/lib/communityFormValidate';
 import { useDirty } from '@/lib/useDirty';
+import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors } from '../../../theme';
 import { Field, TopBar, useBanner } from '../../../components/ui';
 
@@ -50,7 +51,7 @@ export default function CreateCommunityScreen() {
   const [rulesEnabled, setRulesEnabled] = useState(false);
   const [rulesText, setRulesText] = useState('');
 
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<CommunityFormFieldKey, string>>>({});
+  const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<CommunityFormFieldKey>();
 
   const pending = createCommunity.isPending;
 
@@ -119,7 +120,7 @@ export default function CreateCommunityScreen() {
         <Field
           label={t('nameLabel')}
           value={name}
-          onChangeText={setName}
+          onChangeText={(v) => { setName(v); clearFieldError('name'); }}
           placeholder={t('namePlaceholder')}
           editable={!pending}
           error={fieldErrors.name ? tc('required') : undefined}
@@ -170,7 +171,7 @@ export default function CreateCommunityScreen() {
           enabled={rulesEnabled}
           text={rulesText}
           onToggle={setRulesEnabled}
-          onChangeText={setRulesText}
+          onChangeText={(v) => { setRulesText(v); clearFieldError('rules'); }}
           error={fieldErrors.rules ? t('rules_text_required') : null}
           disabled={pending}
         />

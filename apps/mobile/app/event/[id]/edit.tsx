@@ -19,6 +19,7 @@ import { geocodeAddress } from '@/lib/geocode';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { useDirty } from '@/lib/useDirty';
+import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors, palette } from '../../../theme';
 import { Button, Field, Text, TopBar, useBanner } from '../../../components/ui';
 
@@ -41,7 +42,7 @@ export default function EditEventScreen() {
   const uid = useSession().session?.user.id;
   const [draft, setDraft] = useState<EventDraft | null>(null);
   const [picked, setPicked] = useState<PickedImage | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<EditEventFieldKey, string>>>({});
+  const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<EditEventFieldKey>();
   const [busy, setBusy] = useState(false);
 
   // Seed the draft once from the event row (covers every field the reused steps read).
@@ -176,7 +177,7 @@ export default function EditEventScreen() {
         <Field
           label={t('editNameLabel')}
           value={d.name}
-          onChangeText={(name) => patch({ name })}
+          onChangeText={(name) => { patch({ name }); clearFieldError('name'); }}
           maxLength={80}
           error={fieldErrors.name ? tc('required') : undefined}
         />

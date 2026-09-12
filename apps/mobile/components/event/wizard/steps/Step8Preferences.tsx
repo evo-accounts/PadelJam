@@ -20,7 +20,7 @@ const ROLE_KEYS: Record<(typeof ORGANIZER_ROLES)[number], string> = {
   organizing_and_playing: 'roleOrganizing_and_playingLabel',
 };
 
-export function Step8Preferences({ draft, patch, errors }: WizardStepProps) {
+export function Step8Preferences({ draft, patch, errors, clearError }: WizardStepProps) {
   const { t } = useT('event');
   const { t: tc } = useT('common');
 
@@ -94,6 +94,7 @@ export function Step8Preferences({ draft, patch, errors }: WizardStepProps) {
                     amount: text.trim() === '' || Number.isNaN(parsed) ? undefined : parsed,
                   },
                 });
+                clearError?.('feeAmount');
               }}
               keyboardType="decimal-pad"
               placeholder={t('feeAmountLabel')}

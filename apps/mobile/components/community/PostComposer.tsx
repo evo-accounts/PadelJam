@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
+import { useFieldErrors } from '@/lib/useFieldErrors';
 import { Button, Field, IconButton, useBanner } from '../ui';
 import { colors, palette } from '../../theme';
 import { validatePostComposer, type PostComposerFieldKey } from './postComposerValidate';
@@ -38,7 +39,7 @@ export function PostComposer({
 
   const [body, setBody] = useState('');
   const [picked, setPicked] = useState<PickedImage | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<PostComposerFieldKey, string>>>({});
+  const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<PostComposerFieldKey>();
   const [submitting, setSubmitting] = useState(false);
 
   const pending = submitting || createPost.isPending;
@@ -96,7 +97,7 @@ export function PostComposer({
     <View style={styles.container}>
       <Field
         value={body}
-        onChangeText={setBody}
+        onChangeText={(v) => { setBody(v); clearFieldError('body'); }}
         placeholder={t('postPlaceholder')}
         multiline
         editable={!pending}

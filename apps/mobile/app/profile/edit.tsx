@@ -11,6 +11,7 @@ import { avatarUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { useDirty } from '@/lib/useDirty';
+import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors } from '../../theme';
 import { Avatar, Button, Field, TopBar, useBanner } from '../../components/ui';
 
@@ -44,7 +45,7 @@ export default function EditProfileScreen() {
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [picked, setPicked] = useState<PickedImage | null>(null);
   const [saving, setSaving] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<EditProfileFieldKey, string>>>({});
+  const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<EditProfileFieldKey>();
   const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
@@ -177,7 +178,7 @@ export default function EditProfileScreen() {
       <Field
         label={t('dobLabel')}
         value={dob}
-        onChangeText={setDob}
+        onChangeText={(v) => { setDob(v); clearFieldError('dob'); }}
         placeholder="YYYY-MM-DD"
         autoCapitalize="none"
         error={fieldErrors.dob ? t(fieldErrors.dob) : undefined}

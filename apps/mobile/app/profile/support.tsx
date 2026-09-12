@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Field, TopBar, useBanner } from '../../components/ui';
+import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors } from '../../theme';
 
 type SupportFieldKey = 'title' | 'description';
@@ -26,7 +27,7 @@ export default function SupportScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<SupportFieldKey, string>>>({});
+  const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<SupportFieldKey>();
   const dirty = title.trim().length > 0 || description.trim().length > 0;
 
   const onSend = async () => {
@@ -57,14 +58,14 @@ export default function SupportScreen() {
         <Field
           label={t('supportTitle')}
           value={title}
-          onChangeText={setTitle}
+          onChangeText={(v) => { setTitle(v); clearFieldError('title'); }}
           error={fieldErrors.title ? tc('required') : undefined}
           containerStyle={styles.field}
         />
         <Field
           label={t('supportDescription')}
           value={description}
-          onChangeText={setDescription}
+          onChangeText={(v) => { setDescription(v); clearFieldError('description'); }}
           multiline
           error={fieldErrors.description ? tc('required') : undefined}
           containerStyle={styles.field}

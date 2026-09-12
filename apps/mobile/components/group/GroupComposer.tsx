@@ -13,6 +13,7 @@ import {
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
 import { isDirty } from '@/lib/useDirty';
+import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors } from '../../theme';
 import { Field, useBanner } from '../ui';
 import { validateGroupComposer, type GroupComposerFieldKey } from './groupComposerValidate';
@@ -65,7 +66,7 @@ export function GroupComposer({
   const [description, setDescription] = useState(initial?.description ?? '');
   const [isPrivate, setIsPrivate] = useState(initial?.isPrivate ?? false);
   const [thumbnail, setThumbnail] = useState<PickedImage | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<GroupComposerFieldKey, string>>>({});
+  const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<GroupComposerFieldKey>();
 
   const previewUri = thumbnail?.uri ?? initial?.thumbnailUrl ?? null;
 
@@ -131,7 +132,7 @@ export function GroupComposer({
       <Field
         label={t('nameLabel')}
         value={name}
-        onChangeText={setName}
+        onChangeText={(v) => { setName(v); clearFieldError('name'); }}
         placeholder={t('namePlaceholder')}
         editable={!submitting}
         error={fieldErrors.name ? t(fieldErrors.name) : undefined}

@@ -8,7 +8,7 @@ import type { WizardStepProps } from '../draft';
 import { colors } from '../../../../theme';
 import { Field } from '../../../ui';
 
-export function Step9Details({ draft, patch, errors }: WizardStepProps) {
+export function Step9Details({ draft, patch, errors, clearError }: WizardStepProps) {
   const { t } = useT('event');
   const { t: tc } = useT('common');
 
@@ -26,7 +26,7 @@ export function Step9Details({ draft, patch, errors }: WizardStepProps) {
       <Field
         label={t('nameLabel')}
         value={draft.name}
-        onChangeText={(name) => patch({ name })}
+        onChangeText={(name) => { patch({ name }); clearError?.('name'); }}
         placeholder={t('namePlaceholder')}
         maxLength={80}
         error={errors?.includes('name') ? tc('required') : undefined}

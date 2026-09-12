@@ -3,7 +3,7 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { geocodeQuery } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -54,6 +54,12 @@ function CreateEventWizard() {
   useEffect(() => {
     setStepErrors([]);
   }, [stepIndex]);
+
+  // Drops one flagged field as the user corrects it, so it turns back to
+  // normal without waiting for the next Next tap (UX-GLOB-06).
+  const clearStepError = useCallback((key: string) => {
+    setStepErrors((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : prev));
+  }, []);
 
   const onClose = async () => {
     if (isDirty) {
@@ -175,7 +181,9 @@ function CreateEventWizard() {
           contentContainerStyle={styles.inner}
           keyboardShouldPersistTaps="handled"
         >
-          {step ? <step.Component draft={draft} patch={patch} errors={stepErrors} /> : null}
+          {step ? (
+            <step.Component draft={draft} patch={patch} errors={stepErrors} clearError={clearStepError} />
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
 
