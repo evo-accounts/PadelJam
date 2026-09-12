@@ -1,7 +1,7 @@
 import { useAccountPlan, useSetAccountPlan } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useEffect, useState } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, palette } from '../../theme';
@@ -102,6 +102,17 @@ export function JammerPlusPaywall({ mode, onDone, onBack }: Props) {
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
   });
+
+  if (accountPlan.isLoading) {
+    // Neutral state while the plan query is in flight — `isJammerPlus` defaults to false
+    // on undefined data, which would otherwise flash the free-plan pitch to a Jammer+
+    // member before the real plan resolves.
+    return (
+      <View style={[styles.root, styles.loadingRoot, mode === 'onboarding' && { paddingTop: insets.top }]}>
+        <ActivityIndicator color={colors.foreground} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, mode === 'onboarding' && { paddingTop: insets.top }]}>
@@ -215,6 +226,10 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.card,
+  },
+  loadingRoot: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closeRow: {
     paddingHorizontal: 20,

@@ -2,13 +2,19 @@ import { useCommunityPlan, useSetCommunityPlan } from '@padel/api';
 import { PLAN_MATRIX, type LimitKey, type PlanDef } from '@padel/features';
 import { useT } from '@padel/i18n';
 import type { TFunction } from 'i18next';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
 import { colors, space } from '../../theme';
 import { Badge, Button, Card, Text, useBanner, useConfirm } from '../ui';
 
 type Props = {
   communityId: string;
+  /**
+   * Whether the viewer can act on the plan (upgrade/downgrade) — the community owner. An
+   * admin still sees the section (P1: it is no longer an owner-only dead end for the cap
+   * errors that route admins here) but gets a read-only hint instead of the action button.
+   */
+  canAct: boolean;
   /** Reports this section's y position on the manage screen so `?section=plan` can scroll to it. */
   onLayout?: (event: LayoutChangeEvent) => void;
 };
@@ -30,7 +36,7 @@ const LIMIT_LABEL_KEYS: Record<LimitKey, string> = {
  * action upgrades or downgrades on request — no transaction, reversible, refused with
  * `plan_downgrade_over_limit` while the community exceeds Starter's limits.
  */
-export function PlanSection({ communityId, onLayout }: Props) {
+export function PlanSection({ communityId, canAct, onLayout }: Props) {
   const { t } = useT('community');
   const banner = useBanner();
   const confirm = useConfirm();
@@ -73,6 +79,17 @@ export function PlanSection({ communityId, onLayout }: Props) {
     }
   };
 
+  if (plan.isLoading) {
+    return (
+      <View style={styles.section} onLayout={onLayout}>
+        <Text style={styles.sectionTitle}>{t('planSectionTitle')}</Text>
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.foreground} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.section} onLayout={onLayout}>
       <Text style={styles.sectionTitle}>{t('planSectionTitle')}</Text>
@@ -80,22 +97,26 @@ export function PlanSection({ communityId, onLayout }: Props) {
         <PlanCard title={t('planStarter')} current={!isPro} def={STARTER} t={t} />
         <PlanCard title={t('planCommunityPro')} current={isPro} def={COMMUNITY_PRO} t={t} />
       </View>
-      {isPro ? (
-        <Button
-          label={t('returnToStarter')}
-          variant="outline"
-          fullWidth
-          loading={busy}
-          onPress={() => void downgrade()}
-        />
+      {canAct ? (
+        isPro ? (
+          <Button
+            label={t('returnToStarter')}
+            variant="outline"
+            fullWidth
+            loading={busy}
+            onPress={() => void downgrade()}
+          />
+        ) : (
+          <Button
+            label={t('upgradeToPro')}
+            variant="primary"
+            fullWidth
+            loading={busy}
+            onPress={() => void upgrade()}
+          />
+        )
       ) : (
-        <Button
-          label={t('upgradeToPro')}
-          variant="primary"
-          fullWidth
-          loading={busy}
-          onPress={() => void upgrade()}
-        />
+        <Text style={styles.ownerOnlyHint}>{t('planOwnerOnly')}</Text>
       )}
     </View>
   );
@@ -142,6 +163,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginLeft: 4,
   },
+  loading: { paddingVertical: space[4], alignItems: 'center' },
   cardsRow: { flexDirection: 'row', gap: space[3] },
   card: { flex: 1 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space[3] },
@@ -150,4 +172,5 @@ const styles = StyleSheet.create({
   limitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   limitLabel: { fontSize: 13, color: colors.mutedForeground, flexShrink: 1 },
   limitValue: { fontSize: 13, fontWeight: '600', color: colors.foreground },
+  ownerOnlyHint: { fontSize: 13, color: colors.mutedForeground, textAlign: 'center' },
 });

@@ -1,10 +1,12 @@
 import {
   useArchiveGroup,
+  useCommunityMembers,
   useGroup,
   useGroupSeasons,
   useStartNewSeason,
   useUnarchiveGroup,
 } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -22,6 +24,7 @@ export default function GroupManageSeasonsScreen() {
   const { t } = useT('group');
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const uid = useSession().session?.user.id;
 
   const { data: group } = useGroup(id);
   const { data: seasons } = useGroupSeasons(id);
@@ -32,6 +35,12 @@ export default function GroupManageSeasonsScreen() {
   const confirm = useConfirm();
   const banner = useBanner();
   const [showUpgrade, setShowUpgrade] = useState(false);
+
+  // is_group_admin already requires a community owner/admin, so whoever reaches this screen
+  // is one of the two — resolve which, so UpgradePrompt's "See plans" can be scoped correctly.
+  const { data: communityMembers } = useCommunityMembers(group?.community_id);
+  const myRole = communityMembers?.find((m) => m.user_id === uid)?.role;
+  const canManagePlan = myRole === 'owner' || myRole === 'admin';
 
   if (!group) {
     return (
@@ -157,6 +166,7 @@ export default function GroupManageSeasonsScreen() {
         onClose={() => setShowUpgrade(false)}
         communityId={communityId}
         message={t('upgradeGroupsCap', { ns: 'community' })}
+        canManage={canManagePlan}
       />
     </SafeAreaView>
   );

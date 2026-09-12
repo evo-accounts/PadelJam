@@ -28,7 +28,11 @@ export default function SettingsScreen() {
   const [langOpen, setLangOpen] = useState(false);
 
   const current = (LANGS.find((l) => l.code === i18n.language) ?? LANGS[0])!;
-  const planLabel = t(accountPlan.data === 'jammer_plus' ? 'planJammerPlus' : 'planJammer');
+  // Neutral while the plan query is loading: `data` is undefined then, and defaulting to
+  // "planJammer" would flash the free label at a Jammer+ member before it resolves.
+  const planLabel = accountPlan.isLoading
+    ? undefined
+    : t(accountPlan.data === 'jammer_plus' ? 'planJammerPlus' : 'planJammer');
 
   const onSelectLang = (code: string) => {
     void i18n.changeLanguage(code);
@@ -63,7 +67,7 @@ export default function SettingsScreen() {
         <Text style={styles.section}>{t('account')}</Text>
         <ListRow
           title={t('planRow')}
-          trailing={<Text variant="body" tone="muted">{planLabel}</Text>}
+          trailing={planLabel ? <Text variant="body" tone="muted">{planLabel}</Text> : undefined}
           trailingLabel={planLabel}
           onPress={() => router.push('/profile/plan')}
         />

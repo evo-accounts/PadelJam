@@ -1,4 +1,5 @@
-import { useCreateGroup, useUpdateGroup } from '@padel/api';
+import { useCommunityMembers, useCreateGroup, useUpdateGroup } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -30,6 +31,13 @@ export default function GroupCreateModal() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const uid = useSession().session?.user.id;
+
+  // can_create_group already requires is_community_admin, so whoever reaches this modal is
+  // an owner or admin — resolve which, so UpgradePrompt's "See plans" can be scoped correctly.
+  const { data: communityMembers } = useCommunityMembers(id);
+  const myRole = communityMembers?.find((m) => m.user_id === uid)?.role;
+  const canManagePlan = myRole === 'owner' || myRole === 'admin';
 
   const create = useCreateGroup();
   const [groupId, setGroupId] = useState<string | null>(null);
@@ -111,6 +119,7 @@ export default function GroupCreateModal() {
         onClose={() => setShowUpgrade(false)}
         communityId={id}
         message={t('upgradeGroupsCap', { ns: 'community' })}
+        canManage={canManagePlan}
       />
     </SafeAreaView>
   );

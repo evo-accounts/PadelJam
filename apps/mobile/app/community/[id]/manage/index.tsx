@@ -53,6 +53,7 @@ export default function ManageIndexScreen() {
 
   const myRole = (members as Member[] | undefined)?.find((m) => m.user_id === uid)?.role;
   const isOwner = myRole === 'owner';
+  const isAdmin = myRole === 'admin';
   const isArchived = !!community?.archived_at;
   const pendingCount = requests?.length ?? 0;
   const otherMembers = (members as Member[] | undefined)?.filter((m) => m.user_id !== uid) ?? [];
@@ -169,7 +170,9 @@ export default function ManageIndexScreen() {
           <NavRow label={t('manageInvite')} onPress={() => router.push(`/community/${id}/manage/invite`)} />
         </Section>
 
-        {isOwner ? <PlanSection communityId={id} onLayout={onPlanLayout} /> : null}
+        {isOwner || isAdmin ? (
+          <PlanSection communityId={id} canAct={isOwner} onLayout={onPlanLayout} />
+        ) : null}
 
         <Section title={t('manageGroupAdvanced')}>
           <ActionRow

@@ -1,5 +1,5 @@
 // infra/supabase/tests/plans.test.mjs
-import { user, rpc, sel, insert, expectError, assert, run } from './lib.mjs';
+import { user, rpc, sel, expectError, assert, run } from './lib.mjs';
 
 const plan = (jwt) => rpc(jwt, 'account_plan_of_caller');
 const cplan = (jwt, id) => rpc(jwt, 'community_plan', { c: id });
@@ -48,4 +48,29 @@ await run('a downgrade is refused while the community exceeds Starter limits', a
   await rpc(owner.jwt, 'archive_group', { p_group_id: (await sel('groups', `community_id=eq.${cid}&is_general=eq.false&select=id`))[0].id });
   await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
   assert((await cplan(owner.jwt, cid)) === 'starter', 'downgraded after archiving');
+});
+
+// Starter's members_per_community seed value (0013) is 10 — small enough to hit directly:
+// 11 members (the owner plus 10 joiners) is one over the cap.
+await run('a downgrade is refused while the community exceeds the Starter member cap', async () => {
+  const owner = await user('memcap');
+  const cid = await ownCommunity(owner, 'Crowded Club');
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
+  const joiners = [];
+  for (let i = 0; i < 10; i++) {
+    const m = await user(`memcap${i}`);
+    await rpc(m.jwt, 'join_community', { p_community_id: cid, p_ack: true });
+    joiners.push(m);
+  }
+  assert(
+    (await sel('community_members', `community_id=eq.${cid}&select=user_id`)).length === 11,
+    'owner plus 10 joiners',
+  );
+  await expectError(
+    () => rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' }),
+    'plan_downgrade_over_limit',
+  );
+  await rpc(owner.jwt, 'remove_member', { p_community_id: cid, p_user_id: joiners[0].id });
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
+  assert((await cplan(owner.jwt, cid)) === 'starter', 'downgraded once back at the 10-member cap');
 });

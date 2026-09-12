@@ -185,6 +185,7 @@ export default function ManageMembersScreen() {
         onClose={() => setShowUpgrade(false)}
         communityId={id}
         message={t('upgradeCoOrganizersCap')}
+        canManage={canManage}
       />
     </SafeAreaView>
   );
