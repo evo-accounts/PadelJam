@@ -43,6 +43,7 @@ export const COMPLETE_ACCOUNT_ERROR_CODES = new Set([
   'phone_taken',
   'identifier_check_failed',
   'password_too_short',
+  'password_weak',
   'invalid_phone',
   'full_name_required',
   'networkError',
