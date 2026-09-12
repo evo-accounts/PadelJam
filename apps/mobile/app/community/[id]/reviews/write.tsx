@@ -11,15 +11,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { StarRating } from '@/components/community/StarRating';
 import { useDirty } from '@/lib/useDirty';
-import { colors, palette } from '../../../../theme';
-import { TopBar } from '../../../../components/ui';
+import { colors } from '../../../../theme';
+import { Field, TopBar, useBanner } from '../../../../components/ui';
 
 // Maps a thrown mutation error code to an existing community-namespace i18n key.
 const ERROR_KEY_MAP: Record<string, string> = {
@@ -31,6 +30,8 @@ const ERROR_KEY_MAP: Record<string, string> = {
 
 export default function WriteReviewModal() {
   const { t } = useT('community');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = useSession().session?.user.id;
@@ -40,7 +41,6 @@ export default function WriteReviewModal() {
 
   const [rating, setRating] = useState<number>(existing?.rating ?? 0);
   const [body, setBody] = useState<string>(existing?.body ?? '');
-  const [error, setError] = useState<string | null>(null);
 
   const { mutateAsync, isPending } = useUpsertReview(id);
 
@@ -51,12 +51,11 @@ export default function WriteReviewModal() {
   const dirty = useDirty({ rating, body }, initial);
 
   async function handleSubmit() {
-    setError(null);
-
     const parsed = reviewSchema.safeParse({ rating, body: body.trim() || undefined });
     if (!parsed.success) {
-      // rating is the only required field that can fail (must be 1-5)
-      setError(t('reviewsRatingRequired'));
+      // rating is the only required field that can fail (must be 1-5); it isn't a
+      // `Field`, so there's no border to redden — the banner alone carries this.
+      banner.show(tc('missingInformation'));
       return;
     }
 
@@ -67,7 +66,7 @@ export default function WriteReviewModal() {
       // The mutation throws Error(<i18n key>) for gated failures.
       const code = err instanceof Error ? err.message : 'unknown_error';
       const key = ERROR_KEY_MAP[code] ?? 'unknown_error';
-      setError(t(key));
+      banner.show(t(key));
     }
   }
 
@@ -87,21 +86,16 @@ export default function WriteReviewModal() {
 
           {/* Detail text */}
           <View style={styles.section}>
-            <TextInput
-              style={styles.bodyInput}
-              placeholder={t('reviewsBodyPlaceholder')}
-              placeholderTextColor={palette.slate[400]}
+            <Field
               value={body}
+              placeholder={t('reviewsBodyPlaceholder')}
               onChangeText={setBody}
               multiline
               numberOfLines={5}
               maxLength={2000}
               editable={!isPending}
-              textAlignVertical="top"
             />
           </View>
-
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </ScrollView>
 
         {/* Footer action */}
@@ -130,17 +124,6 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 20 },
   section: { gap: 10 },
   label: { fontSize: 15, fontWeight: '600', color: colors.foreground },
-  bodyInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
-    color: colors.foreground,
-    minHeight: 120,
-    backgroundColor: colors.background,
-  },
-  errorText: { fontSize: 14, color: colors.destructive, textAlign: 'center' },
   footer: {
     flexDirection: 'row',
     paddingHorizontal: 20,

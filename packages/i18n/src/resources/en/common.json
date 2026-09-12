@@ -10,5 +10,6 @@
   "missingInformation": "Missing information",
   "somethingWrong": "Something isn't right",
   "loadError": "Couldn't load this",
-  "retry": "Retry"
+  "retry": "Retry",
+  "required": "Required"
 }

@@ -16,10 +16,11 @@ import { useEffect, useReducer, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { safeAuthMessage } from '@/lib/authErrors';
 import { detectKind, getAuthTarget } from '@/lib/auth-flow';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
-import { Button } from '../../components/ui';
+import { Button, useBanner } from '../../components/ui';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
@@ -28,6 +29,8 @@ const ONBOARDING_ROUTE = '/(onboarding)/location';
 
 export default function CreateAccountScreen() {
   const { t } = useT('auth');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { kind } = getAuthTarget();
@@ -52,7 +55,6 @@ export default function CreateAccountScreen() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
 
   // Resend cooldown / attempt lockout for the secondary-identifier OTP (verify phase).
@@ -82,7 +84,7 @@ export default function CreateAccountScreen() {
         ? await startPhoneChange(supabase, secondaryValue)
         : await startEmailChange(supabase, secondaryValue);
     if (changeErr) {
-      setError(t(startChangeErrorKey(changeErr)));
+      banner.show(t(startChangeErrorKey(changeErr)));
       return 'failed';
     }
     // If the server has confirmations disabled, GoTrue applies the change immediately (the
@@ -101,23 +103,24 @@ export default function CreateAccountScreen() {
   const submit = async () => {
     if (busy) return;
     const name = fullName.trim();
-    if (!name || !secondaryValue || !password) return;
-    if (!agreed) return;
+    if (!name || !secondaryValue || !password || !agreed) {
+      banner.show(tc('missingInformation'));
+      return;
+    }
     // The phone must be E164 (+countrycode…). Without this guard a local-format number
     // fails isE164 in detectKind, gets sent as an EMAIL, and surfaces as an opaque 400.
     if (secondaryKind === 'phone' && !isE164(secondaryValue)) {
-      setError(t('invalid_phone'));
+      banner.show(t('invalid_phone'));
       return;
     }
 
     setBusy(true);
-    setError(null);
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
-        setError('no-session');
+        banner.show(tc('somethingWrong'));
         return;
       }
 
@@ -148,11 +151,9 @@ export default function CreateAccountScreen() {
         // Dev console gets the full detail; the UI copy may collapse it.
         console.warn('[complete-account] failed:', resp.status, code ?? '(no error code in body)');
         if (code === 'email_taken' || code === 'phone_taken' || code === 'invalid_phone') {
-          setError(t(code));
+          banner.show(t(code));
         } else {
-          // Include the server's error code so real causes (e.g. an identifier already
-          // registered at the auth level) are visible instead of a bare status.
-          setError(`complete-account-failed:${resp.status}${code ? `:${code}` : ''}`);
+          banner.show(tc('somethingWrong'));
         }
         return;
       }
@@ -168,7 +169,7 @@ export default function CreateAccountScreen() {
       if (cred) {
         const { error: signInErr } = await signInWithPassword(supabase, cred.identifier, cred.kind, password);
         if (signInErr) {
-          setError('session-refresh-failed');
+          banner.show(tc('somethingWrong'));
           router.replace('/(auth)/sign-in');
           return;
         }
@@ -188,9 +189,10 @@ export default function CreateAccountScreen() {
   };
 
   const verifySecondary = async () => {
-    if (busy || otpState.locked || code.length < 6) return;
+    if (busy) return;
+    if (otpState.locked) { banner.show(t('locked')); return; }
+    if (code.length < 6) { banner.show(tc('missingInformation')); return; }
     setBusy(true);
-    setError(null);
     try {
       const { error: verifyError } =
         secKind === 'phone'
@@ -198,7 +200,8 @@ export default function CreateAccountScreen() {
           : await verifyEmailChange(supabase, secondaryValue, code);
       if (verifyError) {
         dispatch({ type: 'fail' });
-        setError(verifyError.message);
+        const { ns, key } = safeAuthMessage(verifyError);
+        banner.show(t(key, { ns }));
         return;
       }
       router.replace(ONBOARDING_ROUTE);
@@ -210,7 +213,6 @@ export default function CreateAccountScreen() {
   const resend = async () => {
     if (busy || cooldownRemaining > 0) return;
     setBusy(true);
-    setError(null);
     try {
       if ((await startSecondaryChange()) === 'applied') router.replace(ONBOARDING_ROUTE);
     } finally {
@@ -256,13 +258,10 @@ export default function CreateAccountScreen() {
             autoFocus
           />
 
-          {otpState.locked ? <Text style={styles.error}>{t('locked')}</Text> : null}
-          {error && !otpState.locked ? <Text style={styles.error}>{error}</Text> : null}
-
           <Pressable
-            style={[styles.button, (busy || otpState.locked || code.length < 6) && styles.buttonDisabled]}
+            style={[styles.button, busy && styles.buttonDisabled]}
             onPress={verifySecondary}
-            disabled={busy || otpState.locked || code.length < 6}
+            disabled={busy}
             accessibilityRole="button"
           >
             {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('verify')}</Text>}
@@ -354,8 +353,6 @@ export default function CreateAccountScreen() {
           editable={!busy}
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
         <Pressable style={styles.termsRow} onPress={() => setAgreed((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }}>
           <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
             {agreed ? <Text style={styles.checkboxMark}>✓</Text> : null}
@@ -372,7 +369,6 @@ export default function CreateAccountScreen() {
           label={t('createAccount')}
           fullWidth
           loading={busy}
-          disabled={!agreed}
           onPress={submit}
         />
       </ScrollView>
@@ -407,7 +403,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputDisabled: { backgroundColor: colors.muted, color: colors.mutedForeground },
-  error: { color: colors.destructive, marginBottom: 16 },
   button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },

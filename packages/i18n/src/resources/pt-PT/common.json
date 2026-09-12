@@ -10,5 +10,6 @@
   "missingInformation": "Falta informação",
   "somethingWrong": "Algo não está certo",
   "loadError": "Não foi possível carregar",
-  "retry": "Tentar novamente"
+  "retry": "Tentar novamente",
+  "required": "Obrigatório"
 }

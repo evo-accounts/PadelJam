@@ -13,23 +13,25 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { runAppleSignIn } from '@/lib/appleSignIn';
+import { safeAuthMessage } from '@/lib/authErrors';
 import { getAuthTarget } from '@/lib/auth-flow';
 import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { decidePostVerifyRoute } from '@/lib/postVerifyRoute';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
-import { BottomSheet, Button, SheetRow } from '../../components/ui';
+import { BottomSheet, Button, SheetRow, useBanner } from '../../components/ui';
 
 export default function OtpScreen() {
   const { t } = useT('auth');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { identifier, kind } = getAuthTarget();
 
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
   const [now, setNow] = useState(() => Date.now());
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -50,9 +52,10 @@ export default function OtpScreen() {
   const cooldownRemaining = Math.max(0, Math.ceil((otpState.cooldownUntil - now) / 1000));
 
   const verify = async () => {
-    if (busy || otpState.locked || code.length < 6) return;
+    if (busy) return;
+    if (otpState.locked) { banner.show(t('locked')); return; }
+    if (code.length < 6) { banner.show(tc('missingInformation')); return; }
     setBusy(true);
-    setError(null);
     try {
       const { data, error: verifyError } =
         kind === 'phone'
@@ -61,7 +64,12 @@ export default function OtpScreen() {
 
       if (verifyError || !data.user) {
         dispatch({ type: 'fail' });
-        setError(verifyError?.message ?? t('locked'));
+        if (verifyError) {
+          const { ns, key } = safeAuthMessage(verifyError);
+          banner.show(t(key, { ns }));
+        } else {
+          banner.show(t('locked'));
+        }
         return;
       }
 
@@ -73,7 +81,8 @@ export default function OtpScreen() {
 
       const decision = decidePostVerifyRoute(profile, profileError);
       if (decision.kind === 'error') {
-        setError(decision.message);
+        const { ns, key } = safeAuthMessage(decision.message);
+        banner.show(t(key, { ns }));
         return;
       }
       router.replace(decision.target);
@@ -85,14 +94,14 @@ export default function OtpScreen() {
   const resend = async () => {
     if (busy || cooldownRemaining > 0) return;
     setBusy(true);
-    setError(null);
     try {
       const { error: otpError } =
         kind === 'phone'
           ? await startPhoneOtp(supabase, identifier)
           : await startEmailOtp(supabase, identifier);
       if (otpError) {
-        setError(otpError.message);
+        const { ns, key } = safeAuthMessage(otpError);
+        banner.show(t(key, { ns }));
         return;
       }
       dispatch({ type: 'sent', at: Date.now() });
@@ -106,12 +115,13 @@ export default function OtpScreen() {
     if (busy) return;
     setSheetOpen(false);
     setBusy(true);
-    setError(null);
     try {
       await runGoogleSignIn();
       router.replace((await resolvePostAuthRoute()) as never);
     } catch (e) {
-      setError(t(e instanceof Error ? e.message : 'oauth_failed'));
+      if (e instanceof Error && e.message === 'oauth_cancelled') { setBusy(false); return; }
+      const { ns, key } = safeAuthMessage(e);
+      banner.show(t(key, { ns }));
     } finally {
       setBusy(false);
     }
@@ -121,13 +131,13 @@ export default function OtpScreen() {
     if (busy) return;
     setSheetOpen(false);
     setBusy(true);
-    setError(null);
     try {
       await runAppleSignIn();
       router.replace((await resolvePostAuthRoute()) as never);
     } catch (e) {
       if (e instanceof Error && e.message === 'oauth_cancelled') { setBusy(false); return; }
-      setError(t(e instanceof Error ? e.message : 'oauth_failed'));
+      const { ns, key } = safeAuthMessage(e);
+      banner.show(t(key, { ns }));
     } finally {
       setBusy(false);
     }
@@ -151,13 +161,10 @@ export default function OtpScreen() {
         autoFocus
       />
 
-      {otpState.locked ? <Text style={styles.error}>{t('locked')}</Text> : null}
-      {error && !otpState.locked ? <Text style={styles.error}>{error}</Text> : null}
-
       <Pressable
-        style={[styles.button, (busy || otpState.locked || code.length < 6) && styles.buttonDisabled]}
+        style={[styles.button, busy && styles.buttonDisabled]}
         onPress={verify}
-        disabled={busy || otpState.locked || code.length < 6}
+        disabled={busy}
         accessibilityRole="button"
       >
         {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('verify')}</Text>}
@@ -208,7 +215,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
-  error: { color: colors.destructive, marginBottom: 16 },
   button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },

@@ -21,6 +21,14 @@ describe('02 onboarding', () => {
   it('manual location entry persists', async () => {
     await tap({ text: /add location manually/i });
     await typeText({ type: 'TextField' }, 'Lisboa');
+    // Continue is gated on a debounced, geocoded place (not just 3+ typed
+    // characters) — see location.tsx's `primaryDisabled={!resolved || saving}`.
+    // Tapping immediately after typeText races that debounce: the button is
+    // still disabled, the tap is swallowed, and the screen never advances.
+    // The resolved label always contains the typed query (it falls back to the
+    // raw text when reverse-geocoding doesn't return a name), so wait for it —
+    // as a StaticText, so this doesn't match the TextField's own value.
+    await expectVisible({ text: /lisboa/i, type: 'StaticText' }, { timeout: 10_000 });
     await tap({ label: 'Continue', type: 'Button' });
     await expectVisible({ text: /dominant hand/i }, { timeout: 30_000 });
     const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=location_text`);

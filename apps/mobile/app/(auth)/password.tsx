@@ -3,9 +3,10 @@ import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useReducer, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Button } from '../../components/ui';
+import { Button, useBanner } from '../../components/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { safeAuthMessage } from '@/lib/authErrors';
 import { getAuthTarget } from '@/lib/auth-flow';
 import { decidePostVerifyRoute } from '@/lib/postVerifyRoute';
 import { supabase } from '@/lib/supabase';
@@ -13,24 +14,26 @@ import { colors } from '../../theme';
 
 export default function PasswordScreen() {
   const { t } = useT('auth');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { identifier, kind } = getAuthTarget();
 
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [state, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
 
   const submit = async () => {
-    if (busy || state.locked || !password) return;
+    if (busy) return;
+    if (state.locked) { banner.show(t('passwordRateLimited')); return; }
+    if (!password) { banner.show(tc('missingInformation')); return; }
     setBusy(true);
-    setError(null);
     try {
       const { data, error: signInError } = await signInWithPassword(supabase, identifier, kind, password);
       if (signInError || !data.user) {
         dispatch({ type: 'fail' });
-        setError(t('passwordWrong'));
+        banner.show(t('passwordWrong'));
         return;
       }
       const { data: profile, error: profileError } = await supabase
@@ -40,7 +43,8 @@ export default function PasswordScreen() {
         .maybeSingle();
       const decision = decidePostVerifyRoute(profile, profileError);
       if (decision.kind === 'error') {
-        setError(decision.message);
+        const { ns, key } = safeAuthMessage(decision.message);
+        banner.show(t(key, { ns }));
         return;
       }
       router.replace(decision.target);
@@ -64,15 +68,10 @@ export default function PasswordScreen() {
         editable={!busy && !state.locked}
         autoFocus
       />
-      {state.locked ? (
-        <Text style={styles.error}>{t('passwordRateLimited')}</Text>
-      ) : error ? (
-        <Text style={styles.error}>{error}</Text>
-      ) : null}
       <Pressable
-        style={[styles.button, (busy || state.locked || !password) && styles.buttonDisabled]}
+        style={[styles.button, busy && styles.buttonDisabled]}
         onPress={submit}
-        disabled={busy || state.locked || !password}
+        disabled={busy}
         accessibilityRole="button"
       >
         {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('continue')}</Text>}
@@ -89,7 +88,6 @@ const styles = StyleSheet.create({
   help: { fontSize: 14, color: colors.mutedForeground, marginBottom: 24 },
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginBottom: 6 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
-  error: { color: colors.destructive, fontSize: 13, marginTop: 8 },
   button: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: colors.card, fontWeight: '700', fontSize: 16 },

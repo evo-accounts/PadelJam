@@ -1,12 +1,13 @@
 import { ENTRANCE_FEE_METHODS, ORGANIZER_ROLES } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useState } from 'react';
-import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import type { WizardStepProps } from '../draft';
 import { SelectableCard } from '../SelectableCard';
 import { Stepper } from '../Stepper';
-import { colors, palette } from '../../../../theme';
+import { colors } from '../../../../theme';
+import { Field } from '../../../ui';
 
 const FEE_METHOD_KEYS: Record<(typeof ENTRANCE_FEE_METHODS)[number], string> = {
   cash: 'feeCashLabel',
@@ -19,8 +20,9 @@ const ROLE_KEYS: Record<(typeof ORGANIZER_ROLES)[number], string> = {
   organizing_and_playing: 'roleOrganizing_and_playingLabel',
 };
 
-export function Step8Preferences({ draft, patch }: WizardStepProps) {
+export function Step8Preferences({ draft, patch, errors, clearError }: WizardStepProps) {
   const { t } = useT('event');
+  const { t: tc } = useT('common');
 
   const standaloneLocked = draft.groupId === null;
 
@@ -80,27 +82,24 @@ export function Step8Preferences({ draft, patch }: WizardStepProps) {
         </View>
         {draft.entranceFee.enabled ? (
           <View style={styles.section}>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>{t('feeAmountLabel')}</Text>
-              <TextInput
-                style={styles.input}
-                value={amountText}
-                onChangeText={(text) => {
-                  setAmountText(text);
-                  const parsed = Number(text);
-                  patch({
-                    entranceFee: {
-                      ...draft.entranceFee,
-                      amount: text.trim() === '' || Number.isNaN(parsed) ? undefined : parsed,
-                    },
-                  });
-                }}
-                keyboardType="decimal-pad"
-                placeholder={t('feeAmountLabel')}
-                placeholderTextColor={palette.slate[400]}
-                accessibilityLabel={t('feeAmountLabel')}
-              />
-            </View>
+            <Field
+              label={t('feeAmountLabel')}
+              value={amountText}
+              onChangeText={(text) => {
+                setAmountText(text);
+                const parsed = Number(text);
+                patch({
+                  entranceFee: {
+                    ...draft.entranceFee,
+                    amount: text.trim() === '' || Number.isNaN(parsed) ? undefined : parsed,
+                  },
+                });
+                clearError?.('feeAmount');
+              }}
+              keyboardType="decimal-pad"
+              placeholder={t('feeAmountLabel')}
+              error={errors?.includes('feeAmount') ? tc('required') : undefined}
+            />
 
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>{t('feeMethodLabel')}</Text>
@@ -117,22 +116,17 @@ export function Step8Preferences({ draft, patch }: WizardStepProps) {
             </View>
 
             {draft.entranceFee.method === 'mba' ? (
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>{t('feeMbaNumberLabel')}</Text>
-                <TextInput
-                  style={styles.input}
-                  value={draft.entranceFee.mbaNumber ?? ''}
-                  onChangeText={(text) =>
-                    patch({
-                      entranceFee: { ...draft.entranceFee, mbaNumber: text || undefined },
-                    })
-                  }
-                  keyboardType="phone-pad"
-                  placeholder={t('feeMbaNumberLabel')}
-                  placeholderTextColor={palette.slate[400]}
-                  accessibilityLabel={t('feeMbaNumberLabel')}
-                />
-              </View>
+              <Field
+                label={t('feeMbaNumberLabel')}
+                value={draft.entranceFee.mbaNumber ?? ''}
+                onChangeText={(text) =>
+                  patch({
+                    entranceFee: { ...draft.entranceFee, mbaNumber: text || undefined },
+                  })
+                }
+                keyboardType="phone-pad"
+                placeholder={t('feeMbaNumberLabel')}
+              />
             ) : null}
           </View>
         ) : null}
@@ -175,14 +169,4 @@ const styles = StyleSheet.create({
   label: { fontSize: 16, fontWeight: '600', color: colors.foreground, flex: 1 },
   fieldLabel: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   hint: { fontSize: 13, color: colors.mutedForeground },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.foreground,
-    backgroundColor: colors.card,
-  },
 });

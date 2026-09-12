@@ -13,15 +13,18 @@ import { useEffect, useReducer, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { safeAuthMessage } from '@/lib/authErrors';
 import { getAuthTarget } from '@/lib/auth-flow';
 import { supabase } from '@/lib/supabase';
 import { colors, palette } from '../../theme';
-import { Button } from '../../components/ui';
+import { Button, useBanner } from '../../components/ui';
 
 type Step = 'code' | 'password' | 'done';
 
 export default function RecoveryScreen() {
   const { t } = useT('auth');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { identifier, kind } = getAuthTarget();
@@ -31,7 +34,6 @@ export default function RecoveryScreen() {
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [otp, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
   const [now, setNow] = useState(() => Date.now());
 
@@ -40,11 +42,15 @@ export default function RecoveryScreen() {
   useEffect(() => {
     (kind === 'phone' ? startPhoneOtp(supabase, identifier) : startEmailOtp(supabase, identifier))
       .then(({ error: sendErr }) => {
-        if (sendErr) setError(sendErr.message);
-        else dispatch({ type: 'sent', at: Date.now() });
+        if (sendErr) {
+          const { ns, key } = safeAuthMessage(sendErr);
+          banner.show(t(key, { ns }));
+        } else {
+          dispatch({ type: 'sent', at: Date.now() });
+        }
       })
-      .catch(() => setError(t('locked')));
-  }, [identifier, kind, t]);
+      .catch(() => banner.show(t('locked')));
+  }, [identifier, kind, t, banner]);
 
   useEffect(() => {
     if (otp.cooldownUntil <= now) return;
@@ -54,16 +60,21 @@ export default function RecoveryScreen() {
   const cooldown = Math.max(0, Math.ceil((otp.cooldownUntil - now) / 1000));
 
   const verifyCode = async () => {
-    if (busy || code.length < 6) return;
+    if (busy) return;
+    if (code.length < 6) { banner.show(tc('missingInformation')); return; }
     setBusy(true);
-    setError(null);
     try {
       const { data, error: vErr } =
         kind === 'phone'
           ? await verifyPhoneOtp(supabase, identifier, code)
           : await verifyEmailOtp(supabase, identifier, code);
       if (vErr || !data.user) {
-        setError(vErr?.message ?? t('passwordWrong'));
+        if (vErr) {
+          const { ns, key } = safeAuthMessage(vErr);
+          banner.show(t(key, { ns }));
+        } else {
+          banner.show(t('passwordWrong'));
+        }
         return;
       }
       setStep('password');
@@ -86,13 +97,12 @@ export default function RecoveryScreen() {
 
   const savePassword = async () => {
     if (busy) return;
-    if (pw.length < 8) { setError(t('passwordTooShort')); return; }
-    if (pw !== pw2) { setError(t('passwordsDontMatch')); return; }
+    if (pw.length < 8) { banner.show(t('passwordTooShort')); return; }
+    if (pw !== pw2) { banner.show(t('passwordsDontMatch')); return; }
     setBusy(true);
-    setError(null);
     try {
       const { error: sErr } = await setUserPassword(supabase, pw);
-      if (sErr) { setError(t('passwordWrong')); return; }
+      if (sErr) { banner.show(t('passwordWrong')); return; }
       setStep('done');
     } finally {
       setBusy(false);
@@ -123,12 +133,10 @@ export default function RecoveryScreen() {
             editable={!busy}
             autoFocus
           />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button
             label={t('continue')}
             fullWidth
             loading={busy}
-            disabled={code.length < 6}
             onPress={verifyCode}
           />
           <Pressable style={styles.linkButton} onPress={resend} disabled={busy || cooldown > 0} accessibilityRole="button">
@@ -142,12 +150,10 @@ export default function RecoveryScreen() {
           <TextInput style={styles.input} value={pw} onChangeText={setPw} secureTextEntry autoCapitalize="none" editable={!busy} />
           <Text style={[styles.label, { marginTop: 12 }]}>{t('confirmPasswordLabel')}</Text>
           <TextInput style={styles.input} value={pw2} onChangeText={setPw2} secureTextEntry autoCapitalize="none" editable={!busy} />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button
             label={t('continue')}
             fullWidth
             loading={busy}
-            disabled={busy}
             onPress={savePassword}
           />
         </>
@@ -167,7 +173,6 @@ const styles = StyleSheet.create({
   help: { fontSize: 14, color: colors.mutedForeground, marginBottom: 24 },
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginBottom: 6 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
-  error: { color: colors.destructive, fontSize: 13, marginTop: 8 },
   button: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: colors.card, fontWeight: '700', fontSize: 16 },

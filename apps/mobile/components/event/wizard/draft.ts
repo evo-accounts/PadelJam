@@ -73,11 +73,17 @@ export const defaultDraft: EventDraft = {
 export type WizardStepProps = {
   draft: EventDraft;
   patch: (partial: Partial<EventDraft>) => void;
+  /** Failing field keys for this step, from its `validate()`, once a Next tap has flagged them. */
+  errors?: string[];
+  /** Drops one key from `errors` as the user corrects that field, so it turns back to normal without waiting for the next Next tap (UX-GLOB-06). */
+  clearError?: (key: string) => void;
 };
 
 export type WizardStep = {
   key: string;
   titleKey: string;
   Component: React.ComponentType<WizardStepProps>;
+  /** Pure: the failing field keys for this step, or [] when the step is complete. */
+  validate: (d: EventDraft) => string[];
   isValid: (d: EventDraft) => boolean;
 };

@@ -16,7 +16,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -27,15 +26,19 @@ import { SegmentedType } from '@/components/community/SegmentedType';
 import { coverUrl, thumbnailUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
+import { validateCommunityForm, type CommunityFormFieldKey } from '@/lib/communityFormValidate';
 import { useDirty } from '@/lib/useDirty';
+import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors, palette } from '../../../../theme';
-import { TopBar } from '../../../../components/ui';
+import { Field, TopBar, useBanner } from '../../../../components/ui';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
 
 export default function ManageSettingsScreen() {
   const { t } = useT('community');
+  const { t: tc } = useT('common');
+  const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -54,8 +57,7 @@ export default function ManageSettingsScreen() {
   const [rulesEnabled, setRulesEnabled] = useState(false);
   const [rulesText, setRulesText] = useState('');
 
-  const [rulesError, setRulesError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<CommunityFormFieldKey>();
   const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
@@ -91,19 +93,24 @@ export default function ManageSettingsScreen() {
   const existingCover = coverUrl(community?.cover_image_path);
 
   const pick = async (setter: (img: PickedImage) => void) => {
-    setError(null);
     try {
       const picked = await pickAndValidateImage();
       if (picked) setter(picked);
     } catch (e) {
-      setError(t(e instanceof Error ? e.message : 'unknown_error'));
+      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     }
   };
 
   const submit = async () => {
     if (pending) return;
-    setError(null);
-    setRulesError(null);
+
+    const errors = validateCommunityForm({ name, rulesEnabled, rulesText });
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
+      banner.show(tc('missingInformation'));
+      return;
+    }
+    setFieldErrors({});
 
     const parsed = createCommunitySchema.safeParse({
       name: name.trim(),
@@ -115,9 +122,7 @@ export default function ManageSettingsScreen() {
     });
 
     if (!parsed.success) {
-      const rulesIssue = parsed.error.issues.find((i) => i.path.includes('rules'));
-      if (rulesIssue) setRulesError(t('rules_text_required'));
-      setError(t('validation_error'));
+      banner.show(tc('missingInformation'));
       return;
     }
 
@@ -159,7 +164,7 @@ export default function ManageSettingsScreen() {
       router.back();
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';
-      setError(t(code, { defaultValue: t('unknown_error') }));
+      banner.show(t(code, { defaultValue: t('unknown_error') }));
     }
   };
 
@@ -175,32 +180,33 @@ export default function ManageSettingsScreen() {
         contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 24 }]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.label}>{t('nameLabel')}</Text>
-        <TextInput
-          style={styles.input}
+        <Field
+          label={t('nameLabel')}
           value={name}
-          onChangeText={setName}
+          onChangeText={(v) => { setName(v); clearFieldError('name'); }}
           placeholder={t('namePlaceholder')}
           editable={!pending}
+          error={fieldErrors.name ? tc('required') : undefined}
+          containerStyle={styles.field}
         />
 
-        <Text style={styles.label}>{t('descriptionLabel')}</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
+        <Field
+          label={t('descriptionLabel')}
           value={description}
           onChangeText={setDescription}
           placeholder={t('descriptionPlaceholder')}
           multiline
           editable={!pending}
+          containerStyle={styles.field}
         />
 
-        <Text style={styles.label}>{t('locationLabel')}</Text>
-        <TextInput
-          style={styles.input}
+        <Field
+          label={t('locationLabel')}
           value={location}
           onChangeText={setLocation}
           placeholder={t('locationPlaceholder')}
           editable={!pending}
+          containerStyle={styles.field}
         />
 
         <Text style={styles.label}>{t('typeLabel')}</Text>
@@ -228,12 +234,10 @@ export default function ManageSettingsScreen() {
           enabled={rulesEnabled}
           text={rulesText}
           onToggle={setRulesEnabled}
-          onChangeText={setRulesText}
-          error={rulesError}
+          onChangeText={(v) => { setRulesText(v); clearFieldError('rules'); }}
+          error={fieldErrors.rules ? t('rules_text_required') : null}
           disabled={pending}
         />
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Pressable
           style={[styles.button, pending && styles.buttonDisabled]}
@@ -259,17 +263,7 @@ const styles = StyleSheet.create({
   inner: { paddingHorizontal: 24, paddingTop: 16 },
   label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
   hint: { fontSize: 12, color: palette.slate[400], marginTop: 4, marginBottom: 16 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  multiline: { minHeight: 88, textAlignVertical: 'top' },
-  error: { color: colors.destructive, marginBottom: 16 },
+  field: { marginBottom: 16 },
   button: {
     backgroundColor: colors.primary,
     paddingVertical: 16,
