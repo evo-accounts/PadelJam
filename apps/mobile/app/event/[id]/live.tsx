@@ -30,7 +30,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShareResultsModal } from '@/components/event/ShareResultsModal';
 import { TimerTab } from '@/components/event/TimerTab';
 import { colors, palette } from '../../../theme';
-import { BottomSheet, Button, Card, Chip, TopBar } from '../../../components/ui';
+import { BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, TopBar } from '../../../components/ui';
 
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
 type MatchPlayer = MatchRow['match_players'][number];
@@ -380,7 +380,12 @@ export default function EventLiveScreen() {
           </View>
         ) : effectiveTab === 'matches' ? (
           orderedMatches.length === 0 ? (
-            <Text style={styles.empty}>{t('noMatches')}</Text>
+            <EmptyState
+              icon={emptyIcon('sportscourt')}
+              title={t('noMatches')}
+              body={t('liveEmptyBody')}
+              testID="empty-live-matches"
+            />
           ) : (
             <>
               {orderedMatches.map((m) => {
@@ -448,7 +453,12 @@ export default function EventLiveScreen() {
         ) : effectiveTab === 'timer' ? (
           <TimerTab eventId={id} isOrganizer={isOrganizer} />
         ) : standings.length === 0 ? (
-          <Text style={styles.empty}>{t('standingsEmpty')}</Text>
+          <EmptyState
+            icon={emptyIcon('sportscourt')}
+            title={t('standingsEmpty')}
+            body={t('liveEmptyBody')}
+            testID="empty-live-standings"
+          />
         ) : (
           <View style={styles.board}>
             <View style={[styles.boardRow, styles.boardHeaderRow]}>
@@ -668,7 +678,6 @@ const styles = StyleSheet.create({
   },
 
   content: { padding: 16, gap: 12 },
-  empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', marginTop: 32 },
 
   // Match card
   matchCard: {

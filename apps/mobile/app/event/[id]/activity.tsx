@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../theme';
-import { TopBar } from '../../../components/ui';
+import { EmptyState, emptyIcon, TopBar } from '../../../components/ui';
 
 /** Map an activity row to a localized one-line sentence. */
 function lineFor(t: (k: string, o?: Record<string, unknown>) => string, row: ActivityRow): string {
@@ -67,29 +67,33 @@ export default function EventActivityScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('activityTitle')} onBack={() => router.back()} />
-      {(rows ?? []).length === 0 ? (
-        <Text style={styles.empty}>{t('activityEmpty')}</Text>
-      ) : (
-        <FlashList
-          data={rows ?? []}
-          keyExtractor={(r) => r.id}
-          contentContainerStyle={styles.list}
-          renderItem={({ item }) => {
-            const actor = item.profiles?.full_name ?? '?';
-            return (
-              <View style={styles.row}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarInitial}>{(actor.charAt(0) || '?').toUpperCase()}</Text>
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.line}>{lineFor(t, item)}</Text>
-                  <Text style={styles.time}>{ago(item.created_at)}</Text>
-                </View>
+      <FlashList
+        data={rows ?? []}
+        keyExtractor={(r) => r.id}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <EmptyState
+            icon={emptyIcon('clock')}
+            title={t('activityEmpty')}
+            body={t('activityEmptyBody')}
+            testID="empty-activity"
+          />
+        }
+        renderItem={({ item }) => {
+          const actor = item.profiles?.full_name ?? '?';
+          return (
+            <View style={styles.row}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarInitial}>{(actor.charAt(0) || '?').toUpperCase()}</Text>
               </View>
-            );
-          }}
-        />
-      )}
+              <View style={styles.rowBody}>
+                <Text style={styles.line}>{lineFor(t, item)}</Text>
+                <Text style={styles.time}>{ago(item.created_at)}</Text>
+              </View>
+            </View>
+          );
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -97,7 +101,6 @@ export default function EventActivityScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  empty: { textAlign: 'center', marginTop: 48, color: colors.mutedForeground, fontSize: 15 },
   list: { paddingHorizontal: 16, paddingBottom: 32 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   avatar: {

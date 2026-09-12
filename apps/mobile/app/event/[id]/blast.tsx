@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, palette, space } from '../../../theme';
-import { BottomSheet, Button, Card, Chip, Field, Loading, Text, TopBar } from '../../../components/ui';
+import { BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, Field, Loading, Text, TopBar } from '../../../components/ui';
 
 type Channel = 'email' | 'whatsapp';
 
@@ -167,7 +167,7 @@ export default function BlastScreen() {
               </Card>
             ))
           ) : (yourBlasts ?? []).length === 0 ? (
-            <Text variant="caption" tone="muted" style={styles.empty}>{t('blastYourEmpty')}</Text>
+            <EmptyState icon={emptyIcon('megaphone')} title={t('blastYourEmpty')} testID="empty-blast" />
           ) : (
             (yourBlasts ?? []).map((b) => (
               <Card
@@ -262,7 +262,6 @@ const styles = StyleSheet.create({
   centerText: { textAlign: 'center' },
   card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 4 },
   cardMeta: { fontSize: 12, color: colors.mutedForeground, marginTop: 4 },
-  empty: { fontSize: 15, color: colors.mutedForeground, textAlign: 'center', paddingVertical: 24 },
 
   label: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
   channelRow: { flexDirection: 'row', gap: 10 },
