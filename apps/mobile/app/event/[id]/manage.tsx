@@ -21,7 +21,6 @@ import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   View,
@@ -30,7 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamManage } from '@/components/event/TeamManage';
 import { colors, palette } from '../../../theme';
-import { Button, Chip, Field, Text, TopBar } from '../../../components/ui';
+import { Button, Chip, Field, Text, TopBar, useActionSheet, useBanner, useConfirm } from '../../../components/ui';
 
 /** Display name for a participant row: profile name, then guest name, then dash. */
 function rowName(p: { profiles?: { full_name: string | null } | null; guest_name: string | null }): string {
@@ -42,6 +41,9 @@ export default function EventManageScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = useSession().session?.user.id;
+  const confirm = useConfirm();
+  const show = useActionSheet();
+  const banner = useBanner();
 
   // --- Data ---
   const { data: event, isLoading } = useEvent(id);
@@ -96,14 +98,14 @@ export default function EventManageScreen() {
   const feeEnabled = event.entrance_fee_enabled;
   const isMixed = event.specification === 'mixed';
 
-  // --- Action wrapper (serialises mutations + surfaces errors via Alert) ---
+  // --- Action wrapper (serialises mutations + surfaces errors via the banner) ---
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);
     try {
       await action();
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';
-      Alert.alert(t(code));
+      banner.show(t(code));
     } finally {
       setBusy(false);
     }
@@ -112,25 +114,22 @@ export default function EventManageScreen() {
   const onConfirm = (participantId: string, targetName?: string) =>
     run(() => markConfirmed.mutateAsync({ participantId, targetName }));
 
-  const onRemove = (participantId: string, targetName?: string) => {
-    Alert.alert(t('removeConfirmTitle'), t('removeConfirmBody'), [
-      {
-        text: t('removeToInvitedCta'),
-        onPress: () =>
-          run(() =>
-            removeParticipant.mutateAsync({ participantId, mode: 'to_invited', targetName }),
-          ),
-      },
-      {
-        text: t('removeFromEventCta'),
-        style: 'destructive',
-        onPress: () =>
-          run(() =>
-            removeParticipant.mutateAsync({ participantId, mode: 'from_event', targetName }),
-          ),
-      },
-      { text: t('cancel'), style: 'cancel' },
-    ]);
+  const onRemove = async (participantId: string, targetName?: string) => {
+    const key = await show({
+      title: t('removeConfirmTitle'),
+      actions: [
+        { key: 'to_invited', label: t('removeToInvitedCta') },
+        {
+          key: 'from_event',
+          label: t('removeFromEventCta'),
+          destructive: true,
+          confirm: { title: t('removeConfirmTitle'), body: t('removeConfirmBody'), confirmLabel: t('removeFromEventCta') },
+        },
+      ],
+    });
+    if (key === 'to_invited' || key === 'from_event') {
+      void run(() => removeParticipant.mutateAsync({ participantId, mode: key, targetName }));
+    }
   };
 
   const onAddManual = () => {
@@ -175,23 +174,26 @@ export default function EventManageScreen() {
         await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: filename });
       } else {
         await Clipboard.setStringAsync(csv);
-        Alert.alert(t('exportUnavailable'));
+        banner.show(t('exportUnavailable'));
       }
     });
 
-  const onExport = () => {
-    Alert.alert(t('exportSheetTitle'), undefined, [
-      { text: t('exportCsvCta'), onPress: onExportCsv },
-      {
-        text: t('emailCsvCta'),
-        onPress: () =>
-          run(async () => {
-            await sendCsvEmail.mutateAsync();
-            Alert.alert(t('csvEmailed'));
-          }),
-      },
-      { text: t('cancel'), style: 'cancel' },
-    ]);
+  const onExport = async () => {
+    const key = await show({
+      title: t('exportSheetTitle'),
+      actions: [
+        { key: 'csv', label: t('exportCsvCta') },
+        { key: 'email', label: t('emailCsvCta') },
+      ],
+    });
+    if (key === 'csv') {
+      void onExportCsv();
+    } else if (key === 'email') {
+      void run(async () => {
+        await sendCsvEmail.mutateAsync();
+        banner.show(t('csvEmailed'), 'success');
+      });
+    }
   };
 
   const doCancel = (scope: 'only_this' | 'this_and_upcoming') =>
@@ -200,18 +202,37 @@ export default function EventManageScreen() {
       router.back();
     });
 
-  const onCancelEvent = () => {
+  const onCancelEvent = async () => {
     if (event.series_id != null) {
-      Alert.alert(t('cancelRecurringTitle'), undefined, [
-        { text: t('cancelOnlyThisCta'), style: 'destructive', onPress: () => doCancel('only_this') },
-        { text: t('cancelThisAndUpcomingCta'), style: 'destructive', onPress: () => doCancel('this_and_upcoming') },
-        { text: t('cancel'), style: 'cancel' },
-      ]);
-    } else {
-      Alert.alert(t('cancelStandardTitle'), t('cancelStandardBody'), [
-        { text: t('cancelEventCta'), style: 'destructive', onPress: () => doCancel('only_this') },
-        { text: t('cancel'), style: 'cancel' },
-      ]);
+      const key = await show({
+        title: t('cancelRecurringTitle'),
+        actions: [
+          {
+            key: 'only_this',
+            label: t('cancelOnlyThisCta'),
+            destructive: true,
+            confirm: { title: t('cancelRecurringTitle'), confirmLabel: t('cancelOnlyThisCta') },
+          },
+          {
+            key: 'this_and_upcoming',
+            label: t('cancelThisAndUpcomingCta'),
+            destructive: true,
+            confirm: { title: t('cancelRecurringTitle'), confirmLabel: t('cancelThisAndUpcomingCta') },
+          },
+        ],
+      });
+      if (key === 'only_this' || key === 'this_and_upcoming') {
+        void doCancel(key);
+      }
+    } else if (
+      await confirm({
+        title: t('cancelStandardTitle'),
+        body: t('cancelStandardBody'),
+        confirmLabel: t('cancelEventCta'),
+        destructive: true,
+      })
+    ) {
+      void doCancel('only_this');
     }
   };
 

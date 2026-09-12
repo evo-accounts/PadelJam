@@ -31,7 +31,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShareResultsModal } from '@/components/event/ShareResultsModal';
 import { TimerTab } from '@/components/event/TimerTab';
 import { colors, palette } from '../../../theme';
-import { Button, Card, Chip, TopBar } from '../../../components/ui';
+import { BottomSheet, Button, Card, Chip, TopBar } from '../../../components/ui';
 
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
 type MatchPlayer = MatchRow['match_players'][number];
@@ -519,90 +519,78 @@ export default function EventLiveScreen() {
         />
       </View>
 
-      {/* Score modal */}
-      <Modal
+      {/* Score sheet */}
+      <BottomSheet
         visible={scoringMatch != null}
-        transparent
-        animationType="fade"
-        onRequestClose={closeScoreModal}
+        onClose={closeScoreModal}
+        title={t('enterScoreTitle')}
+        testID="score-sheet"
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            {scoringMatch != null ? (
+        {scoringMatch != null ? (
+          <>
+            <Text style={styles.modalSide} numberOfLines={2}>
+              {sideNames(scoringMatch.match_players, 'a')}
+            </Text>
+            <Text style={styles.vs}>{t('vsLabel')}</Text>
+            <Text style={styles.modalSide} numberOfLines={2}>
+              {sideNames(scoringMatch.match_players, 'b')}
+            </Text>
+
+            {isPoints ? (
               <>
-                <Text style={styles.modalTitle}>{t('enterScoreTitle')}</Text>
-                <Text style={styles.modalSide} numberOfLines={2}>
-                  {sideNames(scoringMatch.match_players, 'a')}
-                </Text>
-                <Text style={styles.vs}>{t('vsLabel')}</Text>
-                <Text style={styles.modalSide} numberOfLines={2}>
-                  {sideNames(scoringMatch.match_players, 'b')}
-                </Text>
-
-                {isPoints ? (
-                  <>
-                    <Text style={styles.fieldLabel}>{t('sideALabel')}</Text>
-                    <TextInput
-                      style={[styles.input, notPlayed && styles.inputDisabled]}
-                      keyboardType="number-pad"
-                      editable={!notPlayed}
-                      value={sideAInput}
-                      onChangeText={setSideAInput}
-                    />
-                    <Text style={styles.fieldLabel}>{t('sideBLabel')}</Text>
-                    <View style={[styles.input, styles.inputReadonly]}>
-                      <Text style={styles.inputReadonlyText}>{computedSideB}</Text>
-                    </View>
-                    <Text style={styles.hint}>
-                      {t('pointsTotalHint', { total: pointsTotal })}
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.fieldLabel}>{t('sideALabel')}</Text>
-                    <TextInput
-                      style={[styles.input, notPlayed && styles.inputDisabled]}
-                      keyboardType="number-pad"
-                      editable={!notPlayed}
-                      value={sideAInput}
-                      onChangeText={setSideAInput}
-                    />
-                    <Text style={styles.fieldLabel}>{t('sideBLabel')}</Text>
-                    <TextInput
-                      style={[styles.input, notPlayed && styles.inputDisabled]}
-                      keyboardType="number-pad"
-                      editable={!notPlayed}
-                      value={sideBInput}
-                      onChangeText={setSideBInput}
-                    />
-                  </>
-                )}
-
-                <View style={styles.toggleRow}>
-                  <Text style={styles.toggleLabel}>{t('notPlayedToggle')}</Text>
-                  <Switch value={notPlayed} onValueChange={setNotPlayed} disabled={busy} />
+                <Text style={styles.fieldLabel}>{t('sideALabel')}</Text>
+                <TextInput
+                  style={[styles.input, notPlayed && styles.inputDisabled]}
+                  keyboardType="number-pad"
+                  editable={!notPlayed}
+                  value={sideAInput}
+                  onChangeText={setSideAInput}
+                />
+                <Text style={styles.fieldLabel}>{t('sideBLabel')}</Text>
+                <View style={[styles.input, styles.inputReadonly]}>
+                  <Text style={styles.inputReadonlyText}>{computedSideB}</Text>
                 </View>
-
-                {error != null ? <Text style={styles.error}>{t(error)}</Text> : null}
-
-                <View style={styles.modalActions}>
-                  <Button
-                    label={t('cancel')}
-                    variant="outline"
-                    disabled={busy}
-                    onPress={closeScoreModal}
-                  />
-                  <Button
-                    label={t('saveScoreCta')}
-                    disabled={busy}
-                    onPress={() => onSaveScore(scoringMatch)}
-                  />
-                </View>
+                <Text style={styles.hint}>
+                  {t('pointsTotalHint', { total: pointsTotal })}
+                </Text>
               </>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
+            ) : (
+              <>
+                <Text style={styles.fieldLabel}>{t('sideALabel')}</Text>
+                <TextInput
+                  style={[styles.input, notPlayed && styles.inputDisabled]}
+                  keyboardType="number-pad"
+                  editable={!notPlayed}
+                  value={sideAInput}
+                  onChangeText={setSideAInput}
+                />
+                <Text style={styles.fieldLabel}>{t('sideBLabel')}</Text>
+                <TextInput
+                  style={[styles.input, notPlayed && styles.inputDisabled]}
+                  keyboardType="number-pad"
+                  editable={!notPlayed}
+                  value={sideBInput}
+                  onChangeText={setSideBInput}
+                />
+              </>
+            )}
+
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>{t('notPlayedToggle')}</Text>
+              <Switch value={notPlayed} onValueChange={setNotPlayed} disabled={busy} />
+            </View>
+
+            {error != null ? <Text style={styles.error}>{t(error)}</Text> : null}
+
+            <Button
+              label={t('saveScoreCta')}
+              fullWidth
+              disabled={busy}
+              onPress={() => onSaveScore(scoringMatch)}
+            />
+          </>
+        ) : null}
+      </BottomSheet>
 
       {/* Finish modal */}
       <Modal

@@ -9,9 +9,9 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, palette } from '../../theme';
-import { Button, Chip, ListRow } from '../../components/ui';
+import { Avatar, BottomSheet, Button, Chip, SheetRow, useActionSheet, useBanner, useConfirm } from '../../components/ui';
 
 type Participant = {
   id: string;
@@ -19,7 +19,7 @@ type Participant = {
   guest_name: string | null;
   status: string;
   is_standby: boolean;
-  profiles?: { full_name: string | null } | null;
+  profiles?: { full_name: string | null; avatar_url: string | null } | null;
 };
 
 type Slot = 'a' | 'b';
@@ -44,14 +44,14 @@ export function TeamManage({
   const removeFromTeam = useRemoveFromTeam(eventId);
   const switchPlayers = useSwitchPlayers(eventId);
   const removeParticipant = useRemoveParticipant(eventId);
+  const confirm = useConfirm();
+  const show = useActionSheet();
+  const banner = useBanner();
 
   const [view, setView] = useState<'team' | 'player'>('team');
   const [busy, setBusy] = useState(false);
   const [assignTarget, setAssignTarget] = useState<{ teamNumber: number; slot: Slot } | null>(null);
   const [switchTarget, setSwitchTarget] = useState<string | null>(null);
-  const [confirmTarget, setConfirmTarget] = useState<
-    { participant: Participant; teamNumber: number; slot: Slot } | null
-  >(null);
 
   const capacity = numCourts * 4;
   const teamCount = numCourts * 2;
@@ -70,7 +70,7 @@ export function TeamManage({
     try {
       await action();
     } catch (e) {
-      Alert.alert(t(e instanceof Error ? e.message : 'unknown_error'));
+      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     } finally {
       setBusy(false);
     }
@@ -78,37 +78,54 @@ export function TeamManage({
 
   const doAssign = (p: Participant, teamNumber: number, slot: Slot) => {
     setAssignTarget(null);
-    setConfirmTarget(null);
     void run(() =>
       assign.mutateAsync({ participantId: p.id, teamNumber, slot, targetName: pname(p) }),
     );
   };
 
-  const onPickForSlot = (p: Participant) => {
+  const onPickForSlot = async (p: Participant) => {
     if (!assignTarget) return;
+    const { teamNumber, slot } = assignTarget;
     if (p.status !== 'confirmed') {
-      setConfirmTarget({ participant: p, teamNumber: assignTarget.teamNumber, slot: assignTarget.slot });
       setAssignTarget(null);
+      if (
+        await confirm({
+          title: t('assignConfirmTitle'),
+          body: t('assignConfirmBody', { name: pname(p) }),
+          confirmLabel: t('continue'),
+          cancelLabel: t('cancel'),
+        })
+      ) {
+        doAssign(p, teamNumber, slot);
+      }
     } else {
-      doAssign(p, assignTarget.teamNumber, assignTarget.slot);
+      doAssign(p, teamNumber, slot);
     }
   };
 
-  const onSlotPress = (teamNumber: number, slot: Slot, occupant: TeamSlotPlayer | null) => {
+  const onSlotPress = async (teamNumber: number, slot: Slot, occupant: TeamSlotPlayer | null) => {
     if (busy) return;
     if (!occupant) {
       setAssignTarget({ teamNumber, slot });
       return;
     }
-    Alert.alert(t('slotActionTitle'), pname(occupant), [
-      { text: t('switchPlayerCta'), onPress: () => setSwitchTarget(occupant.id) },
-      {
-        text: t('removeFromTeamCta'),
-        style: 'destructive',
-        onPress: () => run(() => removeFromTeam.mutateAsync({ participantId: occupant.id, targetName: pname(occupant) })),
-      },
-      { text: t('cancel'), style: 'cancel' },
-    ]);
+    const key = await show({
+      title: pname(occupant),
+      actions: [
+        { key: 'switch', label: t('switchPlayerCta') },
+        {
+          key: 'remove',
+          label: t('removeFromTeamCta'),
+          destructive: true,
+          confirm: { title: t('slotActionTitle'), body: pname(occupant), confirmLabel: t('removeFromTeamCta') },
+        },
+      ],
+    });
+    if (key === 'switch') {
+      setSwitchTarget(occupant.id);
+    } else if (key === 'remove') {
+      void run(() => removeFromTeam.mutateAsync({ participantId: occupant.id, targetName: pname(occupant) }));
+    }
   };
 
   const onSwitchPick = (other: Participant) => {
@@ -155,7 +172,7 @@ export function TeamManage({
                     <Pressable
                       key={slot}
                       style={[styles.slot, occ ? styles.slotFilled : styles.slotEmpty]}
-                      onPress={() => onSlotPress(n, slot, occ)}
+                      onPress={() => void onSlotPress(n, slot, occ)}
                       accessibilityRole="button"
                       disabled={busy}
                     >
@@ -183,65 +200,48 @@ export function TeamManage({
       )}
 
       {/* Assign sheet */}
-      <Modal visible={assignTarget != null} transparent animationType="slide" onRequestClose={() => setAssignTarget(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setAssignTarget(null)}>
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>{t('assignTitle')}</Text>
-            {assignable.length === 0 ? (
-              <Text style={styles.sheetEmpty}>{t('assignNoneEligible')}</Text>
-            ) : (
-              <ScrollView>
-                {assignable.map((p) => (
-                  <ListRow key={p.id} title={pname(p)} onPress={() => onPickForSlot(p)} />
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </Pressable>
-      </Modal>
+      <BottomSheet
+        visible={assignTarget != null}
+        onClose={() => setAssignTarget(null)}
+        title={t('assignTitle')}
+        testID="assign-sheet"
+      >
+        {assignable.length === 0 ? (
+          <Text style={styles.sheetEmpty}>{t('assignNoneEligible')}</Text>
+        ) : (
+          <ScrollView style={styles.pickerScroll}>
+            {assignable.map((p) => (
+              <SheetRow
+                key={p.id}
+                label={pname(p)}
+                leading={<Avatar name={pname(p)} uri={p.profiles?.avatar_url} colourKey={p.user_id ?? p.id} size="sm" />}
+                onPress={() => void onPickForSlot(p)}
+              />
+            ))}
+          </ScrollView>
+        )}
+      </BottomSheet>
 
       {/* Switch sheet */}
-      <Modal visible={switchTarget != null} transparent animationType="slide" onRequestClose={() => setSwitchTarget(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setSwitchTarget(null)}>
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>{t('switchTitle')}</Text>
-            <ScrollView>
-              {participants
-                .filter((p) => p.id !== switchTarget)
-                .map((p) => (
-                  <ListRow key={p.id} title={pname(p)} onPress={() => onSwitchPick(p)} />
-                ))}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Confirm-player modal (JM-30) */}
-      <Modal visible={confirmTarget != null} transparent animationType="fade" onRequestClose={() => setConfirmTarget(null)}>
-        <View style={styles.backdropCenter}>
-          <View style={styles.dialog}>
-            <Text style={styles.dialogTitle}>{t('assignConfirmTitle')}</Text>
-            <Text style={styles.dialogBody}>
-              {t('assignConfirmBody', { name: confirmTarget ? pname(confirmTarget.participant) : '' })}
-            </Text>
-            <View style={styles.dialogRow}>
-              <Button
-                label={t('cancel')}
-                variant="outline"
-                style={styles.dialogBtn}
-                onPress={() => setConfirmTarget(null)}
+      <BottomSheet
+        visible={switchTarget != null}
+        onClose={() => setSwitchTarget(null)}
+        title={t('switchTitle')}
+        testID="switch-sheet"
+      >
+        <ScrollView style={styles.pickerScroll}>
+          {participants
+            .filter((p) => p.id !== switchTarget)
+            .map((p) => (
+              <SheetRow
+                key={p.id}
+                label={pname(p)}
+                leading={<Avatar name={pname(p)} uri={p.profiles?.avatar_url} colourKey={p.user_id ?? p.id} size="sm" />}
+                onPress={() => onSwitchPick(p)}
               />
-              <Button
-                label={t('continue')}
-                style={styles.dialogBtn}
-                onPress={() =>
-                  confirmTarget && doAssign(confirmTarget.participant, confirmTarget.teamNumber, confirmTarget.slot)
-                }
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
+            ))}
+        </ScrollView>
+      </BottomSheet>
     </View>
   );
 }
@@ -314,15 +314,6 @@ const styles = StyleSheet.create({
   pvRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
   pvName: { flex: 1, fontSize: 15, color: colors.foreground, fontWeight: '500' },
 
-  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  backdropCenter: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', paddingHorizontal: 24 },
-  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '70%' },
-  sheetTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
+  pickerScroll: { maxHeight: 400 },
   sheetEmpty: { fontSize: 15, color: colors.mutedForeground, paddingVertical: 12 },
-
-  dialog: { backgroundColor: colors.card, borderRadius: 16, padding: 20, gap: 12 },
-  dialogTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground },
-  dialogBody: { fontSize: 15, color: colors.mutedForeground, lineHeight: 21 },
-  dialogRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  dialogBtn: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 });
