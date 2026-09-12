@@ -15,7 +15,7 @@ import {
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -40,12 +40,6 @@ type MatchPlayer = MatchRow['match_players'][number];
 function playerName(mp: MatchPlayer): string {
   const ep = mp.event_participants;
   return ep?.profiles?.full_name ?? ep?.guest_name ?? '—';
-}
-
-/** Join a side's player names with a separator (numbers/glue only). */
-function sideNames(players: MatchPlayer[], side: 'a' | 'b'): string {
-  const names = players.filter((mp) => mp.side === side).map(playerName);
-  return names.length > 0 ? names.join(' & ') : '—';
 }
 
 /** One match side: an avatar + name row per player (doubles = up to two rows). */
@@ -100,6 +94,21 @@ export default function EventLiveScreen() {
   const generateNextRound = useGenerateNextRound(id);
   const finishEvent = useFinishEvent(id);
   const setEventRanking = useSetEventRanking(id);
+
+  // Participant id -> display name + avatar, for standings and the resting list
+  // (the standings() RPC and event_matches embed carry their own profile data,
+  // but standings only returns entity_id, so this map is how it gets a face).
+  const participantById = useMemo(() => {
+    const map = new Map<string, { name: string; avatarUrl: string | null; colourKey: string | null }>();
+    for (const p of participantsData ?? []) {
+      map.set(p.id, {
+        name: p.profiles?.full_name ?? p.guest_name ?? '—',
+        avatarUrl: p.profiles?.avatar_url ?? null,
+        colourKey: p.profiles?.id ?? p.user_id ?? null,
+      });
+    }
+    return map;
+  }, [participantsData]);
 
   const rounds = roundsData ?? [];
   const lastRound = rounds.length > 0 ? rounds[rounds.length - 1] : undefined;
@@ -184,20 +193,6 @@ export default function EventLiveScreen() {
   const standings = standingsData ?? [];
   const teams = teamsData ?? [];
 
-  // Participant id -> display name + avatar, for standings and the resting list
-  // (the standings() RPC and event_matches embed carry their own profile data,
-  // but standings only returns entity_id, so this map is how it gets a face).
-  const participantById = new Map<
-    string,
-    { name: string; avatarUrl: string | null; colourKey: string | null }
-  >();
-  for (const p of participants) {
-    participantById.set(p.id, {
-      name: p.profiles?.full_name ?? p.guest_name ?? '—',
-      avatarUrl: p.profiles?.avatar_url ?? null,
-      colourKey: p.profiles?.id ?? p.user_id ?? null,
-    });
-  }
   // Team-number map for leaderboard team rows.
   const teamNumberById = new Map<string, number>();
   for (const team of teams) {
@@ -598,13 +593,11 @@ export default function EventLiveScreen() {
       >
         {scoringMatch != null ? (
           <>
-            <Text style={styles.modalSide} numberOfLines={2}>
-              {sideNames(scoringMatch.match_players, 'a')}
-            </Text>
-            <Text style={styles.vs}>{t('vsLabel')}</Text>
-            <Text style={styles.modalSide} numberOfLines={2}>
-              {sideNames(scoringMatch.match_players, 'b')}
-            </Text>
+            <View style={styles.matchBody}>
+              <SidePlayers players={scoringMatch.match_players} side="a" />
+              <Text style={styles.vs}>{t('vsLabel')}</Text>
+              <SidePlayers players={scoringMatch.match_players} side="b" />
+            </View>
 
             {isPoints ? (
               <>

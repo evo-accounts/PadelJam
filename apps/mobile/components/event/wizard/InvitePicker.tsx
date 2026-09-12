@@ -86,7 +86,7 @@ function GroupMemberList({
                   uri={avatarUrl(member.profiles?.avatar_url)}
                   name={name}
                   colourKey={member.user_id}
-                  size="sm"
+                  size="md"
                   decorative
                 />
                 <Text style={[styles.memberName, selected && styles.memberNameSelected]}>{name}</Text>

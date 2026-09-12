@@ -86,7 +86,13 @@ export default function EventActivityScreen() {
           return (
             <View style={styles.row}>
               {/* Decorative: the actor's name is part of the line text beside it. */}
-              <Avatar uri={avatarUrl(item.profiles?.avatar_url)} name={actor} size="md" decorative />
+              <Avatar
+                uri={avatarUrl(item.profiles?.avatar_url)}
+                name={actor}
+                colourKey={item.profiles?.id ?? item.actor_id}
+                size="md"
+                decorative
+              />
               <View style={styles.rowBody}>
                 <Text style={styles.line}>{lineFor(t, item)}</Text>
                 <Text style={styles.time}>{ago(item.created_at)}</Text>

@@ -16,11 +16,7 @@ export default function FollowersScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const query = useFollowers(id, search);
-  const rows = (query.data?.pages.flat() ?? []) as ReadonlyArray<{
-    id: string;
-    full_name: string;
-    avatar_url: string | null;
-  }>;
+  const rows = query.data?.pages.flat() ?? [];
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('followersCount')} onBack={() => router.back()} />

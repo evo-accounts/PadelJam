@@ -92,7 +92,13 @@ export default function PostDetailScreen() {
             {/* The name is rendered right beside it, so the avatar itself is
                 decorative — hidden from the accessibility tree to avoid a
                 screen reader announcing the same name twice. */}
-            <Avatar uri={avatar} name={name} colourKey={post.author?.id} size="md" decorative />
+            <Avatar
+              uri={avatar}
+              name={name}
+              colourKey={post.author?.id ?? post.author_id}
+              size="md"
+              decorative
+            />
             <Text style={styles.author} numberOfLines={1}>
               {name}
             </Text>

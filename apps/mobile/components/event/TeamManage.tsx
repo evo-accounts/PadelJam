@@ -92,7 +92,7 @@ export function TeamManage({
       actions: assignable.map((p) => ({
         key: p.id,
         label: pname(p),
-        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" />,
+        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" decorative />,
         // An unconfirmed player (interested / invited, not yet RSVP'd) gets a
         // confirmation step before landing on the court — the host morphs the
         // same Modal from the candidate list straight into this prompt.
@@ -113,7 +113,7 @@ export function TeamManage({
       actions: candidates.map((p) => ({
         key: p.id,
         label: pname(p),
-        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" />,
+        leading: <Avatar name={pname(p)} uri={avatarUrl(p.profiles?.avatar_url)} colourKey={p.user_id ?? p.id} size="sm" decorative />,
       })),
     });
     if (otherId) {
