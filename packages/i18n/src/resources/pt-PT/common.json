@@ -11,5 +11,13 @@
   "somethingWrong": "Algo não está certo",
   "loadError": "Não foi possível carregar",
   "retry": "Tentar novamente",
-  "required": "Obrigatório"
+  "required": "Obrigatório",
+  "showPassword": "Mostrar palavra-passe",
+  "hidePassword": "Ocultar palavra-passe",
+  "ruleMinLength": "Mínimo de 8 caracteres",
+  "ruleUppercase": "Pelo menos uma letra maiúscula",
+  "ruleNumber": "Pelo menos um número",
+  "ruleSymbol": "Pelo menos um símbolo",
+  "ruleMet": "cumprido",
+  "ruleMissing": "por cumprir"
 }

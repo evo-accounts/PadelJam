@@ -31,6 +31,7 @@ import { ListRow } from './ListRow';
 import { useActionSheet, useConfirm } from './SheetHost';
 import { TopBar } from './TopBar';
 import { Field } from './Field';
+import { PasswordField } from './PasswordField';
 import { Loading, Screen } from './Screen';
 import { Text } from './Text';
 
@@ -297,6 +298,10 @@ export function Overview() {
         <Field label="Locked" value="Read only" editable={false} containerStyle={styles.stacked} />
       </Section>
 
+      <Section title="PasswordField">
+        <GalleryPasswordFieldDemo />
+      </Section>
+
       <Section title="EmptyState">
         <Card padding="none" style={styles.stacked}>
           <EmptyState
@@ -366,6 +371,32 @@ function GallerySheetDemo() {
 function GalleryBannerDemo() {
   const banner = useBanner();
   return <Button label="Show banner" variant="outline" onPress={() => banner.show('Missing information')} />;
+}
+
+function GalleryPasswordFieldDemo() {
+  // 'Padel12': 7 chars (< 8, minLength unmet), has an uppercase and a digit,
+  // no symbol — exactly two of the four rules ticked, so the screenshot shows
+  // both the met and unmet states of the checklist.
+  const [withRules, setWithRules] = useState('Padel12');
+  const [plain, setPlain] = useState('');
+  return (
+    <>
+      <PasswordField
+        label="New password"
+        value={withRules}
+        onChangeText={setWithRules}
+        showRules
+        testID="gallery-password-with-rules"
+        containerStyle={styles.stacked}
+      />
+      <PasswordField
+        label="Current password"
+        value={plain}
+        onChangeText={setPlain}
+        testID="gallery-password-plain"
+      />
+    </>
+  );
 }
 
 export default {
