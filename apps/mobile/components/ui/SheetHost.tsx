@@ -5,7 +5,7 @@
  *   if (await confirm({ title: t('deleteTitle'), body: t('deleteBody'), confirmLabel: t('delete'), destructive: true })) { … }
  *
  *   const show = useActionSheet();
- *   const key = await show({ title: name, actions: [{ key: 'remove', label: t('remove'), destructive: true }] });
+ *   const key = await show({ title: name, actions: [{ key: 'remove', label: t(`remove`), destructive: true }] });
  *
  * Destructive rows in an action sheet are confirmed automatically before their key is returned,
  * so a call site cannot forget the confirmation the UX rule requires.
