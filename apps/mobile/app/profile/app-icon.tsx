@@ -1,10 +1,13 @@
 import { useT } from '@padel/i18n';
 import { getAppIcon, setAppIcon } from 'expo-dynamic-app-icon';
 import { Image } from 'expo-image';
-import { Stack } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { colors } from '../../theme';
+import { TopBar } from '../../components/ui';
 
 const ICONS = [
   // 'primary' (not 'default'): Android resource names can't be Java keywords,
@@ -29,6 +32,7 @@ function readActive(): string {
 
 export default function AppIconScreen() {
   const { t } = useT('profile');
+  const router = useRouter();
   const [active, setActive] = useState<string>(readActive);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,27 +52,29 @@ export default function AppIconScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('appIcon') }} />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <View style={styles.grid}>
-        {ICONS.map((icon) => {
-          const selected = icon.name === active;
-          return (
-            <Pressable
-              key={icon.name}
-              style={[styles.tile, selected && styles.tileActive]}
-              onPress={() => onSelect(icon.name)}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-            >
-              <Image source={icon.source} style={styles.preview} contentFit="cover" />
-              <Text style={[styles.label, selected && styles.labelActive]}>{t(icon.key)}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </ScrollView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('appIcon')} onBack={() => router.back()} />
+      <ScrollView contentContainerStyle={styles.content}>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <View style={styles.grid}>
+          {ICONS.map((icon) => {
+            const selected = icon.name === active;
+            return (
+              <Pressable
+                key={icon.name}
+                style={[styles.tile, selected && styles.tileActive]}
+                onPress={() => onSelect(icon.name)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+              >
+                <Image source={icon.source} style={styles.preview} contentFit="cover" />
+                <Text style={[styles.label, selected && styles.labelActive]}>{t(icon.key)}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

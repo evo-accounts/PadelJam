@@ -1,14 +1,15 @@
 import { useUpdateProfile } from '@padel/api';
 import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Linking, ScrollView, Share, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { unregisterForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
-import { Button, Chip, ListRow, Text } from '../../components/ui';
+import { Button, Chip, ListRow, Text, TopBar } from '../../components/ui';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
@@ -44,57 +45,58 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: t('settings') }} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('settings')} onBack={() => router.back()} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.section}>{t('preferences')}</Text>
+        <ListRow
+          title={t('language')}
+          trailing={<Text variant="body" tone="muted">{t(current.key)}</Text>}
+          trailingLabel={t(current.key)}
+          onPress={() => setLangOpen((v) => !v)}
+        />
+        {langOpen &&
+          LANGS.map((l) => (
+            <Chip
+              key={l.code}
+              label={t(l.key)}
+              selected={l.code === current.code}
+              onPress={() => onSelectLang(l.code)}
+            />
+          ))}
+        <ListRow title={t('appIcon')} onPress={() => router.push('/profile/app-icon')} />
+        <ListRow title={t('notifications')} onPress={() => router.push('/profile/notifications')} />
 
-      <Text style={styles.section}>{t('preferences')}</Text>
-      <ListRow
-        title={t('language')}
-        trailing={<Text variant="body" tone="muted">{t(current.key)}</Text>}
-        trailingLabel={t(current.key)}
-        onPress={() => setLangOpen((v) => !v)}
-      />
-      {langOpen &&
-        LANGS.map((l) => (
-          <Chip
-            key={l.code}
-            label={t(l.key)}
-            selected={l.code === current.code}
-            onPress={() => onSelectLang(l.code)}
-          />
-        ))}
-      <ListRow title={t('appIcon')} onPress={() => router.push('/profile/app-icon')} />
-      <ListRow title={t('notifications')} onPress={() => router.push('/profile/notifications')} />
+        <Text style={styles.section}>{t('account')}</Text>
+        <ListRow title={t('changePassword')} onPress={() => router.push('/profile/change-password')} />
+        <ListRow title={t('changeEmail')} onPress={() => router.push('/profile/change-email')} />
+        <ListRow
+          title={t('deleteAccount')}
+          titleTone="destructive"
+          onPress={() => router.push('/profile/delete-account')}
+        />
 
-      <Text style={styles.section}>{t('account')}</Text>
-      <ListRow title={t('changePassword')} onPress={() => router.push('/profile/change-password')} />
-      <ListRow title={t('changeEmail')} onPress={() => router.push('/profile/change-email')} />
-      <ListRow
-        title={t('deleteAccount')}
-        titleTone="destructive"
-        onPress={() => router.push('/profile/delete-account')}
-      />
+        <Text style={styles.section}>{t('support')}</Text>
+        <ListRow title={t('contactSupport')} onPress={() => router.push('/profile/support')} />
+        <ListRow title={t('helpCenter')} onPress={() => void Linking.openURL(HELP_URL)} />
+        <ListRow
+          title={t('shareApp')}
+          onPress={() => void Share.share({ message: t('shareMessage') })}
+        />
 
-      <Text style={styles.section}>{t('support')}</Text>
-      <ListRow title={t('contactSupport')} onPress={() => router.push('/profile/support')} />
-      <ListRow title={t('helpCenter')} onPress={() => void Linking.openURL(HELP_URL)} />
-      <ListRow
-        title={t('shareApp')}
-        onPress={() => void Share.share({ message: t('shareMessage') })}
-      />
+        <Text style={styles.section}>{t('legal')}</Text>
+        <ListRow title={t('terms')} onPress={() => void Linking.openURL(TERMS_URL)} />
+        <ListRow title={t('privacy')} onPress={() => void Linking.openURL(PRIVACY_URL)} />
 
-      <Text style={styles.section}>{t('legal')}</Text>
-      <ListRow title={t('terms')} onPress={() => void Linking.openURL(TERMS_URL)} />
-      <ListRow title={t('privacy')} onPress={() => void Linking.openURL(PRIVACY_URL)} />
-
-      <Button
-        label={t('logout')}
-        variant="ghost"
-        fullWidth
-        style={styles.logout}
-        onPress={onLogout}
-      />
-    </ScrollView>
+        <Button
+          label={t('logout')}
+          variant="ghost"
+          fullWidth
+          style={styles.logout}
+          onPress={onLogout}
+        />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
