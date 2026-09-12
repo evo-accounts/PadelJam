@@ -1,37 +1,19 @@
-import {
-  useExploreCommunitiesList,
-  useExploreEventsList,
-  useExploreGroupsList,
-  useExplorePlayersList,
-} from '@padel/api';
 import { useT } from '@padel/i18n';
-import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet } from 'react-native';
 
-import { EventCard } from '@/components/event/EventCard';
-import { CommunityCard } from '@/components/explore/CommunityCard';
-import { GroupCard } from '@/components/explore/GroupCard';
-import { PlayerCard } from '@/components/explore/PlayerCard';
+import { ExploreList, type ExploreKind } from '@/components/explore/ExploreList';
 import { colors } from '../../theme';
-import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
-
-type ExploreType = 'players' | 'events' | 'communities' | 'groups';
+import { TopBar } from '../../components/ui';
 
 export default function ExploreSeeAllScreen() {
   const { type } = useLocalSearchParams<{ type: string }>();
   const kind = (['players', 'events', 'communities', 'groups'].includes(type ?? '')
     ? type
-    : 'communities') as ExploreType;
+    : 'communities') as ExploreKind;
   const { t } = useT('discovery');
   const router = useRouter();
-
-  // All four hooks are called unconditionally (Rules of Hooks); only the active one is enabled.
-  const players = useExplorePlayersList();
-  const events = useExploreEventsList();
-  const communities = useExploreCommunitiesList();
-  const groups = useExploreGroupsList();
 
   const titleKey = {
     players: 'seeAllTitlePlayers',
@@ -40,71 +22,14 @@ export default function ExploreSeeAllScreen() {
     groups: 'seeAllTitleGroups',
   }[kind] as 'seeAllTitlePlayers' | 'seeAllTitleEvents' | 'seeAllTitleCommunities' | 'seeAllTitleGroups';
 
-  const emptyKey = {
-    players: 'emptyPlayers',
-    events: 'emptyEvents',
-    communities: 'emptyCommunities',
-    groups: 'emptyGroups',
-  }[kind] as 'emptyPlayers' | 'emptyEvents' | 'emptyCommunities' | 'emptyGroups';
-
-  const active = { players, events, communities, groups }[kind];
-  const rows = (active.data?.pages.flat() ?? []) as ReadonlyArray<{ id: string }>;
-
-  const renderItem = (item: { id: string }) => {
-    if (kind === 'players')
-      return <PlayerCard player={item as never} onPress={() => router.push(`/profile/${item.id}`)} />;
-    if (kind === 'events')
-      return <EventCard event={item as never} onPress={() => router.push(`/event/${item.id}`)} />;
-    if (kind === 'communities')
-      return (
-        <CommunityCard
-          community={item as never}
-          onOpen={() => router.push(`/community/${item.id}/posts`)}
-          onRequestJoin={() => router.push(`/community/${item.id}/join`)}
-        />
-      );
-    return <GroupCard group={item as never} onOpen={() => router.push(`/group/${item.id}`)} />;
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar title={t(titleKey)} onBack={() => router.back()} />
-      {active.isLoading ? (
-        <ActivityIndicator color={colors.foreground} style={styles.state} />
-      ) : (
-        <FlashList
-          data={rows}
-          keyExtractor={(item) => item.id}
-          numColumns={kind === 'players' ? 3 : 1}
-          contentContainerStyle={[styles.list, listEmptyContent]}
-          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-          ListEmptyComponent={
-            active.isError ? (
-              <EmptyState
-                fill
-                tone="error"
-                title={t('loadError', { ns: 'common' })}
-                action={{ label: t('retry', { ns: 'common' }), onPress: () => active.refetch() }}
-                testID="empty-explore-seeall"
-              />
-            ) : (
-              <EmptyState fill icon={emptyIcon('magnifyingglass')} title={t(emptyKey)} testID="empty-explore-seeall" />
-            )
-          }
-          ListFooterComponent={active.isFetchingNextPage ? <ActivityIndicator color={colors.foreground} style={styles.state} /> : null}
-          onEndReachedThreshold={0.5}
-          onEndReached={() => {
-            if (active.hasNextPage && !active.isFetchingNextPage) void active.fetchNextPage();
-          }}
-          renderItem={({ item }) => renderItem(item)}
-        />
-      )}
+      <TopBar variant="nav" title={t(titleKey)} onBack={() => router.back()} />
+      <ExploreList kind={kind} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  list: { padding: 16 },
-  state: { paddingVertical: 24 },
 });

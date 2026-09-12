@@ -6,8 +6,9 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateEventFab } from '@/components/CreateEventFab';
@@ -18,7 +19,7 @@ import { PlayerCard } from '@/components/explore/PlayerCard';
 import { ExploreList } from '@/components/explore/ExploreList';
 import { SuggestionRail } from '@/components/explore/SuggestionRail';
 import { Chip, TopBar } from '@/components/ui';
-import { colors, radius } from '../../theme';
+import { colors } from '../../theme';
 
 const TABS = ['foryou', 'events', 'groups', 'communities', 'players'] as const;
 type TabKey = (typeof TABS)[number];
@@ -28,6 +29,7 @@ const isTabKey = (v: unknown): v is TabKey => TABS.includes(v as TabKey);
 
 export default function ExploreScreen() {
   const { t } = useT('discovery');
+  const router = useRouter();
   const params = useLocalSearchParams<{ tab?: string }>();
 
   // Home's quick actions deep-link straight to a tab. Reading the param on every
@@ -38,25 +40,20 @@ export default function ExploreScreen() {
   const fromParam = isTabKey(params.tab) ? params.tab : 'foryou';
   const tab = override ?? fromParam;
 
-  const [query, setQuery] = useState('');
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar variant="top" title={t('title')} />
-      <View style={styles.searchWrap}>
-        {/* No autoFocus: arriving on Explore should not summon the keyboard. */}
-        <TextInput
-          style={styles.search}
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('searchPlaceholder')}
-          placeholderTextColor={colors.mutedForeground}
-          autoCapitalize="none"
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-          accessibilityLabel={t('searchPlaceholder')}
-        />
-      </View>
+      <TopBar
+        variant="top"
+        title={t('title')}
+        actions={[
+          {
+            icon: <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={22} tintColor={colors.foreground} />,
+            label: t('search'),
+            onPress: () => router.push('/search' as never),
+            testID: 'header-search',
+          },
+        ]}
+      />
 
       <ScrollView
         horizontal
@@ -65,27 +62,18 @@ export default function ExploreScreen() {
         style={styles.tabsWrap}
       >
         {TABS.map((k) => (
-          <Chip
-            key={k}
-            label={t(`tab_${k}`)}
-            selected={tab === k}
-            onPress={() => {
-              setOverride(k);
-              // A query typed for one tab rarely means anything in another.
-              setQuery('');
-            }}
-          />
+          <Chip key={k} label={t(`tab_${k}`)} selected={tab === k} onPress={() => setOverride(k)} />
         ))}
       </ScrollView>
 
-      {tab === 'foryou' ? <ForYou query={query} /> : <ExploreList kind={tab} query={query} />}
+      {tab === 'foryou' ? <ForYou /> : <ExploreList kind={tab} />}
 
       <CreateEventFab />
     </SafeAreaView>
   );
 }
 
-function ForYou({ query }: { query: string }) {
+function ForYou() {
   const { t } = useT('discovery');
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -94,10 +82,6 @@ function ForYou({ query }: { query: string }) {
   const events = useExploreEvents();
   const communities = useExploreCommunities();
   const groups = useExploreGroups();
-
-  // A search term is meaningless against curated rails, so "For you" hands over
-  // to the People list rather than filtering four rails into confusion.
-  if (query.trim()) return <ExploreList kind="players" query={query} />;
 
   return (
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 96 }]}>
@@ -173,17 +157,6 @@ function ForYou({ query }: { query: string }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  searchWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
-  search: {
-    borderWidth: 1,
-    borderColor: colors.input,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.foreground,
-  },
   tabsWrap: { flexGrow: 0 },
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 12 },
   content: { paddingTop: 8, gap: 8 },
