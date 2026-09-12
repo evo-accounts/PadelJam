@@ -86,3 +86,11 @@ jobs:
       - name: Test
         if: '!cancelled()'
         run: pnpm test
+
+      # Supabase Edge Functions aren't part of the pnpm workspace (they run on
+      # Deno), so `pnpm test` never touches them. These are plain node --test
+      # suites over pure functions (e.g. password validation) with no Supabase
+      # stack dependency, so they run fine on this hosted runner.
+      - name: Edge function tests
+        if: '!cancelled()'
+        run: pnpm test:functions

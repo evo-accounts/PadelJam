@@ -28,7 +28,7 @@ export default function ChangePasswordScreen() {
     setRepeatError(null);
     if (!email || !current || !next || !repeat) { banner.show(tc('missingInformation')); return; }
     if (!passwordValid(next)) {
-      banner.show(tc('missingInformation'));
+      banner.show(t('password_weak'));
       return;
     }
     if (next !== repeat) {
@@ -62,7 +62,10 @@ export default function ChangePasswordScreen() {
         <PasswordField
           label={t('newPassword')}
           value={next}
-          onChangeText={setNext}
+          onChangeText={(v) => {
+            setNext(v);
+            if (repeatError) setRepeatError(null);
+          }}
           showRules
           testID="new-password-input"
         />

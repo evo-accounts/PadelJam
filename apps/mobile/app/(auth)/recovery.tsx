@@ -98,7 +98,7 @@ export default function RecoveryScreen() {
 
   const savePassword = async () => {
     if (busy) return;
-    if (!passwordValid(pw)) { banner.show(tc('missingInformation')); return; }
+    if (!passwordValid(pw)) { banner.show(t('password_weak')); return; }
     if (pw !== pw2) { banner.show(t('passwordsDontMatch')); return; }
     setBusy(true);
     try {
