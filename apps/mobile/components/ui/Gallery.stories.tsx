@@ -292,11 +292,19 @@ export function Overview() {
       </Section>
 
       <Section title="EmptyState">
-        <Card padding="none">
+        <Card padding="none" style={styles.stacked}>
           <EmptyState
             title="No matches yet"
             body="When someone books a court near you, it shows up here."
             action={{ label: 'Find a court', onPress: () => {} }}
+          />
+        </Card>
+        <Card padding="none">
+          <EmptyState
+            tone="error"
+            title="Couldn't load events"
+            body="Check your connection and try again."
+            action={{ label: 'Retry', onPress: () => {} }}
           />
         </Card>
       </Section>

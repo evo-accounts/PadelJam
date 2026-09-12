@@ -20,6 +20,7 @@ import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { radius, space } from '../../theme';
 import { Button, type ButtonVariant } from './Button';
 import { Card } from './Card';
+import { emptyIcon } from './emptyIcon';
 import { Text } from './Text';
 
 type Props = {
@@ -33,19 +34,29 @@ type Props = {
    * Decorative by definition — it restates the title — so pass
    * `accessibilityElementsHidden` on whatever you give it rather than having a
    * screen reader announce the picture and then the sentence.
+   *
+   * Defaults to a warning triangle when `tone="error"` and no icon is given.
    */
   icon?: React.ReactNode;
   action?: { label: string; onPress: () => void; variant?: ButtonVariant };
   style?: ViewStyle;
   testID?: string;
+  /**
+   * `error` is for a failed fetch, not "nothing here yet": the title reads in
+   * `destructive`, and the icon (absent an explicit one) is a warning triangle
+   * rather than the generic decorative icon a caller passes for a true empty
+   * list. `action` is expected to be a Retry in this tone.
+   */
+  tone?: 'default' | 'error';
 };
 
-export function EmptyState({ title, body, icon, action, style, testID }: Props) {
+export function EmptyState({ title, body, icon, action, style, testID, tone = 'default' }: Props) {
+  const resolvedIcon = icon ?? (tone === 'error' ? emptyIcon('exclamationmark.triangle') : undefined);
   return (
     <Card testID={testID} padding="lg" style={StyleSheet.flatten([styles.card, style])}>
-      {icon ? <View style={styles.icon}>{icon}</View> : null}
+      {resolvedIcon ? <View style={styles.icon}>{resolvedIcon}</View> : null}
 
-      <Text variant="sectionTitle" tone="default" style={styles.title}>
+      <Text variant="sectionTitle" tone={tone === 'error' ? 'destructive' : 'default'} style={styles.title}>
         {title}
       </Text>
 

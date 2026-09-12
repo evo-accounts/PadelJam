@@ -19,6 +19,7 @@ export { Button, type ButtonSize, type ButtonVariant } from './Button';
 export { Card, type CardPadding } from './Card';
 export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';
+export { emptyIcon } from './emptyIcon';
 export { Field } from './Field';
 export { IconButton, type IconButtonSize } from './IconButton';
 export { ListRow, type ListRowVariant } from './ListRow';
