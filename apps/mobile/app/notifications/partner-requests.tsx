@@ -6,15 +6,15 @@ import {
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
 import { TopBar } from '../../components/ui';
 
 export default function PartnerRequestsScreen() {
   const { t } = useT('notifications');
-  const router = useRouter();
+  const goBack = useGoBack();
   const list = useIncomingPartnerRequests();
   const respond = useRespondToRequest();
   const rows = list.data ?? [];
@@ -27,7 +27,7 @@ export default function PartnerRequestsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar title={t('partnerRequests')} onBack={() => router.back()} />
+      <TopBar title={t('partnerRequests')} onBack={goBack} />
       {list.isLoading ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
       ) : list.isError ? (

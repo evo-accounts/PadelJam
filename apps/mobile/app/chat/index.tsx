@@ -10,6 +10,7 @@ import type { Channel } from 'stream-chat';
 import { ChannelList } from 'stream-chat-expo';
 
 import { ChannelRow } from '@/components/chat/ChannelRow';
+import { useGoBack } from '@/lib/useGoBack';
 import { colors, palette } from '../../theme';
 import { Button, Chip, EmptyState, TopBar } from '../../components/ui';
 
@@ -39,6 +40,7 @@ function ChatEmptyState() {
 export default function ChatListScreen() {
   const { t } = useT('chat');
   const router = useRouter();
+  const goBack = useGoBack();
   const uid = useSession().session?.user.id;
   const tokenQ = useStreamToken();
   const [tab, setTab] = useState<Tab>('active');
@@ -53,7 +55,7 @@ export default function ChatListScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar
         title={t('title')}
-        onBack={() => router.back()}
+        onBack={goBack}
         actions={[
           {
             icon: (

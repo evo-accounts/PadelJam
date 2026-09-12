@@ -23,6 +23,7 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { streamClient } from '@/lib/streamClient';
 import { useNow } from '@/lib/useNow';
+import { useGoBack } from '@/lib/useGoBack';
 import { pendingActions } from '@/lib/pendingActions';
 import { PendingActionsSheet } from '../../../components/event/PendingActionsSheet';
 import { mixedBalance } from '@/lib/mixedBalance';
@@ -70,6 +71,7 @@ function badgeStyles(status: EventStatusKey): {
 export default function EventDetailScreen() {
   const { t } = useT('event');
   const router = useRouter();
+  const goBack = useGoBack();
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = useSession().session?.user.id;
 
@@ -480,7 +482,7 @@ export default function EventDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar onBack={() => router.back()} backLabel={t('back')} />
+      <TopBar onBack={goBack} backLabel={t('back')} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Hero */}

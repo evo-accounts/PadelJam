@@ -8,7 +8,7 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommentList, type PostComment } from '@/components/community/CommentList';
 import { PostImage } from '@/components/community/PostImage';
 import { avatarUrl } from '@/lib/community-images';
+import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../../../theme';
 import { Button, TopBar } from '@/components/ui';
 
@@ -33,7 +34,7 @@ const KNOWN_ERROR_KEYS = new Set(['unknown_error']);
 
 export default function PostDetailScreen() {
   const { t } = useT('community');
-  const router = useRouter();
+  const goBack = useGoBack();
   const { id, postId } = useLocalSearchParams<{ id: string; postId: string }>();
 
   const { data: post, isLoading } = usePost(postId);
@@ -81,7 +82,7 @@ export default function PostDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar title={t('postTitle')} onBack={() => router.back()} backLabel={t('back')} />
+      <TopBar title={t('postTitle')} onBack={goBack} backLabel={t('back')} />
 
       <KeyboardAvoidingView
         style={styles.flex}

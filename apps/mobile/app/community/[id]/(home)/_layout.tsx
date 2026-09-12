@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CommunityHero } from '@/components/community/CommunityHero';
 import { CommunityIdProvider } from '@/components/community/CommunityIdContext';
+import { useGoBack } from '@/lib/useGoBack';
 import { colors, palette } from '../../../../theme';
 import { TopBar } from '../../../../components/ui';
 
@@ -24,6 +25,7 @@ import { TopBar } from '../../../../components/ui';
 export default function CommunityHomeLayout() {
   const { t } = useT('community');
   const router = useRouter();
+  const goBack = useGoBack();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isError } = useCommunity(id);
   const uid = useSession().session?.user.id;
@@ -37,7 +39,7 @@ export default function CommunityHomeLayout() {
   if (isError || !id) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <TopBar variant="nav" onBack={() => router.back()} />
+        <TopBar variant="nav" onBack={goBack} />
         <View style={styles.notFound}>
           <Text style={styles.notFoundTitle}>{t('notFoundTitle')}</Text>
           <Text style={styles.notFoundBody}>{t('notFoundBody')}</Text>
@@ -50,7 +52,7 @@ export default function CommunityHomeLayout() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar
         variant="nav"
-        onBack={() => router.back()}
+        onBack={goBack}
         actions={canManage ? [{ icon: '⚙', label: t('manageTitle'), onPress: () => router.push(`/community/${id}/manage`) }] : []}
       />
       <CommunityHero communityId={id} />

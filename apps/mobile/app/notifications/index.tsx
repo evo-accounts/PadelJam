@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
 import { Button, ListRow, Text, TopBar, useActionSheet } from '../../components/ui';
 
@@ -32,6 +33,7 @@ function ctaDoneLabel(t: (k: string) => string, type: string): string {
 export default function NotificationsScreen() {
   const { t } = useT('notifications');
   const router = useRouter();
+  const goBack = useGoBack();
   const list = useNotifications();
   const summary = usePartnerRequestSummary();
   const markRead = useMarkRead();
@@ -54,7 +56,7 @@ export default function NotificationsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar
         title={t('title')}
-        onBack={() => router.back()}
+        onBack={goBack}
         actions={[
           {
             icon: '•••',
