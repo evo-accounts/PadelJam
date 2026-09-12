@@ -1,9 +1,9 @@
-import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../theme';
+import { Avatar } from '../ui';
 
 /** Group member shape returned by `useGroupMembers`. */
 export type GroupMember = {
@@ -26,7 +26,6 @@ export function GroupMemberRow({
   onPress?: () => void;
 }) {
   const name = member.profiles?.full_name ?? '—';
-  const url = avatarUrl(member.profiles?.avatar_url);
 
   return (
     <Pressable
@@ -35,13 +34,12 @@ export function GroupMemberRow({
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
     >
-      {url ? (
-        <Image source={{ uri: url }} style={styles.avatar} contentFit="cover" transition={120} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarFallback]}>
-          <Text style={styles.avatarInitial}>{(name.charAt(0) || '?').toUpperCase()}</Text>
-        </View>
-      )}
+      <Avatar
+        uri={avatarUrl(member.profiles?.avatar_url)}
+        name={name}
+        colourKey={member.user_id}
+        size="md"
+      />
       <Text style={styles.name} numberOfLines={1}>
         {name}
       </Text>
@@ -58,9 +56,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.muted },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
-  avatarInitial: { color: colors.card, fontSize: 18, fontWeight: '700' },
   name: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.foreground },
   trailing: { marginLeft: 'auto' },
 });

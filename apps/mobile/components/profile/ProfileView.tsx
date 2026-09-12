@@ -1,6 +1,5 @@
 import { useFollow, useUnfollow, useBlock, useReport, useProfile } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -8,8 +7,8 @@ import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'rea
 
 import { avatarUrl } from '@/lib/community-images';
 import { ReportSheet } from './BlockReportModals';
-import { colors, palette } from '../../theme';
-import { Button, IconButton, useActionSheet } from '../../components/ui';
+import { colors } from '../../theme';
+import { Avatar, Button, IconButton, useActionSheet } from '../../components/ui';
 
 export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolean }) {
   const { t } = useT('profile');
@@ -26,15 +25,10 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
   const p = query.data;
   if (!p) return <Text style={styles.unavailable}>{t('unavailable')}</Text>;
 
-  const avatar = avatarUrl(p.avatar_url);
-  const initials = p.full_name.split(' ').map((s) => s.charAt(0)).slice(0, 2).join('').toUpperCase();
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          {avatar ? <Image source={{ uri: avatar }} style={styles.avatarImg} /> : <Text style={styles.initials}>{initials}</Text>}
-        </View>
+        <Avatar uri={avatarUrl(p.avatar_url)} name={p.full_name} colourKey={userId} size="xl" />
         <Text style={styles.name}>{p.full_name}</Text>
         {p.description ? <Text style={styles.bio}>{p.description}</Text> : null}
         {isSelf && (
@@ -119,9 +113,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   unavailable: { textAlign: 'center', color: colors.mutedForeground, marginTop: 48, paddingHorizontal: 24 },
   header: { alignItems: 'center', paddingTop: 24, paddingHorizontal: 16, gap: 10 },
-  avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: palette.purple[100], alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  avatarImg: { width: 96, height: 96 },
-  initials: { fontSize: 30, fontWeight: '700', color: colors.primary },
   name: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   bio: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', paddingHorizontal: 24 },
   selfActions: { flexDirection: 'row', gap: 10, alignItems: 'center' },

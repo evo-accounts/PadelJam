@@ -1,12 +1,11 @@
 import type { Tables } from '@padel/db';
 import { useT } from '@padel/i18n';
-import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { thumbnailUrl } from '@/lib/community-images';
 import { colors, palette } from '../../theme';
-import { Button, Chip, IconButton } from '../../components/ui';
+import { Avatar, Button, Chip, IconButton } from '../../components/ui';
 
 export type CommunityRow = Tables<'communities'>;
 
@@ -36,7 +35,6 @@ function CommunityListItem({
   onSetDefault: () => void;
 }) {
   const { t } = useT('community');
-  const url = thumbnailUrl(community.thumbnail_path);
 
   return (
     <Pressable
@@ -45,13 +43,12 @@ function CommunityListItem({
       onLongPress={onSetDefault}
       accessibilityRole="button"
     >
-      {url ? (
-        <Image source={{ uri: url }} style={styles.avatar} contentFit="cover" transition={150} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <Text style={styles.avatarText}>{community.name.charAt(0).toUpperCase()}</Text>
-        </View>
-      )}
+      <Avatar
+        uri={thumbnailUrl(community.thumbnail_path)}
+        name={community.name}
+        colourKey={community.id}
+        size="lg"
+      />
       <View style={styles.itemBody}>
         <Text style={styles.itemName} numberOfLines={1}>
           {community.name}
@@ -167,9 +164,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 12,
   },
-  avatar: { width: 48, height: 48, borderRadius: 12, backgroundColor: colors.muted },
-  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
-  avatarText: { color: colors.card, fontSize: 20, fontWeight: '700' },
   itemBody: { flex: 1 },
   itemName: { fontSize: 16, fontWeight: '600', color: colors.foreground },
   defaultBadge: { marginTop: 2, fontSize: 12, color: palette.yellow[500], fontWeight: '600' },
