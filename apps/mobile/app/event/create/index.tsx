@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
 import { StepIndicator } from '@/components/event/wizard/StepIndicator';
 import { geocodeAddress } from '@/lib/geocode';
@@ -39,13 +40,14 @@ function CreateEventWizard() {
   const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { draft, patch, stepIndex, goNext, goBack, steps, isFirst, isLast, isDirty } =
+  const { draft, patch, stepIndex, goNext, goBack, steps, isFirst, isLast, isDirty, communityId } =
     useEventWizard();
   const create = useCreateEvent();
   const uid = useSession().session?.user.id;
   const confirm = useConfirm();
   const [submitting, setSubmitting] = useState(false);
   const [stepErrors, setStepErrors] = useState<string[]>([]);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const step = steps[stepIndex];
 
@@ -140,7 +142,16 @@ function CreateEventWizard() {
         router.back();
       }
     } catch (e) {
-      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
+      const code = e instanceof Error ? e.message : 'unknown_error';
+      if (code === 'recurring_events' && communityId) {
+        // create_event already requires is_community_admin for a group event, so
+        // whoever reaches this wizard can act on the community's plan — see
+        // UpgradePrompt.
+        setShowUpgrade(true);
+        setSubmitting(false);
+        return;
+      }
+      banner.show(t(code));
       setSubmitting(false);
     }
   };
@@ -195,6 +206,14 @@ function CreateEventWizard() {
           style={styles.primaryBtn}
         />
       </View>
+      {communityId ? (
+        <UpgradePrompt
+          visible={showUpgrade}
+          onClose={() => setShowUpgrade(false)}
+          communityId={communityId}
+          message={t('upgradeRecurringCap', { ns: 'community' })}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

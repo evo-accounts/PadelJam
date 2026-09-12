@@ -7,9 +7,11 @@ import {
 } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { colors, palette } from '../../../../theme';
 import { TopBar, useBanner, useConfirm } from '../../../../components/ui';
 
@@ -29,6 +31,7 @@ export default function GroupManageSeasonsScreen() {
   const unarchive = useUnarchiveGroup();
   const confirm = useConfirm();
   const banner = useBanner();
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   if (!group) {
     return (
@@ -66,6 +69,12 @@ export default function GroupManageSeasonsScreen() {
         await unarchive.mutateAsync({ groupId: id, communityId });
       } catch (e) {
         const code = e instanceof Error ? e.message : 'unknown_error';
+        if (code === 'groups_per_community') {
+          // is_group_admin already requires a community owner/admin, so whoever can
+          // reach this screen can act on the community's plan — see UpgradePrompt.
+          setShowUpgrade(true);
+          return;
+        }
         banner.show(t(ARCHIVE_ERROR_KEYS.has(code) ? code : 'unknown_error'));
       }
       return;
@@ -143,6 +152,12 @@ export default function GroupManageSeasonsScreen() {
           )}
         </Pressable>
       </ScrollView>
+      <UpgradePrompt
+        visible={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        communityId={communityId}
+        message={t('upgradeGroupsCap', { ns: 'community' })}
+      />
     </SafeAreaView>
   );
 }
