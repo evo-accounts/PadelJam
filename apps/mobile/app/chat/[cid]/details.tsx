@@ -1,12 +1,14 @@
 import { useT } from '@padel/i18n';
 import { appendImages, extractImageUrls, nextCursor, pageHasMore, type MsgLike } from '@padel/utils';
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { streamClient } from '@/lib/streamClient';
 import { colors, palette } from '../../../theme';
+import { TopBar } from '../../../components/ui';
 
 const COLS = 3;
 const GAP = 2;
@@ -14,6 +16,7 @@ const PAGE = 100;
 
 export default function ChatDetailsScreen() {
   const { t } = useT('chat');
+  const router = useRouter();
   const { cid } = useLocalSearchParams<{ cid: string }>();
   const [images, setImages] = useState<string[]>([]);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -59,8 +62,8 @@ export default function ChatDetailsScreen() {
   const size = (Dimensions.get('window').width - GAP * (COLS - 1)) / COLS;
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: t('details') }} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <TopBar title={t('details')} onBack={() => router.back()} />
       <Text style={styles.section}>{t('media')}</Text>
       {!initialised ? (
         <ActivityIndicator color={colors.foreground} style={{ marginTop: 32 }} />
@@ -109,7 +112,7 @@ export default function ChatDetailsScreen() {
           ) : null}
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
