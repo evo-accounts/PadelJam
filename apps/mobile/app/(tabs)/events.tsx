@@ -2,6 +2,7 @@ import { useMyEvents, type MyEventsFilter } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +26,18 @@ export default function EventsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar variant="top" title={t('title')} />
+      <TopBar
+        variant="top"
+        title={t('title')}
+        actions={[
+          {
+            icon: <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={22} tintColor={colors.foreground} />,
+            label: t('search', { ns: 'discovery' }),
+            onPress: () => router.push('/search' as never),
+            testID: 'header-search',
+          },
+        ]}
+      />
       <View style={styles.chips}>
         {FILTERS.map((f) => (
           <Pressable

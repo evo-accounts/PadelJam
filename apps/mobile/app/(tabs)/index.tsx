@@ -21,9 +21,9 @@ import { Button, Card, EmptyState, ListRow, Text, TopBar } from '../../component
 
 const QUICK_ACTIONS = [
   { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: '/event/create' },
-  { key: 'findEvent', icon: 'calendar', android: 'event', href: '/(tabs)/explore?tab=events' },
-  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: '/(tabs)/explore?tab=groups' },
-  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: '/(tabs)/explore?tab=communities' },
+  { key: 'findEvent', icon: 'calendar', android: 'event', href: '/search?tab=events' },
+  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: '/search?tab=groups' },
+  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: '/search?tab=communities' },
 ] as const;
 
 export default function HomeScreen() {
@@ -54,6 +54,12 @@ export default function HomeScreen() {
             icon: <NotificationBellIcon />,
             label: t('title', { ns: 'notifications' }),
             onPress: () => router.push('/notifications' as never),
+          },
+          {
+            icon: <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={22} tintColor={colors.foreground} />,
+            label: t('search', { ns: 'discovery' }),
+            onPress: () => router.push('/search' as never),
+            testID: 'header-search',
           },
         ]}
       />
