@@ -4,6 +4,7 @@ import {
   COUNTRIES,
   defaultRegion,
   flagEmoji,
+  formatE164ForDisplay,
   formatMaskedPhone,
   formatNationalAsYouType,
   isValidFor,
@@ -161,5 +162,18 @@ describe('formatMaskedPhone', () => {
     expect(formatMaskedPhone('+351912345678')).toBe('+351912345678');
     expect(formatMaskedPhone('nome@exemplo.com')).toBe('nome@exemplo.com');
     expect(formatMaskedPhone('')).toBe('');
+  });
+});
+
+describe('formatE164ForDisplay', () => {
+  it('groups a full E.164 number the way the masked one is grouped', () => {
+    expect(formatE164ForDisplay('+351912345678')).toBe('(+351) 912 345 678');
+  });
+  it('leaves anything that is not a placeable number alone', () => {
+    // An email, an empty string and a number libphonenumber cannot place all
+    // reach this via the same call site (the OTP help line).
+    expect(formatE164ForDisplay('nome@exemplo.com')).toBe('nome@exemplo.com');
+    expect(formatE164ForDisplay('')).toBe('');
+    expect(formatE164ForDisplay('+999123')).toBe('+999123');
   });
 });

@@ -117,7 +117,21 @@ describe('01 auth', () => {
     if (!done) await expectVisible({ text: /where do you play/i }, { timeout: 5_000 });
   });
 
-  it('wrong OTP shows an error and resend shows a cooldown', async () => {
+  /**
+   * UX-AUTH-03. Three things at once, because they share one wrong code:
+   *
+   *   - the resend sits ABOVE Verify now. It used to be underneath the CTA,
+   *     which is the last place someone whose code never arrived looks. Frames,
+   *     because the accessibility tree carries no other notion of order.
+   *   - the boxes go into their error state and STAY there. The banner and the
+   *     field carry the identical string on purpose (UX-GLOB-06), so outliving
+   *     the banner's 4s auto-dismiss is the only thing that distinguishes them
+   *     — and the surviving message is the one rendered by `CodeField`, i.e.
+   *     the same `error` prop that reddens all six borders.
+   *   - the field CLEARS. No `clearText` below: the screen doing it is the
+   *     assertion, and a backspace loop would hide a regression completely.
+   */
+  it('wrong OTP reddens and clears the boxes, with the resend above Verify', async () => {
     await freshInstall();
     await passWelcomeIfPresent();
     await switchToEmailMode();
@@ -125,17 +139,38 @@ describe('01 auth', () => {
     await typeText({ type: 'TextField' }, PERSONAS.maria.email);
     await tap({ label: 'Continue', type: 'Button' });
     await expectVisible({ text: /confirm if it/i });
+
+    // The cooldown is already running — sign-in sent the first code.
+    const resendEl = await expectVisible({ text: /resend in \d+/i });
+    const verifyEl = await expectVisible({ label: 'Verify', type: 'Button' });
+    if (resendEl.frame.y >= verifyEl.frame.y) {
+      throw new Error(
+        `the resend (y=${resendEl.frame.y}) must sit above Verify (y=${verifyEl.frame.y}) — UX-AUTH-03`,
+      );
+    }
+
     await typeText({ type: 'TextField' }, '000000');
+    // `type: 'Button'` again: Verify is a real `Button` now, not the hand-rolled
+    // Pressable that surfaced as a GenericElement.
     await tap({ label: 'Verify', type: 'Button' });
-    // The banner (UX-GLOB-06) replaces the inline error text and is only in the
-    // tree for 4s (auto-dismiss), so check it promptly with a short timeout.
+    // The banner is only in the tree for 4s, so check it promptly.
     await expectVisible({ text: /invalid or expired code/i }, { timeout: 3_000 });
-    await expectVisible({ text: /resend in \d+/i });
+
+    // Past the banner's window: what is left is the FIELD's own error state.
+    await new Promise((r) => setTimeout(r, 5_000));
+    await expectVisible({ text: /invalid or expired code/i }, { timeout: 3_000 });
+
+    const cleared = query(await snapshot(), { type: 'TextField' });
+    if (cleared?.AXValue) {
+      throw new Error(
+        `the code field kept "${cleared.AXValue}" after a rejected code — it must clear and refocus`,
+      );
+    }
+
     // Recover with the real code so the suite leaves a clean state.
     const code = await latestOtp(PERSONAS.maria.email, sentAt);
-    await clearText({ type: 'TextField' }, 8);
     await typeText({ type: 'TextField' }, code);
-    await tap({ label: 'Verify' });
+    await tap({ label: 'Verify', type: 'Button' });
     // A bounce back to sign-in here is a regression of the StreamChatProvider
     // subtree-remount bug — fail rather than retry (see flows.loginAs).
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 30_000 });
@@ -145,6 +180,87 @@ describe('01 auth', () => {
         'post-OTP bounce to sign-in after wrong-code recovery — StreamChatProvider remount regression',
       );
     }
+  });
+
+  /**
+   * UX-AUTH-04. The sheet used to be four hard-coded rows shown to everybody —
+   * password, a different identifier, Google, Apple — so three of the four were
+   * usually dead ends you only discovered after tapping one. It is derived from
+   * `auth_methods_for` now.
+   *
+   * SOFIA, and not one of the others, for two reasons. Every seeded persona is
+   * created through `adminCreateUser(email, phone, password)` and none of them
+   * has a social identity (infra/seed/seed-e2e.mjs), so signing in with an
+   * EMAIL makes the expected list exactly SMS + password — an assertion with
+   * something on both sides: two rows that must be there and two that must not,
+   * where the old sheet always showed all four. And she is used nowhere else in
+   * this file (maria, alex and carla are), so her identifier still has all five
+   * of the lookups migration 0096 allows per quarter hour — this test cannot be
+   * the one that trips the rate limit, and a rate-limited lookup is
+   * indistinguishable from an empty one by design.
+   */
+  it('Try another way lists only this account’s methods', async () => {
+    const persona = PERSONAS.sofia;
+    await freshInstall();
+    await passWelcomeIfPresent();
+    await switchToEmailMode();
+    await typeText({ type: 'TextField' }, persona.email);
+    await tap({ label: 'Continue', type: 'Button' });
+    await expectVisible({ text: /confirm if it/i }, { timeout: 20_000 });
+    await tap({ text: /try another way/i });
+
+    // Wait for the sheet to finish presenting before asserting anything else —
+    // see the note in the recovery test about tapping into a moving sheet.
+    // '+351910000004' is masked to '+351•••••0004' in SQL and typeset by
+    // formatMaskedPhone, so the row names the number without revealing it.
+    await expectVisible({ text: /get a code via sms.*\(\+351\).*0004/i }, { timeout: 15_000 });
+    await expectVisible({ text: /sign in with password/i });
+
+    // The raw number must never reach the client: 0096 masks in SQL precisely
+    // so there is no code path that could print this.
+    await expectGone({ text: persona.phone }, { timeout: 2_000 });
+
+    // The half that matters. This account has no Google and no Apple identity,
+    // so neither may be offered — and a provider is NEVER inferred from the
+    // address. The email row is absent too: it is the method already in use.
+    await expectGone({ text: /continue with google/i }, { timeout: 3_000 });
+    await expectGone({ text: /continue with apple/i }, { timeout: 3_000 });
+    await expectGone({ text: /get a code by email/i }, { timeout: 3_000 });
+
+    // The escape hatch stays, below the methods rather than among them.
+    await expectVisible({ text: /use a different email or phone/i });
+  });
+
+  /**
+   * UX-AUTH-04, the other half: the empty state is REQUIRED, not a fallback.
+   *
+   * An identifier with no account behind it returns all-false from
+   * `auth_methods_for` — byte-for-byte what an account whose only method is the
+   * one in use returns, which is the point (no account-existence oracle). The
+   * sheet must therefore never open empty: it says this is the only way in and
+   * offers to start again. `signInWithOtp` creates the unknown user as it sends,
+   * so this lands in the "account with nothing else" case either way, and the
+   * two being the same is exactly what is being pinned.
+   */
+  it('an identifier with no account gets the only-way-in state, not an empty sheet', async () => {
+    await freshInstall();
+    await passWelcomeIfPresent();
+    await switchToEmailMode();
+    await typeText({ type: 'TextField' }, 'e2e-nobody@padeljam.test');
+    await tap({ label: 'Continue', type: 'Button' });
+    await expectVisible({ text: /confirm if it/i }, { timeout: 20_000 });
+    await tap({ text: /try another way/i });
+
+    await expectVisible({ text: /this is the only way in/i }, { timeout: 15_000 });
+    await expectVisible({ text: /only way to sign in to this account/i });
+    // No rows at all — not one of the four the old sheet always showed.
+    await expectGone({ text: /sign in with password/i }, { timeout: 3_000 });
+    await expectGone({ text: /continue with google/i }, { timeout: 3_000 });
+    await expectGone({ text: /get a code via sms/i }, { timeout: 3_000 });
+
+    // And the way out actually works.
+    await tap({ text: /use a different email or phone/i });
+    await expectVisible({ label: 'Login or Sign Up' }, { timeout: 20_000 });
   });
 
   it('email OTP happy path via Mailpit', async () => {
