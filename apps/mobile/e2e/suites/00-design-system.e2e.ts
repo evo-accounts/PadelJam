@@ -75,6 +75,12 @@ describe('00 design system', () => {
       { file: '10b-cards.png', heading: /^cards$/i },
       { file: '11-field.png', heading: /^field$/i },
       { file: '11b-password-field.png', heading: /^passwordfield$/i },
+      // CodeField, Dots, Illustration and Checkbox share one heading, so this is
+      // one entry rather than four. The heading is two words for the same reason
+      // `card` and `Loading` had to be renamed: `checkbox` and `dots` also appear
+      // as sub-labels inside the section, and `scrollUntilVisible` takes the
+      // FIRST match anywhere in the tree.
+      { file: '11c-sign-in-primitives.png', heading: /^sign-in primitives$/i },
       { file: '12-empty-loading.png', heading: /^loading$/i },
     ];
 

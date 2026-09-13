@@ -6,6 +6,18 @@ import type { i18n as I18n } from 'i18next';
  * surfaced exclusively through the i18n instance so no copy is hard-coded in JSX.
  * Mirrors apps/web/src/lib/i18n-web.ts.
  */
+const mobileCommon = {
+  'pt-PT': {
+    pageProgress: 'Página {{current}} de {{total}}',
+  },
+  'pt-BR': {
+    pageProgress: 'Página {{current}} de {{total}}',
+  },
+  en: {
+    pageProgress: 'Page {{current}} of {{total}}',
+  },
+} as const;
+
 const mobileAuth = {
   'pt-PT': {
     identifierLabel: 'E-mail ou telemóvel',
@@ -3704,8 +3716,8 @@ export type MobileLocale = keyof typeof mobileAuth;
  * English via i18next's fallbackLng until translated.
  */
 export const MOBILE_NAMESPACES = {
-  auth: mobileAuth, onboarding: mobileOnboarding, community: mobileCommunity, group: mobileGroup,
-  event: mobileEvent, discovery: mobileDiscovery, home: mobileHome, notifications: mobileNotifications,
+  common: mobileCommon, auth: mobileAuth, onboarding: mobileOnboarding, community: mobileCommunity,
+  group: mobileGroup, event: mobileEvent, discovery: mobileDiscovery, home: mobileHome, notifications: mobileNotifications,
   events: mobileEvents, profile: mobileProfile, chat: mobileChat,
 } as const;
 
