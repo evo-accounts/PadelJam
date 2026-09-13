@@ -36,7 +36,12 @@ describe('00 design system', () => {
     // unchanged gallery produce identical pixels apart from the gallery itself.
     await overrideStatusBar();
     await deepLink('mobile:///storybook', /design system/i);
-  }, 180_000);
+    // No explicit timeout: inherit hookTimeout (600 s) from vitest.e2e.config.ts.
+    // freshInstall can retry the purge three times, and since #115 a relaunch
+    // that SpringBoard refuses escalates to a reinstall and then a device
+    // reboot. The old 180 s cap was tighter than that worst case and aborted a
+    // recovery that was working.
+  });
 
   it('renders the gallery and captures it end to end', async () => {
     const dir = join(CONFIG.artifactsDir, 'design-system');
@@ -75,6 +80,12 @@ describe('00 design system', () => {
       { file: '10b-cards.png', heading: /^cards$/i },
       { file: '11-field.png', heading: /^field$/i },
       { file: '11b-password-field.png', heading: /^passwordfield$/i },
+      // CodeField, Dots, Illustration and Checkbox share one heading, so this is
+      // one entry rather than four. The heading is two words for the same reason
+      // `card` and `Loading` had to be renamed: `checkbox` and `dots` also appear
+      // as sub-labels inside the section, and `scrollUntilVisible` takes the
+      // FIRST match anywhere in the tree.
+      { file: '11c-sign-in-primitives.png', heading: /^sign-in primitives$/i },
       { file: '12-empty-loading.png', heading: /^loading$/i },
     ];
 

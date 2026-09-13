@@ -29,8 +29,12 @@ import { useBanner } from './Banner';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Chip } from './Chip';
+import { Checkbox } from './Checkbox';
+import { CodeField } from './CodeField';
+import { Dots } from './Dots';
 import { EmptyState } from './EmptyState';
 import { IconButton } from './IconButton';
+import { Illustration } from './Illustration';
 import { ListRow } from './ListRow';
 import { useActionSheet, useConfirm } from './SheetHost';
 import { TopBar } from './TopBar';
@@ -429,6 +433,16 @@ export function Overview() {
         <GalleryPasswordFieldDemo />
       </Section>
 
+      {/*
+        The sign-in redesign's primitives, kept in ONE section: they are
+        adopted together by the same flow, and a reviewer judging the OTP
+        screen wants the code field, its error state and the terms tick in a
+        single frame rather than four scroll positions apart.
+      */}
+      <Section title="Sign-in primitives">
+        <GallerySignInDemo />
+      </Section>
+
       <Section title="EmptyState">
         <Card padding="none" style={styles.stacked}>
           <EmptyState
@@ -498,6 +512,101 @@ function GallerySheetDemo() {
 function GalleryBannerDemo() {
   const banner = useBanner();
   return <Button label="Show banner" variant="outline" onPress={() => banner.show('Missing information')} />;
+}
+
+function GallerySignInDemo() {
+  // Three fixed values, not one live field: the empty / partly filled / error
+  // states have to be on screen TOGETHER for the screenshot to be worth
+  // anything, and a single interactive field can only ever be in one of them.
+  const [code, setCode] = useState('');
+  const [agreed, setAgreed] = useState(false);
+
+  return (
+    <>
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        CodeField — empty
+      </Text>
+      <CodeField
+        label="Verification code"
+        value={code}
+        onChangeText={setCode}
+        hint="Enter the six digits we sent you."
+        autofill="sms"
+        containerStyle={styles.stacked}
+        testID="gallery-code-empty"
+      />
+
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        CodeField — partly filled
+      </Text>
+      <CodeField
+        label="Code in progress"
+        value="123"
+        onChangeText={() => {}}
+        containerStyle={styles.stacked}
+        testID="gallery-code-partial"
+      />
+
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        CodeField — error
+      </Text>
+      <CodeField
+        label="Code with an error"
+        value="123456"
+        onChangeText={() => {}}
+        error="That code isn't right. Try again."
+        containerStyle={styles.stacked}
+        testID="gallery-code-error"
+      />
+
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        Dots
+      </Text>
+      <Row>
+        <Dots count={3} index={1} testID="gallery-dots-3" />
+      </Row>
+      <Row>
+        <Dots count={5} index={0} testID="gallery-dots-5" />
+      </Row>
+
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        Illustration — hero and inline
+      </Text>
+      {/* Both are PLACEHOLDERS until the artwork lands — a muted block with a
+          glyph is meant to look unfinished, so it cannot ship unnoticed. */}
+      <Illustration name="welcomeFind" size="hero" style={styles.stacked} />
+      <Row>
+        <Illustration name="welcomeCommunity" size="inline" />
+        <Illustration name="welcomePlay" size="inline" />
+        <Illustration name="passwordChanged" size="inline" />
+      </Row>
+
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        Checkbox
+      </Text>
+      <Checkbox
+        checked={agreed}
+        onChange={setAgreed}
+        label="Email me when a match near me opens up"
+        style={styles.stacked}
+        testID="gallery-checkbox-live"
+      />
+      <Checkbox
+        checked
+        onChange={() => {}}
+        label="Already ticked"
+        style={styles.stacked}
+        testID="gallery-checkbox-checked"
+      />
+      <Checkbox
+        checked={false}
+        onChange={() => {}}
+        label="I accept the terms"
+        error="You have to accept the terms to continue."
+        testID="gallery-checkbox-error"
+      />
+    </>
+  );
 }
 
 function GalleryPasswordFieldDemo() {

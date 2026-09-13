@@ -1,20 +1,27 @@
 import { useT } from '@padel/i18n';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, palette } from '../../../theme';
+import { StyleSheet, View } from 'react-native';
 
+import { space } from '../../../theme';
+import { Dots, Text } from '../../ui';
+
+/**
+ * The wizard's "Step 3 of 7" header. The dot row it used to hand-roll is now
+ * `Dots`, which is the same eight-point row `welcome.tsx` grew independently.
+ *
+ * The visible label is `accessible={false}` on purpose: `Dots` announces itself
+ * with the SAME `event:stepProgress` string, so leaving both in the tree would
+ * make a screen reader say "Step 3 of 7" twice — and would give the E2E driver
+ * two matches for one piece of text.
+ */
 export function StepIndicator({ stepIndex, total }: { stepIndex: number; total: number }) {
   const { t } = useT('event');
+  const label = t('stepProgress', { current: stepIndex + 1, total });
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{t('stepProgress', { current: stepIndex + 1, total })}</Text>
-      <View style={styles.dots}>
-        {Array.from({ length: total }).map((_, i) => (
-          <View
-            key={`dot-${i}`}
-            style={[styles.dot, i === stepIndex ? styles.dotActive : styles.dotInactive]}
-          />
-        ))}
-      </View>
+      <Text variant="label" tone="default" accessible={false}>
+        {label}
+      </Text>
+      <Dots count={total} index={stepIndex} accessibilityLabel={label} />
     </View>
   );
 }
@@ -24,12 +31,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: space[5],
+    paddingVertical: space[3],
   },
-  label: { fontSize: 13, fontWeight: '600', color: colors.foreground },
-  dots: { flexDirection: 'row', alignItems: 'center' },
-  dot: { width: 8, height: 8, borderRadius: 4, marginLeft: 6 },
-  dotActive: { backgroundColor: colors.primary },
-  dotInactive: { backgroundColor: palette.slate[300] },
 });
