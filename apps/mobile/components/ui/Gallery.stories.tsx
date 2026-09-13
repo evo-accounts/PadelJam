@@ -40,6 +40,7 @@ import { useActionSheet, useConfirm } from './SheetHost';
 import { TopBar } from './TopBar';
 import { Field } from './Field';
 import { PasswordField } from './PasswordField';
+import { PhoneField } from './PhoneField';
 import { Loading, Screen } from './Screen';
 import { Text } from './Text';
 
@@ -443,6 +444,10 @@ export function Overview() {
         <GallerySignInDemo />
       </Section>
 
+      <Section title="PhoneField">
+        <GalleryPhoneFieldDemo />
+      </Section>
+
       <Section title="EmptyState">
         <Card padding="none" style={styles.stacked}>
           <EmptyState
@@ -604,6 +609,44 @@ function GallerySignInDemo() {
         label="I accept the terms"
         error="You have to accept the terms to continue."
         testID="gallery-checkbox-error"
+      />
+    </>
+  );
+}
+
+
+function GalleryPhoneFieldDemo() {
+  // Two live inputs and one error state, matching how the Field section above
+  // is laid out. The filled one starts from an E.164 value so the screenshot
+  // shows the selector resolving 🇧🇷 +55 out of the number rather than from the
+  // device region.
+  const [empty, setEmpty] = useState('');
+  const [filled, setFilled] = useState('+5511961234567');
+  return (
+    <>
+      <PhoneField
+        label="Phone"
+        value={empty}
+        onChangeValue={(e164) => setEmpty(e164)}
+        defaultRegion="PT"
+        testID="gallery-phone"
+        containerStyle={styles.stacked}
+      />
+      <PhoneField
+        label="Phone"
+        value={filled}
+        onChangeValue={(e164) => setFilled(e164)}
+        hint="We only use this for match reminders."
+        testID="gallery-phone-filled"
+        containerStyle={styles.stacked}
+      />
+      <PhoneField
+        label="Phone"
+        value=""
+        onChangeValue={() => {}}
+        error="That number is too short."
+        defaultRegion="GB"
+        testID="gallery-phone-error"
       />
     </>
   );

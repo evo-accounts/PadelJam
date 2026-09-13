@@ -85,6 +85,10 @@ const mobileAuth = {
     invalidCode: 'Código inválido ou expirado.',
     networkError: 'Verifica a ligação e tenta novamente.',
     rateLimited: 'Demasiadas tentativas. Tenta novamente daqui a pouco.',
+    countryCodeLabel: 'Indicativo do país',
+    countrySheetTitle: 'Escolha o país',
+    countrySearchPlaceholder: 'Procurar país',
+    countryNoResults: 'Nenhum país corresponde a essa procura.',
   },
   'pt-BR': {
     identifierLabel: 'E-mail ou celular',
@@ -152,6 +156,10 @@ const mobileAuth = {
     invalidCode: 'Código inválido ou expirado.',
     networkError: 'Verifique sua conexão e tente novamente.',
     rateLimited: 'Muitas tentativas. Tente novamente em instantes.',
+    countryCodeLabel: 'Código do país',
+    countrySheetTitle: 'Escolha o país',
+    countrySearchPlaceholder: 'Buscar país',
+    countryNoResults: 'Nenhum país corresponde a essa busca.',
   },
   en: {
     identifierLabel: 'Email or phone',
@@ -219,6 +227,10 @@ const mobileAuth = {
     invalidCode: 'Invalid or expired code.',
     networkError: 'Check your connection and try again.',
     rateLimited: 'Too many attempts. Try again in a moment.',
+    countryCodeLabel: 'Country code',
+    countrySheetTitle: 'Choose a country',
+    countrySearchPlaceholder: 'Search countries',
+    countryNoResults: 'No country matches that search.',
   },
 } as const;
 

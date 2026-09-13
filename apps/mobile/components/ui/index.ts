@@ -31,6 +31,7 @@ export { IconButton, type IconButtonSize } from './IconButton';
 export { Illustration, type IllustrationName, type IllustrationProps } from './Illustration';
 export { ListRow, type ListRowVariant } from './ListRow';
 export { PasswordField } from './PasswordField';
+export { PhoneField, type PhoneFieldProps } from './PhoneField';
 export { SheetHost, useConfirm, useActionSheet, type ConfirmOptions, type ActionSheetOptions, type SheetAction } from './SheetHost';
 export { SheetRow } from './SheetRow';
 export { TopBar } from './TopBar';
