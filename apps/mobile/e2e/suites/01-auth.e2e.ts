@@ -2,7 +2,7 @@ import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
 import { tap, typeText, clearText } from '../driver/actions';
 import { expectVisible, expectGone } from '../driver/expect';
-import { freshInstall } from '../driver/app';
+import { freshInstall, relaunch } from '../driver/app';
 import { dismissSavePasswordSheetIfPresent, loginAs, passWelcomeIfPresent } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
 import { latestOtp } from '../fixtures/mailpit';
@@ -126,5 +126,107 @@ describe('01 auth', () => {
     await passWelcomeIfPresent();
     await expectVisible({ text: /continue with google/i });
     await expectVisible({ text: /sign in with apple/i });
+  });
+
+  /**
+   * Password recovery, end to end (UX-AUTH-07/08/09).
+   *
+   * The assertion that matters is the LAST one. Verifying a recovery code
+   * establishes a real session — that is what authorises the password update —
+   * and this flow used to finish by routing into it, so a recovery ended with
+   * the user signed in. Tapping through to sign-in proves nothing about that on
+   * its own: the screen simply replaced itself, and a live session would still
+   * be sitting in the keychain.
+   *
+   * `relaunch()`, NOT `freshInstall()`. A reinstall wipes SecureStore and the
+   * keychain, so it would land on sign-in whether or not the session was torn
+   * down — the test would pass with the bug fully present. Terminating and
+   * relaunching the SAME install is the only thing that re-runs Boot against
+   * the persisted session.
+   */
+  it('password recovery ends at a confirmation and leaves no session behind', async () => {
+    const persona = PERSONAS.carla;
+    const newPassword = 'Recover9#';
+
+    await freshInstall();
+    await passWelcomeIfPresent();
+
+    // sign-in -> OTP -> "Try another way" -> password -> "Forgot password?"
+    await typeText({ type: 'TextField' }, persona.email);
+    await tap({ label: 'Continue', type: 'Button' });
+    await expectVisible({ text: /confirm if it/i }, { timeout: 20_000 });
+    await tap({ text: /try another way/i });
+    // Wait for the sheet to finish presenting before tapping a row. Tapping into
+    // a sheet that is still animating up lands on whatever occupies those
+    // coordinates mid-flight — here that was the row below, "Use a different
+    // email or phone", which replaces to sign-in and stranded the whole test.
+    await expectVisible({ text: /sign in with password/i }, { timeout: 10_000 });
+    await tap({ text: /sign in with password/i });
+    await expectVisible({ text: /enter your password/i }, { timeout: 15_000 });
+    // The recovery screen sends its own code on mount — start the clock here so
+    // Mailpit cannot hand back the sign-in code from a moment ago.
+    const sentAt = Date.now();
+    await tap({ text: /forgot password/i });
+
+    await expectVisible({ text: /password recovery/i }, { timeout: 20_000 });
+    // UX-AUTH-07: the resend is on this screen, below the code boxes, and
+    // starts in its cooldown state because the code has just been sent.
+    await expectVisible({ text: /resend in \d+/i }, { timeout: 20_000 });
+
+    // A wrong code reddens the field AND banners (UX-GLOB-06), and clears the
+    // boxes so the next attempt does not start with six digits to delete.
+    await typeText({ type: 'TextField' }, '000000');
+    await tap({ label: 'Continue', type: 'Button' });
+    // The banner auto-dismisses after 4s — check it promptly.
+    await expectVisible({ text: /invalid or expired code/i }, { timeout: 5_000 });
+    const cleared = query(await snapshot(), { type: 'TextField' });
+    if (cleared?.AXValue) {
+      throw new Error(`recovery code field kept "${cleared.AXValue}" after a rejected code — it must clear and refocus`);
+    }
+
+    const code = await latestOtp(persona.email, sentAt);
+    await typeText({ type: 'TextField' }, code);
+    await tap({ label: 'Continue', type: 'Button' });
+
+    // UX-AUTH-08. Two password inputs, the rules visible under the first.
+    await expectVisible({ text: /new password/i }, { timeout: 30_000 });
+    await expectVisible({ text: /minimum 8 characters/i });
+    await typeText({ type: 'TextField', nth: 0 }, newPassword);
+    await typeText({ type: 'TextField', nth: 1 }, 'Different9#');
+    await tap({ label: 'Continue', type: 'Button' });
+    await expectVisible({ text: /passwords don't match/i }, { timeout: 5_000 });
+    // The checklist must still be there while the field is in its error state.
+    await expectVisible({ text: /minimum 8 characters/i });
+
+    await clearText({ type: 'TextField', nth: 1 }, 16);
+    await typeText({ type: 'TextField', nth: 1 }, newPassword);
+    await tap({ label: 'Continue', type: 'Button' });
+
+    // updateUser on a password field can raise the system "Save Password?"
+    // sheet, which leaves the app's AX tree empty — clear it before asserting.
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline) {
+      await dismissSavePasswordSheetIfPresent();
+      if (query(await snapshot(), { text: /your password has been changed/i })) break;
+      await new Promise((r) => setTimeout(r, 600));
+    }
+
+    // UX-AUTH-09: confirmation, with a description line and no way back.
+    await expectVisible({ text: /your password has been changed/i }, { timeout: 10_000 });
+    await expectVisible({ text: /you can now sign in with your new password/i });
+    await expectGone({ label: 'Back' }, { timeout: 1_000 });
+
+    await tap({ text: /back to login/i });
+    await expectVisible({ label: 'Login or Sign Up' }, { timeout: 20_000 });
+
+    // THE decisive assertion — see the docblock above.
+    await relaunch();
+    await expectVisible({ label: 'Login or Sign Up' }, { timeout: 30_000 });
+    if (query(await snapshot(), { text: 'Home', type: 'Heading' })) {
+      throw new Error(
+        'password recovery left a live session: after terminate + relaunch the app booted into Home '
+        + 'instead of sign-in (UX-AUTH-09 — recovery must not continue into a signed-in session)',
+      );
+    }
   });
 });
