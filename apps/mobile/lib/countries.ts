@@ -223,3 +223,22 @@ export const formatMaskedPhone = (masked: string): string => {
   const [, dial = '', mask = '', tail = ''] = m;
   return `(+${dial}) ${mask}${tail ? ` ${tail}` : ''}`;
 };
+
+/**
+ * Present a full E.164 number — '+351912345678' — as '(+351) 912 345 678', the
+ * same grouping {@link formatMaskedPhone} gives a masked one, so the OTP
+ * screen's help line and the "Try another way" rows read as one family.
+ *
+ * Used wherever a number is SHOWN BACK to the person who typed it. Raw E.164 is
+ * the wire format, not a reading format: '+351912345678' is a dozen digits with
+ * no grouping, and the audit flagged exactly that on the verification screen.
+ *
+ * Anything libphonenumber cannot place comes back untouched — a help line that
+ * says '+351912345678' is worse than one that says '(+351) 912 345 678' and far
+ * better than one that says nothing.
+ */
+export const formatE164ForDisplay = (value: string): string => {
+  const parsed = parseE164(value);
+  if (!parsed) return value;
+  return `(+${getCountryCallingCode(parsed.region)}) ${formatNationalAsYouType(parsed.national, parsed.region)}`;
+};

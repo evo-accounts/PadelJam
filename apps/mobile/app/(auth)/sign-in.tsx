@@ -21,7 +21,7 @@
 import { startEmailOtp, startPhoneOtp } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -51,7 +51,16 @@ export default function SignInScreen() {
   const banner = useBanner();
   const router = useRouter();
 
-  const [mode, setMode] = useState<IdentifierKind>('phone');
+  /**
+   * Phone by default (UX-AUTH-02). The param is how the OTP screen's "Try
+   * another way" hands the user over when they pick the account's OTHER
+   * channel: the lookup only ever reports that channel MASKED, so the code
+   * cannot be sent from there — this screen has to be the one that collects it,
+   * already switched to the right input. Anything other than 'email' falls back
+   * to phone rather than throwing on a hand-typed deep link.
+   */
+  const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
+  const [mode, setMode] = useState<IdentifierKind>(modeParam === 'email' ? 'email' : 'phone');
   const [email, setEmail] = useState('');
   /** E.164, or '' while the number is incomplete — `PhoneField`'s contract. */
   const [phone, setPhone] = useState('');
