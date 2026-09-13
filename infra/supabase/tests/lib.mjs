@@ -1,6 +1,6 @@
 // infra/supabase/tests/lib.mjs
 // Minimal REST harness for RPC-level tests against the LOCAL stack.
-// Usage: import { rpc, sel, insert, patch, del, user, expectError, assert, run, adminCreateUser, signIn } from './lib.mjs'
+// Usage: import { rpc, anonRpc, sel, insert, patch, del, user, expectError, assert, run, adminCreateUser, signIn } from './lib.mjs'
 // Leaves its test users/communities in the local DB (cleaned by the next db reset).
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -37,6 +37,19 @@ export async function req(path, { method = 'GET', jwt, body, prefer } = {}) {
   return data;
 }
 export const rpc = (jwt, name, args = {}) => req(`/rest/v1/rpc/${name}`, { method: 'POST', jwt, body: args });
+
+/** Call an RPC as ANON (no session). The service key bypasses grants, so it can neither prove a
+ *  function is closed to anon nor that a pre-auth one is open to it. */
+export const ANON = ENV.SUPABASE_ANON_KEY;
+export async function anonRpc(name, args = {}) {
+  if (!ANON) throw new Error('Missing SUPABASE_ANON_KEY');
+  const res = await fetch(`${BASE_URL}/rest/v1/rpc/${name}`, {
+    method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify(args),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`anon POST /rest/v1/rpc/${name} → ${res.status}: ${text.slice(0, 400)}`);
+  return text ? JSON.parse(text) : null;
+}
 export const insert = (table, rows) => req(`/rest/v1/${table}`, { method: 'POST', body: rows, prefer: 'return=representation' });
 export const sel = (table, qs) => req(`/rest/v1/${table}?${qs}`);
 export const patch = (table, qs, fields) => req(`/rest/v1/${table}?${qs}`, { method: 'PATCH', body: fields, prefer: 'return=minimal' });

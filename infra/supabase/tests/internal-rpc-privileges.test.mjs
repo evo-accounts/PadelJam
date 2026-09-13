@@ -1,10 +1,7 @@
 // infra/supabase/tests/internal-rpc-privileges.test.mjs
 // Internal SQL helpers must not be reachable through PostgREST (/rest/v1/rpc/<name>), while the
 // public RPCs and triggers that call them keep working. See migration 0094 for the why.
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-import { BASE_URL, user, rpc, req, sel, insert, expectError, assert, run } from './lib.mjs';
+import { user, rpc, anonRpc, req, sel, insert, expectError, assert, run } from './lib.mjs';
 
 const ZERO = '00000000-0000-0000-0000-000000000000';
 const DENIED = 'permission denied for function';
@@ -26,24 +23,11 @@ const INTERNAL = [
   ['event_capacity', { e: ZERO }],
   ['is_event_invitee', { e: ZERO, u: ZERO }],
   ['is_event_participant', { e: ZERO, u: ZERO }],
+  // 0096: the masking helpers auth_methods_for calls. They are the reason no raw identifier can
+  // leave the database, so a client that could call them directly would undo the whole mitigation.
+  ['mask_email', { p_email: 'someone@example.com' }],
+  ['mask_phone', { p_phone: '+351912345678' }],
 ];
-
-// lib.mjs only exposes the service key; the anon key comes from the same .env.
-function anonKey() {
-  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-  if (process.env.SUPABASE_ANON_KEY) return process.env.SUPABASE_ANON_KEY;
-  const m = readFileSync(resolve(root, '.env'), 'utf8').match(/^SUPABASE_ANON_KEY=(.*)$/m);
-  assert(m, 'SUPABASE_ANON_KEY in .env');
-  return m[1].replace(/^["']|["']$/g, '');
-}
-async function anonRpc(name, args) {
-  const res = await fetch(`${BASE_URL}/rest/v1/rpc/${name}`, {
-    method: 'POST', headers: { apikey: anonKey(), 'Content-Type': 'application/json' }, body: JSON.stringify(args),
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`anon POST /rest/v1/rpc/${name} → ${res.status}: ${text.slice(0, 400)}`);
-  return text ? JSON.parse(text) : null;
-}
 
 const communityArgs = (name, privacy) => ({
   p_name: name, p_type: 'club', p_country: 'PT', p_privacy: privacy,
@@ -76,6 +60,15 @@ await run('internal helpers are not callable as anon', async () => {
   for (const [name, args] of INTERNAL) {
     await expectError(() => anonRpc(name, args), DENIED);
   }
+});
+
+// The other direction. auth_methods_for (0096) is the one function here that MUST be open to
+// anon: "Try another way" runs before a session exists. A privilege sweep that closes it would
+// break sign-in recovery silently — the sheet would just render empty — so pin it down.
+await run('auth_methods_for IS callable as anon', async () => {
+  const rows = await anonRpc('auth_methods_for', { p_identifier: `irp-nobody-${Date.now()}@rpctest.local` });
+  assert(Array.isArray(rows) && rows.length === 1, 'returns table → exactly one row');
+  assert(rows[0].has_email === false && rows[0].has_password === false, 'an unknown identifier has nothing');
 });
 
 const publicCid = await rpc(owner.jwt, 'create_community_with_personal_tenant', communityArgs('Privilege Club', 'public'));

@@ -19,6 +19,13 @@
  * — which is what caused the outage — automatically extends this check. A
  * hand-maintained list would have needed the same discipline that failed.
  *
+ * It also probes the RPCs the auth path calls, for the same reason: a function
+ * that exists only locally fails exactly like the missing column did — the app
+ * calls it, PostgREST answers PGRST202, and the screen dead-ends. `auth_methods_for`
+ * (migration 0096) is on that list because "Try another way" calls it BEFORE the
+ * user is authenticated, as anon, so a missing function or a missing anon grant
+ * breaks sign-in recovery for people who are already locked out.
+ *
  * Uses the publishable key from eas.json. That key is already public (it ships
  * in the app binary), so this needs no secrets and runs in CI.
  *
@@ -57,11 +64,8 @@ function targets() {
 const columns = onboardingProfileColumns();
 console.log(`[schema] profiles: ${columns.join(', ')}`);
 
-let failed = 0;
-let skipped = 0;
-
-for (const t of targets()) {
-  const label = t.profiles.join('/');
+/** 'ok' | 'fail' | 'skip' | 'unreachable' — 'unreachable' means don't bother with the rest. */
+async function checkColumns(t, label) {
   let res;
   try {
     res = await fetch(`${t.url}/rest/v1/profiles?select=${columns.join(',')}&limit=1`, {
@@ -72,13 +76,12 @@ for (const t of targets()) {
     // Unreachable is NOT a schema failure. A paused project, or CI without
     // egress, must not turn into a red build that teaches people to ignore this.
     console.log(`? ${label}: unreachable (${error.message}) — schema not verified`);
-    skipped += 1;
-    continue;
+    return 'unreachable';
   }
 
   if (res.ok) {
     console.log(`✓ ${label}: every column the auth path selects exists`);
-    continue;
+    return 'ok';
   }
 
   const body = await res.json().catch(() => ({}));
@@ -86,15 +89,83 @@ for (const t of targets()) {
   if (body.code === '42703') {
     console.log(`✗ ${label}: ${body.message}`);
     console.log('    A migration in infra/supabase/migrations is not applied to this project.');
-    failed += 1;
-  } else {
-    console.log(`? ${label}: HTTP ${res.status} ${body.message ?? ''} — schema not verified`);
-    skipped += 1;
+    return 'fail';
   }
+  console.log(`? ${label}: HTTP ${res.status} ${body.message ?? ''} — schema not verified`);
+  return 'skip';
+}
+
+/**
+ * Does auth_methods_for exist AND can anon call it?
+ *
+ * Probed with a throwaway identifier that matches no account, so the answer is the all-false row
+ * an unknown identifier gets — nothing is enumerated and no real user is touched. The call does
+ * write one rate-limit row (the limiter is inside the function); it is bucketed under a fresh
+ * random identifier each run and pruned after fifteen minutes.
+ */
+async function checkAuthMethodsRpc(t, label) {
+  const probe = `schema-check-${Math.random().toString(36).slice(2)}@invalid.padeljam`;
+  let res;
+  try {
+    res = await fetch(`${t.url}/rest/v1/rpc/auth_methods_for`, {
+      method: 'POST',
+      headers: { apikey: t.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_identifier: probe }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (error) {
+    console.log(`? ${label}: auth_methods_for unreachable (${error.message}) — not verified`);
+    return 'skip';
+  }
+
+  if (res.ok) {
+    console.log(`✓ ${label}: auth_methods_for exists and anon may call it`);
+    return 'ok';
+  }
+
+  const body = await res.json().catch(() => ({}));
+  // PGRST202 (and 42883) is "no such function": migration 0096 has not been applied here.
+  if (body.code === 'PGRST202' || body.code === '42883') {
+    console.log(`✗ ${label}: auth_methods_for is missing (${body.message ?? res.status})`);
+    console.log('    Migration 0096 is not applied to this project — "Try another way" will find nothing.');
+    return 'fail';
+  }
+  // 42501 is insufficient_privilege: the function is there but the anon grant is not, which the
+  // app cannot recover from either — the caller has no session to fall back to.
+  if (body.code === '42501') {
+    console.log(`✗ ${label}: anon may not execute auth_methods_for (${body.message ?? ''})`);
+    console.log("    Re-apply 0096's grant block; a pre-auth lookup anon cannot call is dead.");
+    return 'fail';
+  }
+  // The function's own limiter answering is proof it is deployed and reachable.
+  if (typeof body.message === 'string' && /rate.?limit/i.test(body.message)) {
+    console.log(`✓ ${label}: auth_methods_for exists (rate limiter answered)`);
+    return 'ok';
+  }
+  console.log(`? ${label}: auth_methods_for HTTP ${res.status} ${body.message ?? ''} — not verified`);
+  return 'skip';
+}
+
+let failed = 0;
+let skipped = 0;
+
+for (const t of targets()) {
+  const label = t.profiles.join('/');
+  const columnResult = await checkColumns(t, label);
+  if (columnResult === 'unreachable') {
+    skipped += 1;
+    continue;
+  }
+  if (columnResult === 'fail') failed += 1;
+  if (columnResult === 'skip') skipped += 1;
+
+  const rpcResult = await checkAuthMethodsRpc(t, label);
+  if (rpcResult === 'fail') failed += 1;
+  if (rpcResult === 'skip') skipped += 1;
 }
 
 if (skipped > 0 && failed === 0) {
-  console.log(`[schema] ${skipped} target(s) unverified; nothing proven about them.`);
+  console.log(`[schema] ${skipped} check(s) unverified; nothing proven about them.`);
 }
 if (failed === 0) console.log('[schema] ok');
 

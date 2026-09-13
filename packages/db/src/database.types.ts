@@ -2343,6 +2343,18 @@ export type Database = {
         Returns: number
       }
       archive_group: { Args: { p_group_id: string }; Returns: undefined }
+      auth_methods_for: {
+        Args: { p_identifier: string }
+        Returns: {
+          has_apple: boolean
+          has_email: boolean
+          has_google: boolean
+          has_password: boolean
+          has_phone: boolean
+          email_masked: string | null
+          phone_masked: string | null
+        }[]
+      }
       auth_tenant_ids: { Args: never; Returns: string[] }
       can_create_community: { Args: never; Returns: boolean }
       can_create_event: { Args: { p_group_id: string }; Returns: boolean }
@@ -2453,6 +2465,8 @@ export type Database = {
       }
       post_event_result: { Args: { p_event_id: string }; Returns: string }
       materialize_occurrence: { Args: { p_after_event_id: string }; Returns: string }
+      mask_email: { Args: { p_email: string }; Returns: string }
+      mask_phone: { Args: { p_phone: string }; Returns: string }
       set_event_timer: {
         Args: { p_event_id: string; p_action: string }
         Returns: undefined
