@@ -1,7 +1,7 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
 import { scrollUntilVisible, tap, toggleSwitch, typeText } from '../driver/actions';
-import { expectVisible } from '../driver/expect';
+import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { loginAs, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
@@ -57,6 +57,19 @@ describe('11 community admin', () => {
     ]) {
       await expectVisible({ text: section }, { timeout: 15_000 });
     }
+  });
+
+  it('the plan section shows the plan the community is on, not Starter', async () => {
+    // Cascais Social is seeded on Basic (seed-e2e.mjs) and alex is only an admin:
+    // the left card must say Basic (with the Current badge), never Starter, and
+    // the action button gives way to the owner-only hint.
+    await openManage();
+    await scrollUntilVisible({ text: /^plan$/i }, { maxSwipes: 8, direction: 'down' });
+    await expectVisible({ text: /^basic$/i }, { timeout: 15_000 });
+    await expectVisible({ text: /^current$/i }, { timeout: 15_000 });
+    await expectVisible({ text: /^community pro$/i }, { timeout: 15_000 });
+    await expectVisible({ text: /only the owner can change the plan/i }, { timeout: 15_000 });
+    await expectGone({ text: /^starter$/i }, { timeout: 3_000 });
   });
 
   it('approving a join request admits the requester', async () => {
