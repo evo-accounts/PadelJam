@@ -103,7 +103,12 @@ describe('01 auth', () => {
 
     await typeText({ id: 'create-account-name' }, 'Test E2E User');
     await typeText({ id: 'create-account-email' }, secondaryEmail);
-    await typeText({ id: 'password-input' }, PASSWORD);
+    // By type, not by testID. A secure field selected by id resolves to a node
+    // whose AXValue is a single '•' regardless of length, so typeText's mask
+    // check (a run of bullets as long as the text) can never settle. Selected
+    // by type it reports the full mask. Every other password entry in this
+    // suite does the same.
+    await typeText({ type: 'TextField', nth: 2 }, PASSWORD);
 
     // Every field filled, terms unticked → still inert, still silent.
     await tap({ label: 'Create account', type: 'Button' });
