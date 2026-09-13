@@ -75,18 +75,43 @@ describe('01 auth', () => {
     await expectVisible({ text: /full name|create/i }, { timeout: 30_000 });
   });
 
+  /**
+   * UX-AUTH-05. Two things the old version of this test could not say:
+   *
+   *   - THE SUBMIT IS DISABLED, not merely validated. The screen used to accept
+   *     the press and answer with a "Missing information" banner; it is now
+   *     inert until every required field is filled and the box is ticked. The
+   *     ABSENCE of that banner after a press is what distinguishes the two —
+   *     `el.enabled` cannot, because this app reports `enabled: false` for
+   *     controls that work perfectly well (see the note in driver/actions.tap).
+   *   - THE CHECKBOX HAS AN IDENTITY. It was tapped at `x + 14` from the label's
+   *     left edge, because the row's text is a sentence with two tappable links
+   *     in it and the hand-rolled square had no testID. It is the `Checkbox`
+   *     primitive now and is tapped by id, so the test stops depending on where
+   *     a 22pt box happens to sit.
+   */
   it('create-account blocks submit until terms accepted, then completes', async () => {
     const secondaryEmail = 'e2e-new@padeljam.test';
     await expectVisible({ text: /complete your account/i });
-    await typeText({ text: /your name/i, type: 'TextField' }, 'Test E2E User');
-    await typeText({ text: /name@example\.com/i, type: 'TextField' }, secondaryEmail);
-    await typeText({ type: 'TextField', nth: 2 }, PASSWORD);
-    // Terms unchecked → submit must not navigate.
+
+    // Nothing filled: the press must do NOTHING — not even complain.
     await tap({ label: 'Create account', type: 'Button' });
-    await expectVisible({ text: /complete your account/i }); // still on the form
-    // Tap the checkbox square (left edge) — the row's text contains tappable links.
-    const checkbox = await expectVisible({ text: /i agree to the terms/i });
-    await tap({ x: checkbox.frame.x + 14, y: checkbox.frame.y + checkbox.frame.height / 2 });
+    await expectVisible({ text: /complete your account/i });
+    await expectGone({ text: /missing information/i }, { timeout: 2_000 }).catch(() => {
+      throw new Error('Create account is still validating on press — UX-AUTH-05 asks for it to be disabled');
+    });
+
+    await typeText({ id: 'create-account-name' }, 'Test E2E User');
+    await typeText({ id: 'create-account-email' }, secondaryEmail);
+    await typeText({ id: 'password-input' }, PASSWORD);
+
+    // Every field filled, terms unticked → still inert, still silent.
+    await tap({ label: 'Create account', type: 'Button' });
+    await expectVisible({ text: /complete your account/i });
+    await expectGone({ text: /missing information/i }, { timeout: 2_000 });
+
+    // By testID, not by a pixel offset from the label — see the docblock.
+    await tap({ id: 'create-account-terms' });
     const submittedAt = Date.now();
     await tap({ label: 'Create account', type: 'Button' });
     // With local confirmations disabled the change can apply instantly (app jumps straight
@@ -107,9 +132,10 @@ describe('01 auth', () => {
         const code = await latestOtp(secondaryEmail, submittedAt);
         // Re-check we are still on the verify phase before typing (it can self-dismiss).
         if (query(await snapshot(), { text: /verify your email/i })) {
-          await typeText({ type: 'TextField' }, code).catch(() => {});
-          // The Verify pressable surfaces as GenericElement, not Button — match by label only.
-          await tap({ label: 'Verify' }).catch(() => {});
+          await typeText({ id: 'create-account-code' }, code).catch(() => {});
+          // `type: 'Button'` again: Verify is a real `Button` here now, not the
+          // hand-rolled Pressable that surfaced as a GenericElement.
+          await tap({ label: 'Verify', type: 'Button' }).catch(() => {});
         }
       }
       await new Promise((r) => setTimeout(r, 600));
@@ -296,6 +322,121 @@ describe('01 auth', () => {
     await tap({ text: /continue with phone/i });
     await expectGone({ text: /name@example\.com/i, type: 'TextField' }, { timeout: 10_000 });
     await expectVisible({ text: /continue with email/i });
+  });
+
+  /**
+   * sign-in -> OTP -> "Try another way" -> "Sign in with password".
+   *
+   * Local rather than in driver/flows.ts: the password screen is reached from
+   * exactly one place and only this suite goes there. `switchToEmailMode()` is
+   * the shared helper, as everywhere else — sign-in opens in PHONE mode
+   * (UX-AUTH-02) and a type-only selector would otherwise type an address into
+   * the phone box.
+   */
+  const goToPasswordScreen = async (email: string): Promise<void> => {
+    await freshInstall();
+    await passWelcomeIfPresent();
+    await switchToEmailMode();
+    await typeText({ type: 'TextField' }, email);
+    await tap({ label: 'Continue', type: 'Button' });
+    await expectVisible({ text: /confirm if it/i }, { timeout: 20_000 });
+    await tap({ text: /try another way/i });
+    // Wait for the sheet to finish presenting before tapping a row: tapping
+    // into one that is still animating up lands on whatever occupies those
+    // coordinates mid-flight — here that is "Use a different email or phone",
+    // which replaces to sign-in and strands the test.
+    await expectVisible({ text: /sign in with password/i }, { timeout: 15_000 });
+    await tap({ text: /sign in with password/i });
+    await expectVisible({ text: /enter your password/i }, { timeout: 15_000 });
+  };
+
+  /**
+   * UX-AUTH-06, the layout half.
+   *
+   * The screen shipped with `t('otpHelp')` under its title — "We sent a code to
+   * …" on a screen that sends no code — and with "Forgot password?" as a
+   * full-width ghost link STACKED UNDER the primary action, where it read as a
+   * second call to action of equal weight. Placement is asserted by comparing
+   * frames, the way the resend-above-Verify assertion does: the accessibility
+   * tree carries no other notion of order or alignment.
+   */
+  it('the password screen explains itself and puts Forgot password below the input, right-aligned', async () => {
+    await goToPasswordScreen(PERSONAS.dora.email);
+
+    await expectVisible({ text: /signing in as/i });
+    await expectGone({ text: /we sent a code to/i }, { timeout: 3_000 }).catch(() => {
+      throw new Error('the password screen is still rendering otpHelp — it sends no code (UX-AUTH-06)');
+    });
+
+    const tree = await snapshot();
+    const input = query(tree, { id: 'password-input' });
+    const forgot = query(tree, { id: 'password-forgot' });
+    const cta = query(tree, { id: 'password-continue' });
+    if (!input || !forgot || !cta) {
+      throw new Error(
+        `password screen is missing a control: input=${!!input} forgot=${!!forgot} continue=${!!cta}`,
+      );
+    }
+
+    // DIRECTLY BELOW THE INPUT, and above the primary action.
+    if (forgot.frame.y < input.frame.y + input.frame.height - 2) {
+      throw new Error(
+        `"Forgot password?" (y=${forgot.frame.y}) must sit below the password input `
+        + `(which ends at y=${input.frame.y + input.frame.height}) — UX-AUTH-06`,
+      );
+    }
+    if (forgot.frame.y >= cta.frame.y) {
+      throw new Error(
+        `"Forgot password?" (y=${forgot.frame.y}) must sit above Continue (y=${cta.frame.y}) — UX-AUTH-06`,
+      );
+    }
+
+    // RIGHT-ALIGNED. Continue is full-width, so its frame IS the content
+    // column: the link's right edge must meet it, and its left edge must start
+    // past the middle rather than stretching the whole way across.
+    const contentRight = cta.frame.x + cta.frame.width;
+    const forgotRight = forgot.frame.x + forgot.frame.width;
+    if (Math.abs(contentRight - forgotRight) > 4) {
+      throw new Error(
+        `"Forgot password?" must be right-aligned: its right edge is ${forgotRight}, `
+        + `the content column ends at ${contentRight} — UX-AUTH-06`,
+      );
+    }
+    if (forgot.frame.x <= cta.frame.x + cta.frame.width / 2) {
+      throw new Error(
+        `"Forgot password?" stretches across the column (x=${forgot.frame.x}, width=${forgot.frame.width}) `
+        + 'instead of hugging the right edge — UX-AUTH-06',
+      );
+    }
+  });
+
+  /**
+   * UX-AUTH-06, the "Try another way" half.
+   *
+   * It used to call `router.back()`, which is "go back", not "try another way":
+   * the user is returned to the code screen they deliberately left and offered
+   * nothing. It opens `TryAnotherWaySheet` with `inUse: 'password'` now.
+   *
+   * THE ROWS ARE THE FINGERPRINT. The OTP screen's sheet for an email sign-in
+   * (inUse: 'email') offers SMS and password and never "get a code by email";
+   * this one offers SMS and email and never password. So an email row with no
+   * password row can only be THIS screen's sheet — and `router.back()` would
+   * have shown no sheet at all, just the code screen.
+   */
+  it('Try another way on the password screen opens the sheet instead of going back', async () => {
+    await goToPasswordScreen(PERSONAS.omar.email);
+    await tap({ id: 'password-try-another-way' });
+
+    await expectVisible({ text: /get a code via sms/i }, { timeout: 15_000 });
+    // The method already in use is never listed.
+    await expectGone({ text: /sign in with password/i }, { timeout: 3_000 });
+    // The row the OTP screen's sheet cannot show.
+    await expectVisible({ text: /get a code by email/i });
+    await expectVisible({ text: /use a different email or phone/i });
+
+    // And the way out works, leaving the suite somewhere known.
+    await tap({ text: /use a different email or phone/i });
+    await expectVisible({ label: 'Login or Sign Up' }, { timeout: 20_000 });
   });
 
   /**

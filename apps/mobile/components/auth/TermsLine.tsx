@@ -17,8 +17,15 @@ import { Linking, StyleSheet, type StyleProp, type TextStyle } from 'react-nativ
 
 import { Text } from '../ui';
 
-const TERMS_URL = 'https://padeljam.app/terms';
-const PRIVACY_URL = 'https://padeljam.app/privacy';
+/**
+ * Exported because create-account's consent CHECKBOX links to the same two
+ * documents with different wording ("I agree to the …" rather than "By
+ * continuing, you agree to our …"), so it cannot reuse this component — but it
+ * must not re-declare the URLs either. That is how the three earlier copies of
+ * this sentence drifted apart in the first place.
+ */
+export const TERMS_URL = 'https://padeljam.app/terms';
+export const PRIVACY_URL = 'https://padeljam.app/privacy';
 
 type Props = {
   style?: StyleProp<TextStyle>;

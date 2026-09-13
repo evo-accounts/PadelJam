@@ -1,6 +1,43 @@
+/**
+ * Complete your account (UX-AUTH-05).
+ *
+ * The screen already collected the right things; what the audit asked for was
+ * the ORDER, the primitives, and a submit that cannot be pressed before the
+ * form is answerable:
+ *
+ *   - the fields now run name -> the missing identifier -> password -> terms ->
+ *     the primary action, instead of opening with a disabled box holding an
+ *     address the user did not type.
+ *   - the 22pt hand-rolled tick is the `Checkbox` primitive, with a testID. The
+ *     E2E used to tap it at a pixel offset from the label's left edge, because
+ *     the row's text contains tappable links and the square had no identity of
+ *     its own.
+ *   - the raw phone `TextInput` is `PhoneField`. That deletes this screen's own
+ *     E.164 guard along with it: the field reports a valid E.164 or nothing, so
+ *     there is no longer a local-format number to catch.
+ *   - the six-digit box in the verify phase (a `TextInput` with
+ *     `letterSpacing: 8`) is `CodeField`, the same one otp.tsx and recovery.tsx
+ *     use.
+ *   - CREATE ACCOUNT IS DISABLED until the required fields are filled and the
+ *     box is ticked. Paired with per-field errors on blur, deliberately: a
+ *     disabled control that never says why is the failure mode UX-GLOB-06 is
+ *     about, and "filled" is a question every one of these fields can answer
+ *     the moment it loses focus.
+ *   - the three exits hard-coded '/(onboarding)/location'. They go through
+ *     `resolvePostAuthRoute()` now. For a brand-new account that resolves to
+ *     the same first step, so this is correctness rather than a visible change
+ *     — it stops being a lie the day onboarding gains a step before location.
+ *
+ * WHICH IDENTIFIER IS MISSING IS DERIVED FROM THE SESSION, NOT FROM THE
+ * AUTH-FLOW SINGLETON. `getAuthTarget()` is module state: it does not survive a
+ * process restart, and this route is one expo-router will happily restore after
+ * one — a user who verified a code, landed here and killed the app comes back
+ * to an EMPTY singleton, whose `kind` defaults to 'email' and would therefore
+ * ask a phone-verified user for their phone number again. The session is the
+ * durable record of what was actually verified, so it is read first and the
+ * singleton is only the fallback for the case the session cannot decide.
+ */
 import {
-  initialOtpState,
-  otpReducer,
   primaryCredential,
   signInWithPassword,
   startEmailChange,
@@ -10,66 +47,121 @@ import {
   verifyPhoneChange,
 } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { formatDisplayName, isE164 } from '@padel/utils';
+import { formatDisplayName } from '@padel/utils';
 import { useRouter } from 'expo-router';
-import { useEffect, useReducer, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Linking, Platform, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PRIVACY_URL, TERMS_URL } from '@/components/auth/TermsLine';
 import { safeAuthMessage } from '@/lib/authErrors';
-import { detectKind, getAuthTarget } from '@/lib/auth-flow';
+import { getAuthTarget, type IdentifierKind } from '@/lib/auth-flow';
+import { formatE164ForDisplay } from '@/lib/countries';
 import { passwordValid } from '@/lib/passwordRules';
+import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
-import { colors } from '../../theme';
-import { Button, PasswordField, useBanner } from '../../components/ui';
+import { useFieldErrors } from '@/lib/useFieldErrors';
+import { useOtpCountdown } from '@/lib/useOtpCountdown';
+import { colors, space } from '../../theme';
+import {
+  Button,
+  Checkbox,
+  CodeField,
+  Field,
+  Loading,
+  PasswordField,
+  PhoneField,
+  Screen,
+  Text,
+  TopBar,
+  useBanner,
+} from '../../components/ui';
 
-const TERMS_URL = 'https://padeljam.app/terms';
-const PRIVACY_URL = 'https://padeljam.app/privacy';
+/**
+ * Shape only — the same call sign-in.tsx makes and for the same reason:
+ * anything stricter rejects addresses that exist (plus-tags, new TLDs, quoted
+ * locals), and the server is the real authority. This is here to catch a typo
+ * before a rate-limit slot is spent on it.
+ */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const ONBOARDING_ROUTE = '/(onboarding)/location';
+const CODE_LENGTH = 6;
+
+type FieldKey = 'fullName' | 'secondary' | 'password';
+
+/** GoTrue stores the phone WITHOUT a leading '+'; everything else here is E.164. */
+const toE164 = (phone: string | null | undefined): string =>
+  phone ? (phone.startsWith('+') ? phone : `+${phone}`) : '';
 
 export default function CreateAccountScreen() {
   const { t } = useT('auth');
   const { t: tc } = useT('common');
   const banner = useBanner();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { kind } = getAuthTarget();
+  const { session, loading: sessionLoading } = useSession();
 
-  // Social sign-up (e.g. Google) arrives with a verified email; pre-fill from the session.
-  const { session } = useSession();
-  const provider = session?.user?.app_metadata?.provider;
-  const isSocial = provider != null && provider !== 'email' && provider !== 'phone';
-  const socialEmail = session?.user?.email ?? '';
+  const sessionEmail = session?.user?.email ?? '';
+  const sessionPhone = toE164(session?.user?.phone);
   const socialName =
     (session?.user?.user_metadata?.full_name as string | undefined) ??
     (session?.user?.user_metadata?.name as string | undefined) ??
     '';
 
-  // The primary identifier is already verified; ask for the missing one.
-  // For social sign-up the verified identifier is the email, so collect the phone.
-  const secondaryKind = isSocial ? 'phone' : kind === 'phone' ? 'email' : 'phone';
+  /**
+   * The verified identifier, and therefore the one NOT to ask for. A session
+   * that carries exactly one of the two answers the question outright — that is
+   * every OTP sign-up and every social sign-up (which arrives with a verified
+   * email and no phone). Only a session carrying both, or neither, falls back
+   * to the singleton, and a restored route with an empty singleton then lands
+   * on its 'email' default, which is the pre-existing behaviour rather than a
+   * new guess.
+   */
+  const primaryKind: IdentifierKind =
+    sessionEmail && !sessionPhone ? 'email' : sessionPhone && !sessionEmail ? 'phone' : kind;
+  const secondaryKind: IdentifierKind = primaryKind === 'phone' ? 'email' : 'phone';
+  const primaryIdentifier = primaryKind === 'phone' ? sessionPhone : sessionEmail;
 
   const [phase, setPhase] = useState<'form' | 'verify'>('form');
-  const [fullName, setFullName] = useState(socialName);
+  /**
+   * `null` until the user types, so the social prefill can still appear when
+   * the session lands AFTER mount — `useState(socialName)` snapshots '' in that
+   * race and never recovers, and seeding it from an effect is the
+   * set-state-in-effect pattern the ESLint config warns about.
+   */
+  const [typedName, setTypedName] = useState<string | null>(null);
+  const fullName = typedName ?? socialName;
+  /** E.164 or '' for a phone (PhoneField's contract); the trimmed address for an email. */
   const [secondary, setSecondary] = useState('');
+  /** National digits typed so far. The only way to tell "half a number" from "nothing". */
+  const [phoneDigits, setPhoneDigits] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
+  /** `CodeField`'s `key`: bumping it remounts the boxes empty and refocuses them. */
+  const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const { errors, setErrors, clear } = useFieldErrors<FieldKey>();
 
-  // Resend cooldown / attempt lockout for the secondary-identifier OTP (verify phase).
-  const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (otpState.cooldownUntil <= now) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [otpState.cooldownUntil, now]);
-  const cooldownRemaining = Math.max(0, Math.ceil((otpState.cooldownUntil - now) / 1000));
+  /** Resend cooldown for the secondary-identifier OTP (verify phase). */
+  const { state: otpState, dispatch, remaining } = useOtpCountdown();
 
+  const name = fullName.trim();
   const secondaryValue = secondary.trim();
-  const secKind = detectKind(secondaryValue);
+
+  /**
+   * UX-AUTH-05: the primary action is dead until the form is answerable.
+   * "Filled", not "valid" — the password's four rules are already spelled out
+   * live under the input by `PasswordField`, so gating on them would disable the
+   * button for a reason the user is being shown but has not finished acting on.
+   * Strength is checked on submit instead, where it can redden the field.
+   */
+  const canSubmit = Boolean(name) && Boolean(secondaryValue) && Boolean(password) && agreed;
+
+  const goNext = async () => {
+    router.replace((await resolvePostAuthRoute()) as never);
+  };
 
   // GoTrue rejects a change to an identifier already registered on auth.users (the profiles
   // pre-check in complete-account can't see auth-only users) — reuse the "taken" copy for those.
@@ -81,7 +173,7 @@ export default function CreateAccountScreen() {
 
   const startSecondaryChange = async (): Promise<'sent' | 'applied' | 'failed'> => {
     const { data, error: changeErr } =
-      secKind === 'phone'
+      secondaryKind === 'phone'
         ? await startPhoneChange(supabase, secondaryValue)
         : await startEmailChange(supabase, secondaryValue);
     if (changeErr) {
@@ -92,41 +184,63 @@ export default function CreateAccountScreen() {
     // returned user already carries the new identifier — phone in GoTrue format, no '+').
     // There is no code in flight, so showing the verify step would dead-end.
     const applied =
-      secKind === 'phone'
+      secondaryKind === 'phone'
         ? data.user?.phone === secondaryValue.replace(/^\+/, '')
         : data.user?.email?.toLowerCase() === secondaryValue.toLowerCase();
     if (applied) return 'applied';
     dispatch({ type: 'sent', at: Date.now() });
-    setNow(Date.now());
     return 'sent';
   };
 
+  /** Blur validation, one field at a time — what keeps a disabled submit explained. */
+  const blurName = () => {
+    setErrors((prev) => (name ? prev : { ...prev, fullName: tc('missingInformation') }));
+  };
+
+  const blurSecondary = () => {
+    setErrors((prev) => {
+      if (secondaryKind === 'phone') {
+        // '' with digits typed is an INCOMPLETE number, not an empty field —
+        // PhoneField only emits a value once it is valid for the region.
+        if (secondaryValue) return prev;
+        return { ...prev, secondary: phoneDigits ? t('invalid_phone') : tc('missingInformation') };
+      }
+      if (EMAIL_SHAPE.test(secondaryValue)) return prev;
+      return { ...prev, secondary: tc('missingInformation') };
+    });
+  };
+
+  const blurPassword = () => {
+    setErrors((prev) => (password ? prev : { ...prev, password: tc('missingInformation') }));
+  };
+
   const submit = async () => {
-    if (busy) return;
-    const name = fullName.trim();
-    if (!name || !secondaryValue || !password || !agreed || !passwordValid(password)) {
+    if (busy || !canSubmit) return;
+    // UX-GLOB-06: redden the field AND banner it, in the identical words.
+    if (!passwordValid(password)) {
+      setErrors({ password: t('password_weak') });
+      banner.show(t('password_weak'));
+      return;
+    }
+    if (secondaryKind === 'email' && !EMAIL_SHAPE.test(secondaryValue)) {
+      setErrors({ secondary: tc('missingInformation') });
       banner.show(tc('missingInformation'));
       return;
     }
-    // The phone must be E164 (+countrycode…). Without this guard a local-format number
-    // fails isE164 in detectKind, gets sent as an EMAIL, and surfaces as an opaque 400.
-    if (secondaryKind === 'phone' && !isE164(secondaryValue)) {
-      banner.show(t('invalid_phone'));
-      return;
-    }
+    setErrors({});
 
     setBusy(true);
     try {
       const {
-        data: { session },
+        data: { session: live },
       } = await supabase.auth.getSession();
-      if (!session) {
+      if (!live) {
         banner.show(tc('somethingWrong'));
         return;
       }
 
       const secondaryBody =
-        secKind === 'phone' ? { phone: secondaryValue } : { email: secondaryValue };
+        secondaryKind === 'phone' ? { phone: secondaryValue } : { email: secondaryValue };
 
       // The Edge Function sets the password AND creates the profiles row server-side from the
       // identifiers persisted on auth.users — the client never writes its own identity into the
@@ -136,23 +250,27 @@ export default function CreateAccountScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${live.access_token}`,
         },
         body: JSON.stringify({ ...secondaryBody, password, full_name: formatDisplayName(name) }),
       });
 
       if (!resp.ok) {
-        let code: string | undefined;
+        let errorCode: string | undefined;
         try {
           const body = (await resp.json()) as { error?: string };
-          code = body.error;
+          errorCode = body.error;
         } catch {
           // Non-JSON error body — fall through to the generic failure code below.
         }
         // Dev console gets the full detail; the UI copy may collapse it.
-        console.warn('[complete-account] failed:', resp.status, code ?? '(no error code in body)');
-        if (code === 'email_taken' || code === 'phone_taken' || code === 'invalid_phone' || code === 'password_weak') {
-          banner.show(t(code));
+        console.warn('[complete-account] failed:', resp.status, errorCode ?? '(no error code in body)');
+        if (errorCode === 'email_taken' || errorCode === 'phone_taken' || errorCode === 'invalid_phone') {
+          setErrors({ secondary: t(errorCode) });
+          banner.show(t(errorCode));
+        } else if (errorCode === 'password_weak') {
+          setErrors({ password: t(errorCode) });
+          banner.show(t(errorCode));
         } else {
           banner.show(tc('somethingWrong'));
         }
@@ -163,9 +281,9 @@ export default function CreateAccountScreen() {
       // token — the current session would be signed out at the next refresh, mid-onboarding. Mint a
       // fresh, durable session with the password we just set, using the primary verified identifier.
       const cred = primaryCredential({
-        primaryKind: isSocial ? 'email' : kind,
-        email: session.user.email,
-        phone: session.user.phone,
+        primaryKind,
+        email: live.user.email,
+        phone: live.user.phone,
       });
       if (cred) {
         const { error: signInErr } = await signInWithPassword(supabase, cred.identifier, cred.kind, password);
@@ -180,7 +298,7 @@ export default function CreateAccountScreen() {
       // verify phase collects it. Enter the phase even when the send fails — the account already
       // exists, so the user retries (resend) or skips from there instead of resubmitting the form.
       if ((await startSecondaryChange()) === 'applied') {
-        router.replace(ONBOARDING_ROUTE);
+        await goNext();
         return;
       }
       setPhase('verify');
@@ -192,30 +310,45 @@ export default function CreateAccountScreen() {
   const verifySecondary = async () => {
     if (busy) return;
     if (otpState.locked) { banner.show(t('locked')); return; }
-    if (code.length < 6) { banner.show(tc('missingInformation')); return; }
+    if (code.length < CODE_LENGTH) { banner.show(tc('missingInformation')); return; }
     setBusy(true);
     try {
       const { error: verifyError } =
-        secKind === 'phone'
+        secondaryKind === 'phone'
           ? await verifyPhoneChange(supabase, secondaryValue, code)
           : await verifyEmailChange(supabase, secondaryValue, code);
       if (verifyError) {
         dispatch({ type: 'fail' });
         const { ns, key } = safeAuthMessage(verifyError);
-        banner.show(t(key, { ns }));
+        const message = t(key, { ns });
+        // Both halves (UX-GLOB-06): the boxes redden AND the banner shows, in
+        // the identical words. Only wipe the digits when the CODE is what
+        // failed — a network blip says nothing about them.
+        setCodeError(message);
+        banner.show(message);
+        if (key === 'invalidCode') {
+          setCode('');
+          setAttempt((n) => n + 1);
+        }
         return;
       }
-      router.replace(ONBOARDING_ROUTE);
+      await goNext();
     } finally {
       setBusy(false);
     }
   };
 
   const resend = async () => {
-    if (busy || cooldownRemaining > 0) return;
+    if (busy || remaining > 0) return;
     setBusy(true);
     try {
-      if ((await startSecondaryChange()) === 'applied') router.replace(ONBOARDING_ROUTE);
+      if ((await startSecondaryChange()) === 'applied') {
+        await goNext();
+        return;
+      }
+      setCodeError(null);
+      setCode('');
+      setAttempt((n) => n + 1);
     } finally {
       setBusy(false);
     }
@@ -225,196 +358,226 @@ export default function CreateAccountScreen() {
   // with just the verified primary; the user can add the other identifier later in settings.
   const skip = () => {
     if (busy) return;
-    router.replace(ONBOARDING_ROUTE);
+    void goNext();
   };
+
+  /**
+   * Which field this screen shows is derived from the SESSION (see the
+   * docblock), so rendering before it has loaded would put up the wrong input
+   * and swap it underneath the user a moment later — carrying whatever they had
+   * already typed into a box that means something else.
+   */
+  if (sessionLoading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <TopBar variant="nav" />
+        <Loading testID="create-account-loading" />
+      </SafeAreaView>
+    );
+  }
 
   if (phase === 'verify') {
     return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={[
-            styles.inner,
-            { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={styles.title}>
-            {secKind === 'phone' ? t('verifyPhoneTitle') : t('verifyEmailTitle')}
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        {/* Back is the FORM, not a route: the account already exists by now, so
+            leaving the app would be wrong and there is nothing behind this in
+            the stack either. Explicit target throughout (auth) — useGoBack()'s
+            '/' fallback drops a signed-out user on the splash. */}
+        <TopBar variant="nav" onBack={() => setPhase('form')} />
+        <Screen style={styles.body}>
+          <Text variant="title">
+            {secondaryKind === 'phone' ? t('verifyPhoneTitle') : t('verifyEmailTitle')}
           </Text>
-          <Text style={styles.help}>{t('otpHelp', { identifier: secondaryValue })}</Text>
+          <Text variant="body" tone="muted" style={styles.help}>
+            {t('otpHelp', {
+              identifier:
+                secondaryKind === 'phone' ? formatE164ForDisplay(secondaryValue) : secondaryValue,
+            })}
+          </Text>
 
-          <Text style={styles.label}>{t('otpLabel')}</Text>
-          <TextInput
-            style={styles.codeInput}
+          <CodeField
+            key={attempt}
+            label={t('otpLabel')}
             value={code}
-            onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
-            placeholder={t('otpPlaceholder')}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            maxLength={6}
+            onChangeText={(next) => { setCode(next); if (codeError) setCodeError(null); }}
+            error={codeError}
+            // iOS reads an emailed code out of Mail too; Android's SMS retriever
+            // must not be armed for a code that will never arrive as a message.
+            autofill={secondaryKind === 'phone' ? 'sms' : 'email'}
             editable={!busy && !otpState.locked}
             autoFocus
+            testID="create-account-code"
           />
 
-          <Pressable
-            style={[styles.button, busy && styles.buttonDisabled]}
-            onPress={verifySecondary}
-            disabled={busy}
-            accessibilityRole="button"
-          >
-            {busy ? <ActivityIndicator color={colors.card} /> : <Text style={styles.buttonText}>{t('verify')}</Text>}
-          </Pressable>
-
-          <Pressable
-            style={styles.linkButton}
+          {/* Directly below the input and ABOVE the primary action — the same
+              order otp.tsx and recovery.tsx settled on. */}
+          <Button
+            label={remaining > 0 ? t('cooldown', { seconds: remaining }) : t('resend')}
+            variant="ghost"
+            disabled={busy || remaining > 0}
             onPress={resend}
-            disabled={busy || cooldownRemaining > 0}
-            accessibilityRole="button"
-          >
-            <Text style={[styles.link, cooldownRemaining > 0 && styles.linkMuted]}>
-              {cooldownRemaining > 0 ? t('cooldown', { seconds: cooldownRemaining }) : t('resend')}
-            </Text>
-          </Pressable>
+            fullWidth
+            style={styles.resend}
+            testID="create-account-resend"
+          />
+
+          <Button
+            label={t('verify')}
+            fullWidth
+            loading={busy}
+            onPress={verifySecondary}
+            style={styles.verifyCta}
+            testID="create-account-verify"
+          />
 
           <Button
             label={t('skipForNow')}
-            variant="ghost"
+            variant="secondary"
+            fullWidth
             disabled={busy}
             onPress={skip}
+            style={styles.another}
+            testID="create-account-skip"
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </Screen>
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={[
-          styles.inner,
-          { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.title}>{t('createAccountTitle')}</Text>
-
-        {isSocial ? (
-          <>
-            <Text style={styles.label}>{t('secondaryEmailLabel')}</Text>
-            <TextInput
-              style={[styles.input, styles.inputDisabled]}
-              value={socialEmail}
-              editable={false}
-            />
-          </>
-        ) : null}
-
-        <Text style={styles.label}>{t('fullNameLabel')}</Text>
-        <TextInput
-          style={[styles.input, isSocial && styles.inputDisabled]}
-          value={fullName}
-          onChangeText={setFullName}
-          placeholder={t('fullNamePlaceholder')}
-          autoCapitalize="words"
-          editable={!busy && !isSocial}
-        />
-
-        <Text style={styles.label}>
-          {secondaryKind === 'phone' ? t('secondaryPhoneLabel') : t('secondaryEmailLabel')}
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={secondary}
-          onChangeText={setSecondary}
-          placeholder={
-            secondaryKind === 'phone'
-              ? t('secondaryPhonePlaceholder')
-              : t('secondaryEmailPlaceholder')
-          }
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType={secondaryKind === 'phone' ? 'phone-pad' : 'email-address'}
-          inputMode={secondaryKind === 'phone' ? 'tel' : 'email'}
-          editable={!busy}
-        />
-
-        <PasswordField
-          label={t('passwordLabel')}
-          value={password}
-          onChangeText={setPassword}
-          showRules
-          editable={!busy}
-          containerStyle={styles.passwordField}
-          testID="password-input"
-        />
-
-        <Pressable style={styles.termsRow} onPress={() => setAgreed((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }}>
-          <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
-            {agreed ? <Text style={styles.checkboxMark}>✓</Text> : null}
-          </View>
-          <Text style={styles.termsText}>
-            {t('termsAgreePrefix')}
-            <Text style={styles.termsLink} onPress={() => void Linking.openURL(TERMS_URL)}>{t('termsLink')}</Text>
-            {t('termsAnd')}
-            <Text style={styles.termsLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>{t('privacyLink')}</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Back ABANDONS the sign-up. The identifier is verified and an auth user
+          exists, but there is no profile yet, so leaving the session live would
+          have Boot route straight back here on the next launch with no way out.
+          A local sign-out (not global — other devices are not this screen's
+          business) returns the user to sign-in, from where the same identifier
+          walks back in. Explicit target, never useGoBack(): its '/' fallback
+          strands a signed-out user on the splash. */}
+      <TopBar
+        variant="nav"
+        onBack={() => {
+          void supabase.auth.signOut({ scope: 'local' }).finally(() => {
+            router.replace('/(auth)/sign-in');
+          });
+        }}
+      />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Screen scroll style={styles.body}>
+          <Text variant="title">{t('createAccountTitle')}</Text>
+          <Text variant="body" tone="muted" style={styles.help}>
+            {t('createAccountHelp', {
+              identifier:
+                primaryKind === 'phone' ? formatE164ForDisplay(primaryIdentifier) : primaryIdentifier,
+            })}
           </Text>
-        </Pressable>
 
-        <Button
-          label={t('createAccount')}
-          fullWidth
-          loading={busy}
-          onPress={submit}
-        />
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <Field
+            label={t('fullNameLabel')}
+            value={fullName}
+            onChangeText={(v) => { setTypedName(v); clear('fullName'); }}
+            onBlur={blurName}
+            error={errors.fullName ?? null}
+            placeholder={t('fullNamePlaceholder')}
+            autoCapitalize="words"
+            autoComplete="name"
+            editable={!busy}
+            testID="create-account-name"
+          />
+
+          {secondaryKind === 'phone' ? (
+            <PhoneField
+              label={t('secondaryPhoneLabel')}
+              value={secondary}
+              onChangeValue={(e164, meta) => {
+                setSecondary(e164);
+                setPhoneDigits(meta.national);
+                clear('secondary');
+              }}
+              onBlur={blurSecondary}
+              error={errors.secondary ?? null}
+              editable={!busy}
+              containerStyle={styles.field}
+              testID="create-account-phone"
+            />
+          ) : (
+            <Field
+              label={t('secondaryEmailLabel')}
+              value={secondary}
+              onChangeText={(v) => { setSecondary(v); clear('secondary'); }}
+              onBlur={blurSecondary}
+              error={errors.secondary ?? null}
+              placeholder={t('secondaryEmailPlaceholder')}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              inputMode="email"
+              autoComplete="email"
+              editable={!busy}
+              containerStyle={styles.field}
+              testID="create-account-email"
+            />
+          )}
+
+          <PasswordField
+            label={t('passwordLabel')}
+            value={password}
+            onChangeText={(v) => { setPassword(v); clear('password'); }}
+            onBlur={blurPassword}
+            error={errors.password ?? null}
+            showRules
+            editable={!busy}
+            containerStyle={styles.field}
+            testID="password-input"
+          />
+
+          <Checkbox
+            checked={agreed}
+            onChange={setAgreed}
+            // `children`, because the label is a sentence with two tappable
+            // links in it. The URLs come from TermsLine so they are declared
+            // exactly once (the wording differs there, hence the duplicate
+            // sentence but not the duplicate constants).
+            accessibilityLabel={`${t('termsAgreePrefix')}${t('termsLink')}${t('termsAnd')}${t('privacyLink')}`}
+            style={styles.terms}
+            testID="create-account-terms"
+          >
+            <Text variant="caption" tone="muted" style={styles.termsText}>
+              {t('termsAgreePrefix')}
+              <Text variant="caption" tone="primary" onPress={() => void Linking.openURL(TERMS_URL)}>
+                {t('termsLink')}
+              </Text>
+              {t('termsAnd')}
+              <Text variant="caption" tone="primary" onPress={() => void Linking.openURL(PRIVACY_URL)}>
+                {t('privacyLink')}
+              </Text>
+            </Text>
+          </Checkbox>
+
+          <Button
+            label={t('createAccount')}
+            fullWidth
+            loading={busy}
+            disabled={!canSubmit}
+            onPress={submit}
+            style={styles.cta}
+            testID="create-account-submit"
+          />
+        </Screen>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.card },
-  inner: { paddingHorizontal: 24 },
-  title: { fontSize: 26, fontWeight: '700', marginBottom: 32 },
-  help: { fontSize: 14, color: colors.mutedForeground, marginBottom: 32, marginTop: -20 },
-  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  codeInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 24,
-    letterSpacing: 8,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  inputDisabled: { backgroundColor: colors.muted, color: colors.mutedForeground },
-  passwordField: { marginBottom: 16 },
-  button: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
-  linkButton: { paddingVertical: 14, alignItems: 'center' },
-  link: { color: colors.foreground, fontSize: 15, fontWeight: '600' },
-  linkMuted: { color: colors.mutedForeground },
-  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 16, marginBottom: 4 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.ring, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  checkboxMark: { color: colors.card, fontSize: 14, fontWeight: '800' },
-  termsText: { flex: 1, fontSize: 13, color: colors.mutedForeground, lineHeight: 18 },
-  termsLink: { color: colors.primary, fontWeight: '700' },
+  safe: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
+  body: { paddingTop: space[6], paddingBottom: space[6] },
+  help: { marginTop: space[2], marginBottom: space[6] },
+  field: { marginTop: space[4] },
+  terms: { marginTop: space[5] },
+  termsText: { flex: 1 },
+  resend: { marginTop: space[1] },
+  verifyCta: { marginTop: space[3] },
+  cta: { marginTop: space[5] },
+  another: { marginTop: space[3] },
 });
