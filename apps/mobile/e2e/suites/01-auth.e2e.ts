@@ -156,8 +156,13 @@ describe('01 auth', () => {
     await tap({ label: 'Continue', type: 'Button' });
     await expectVisible({ text: /confirm if it/i }, { timeout: 20_000 });
     await tap({ text: /try another way/i });
+    // Wait for the sheet to finish presenting before tapping a row. Tapping into
+    // a sheet that is still animating up lands on whatever occupies those
+    // coordinates mid-flight — here that was the row below, "Use a different
+    // email or phone", which replaces to sign-in and stranded the whole test.
+    await expectVisible({ text: /sign in with password/i }, { timeout: 10_000 });
     await tap({ text: /sign in with password/i });
-    await expectVisible({ text: /enter your password/i });
+    await expectVisible({ text: /enter your password/i }, { timeout: 15_000 });
     // The recovery screen sends its own code on mount — start the clock here so
     // Mailpit cannot hand back the sign-in code from a moment ago.
     const sentAt = Date.now();
