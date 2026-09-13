@@ -4,6 +4,7 @@ import { useT } from '@padel/i18n';
 import type { TFunction } from 'i18next';
 import { ActivityIndicator, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
+import { planSectionView } from '../../lib/planSection';
 import { colors, space } from '../../theme';
 import { Badge, Button, Card, Text, useBanner, useConfirm } from '../ui';
 
@@ -19,7 +20,6 @@ type Props = {
   onLayout?: (event: LayoutChangeEvent) => void;
 };
 
-const STARTER = PLAN_MATRIX.find((p) => p.id === 'starter') as PlanDef;
 const COMMUNITY_PRO = PLAN_MATRIX.find((p) => p.id === 'community_pro') as PlanDef;
 
 const LIMIT_ORDER: readonly LimitKey[] = ['members_per_community', 'groups_per_community', 'recurring_events', 'co_organizers'];
@@ -31,8 +31,9 @@ const LIMIT_LABEL_KEYS: Record<LimitKey, string> = {
 };
 
 /**
- * Manage Community's Plan section (UX-GLOB-10): Starter and Community Pro side by side, limits
- * read from the `packages/features` registry, the current one marked with a `Badge`. The owner
+ * Manage Community's Plan section (UX-GLOB-10): the current plan and Community Pro side by side,
+ * limits read from the `packages/features` registry, the current one marked with a `Badge`. A
+ * community on Basic (or Club) sees that plan and its limits on the left, not Starter. The owner
  * action upgrades or downgrades on request — no transaction, reversible, refused with
  * `plan_downgrade_over_limit` while the community exceeds Starter's limits.
  */
@@ -43,7 +44,7 @@ export function PlanSection({ communityId, canAct, onLayout }: Props) {
   const plan = useCommunityPlan(communityId);
   const setPlan = useSetCommunityPlan();
 
-  const isPro = plan.data === 'community_pro';
+  const view = planSectionView(plan.data);
   const busy = setPlan.isPending;
 
   const onError = (e: unknown) => {
@@ -94,11 +95,11 @@ export function PlanSection({ communityId, canAct, onLayout }: Props) {
     <View style={styles.section} onLayout={onLayout}>
       <Text style={styles.sectionTitle}>{t('planSectionTitle')}</Text>
       <View style={styles.cardsRow}>
-        <PlanCard title={t('planStarter')} current={!isPro} def={STARTER} t={t} />
-        <PlanCard title={t('planCommunityPro')} current={isPro} def={COMMUNITY_PRO} t={t} />
+        <PlanCard title={t(view.leftTitleKey)} current={view.leftCurrent} def={view.left} t={t} />
+        <PlanCard title={t('planCommunityPro')} current={view.proCurrent} def={COMMUNITY_PRO} t={t} />
       </View>
-      {canAct ? (
-        isPro ? (
+      {view.action === null ? null : canAct ? (
+        view.action === 'downgrade' ? (
           <Button
             label={t('returnToStarter')}
             variant="outline"

@@ -495,7 +495,9 @@ const mobileCommunity = {
     // --- UX-GLOB-10 Task 5: Manage Community plan section ---
     planSectionTitle: 'Plano',
     planStarter: 'Starter',
+    planBasic: 'Basic',
     planCommunityPro: 'Community Pro',
+    planClub: 'Club',
     planCurrent: 'Atual',
     upgradeToPro: 'Atualizar para Community Pro',
     returnToStarter: 'Voltar ao Starter',
@@ -740,7 +742,9 @@ const mobileCommunity = {
     // --- UX-GLOB-10 Task 5: Manage Community plan section ---
     planSectionTitle: 'Plano',
     planStarter: 'Starter',
+    planBasic: 'Basic',
     planCommunityPro: 'Community Pro',
+    planClub: 'Club',
     planCurrent: 'Atual',
     upgradeToPro: 'Fazer upgrade para Community Pro',
     returnToStarter: 'Voltar para o Starter',
@@ -984,7 +988,9 @@ const mobileCommunity = {
     // --- UX-GLOB-10 Task 5: Manage Community plan section ---
     planSectionTitle: 'Plan',
     planStarter: 'Starter',
+    planBasic: 'Basic',
     planCommunityPro: 'Community Pro',
+    planClub: 'Club',
     planCurrent: 'Current',
     upgradeToPro: 'Upgrade to Community Pro',
     returnToStarter: 'Return to Starter',
