@@ -1,34 +1,48 @@
+/**
+ * Welcome — three slides and one call to action (UX-AUTH-01).
+ *
+ * WHY THE COPY BLOCK HAS A FIXED HEIGHT. The audit's complaint is that the
+ * artwork jumps between slides: "Meet your community" wraps to two lines in
+ * pt-PT while "Play more" does not, and a text block that sizes itself pushes
+ * the image up or down by a whole line as you swipe. Reserving two lines of
+ * title and two of body — taken from the type scale, not measured by eye — puts
+ * the illustration at the same place on every slide, in every locale.
+ *
+ * The art block is a fixed height for the same reason, and because a `flex: 1`
+ * would not do what it looks like it does here: the pager is a horizontal
+ * ScrollView, which sizes itself to its CONTENT, so there is no free space for a
+ * flexing child to claim. The whole block is centred in what is left above the
+ * button instead, which is what makes it adapt to the device.
+ *
+ * No TopBar: this is the first screen after the splash and there is nothing to
+ * go back to. No consent line either — it moved to sign-in, where the sign-in
+ * methods it refers to actually are (UX-AUTH-02).
+ */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Dimensions, Linking, type NativeScrollEvent, type NativeSyntheticEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, palette } from '../../theme';
-import { Button } from '../../components/ui';
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+import { colors, space, type } from '../../theme';
+import { Button, Carousel, Illustration, Screen, Text, type IllustrationName } from '../../components/ui';
+
+type Slide = { art: IllustrationName; title: string; body: string };
+
+/** Two lines of title, the gap under it, two lines of body. */
+const COPY_HEIGHT = type.title.lineHeight * 2 + space[2] + type.body.lineHeight * 2;
+/** Inside `Illustration`'s hero range (180–320), so the art fills it exactly. */
+const ART_HEIGHT = 240;
 
 export default function WelcomeScreen() {
   const { t } = useT('auth');
-  const [disclosureBefore, disclosureRest] = t('socialTermsDisclosure').split('{{termsLink}}');
-  const [disclosureMiddle, disclosureAfter] = (disclosureRest ?? '').split('{{privacyLink}}');
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const [page, setPage] = useState(0);
 
-  const cards = [
-    { title: t('welcomeTitle1'), body: t('welcomeBody1') },
-    { title: t('welcomeTitle2'), body: t('welcomeBody2') },
-    { title: t('welcomeTitle3'), body: t('welcomeBody3') },
+  const slides: Slide[] = [
+    { art: 'welcomeFind', title: t('welcomeTitle1'), body: t('welcomeBody1') },
+    { art: 'welcomeCommunity', title: t('welcomeTitle2'), body: t('welcomeBody2') },
+    { art: 'welcomePlay', title: t('welcomeTitle3'), body: t('welcomeBody3') },
   ];
-
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setPage(Math.round(e.nativeEvent.contentOffset.x / width));
-  };
-
-  const TERMS_URL = 'https://padeljam.app/terms';
-  const PRIVACY_URL = 'https://padeljam.app/privacy';
 
   const start = async () => {
     await AsyncStorage.setItem('hasSeenWelcome', 'true');
@@ -36,60 +50,42 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-      >
-        {cards.map((card) => (
-          <View key={card.title} style={[styles.card, { width }]}>
-            <Text style={styles.title}>{card.title}</Text>
-            <Text style={styles.body}>{card.body}</Text>
-          </View>
-        ))}
-      </ScrollView>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <Screen style={styles.body}>
+        <Carousel
+          data={slides}
+          testID="welcome-carousel"
+          renderItem={(slide) => (
+            <View style={styles.slide}>
+              {/* Decorative: the title under it already says what it shows. */}
+              <Illustration name={slide.art} style={styles.art} />
+              <View style={styles.copy}>
+                <Text variant="title" numberOfLines={2} style={styles.title}>
+                  {slide.title}
+                </Text>
+                <Text variant="body" tone="muted" numberOfLines={2} style={styles.text}>
+                  {slide.body}
+                </Text>
+              </View>
+            </View>
+          )}
+        />
+      </Screen>
 
-      <View style={styles.dots}>
-        {cards.map((card, i) => (
-          <View key={card.title} style={[styles.dot, i === page && styles.dotActive]} />
-        ))}
+      <View style={styles.footer}>
+        <Button label={t('startNow')} fullWidth onPress={start} testID="welcome-start" />
       </View>
-
-      <Button label={t('startNow')} fullWidth onPress={start} />
-      <Text style={styles.disclosure}>
-        {disclosureBefore}
-        <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(TERMS_URL)}>
-          {t('termsLink')}
-        </Text>
-        {disclosureMiddle}
-        <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
-          {t('privacyLink')}
-        </Text>
-        {disclosureAfter}
-      </Text>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.card },
-  card: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  title: { fontSize: 28, fontWeight: '700', textAlign: 'center', marginBottom: 16 },
-  body: { fontSize: 16, color: colors.mutedForeground, textAlign: 'center', lineHeight: 22 },
-  dots: { flexDirection: 'row', justifyContent: 'center', marginVertical: 24 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.muted, marginHorizontal: 4 },
-  dotActive: { backgroundColor: colors.primary },
-  button: {
-    marginHorizontal: 24,
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
-  disclosure: { fontSize: 11, color: palette.slate[400], textAlign: 'center', marginTop: 12, marginHorizontal: 24, lineHeight: 16 },
-  disclosureLink: { color: colors.primary, fontWeight: '600' },
+  safe: { flex: 1, backgroundColor: colors.background },
+  body: { justifyContent: 'center' },
+  slide: { alignItems: 'stretch' },
+  art: { height: ART_HEIGHT },
+  copy: { height: COPY_HEIGHT, marginTop: space[6] },
+  title: { textAlign: 'center', marginBottom: space[2] },
+  text: { textAlign: 'center' },
+  footer: { paddingHorizontal: space[5], paddingTop: space[4] },
 });

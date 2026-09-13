@@ -1,47 +1,110 @@
+/**
+ * Login or Sign Up (UX-AUTH-02).
+ *
+ * PHONE IS THE DEFAULT, AND THE MODE DECIDES THE CHANNEL. The screen used to
+ * show one box and guess: `detectKind` called anything that failed `isE164` an
+ * email, so a number typed the way people actually type one — `912345678`, no
+ * '+' — was sent to the EMAIL OTP endpoint and came back as an opaque failure.
+ * That is the audit's "the phone flow does not work end to end". There is no
+ * guessing left here: `mode` is what the user is looking at, and it is what is
+ * passed to `startPhoneOtp` / `startEmailOtp` and stored on the auth flow.
+ *
+ * The third outline button is a MODE TOGGLE, not a sign-in method. It sits with
+ * Google and Apple because that is where someone looks for "some other way in",
+ * but all it does is swap the input.
+ *
+ * The Apple button stays the NATIVE `AppleAuthenticationButton` with
+ * `buttonType: CONTINUE` — it renders "Continue with Apple" itself. A custom
+ * pressable with our own label would match the other buttons and be an App
+ * Store rejection (Human Interface Guidelines, Sign in with Apple).
+ */
 import { startEmailOtp, startPhoneOtp } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TermsLine } from '@/components/auth/TermsLine';
 import { runAppleSignIn } from '@/lib/appleSignIn';
 import { safeAuthMessage } from '@/lib/authErrors';
-import { detectKind, setAuthTarget } from '@/lib/auth-flow';
+import { setAuthMethods, setAuthTarget, type IdentifierKind } from '@/lib/auth-flow';
+import { lookupAuthMethods } from '@/lib/authMethodsLookup';
 import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { supabase } from '@/lib/supabase';
-import { colors, palette } from '../../theme';
-import { Button, useBanner } from '../../components/ui';
+import { useFieldErrors } from '@/lib/useFieldErrors';
+import { colors, radius, space } from '../../theme';
+import { Button, Field, PhoneField, Screen, Text, TopBar, useBanner } from '../../components/ui';
+
+/**
+ * Shape only, deliberately. Anything stricter rejects addresses that exist
+ * (plus-tags, new TLDs, quoted locals) and the server is the real authority —
+ * this is here to catch a typo before we spend a rate-limit slot on it.
+ */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignInScreen() {
-  const TERMS_URL = 'https://padeljam.app/terms';
-  const PRIVACY_URL = 'https://padeljam.app/privacy';
   const { t } = useT('auth');
   const { t: tc } = useT('common');
   const banner = useBanner();
-  const [disclosureBefore, disclosureRest] = t('socialTermsDisclosure').split('{{termsLink}}');
-  const [disclosureMiddle, disclosureAfter] = (disclosureRest ?? '').split('{{privacyLink}}');
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
-  const [identifier, setIdentifier] = useState('');
+  const [mode, setMode] = useState<IdentifierKind>('phone');
+  const [email, setEmail] = useState('');
+  /** E.164, or '' while the number is incomplete — `PhoneField`'s contract. */
+  const [phone, setPhone] = useState('');
+  const [phoneValid, setPhoneValid] = useState(false);
   const [busy, setBusy] = useState(false);
+  const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } =
+    useFieldErrors<'identifier'>();
+
   const [appleAvailable, setAppleAvailable] = useState(false);
   useEffect(() => {
     if (Platform.OS === 'ios') AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
   }, []);
 
+  /**
+   * Swap the input. Clearing the value is the point: a phone number left in
+   * state while the email box is showing is a number the user can no longer see
+   * or correct, and Continue would send a code to it.
+   */
+  const toggleMode = () => {
+    setMode((m) => (m === 'phone' ? 'email' : 'phone'));
+    setEmail('');
+    setPhone('');
+    setPhoneValid(false);
+    clearFieldError('identifier');
+  };
+
   const onContinue = async () => {
     if (busy) return;
-    const value = identifier.trim();
-    if (!value) { banner.show(tc('missingInformation')); return; }
-    const kind = detectKind(value);
+    const value = mode === 'phone' ? phone : email.trim();
+    const invalid = mode === 'phone' ? !phoneValid || !value : !EMAIL_SHAPE.test(value);
+    if (invalid) {
+      // UX-GLOB-06: redden the field AND banner it. The field says which input
+      // is wrong; the banner says it out loud, including to a screen reader.
+      const message = mode === 'phone' ? t('invalid_phone') : tc('missingInformation');
+      setFieldErrors({ identifier: message });
+      banner.show(message);
+      return;
+    }
+    setFieldErrors({});
+
     setBusy(true);
     try {
+      /**
+       * Fired BEFORE the await, so it runs alongside the send rather than after
+       * it, and the OTP screen's "Try another way" sheet has its answer by the
+       * time anyone can open it (UX-AUTH-04). `.catch` here, not `try`: a lookup
+       * that fails must never fail or delay a sign-in — it becomes `null`, which
+       * is the same thing an unknown identifier produces.
+       */
+      const methods = lookupAuthMethods(value).catch(() => null);
+
       const { error: otpError } =
-        kind === 'phone'
+        mode === 'phone'
           ? await startPhoneOtp(supabase, value)
           : await startEmailOtp(supabase, value);
       if (otpError) {
@@ -49,7 +112,11 @@ export default function SignInScreen() {
         banner.show(t(key, { ns }));
         return;
       }
-      setAuthTarget(value, kind);
+
+      setAuthTarget(value, mode, mode);
+      // Not awaited: whenever it lands, it lands. `setAuthMethods` drops the
+      // result if the target has moved on by then.
+      void methods.then((m) => setAuthMethods(value, m));
       router.push('/(auth)/otp');
     } finally {
       setBusy(false);
@@ -87,104 +154,119 @@ export default function SignInScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={[styles.inner, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
-        <Text style={styles.title}>{t('title')}</Text>
-        <Text style={styles.label}>{t('identifierLabel')}</Text>
-        <TextInput
-          style={styles.input}
-          value={identifier}
-          onChangeText={setIdentifier}
-          placeholder={t('identifierPlaceholder')}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          inputMode="email"
-          autoComplete="email"
-          editable={!busy}
-        />
-        <Button
-          label={t('continue')}
-          fullWidth
-          loading={busy}
-          onPress={onContinue}
-        />
-        <View style={styles.dividerRow}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>{t('orDivider')}</Text>
-          <View style={styles.divider} />
-        </View>
-        <Button
-          label={t('continueWithGoogle')}
-          variant="outline"
-          fullWidth
-          loading={busy}
-          onPress={onGoogle}
-        />
-        {Platform.OS === 'ios' && appleAvailable ? (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={12}
-            style={styles.appleButton}
-            onPress={onApple}
-          />
-        ) : (
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      {/* Back only when there IS a back: reached from welcome there is nothing
+          behind this screen, and useGoBack() is not an option in (auth) —
+          its '/' fallback drops a signed-out user on the splash. */}
+      <TopBar variant="nav" onBack={router.canGoBack() ? () => router.back() : undefined} />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Screen scroll style={styles.body}>
+          {/* The title stays in the BODY, not in the TopBar: it is the screen's
+              heading, and the audit asks for it at this size. */}
+          <Text variant="title" style={styles.title}>
+            {t('title')}
+          </Text>
+
+          {mode === 'phone' ? (
+            <PhoneField
+              label={t('phoneLabel')}
+              value={phone}
+              onChangeValue={(e164, meta) => {
+                setPhone(e164);
+                setPhoneValid(meta.valid);
+                clearFieldError('identifier');
+              }}
+              error={fieldErrors.identifier}
+              editable={!busy}
+              testID="sign-in-phone"
+            />
+          ) : (
+            <Field
+              label={t('emailLabel')}
+              value={email}
+              onChangeText={(v) => { setEmail(v); clearFieldError('identifier'); }}
+              error={fieldErrors.identifier}
+              placeholder={t('emailPlaceholder')}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              inputMode="email"
+              autoComplete="email"
+              editable={!busy}
+              testID="sign-in-email"
+            />
+          )}
+
           <Button
-            label={t('continueWithApple')}
+            label={t('continue')}
+            fullWidth
+            loading={busy}
+            onPress={onContinue}
+            style={styles.cta}
+            testID="sign-in-continue"
+          />
+
+          <View style={styles.dividerRow}>
+            <View style={styles.divider} />
+            <Text variant="caption" tone="muted">{t('orDivider')}</Text>
+            <View style={styles.divider} />
+          </View>
+
+          <Button
+            label={t('continueWithGoogle')}
             variant="outline"
             fullWidth
             loading={busy}
-            onPress={onApple}
+            onPress={onGoogle}
+            testID="sign-in-google"
           />
-        )}
-        <Text style={styles.disclosure}>
-          {disclosureBefore}
-          <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(TERMS_URL)}>
-            {t('termsLink')}
-          </Text>
-          {disclosureMiddle}
-          <Text style={styles.disclosureLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
-            {t('privacyLink')}
-          </Text>
-          {disclosureAfter}
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+
+          {Platform.OS === 'ios' && appleAvailable ? (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={radius.md}
+              style={styles.appleButton}
+              onPress={onApple}
+            />
+          ) : (
+            <Button
+              label={t('continueWithApple')}
+              variant="outline"
+              fullWidth
+              loading={busy}
+              onPress={onApple}
+              style={styles.method}
+            />
+          )}
+
+          <Button
+            label={mode === 'phone' ? t('continueWithEmail') : t('continueWithPhone')}
+            variant="outline"
+            fullWidth
+            disabled={busy}
+            onPress={toggleMode}
+            style={styles.method}
+            testID="sign-in-toggle-mode"
+          />
+
+          <TermsLine style={styles.terms} />
+        </Screen>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.card },
-  inner: { flex: 1, paddingHorizontal: 24, justifyContent: 'flex-start' },
-  title: { fontSize: 26, fontWeight: '700', marginBottom: 32 },
-  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 },
-  divider: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.muted },
-  dividerText: { fontSize: 13, color: palette.slate[400] },
-  googleButton: { borderWidth: 1, borderColor: colors.border, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  googleButtonText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
-  appleButton: { height: 48, marginTop: 12 },
-  disclosure: { fontSize: 11, color: palette.slate[400], textAlign: 'center', marginTop: 16, lineHeight: 16 },
-  disclosureLink: { color: colors.primary, fontWeight: '600' },
+  safe: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
+  body: { paddingTop: space[6], paddingBottom: space[6] },
+  title: { marginBottom: space[6] },
+  cta: { marginTop: space[5] },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], marginVertical: space[5] },
+  divider: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  method: { marginTop: space[3] },
+  // Matched to `Button`'s md size so the native button lines up with ours.
+  appleButton: { height: 44, marginTop: space[3] },
+  terms: { marginTop: space[6] },
 });
