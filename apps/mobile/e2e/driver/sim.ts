@@ -36,6 +36,22 @@ export const uninstall = () => simctl(['uninstall', CONFIG.udid, CONFIG.bundleId
  */
 export const keychainReset = () => simctl(['keychain', CONFIG.udid, 'reset'], 60_000);
 
+/** Device is up: `simctl shutdown` succeeded or the device was already shut down. */
+export async function shutdown(): Promise<void> {
+  const r = await run('xcrun', ['simctl', 'shutdown', CONFIG.udid], { timeoutMs: 120_000 });
+  if (r.code !== 0 && !/current state: Shutdown/.test(r.stderr)) {
+    throw new Error(`simctl shutdown failed: ${r.stderr}`);
+  }
+}
+
+/**
+ * SpringBoard kept answering "Unknown application display identifier" for the
+ * bundle after the brief retry window, although `get_app_container` says it is
+ * installed. Callers that own the .app path can recover by reinstalling or
+ * rebooting the device (see `relaunch` in app.ts).
+ */
+export class AppNotRegisteredError extends Error {}
+
 export async function launch(opts: { args?: string[]; env?: Record<string, string> } = {}): Promise<void> {
   const envArgs: string[] = [];
   // simctl launch passes env vars prefixed with SIMCTL_CHILD_.
@@ -49,11 +65,13 @@ export async function launch(opts: { args?: string[]; env?: Record<string, strin
       const r = await run('xcrun', ['simctl', 'launch', CONFIG.udid, CONFIG.bundleId, ...(opts.args ?? [])], { timeoutMs: 120_000 });
       if (r.code === 0) break;
       const out = `${r.stderr}${r.stdout}`;
-      if (attempt < 10 && /Unknown application display identifier|NotFound/.test(out)) {
+      const notRegistered = /Unknown application display identifier|NotFound/.test(out);
+      if (attempt < 10 && notRegistered) {
         await new Promise((res) => setTimeout(res, 3_000));
         continue;
       }
-      throw new Error(`xcrun simctl launch ${CONFIG.udid} ${CONFIG.bundleId} ${(opts.args ?? []).join(' ')} failed (${r.code}):\n${out}`);
+      const message = `xcrun simctl launch ${CONFIG.udid} ${CONFIG.bundleId} ${(opts.args ?? []).join(' ')} failed (${r.code}):\n${out}`;
+      throw notRegistered ? new AppNotRegisteredError(message) : new Error(message);
     }
   } finally {
     for (const k of Object.keys(env)) delete process.env[k];
