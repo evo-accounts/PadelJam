@@ -3,10 +3,10 @@ import { query, snapshot } from '../driver/a11y';
 import { tap, typeText, clearText } from '../driver/actions';
 import { expectVisible, expectGone } from '../driver/expect';
 import { freshInstall, relaunch } from '../driver/app';
-import { dismissSavePasswordSheetIfPresent, loginAs, passWelcomeIfPresent } from '../driver/flows';
+import { dismissSavePasswordSheetIfPresent, loginAs, passWelcomeIfPresent, switchToEmailMode } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
 import { latestOtp } from '../fixtures/mailpit';
-import { PASSWORD, PERSONAS, TEST_PHONE, TEST_PHONE_OTP } from '../fixtures/personas';
+import { PASSWORD, PERSONAS, TEST_PHONE_NATIONAL, TEST_PHONE_OTP } from '../fixtures/personas';
 
 describe('01 auth', () => {
   beforeAll(async () => {
@@ -20,22 +20,53 @@ describe('01 auth', () => {
     await expectGone({ text: 'welcomeTitle1' }, { timeout: 1_000 }).catch(() => {
       throw new Error('Welcome screen is rendering raw i18n keys (welcomeTitle1)');
     });
+    // UX-AUTH-01: consent moved OFF this screen and onto sign-in, where the
+    // sign-in methods it refers to actually are.
+    await expectGone({ text: /by continuing, you agree/i }, { timeout: 1_000 });
     await tap({ text: /start now/i });
     await expectVisible({ label: 'Login or Sign Up' });
+    await expectVisible({ text: /by continuing, you agree/i });
   });
 
-  it('rejects a non-E.164 phone identifier', async () => {
-    await typeText({ type: 'TextField' }, '912345678');
+  /**
+   * Was "rejects a non-E.164 phone identifier", typing `912345678` and expecting
+   * a failure. With the country selector that number is a perfectly VALID
+   * Portuguese mobile — it is what the happy path below now types — so the old
+   * test asserted the opposite of the intended behaviour. What is still worth
+   * pinning is that an IMPOSSIBLE number is caught client-side, before a
+   * rate-limit slot is spent, and that it is reported in both places UX-GLOB-06
+   * requires.
+   */
+  it('rejects a phone number that cannot be valid', async () => {
+    await typeText({ type: 'TextField' }, '12');
     await tap({ label: 'Continue', type: 'Button' });
-    // Auth screens show only the generic banner for anything that isn't a known,
-    // safe-to-name code/network/rate-limit problem (UX-GLOB-06) — never the raw
-    // server message.
-    await expectVisible({ text: /something isn't right/i }, { timeout: 3_000 });
-    await clearText({ type: 'TextField' }, 12);
+    await expectVisible({ text: /enter a valid phone number/i }, { timeout: 3_000 });
+    // The banner auto-dismisses after 4s; the FIELD's own error message must
+    // not. Re-asserting after that window is what distinguishes the two, since
+    // both carry the identical string on purpose.
+    await new Promise((r) => setTimeout(r, 5_000));
+    await expectVisible({ text: /enter a valid phone number/i }, { timeout: 3_000 });
+    await clearText({ type: 'TextField' }, 4);
   });
 
   it('phone OTP happy path with the test number', async () => {
-    await typeText({ type: 'TextField' }, TEST_PHONE);
+    /**
+     * Pick Portugal first. `PhoneField` starts on the DEVICE region, and the
+     * simulator is launched with `-AppleLocale en_US` (driver/app.ts), so it
+     * opens on 🇺🇸 +1 — where a nine-digit number is not valid. Searching by DIAL
+     * CODE rather than by name on purpose: country names come from
+     * `Intl.DisplayNames`, which Hermes is not guaranteed to ship, and the row is
+     * then tapped by its ISO testID rather than by the label it rendered.
+     */
+    await tap({ id: 'sign-in-phone-country' });
+    await expectVisible({ text: /search countries/i }, { timeout: 10_000 });
+    await typeText({ id: 'sign-in-phone-country-search' }, '351');
+    await tap({ id: 'sign-in-phone-country-PT' });
+    await expectGone({ text: /search countries/i }, { timeout: 10_000 });
+
+    // National digits, not '+351…': the selector now holds the country and
+    // PhoneField assembles the E.164 itself.
+    await typeText({ type: 'TextField' }, TEST_PHONE_NATIONAL);
     await tap({ label: 'Continue', type: 'Button' });
     await expectVisible({ text: /confirm if it/i });
     await typeText({ type: 'TextField' }, TEST_PHONE_OTP);
@@ -89,6 +120,7 @@ describe('01 auth', () => {
   it('wrong OTP shows an error and resend shows a cooldown', async () => {
     await freshInstall();
     await passWelcomeIfPresent();
+    await switchToEmailMode();
     const sentAt = Date.now();
     await typeText({ type: 'TextField' }, PERSONAS.maria.email);
     await tap({ label: 'Continue', type: 'Button' });
@@ -125,7 +157,29 @@ describe('01 auth', () => {
     await freshInstall();
     await passWelcomeIfPresent();
     await expectVisible({ text: /continue with google/i });
-    await expectVisible({ text: /sign in with apple/i });
+    // The native Apple button is now AppleAuthenticationButtonType.CONTINUE, so
+    // it renders "Continue with Apple" — it used to be SIGN_IN.
+    await expectVisible({ text: /continue with apple/i });
+    // The third outline button is the phone/email toggle, not a provider.
+    await expectVisible({ text: /continue with email/i });
+  });
+
+  /**
+   * UX-AUTH-02: the third button swaps the INPUT and relabels itself. It is the
+   * only way to reach email sign-in now that phone is the default, so every
+   * email-based suite depends on it (driver/flows.ts `switchToEmailMode`).
+   */
+  it('the third button toggles between phone and email input', async () => {
+    await expectVisible({ text: /continue with email/i });
+    await tap({ text: /continue with email/i });
+    await expectVisible({ text: /name@example\.com/i, type: 'TextField' }, { timeout: 10_000 });
+    await expectVisible({ text: /continue with phone/i });
+    await expectGone({ text: /continue with email/i }, { timeout: 3_000 });
+
+    // And back: the email box goes away and the toggle reads "Continue with email" again.
+    await tap({ text: /continue with phone/i });
+    await expectGone({ text: /name@example\.com/i, type: 'TextField' }, { timeout: 10_000 });
+    await expectVisible({ text: /continue with email/i });
   });
 
   /**
@@ -150,6 +204,7 @@ describe('01 auth', () => {
 
     await freshInstall();
     await passWelcomeIfPresent();
+    await switchToEmailMode();
 
     // sign-in -> OTP -> "Try another way" -> password -> "Forgot password?"
     await typeText({ type: 'TextField' }, persona.email);
