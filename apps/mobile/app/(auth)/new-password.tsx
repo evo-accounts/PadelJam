@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { clearAuthTarget, getAuthTarget } from '@/lib/auth-flow';
+import { getAuthTarget } from '@/lib/auth-flow';
 import { passwordValid } from '@/lib/passwordRules';
 import { supabase } from '@/lib/supabase';
 import { useFieldErrors } from '@/lib/useFieldErrors';
@@ -88,10 +88,12 @@ export default function NewPasswordScreen() {
        * Please do not "simplify" this into the next screen.
        */
       await supabase.auth.signOut({ scope: 'local' });
-      // The identifier only existed to carry the recovery across screens; the
-      // confirmation reads nothing, and a stale one would leak into a later flow.
-      clearAuthTarget();
 
+      // NOT clearAuthTarget() here. The guard above reads the identifier on
+      // every render, so clearing it while this screen is still mounted makes
+      // the guard fire and replace to sign-in — racing the navigation below and
+      // winning, so the confirmation never appears. The confirmation clears it
+      // on mount instead, once this screen is gone.
       router.replace('/(auth)/password-changed');
     } finally {
       setBusy(false);

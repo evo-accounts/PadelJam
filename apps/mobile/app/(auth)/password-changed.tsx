@@ -12,15 +12,24 @@
  */
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { clearAuthTarget } from '@/lib/auth-flow';
 import { colors, space } from '../../theme';
 import { Button, Illustration, Screen, Text, TopBar } from '../../components/ui';
 
 export default function PasswordChangedScreen() {
   const { t } = useT('auth');
   const router = useRouter();
+
+  /**
+   * Drop the recovery identifier here rather than on new-password.tsx: that
+   * screen's missing-identifier guard reads it on every render, so clearing it
+   * there bounced the user to sign-in before this screen could mount.
+   */
+  useEffect(() => { clearAuthTarget(); }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
