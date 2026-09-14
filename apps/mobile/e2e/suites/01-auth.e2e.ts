@@ -3,7 +3,14 @@ import { query, snapshot } from '../driver/a11y';
 import { tap, typeText, clearText } from '../driver/actions';
 import { expectVisible, expectGone } from '../driver/expect';
 import { freshInstall, relaunch } from '../driver/app';
-import { dismissSavePasswordSheetIfPresent, loginAs, passWelcomeIfPresent, switchToEmailMode } from '../driver/flows';
+import {
+  dismissSavePasswordSheetIfPresent,
+  dismissStrongPasswordSheetIfPresent,
+  loginAs,
+  passWelcomeIfPresent,
+  switchToEmailMode,
+  tapCheckbox,
+} from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
 import { latestOtp } from '../fixtures/mailpit';
 import { PASSWORD, PERSONAS, TEST_PHONE_NATIONAL, TEST_PHONE_OTP } from '../fixtures/personas';
@@ -84,11 +91,15 @@ describe('01 auth', () => {
    *     ABSENCE of that banner after a press is what distinguishes the two —
    *     `el.enabled` cannot, because this app reports `enabled: false` for
    *     controls that work perfectly well (see the note in driver/actions.tap).
-   *   - THE CHECKBOX HAS AN IDENTITY. It was tapped at `x + 14` from the label's
-   *     left edge, because the row's text is a sentence with two tappable links
-   *     in it and the hand-rolled square had no testID. It is the `Checkbox`
-   *     primitive now and is tapped by id, so the test stops depending on where
-   *     a 22pt box happens to sit.
+   *   - THE CHECKBOX IS TAPPED ON ITS SQUARE, and the tick is verified. It used
+   *     to be tapped at `x + 14` from the label's left edge, because the row's
+   *     text is a sentence with two tappable links in it and the hand-rolled
+   *     square had no testID. It is the `Checkbox` primitive now — but note that
+   *     its testID names the ROW, not the square, so `tap({id})` would aim at
+   *     the row's centre and hit the "Terms of Use" link. `tapCheckbox` still
+   *     depends on where the 22pt box sits; what changed is that it derives
+   *     that from the primitive's own layout and then asserts the box flipped,
+   *     instead of trusting an offset nothing checks.
    */
   it('create-account blocks submit until terms accepted, then completes', async () => {
     const secondaryEmail = 'e2e-new@padeljam.test';
@@ -103,20 +114,30 @@ describe('01 auth', () => {
 
     await typeText({ id: 'create-account-name' }, 'Test E2E User');
     await typeText({ id: 'create-account-email' }, secondaryEmail);
-    // By type, not by testID. A secure field selected by id resolves to a node
-    // whose AXValue is a single '•' regardless of length, so typeText's mask
-    // check (a run of bullets as long as the text) can never settle. Selected
-    // by type it reports the full mask. Every other password entry in this
-    // suite does the same.
-    await typeText({ type: 'TextField', nth: 2 }, PASSWORD);
+    // iOS raises its "Use Strong Password?" AutoFill sheet the first time this
+    // field is focused — this screen has the sign-up shape the heuristic looks
+    // for (an `autoComplete="email"` field directly above a secure one), which
+    // the recovery screen's two PasswordFields do not. The sheet takes the
+    // keyboard, so exactly ONE character lands and the field sits at a single
+    // '•' until typeText gives up. Decline it first; iOS does not re-offer.
+    //
+    // This is what the earlier `{type:'TextField', nth:2}` selector was working
+    // around, and the note it carried ("a secure field selected by id reports a
+    // single '•' regardless of length") was a misreading of that symptom: with
+    // the sheet gone, the testID resolves to the field and reports the full
+    // nine-bullet mask.
+    await dismissStrongPasswordSheetIfPresent({ id: 'password-input' });
+    await typeText({ id: 'password-input' }, PASSWORD);
 
     // Every field filled, terms unticked → still inert, still silent.
     await tap({ label: 'Create account', type: 'Button' });
     await expectVisible({ text: /complete your account/i });
     await expectGone({ text: /missing information/i }, { timeout: 2_000 });
 
-    // By testID, not by a pixel offset from the label — see the docblock.
-    await tap({ id: 'create-account-terms' });
+    // By the SQUARE, not by the row's centre: `Checkbox` puts the testID on the
+    // whole row, whose middle is the "Terms of Use" link — tapping there opens
+    // Safari and abandons the run. tapCheckbox also asserts the box flipped.
+    await tapCheckbox({ id: 'create-account-terms' });
     const submittedAt = Date.now();
     await tap({ label: 'Create account', type: 'Button' });
     // With local confirmations disabled the change can apply instantly (app jumps straight

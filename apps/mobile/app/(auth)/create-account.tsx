@@ -11,7 +11,10 @@
  *   - the 22pt hand-rolled tick is the `Checkbox` primitive, with a testID. The
  *     E2E used to tap it at a pixel offset from the label's left edge, because
  *     the row's text contains tappable links and the square had no identity of
- *     its own.
+ *     its own. Half a fix, honestly: the testID lands on the ROW, so the square
+ *     still has no handle and the row's centre is the "Terms of Use" link. The
+ *     E2E's `tapCheckbox` aims at the leading edge for that reason. Worth
+ *     knowing before relying on the id — and see the a11y note below.
  *   - the raw phone `TextInput` is `PhoneField`. That deletes this screen's own
  *     E.164 guard along with it: the field reports a valid E.164 or nothing, so
  *     there is no longer a local-format number to catch.
@@ -537,6 +540,17 @@ export default function CreateAccountScreen() {
             // links in it. The URLs come from TermsLine so they are declared
             // exactly once (the wording differs there, hence the duplicate
             // sentence but not the duplicate constants).
+            //
+            // A11Y, KNOWN AND NOT FIXED HERE: putting the sentence inside the
+            // Pressable makes iOS aggregate the row into ONE accessibility
+            // element, so VoiceOver reads the links as part of the checkbox
+            // label and cannot open either of them — whereas on sign-in, where
+            // the same sentence is not wrapped, both surface as real links.
+            // Measured while debugging the E2E (which hits the same shape from
+            // the other side: the links still take raw touches, so a tap at the
+            // row's centre opens Terms instead of ticking the box). Fixing it
+            // means deciding whether the label should toggle the box at all,
+            // which is a design call rather than a rename.
             accessibilityLabel={`${t('termsAgreePrefix')}${t('termsLink')}${t('termsAnd')}${t('privacyLink')}`}
             style={styles.terms}
             testID="create-account-terms"
