@@ -184,27 +184,28 @@ export async function deepLink(url: string, expect?: RegExp): Promise<void> {
 }
 
 /**
- * Tap a `Checkbox`'s SQUARE, and prove the box actually flipped.
+ * Tap a `Checkbox` and prove the box actually flipped.
  *
- * NOT `tap({ id })`, which aims at the element's centre. A `Checkbox`'s testID
- * sits on the whole ROW — the 22pt square plus its label — and create-account's
- * label is a sentence with "Terms of Use" and "Privacy Policy" tappable inside
- * it. MEASURED: that row is x=20..382, so its centre (x=201) lands squarely on
- * the "Terms of Use" link, and the tap leaves the app for Safari. The test then
- * fails much later against padeljam.app/terms with a message about onboarding.
+ * THE GEOMETRY THIS USED TO CARRY IS GONE, and deliberately so. It aimed at a
+ * DERIVED point — the element's leading edge plus half the 22pt square —
+ * because create-account's checkbox wrapped its consent sentence: the testID
+ * named a row spanning x=20..382 whose centre (x=201) was the "Terms of Use"
+ * link, so `tap({id})` left the app for Safari and the test failed much later
+ * against padeljam.app/terms with a message about onboarding. Worse, iOS
+ * aggregated that row into ONE accessibility element, so nothing in a snapshot
+ * hinted the centre was unsafe.
  *
- * Note the trap that makes this worth a helper: iOS aggregates the row's
- * children into ONE accessibility element, so the links are invisible to the
- * tree even though they still take raw touches. There is nothing to select
- * around, and nothing in a snapshot that hints the centre is unsafe.
+ * That is fixed at the source rather than worked around here: the links are
+ * SIBLINGS of the box now (see the consent row in create-account.tsx), so a
+ * `Checkbox`'s Pressable is either the square alone or the square plus a plain
+ * string, and in both cases its centre is safe to tap. Re-deriving a leading-edge
+ * point would now be the fragile option — it assumes an internal layout this
+ * helper cannot see.
  *
- * The square is the row's first child under `alignItems: 'flex-start'` (see
- * components/ui/Checkbox.tsx), so it is always at the row's leading edge and
- * always at its TOP — which keeps this correct when a long label wraps and the
- * row grows taller than the square.
+ * What survives is the half that was always worth a helper: the assertion that
+ * the checked state CHANGED. A tap that lands mid-transition is swallowed in
+ * silence, which is the failure shape this driver keeps being bitten by.
  */
-const CHECKBOX_BOX = 22; // components/ui/Checkbox.tsx `BOX`
-
 export async function tapCheckbox(sel: Selector, opts: { attempts?: number } = {}): Promise<void> {
   const el = await waitFor(sel);
   // "checkbox, unchecked" / "checkbox, checked" — compared, not parsed, so this
@@ -212,14 +213,13 @@ export async function tapCheckbox(sel: Selector, opts: { attempts?: number } = {
   const before = el.AXValue;
   const attempts = opts.attempts ?? 3;
   for (let i = 0; i < attempts; i++) {
-    const row = query(await snapshot(), sel) ?? el;
-    await tap({ x: row.frame.x + CHECKBOX_BOX / 2, y: row.frame.y + CHECKBOX_BOX / 2 });
+    await tap(sel);
     await sleep(900);
     if (query(await snapshot(), sel)?.AXValue !== before) return;
   }
   const reason =
     `tapCheckbox did not flip ${describeSelector(sel)} (stuck at "${before}") — `
-    + 'the tap was swallowed, or the square is no longer at the row\'s leading edge';
+    + 'the tap was swallowed, or something tappable has been put back inside the box\'s Pressable';
   const dir = await captureFailure(reason);
   throw new Error(`${reason}\nartifacts: ${dir}`);
 }

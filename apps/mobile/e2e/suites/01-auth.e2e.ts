@@ -94,12 +94,15 @@ describe('01 auth', () => {
    *   - THE CHECKBOX IS TAPPED ON ITS SQUARE, and the tick is verified. It used
    *     to be tapped at `x + 14` from the label's left edge, because the row's
    *     text is a sentence with two tappable links in it and the hand-rolled
-   *     square had no testID. It is the `Checkbox` primitive now — but note that
-   *     its testID names the ROW, not the square, so `tap({id})` would aim at
-   *     the row's centre and hit the "Terms of Use" link. `tapCheckbox` still
-   *     depends on where the 22pt box sits; what changed is that it derives
-   *     that from the primitive's own layout and then asserts the box flipped,
-   *     instead of trusting an offset nothing checks.
+   *     square had no testID. It is the `Checkbox` primitive now, and the
+   *     sentence is no longer inside it, so the id names the square and
+   *     `tapCheckbox` simply taps the element and asserts the tick flipped.
+   *   - THE TWO LINKS ARE REACHABLE. That is the point of the split, and the
+   *     part no amount of "the box toggles" proves: while the sentence was the
+   *     checkbox's label, iOS aggregated the Pressable and its descendants into
+   *     ONE accessibility element and VoiceOver could open neither document the
+   *     user was being asked to accept. Asserted against the tree directly,
+   *     below, because a passing tap says nothing about it.
    */
   it('create-account blocks submit until terms accepted, then completes', async () => {
     const secondaryEmail = 'e2e-new@padeljam.test';
@@ -134,9 +137,68 @@ describe('01 auth', () => {
     await expectVisible({ text: /complete your account/i });
     await expectGone({ text: /missing information/i }, { timeout: 2_000 });
 
-    // By the SQUARE, not by the row's centre: `Checkbox` puts the testID on the
-    // whole row, whose middle is the "Terms of Use" link — tapping there opens
-    // Safari and abandons the run. tapCheckbox also asserts the box flipped.
+    // THE A11Y ASSERTION, and the reason this change exists.
+    //
+    // "Terms of Use" and "Privacy Policy" must each be their OWN element in the
+    // tree. Matched on the WHOLE label (trimmed), not a substring: the checkbox
+    // announces the entire sentence and so does the paragraph beside it, so a
+    // substring match would be satisfied by exactly the merged row this is meant
+    // to rule out. While the sentence lived inside the checkbox's Pressable, iOS
+    // collapsed all three into one element and this found nothing.
+    {
+      const tree = await snapshot();
+      const box = query(tree, { id: 'create-account-terms' });
+      if (!box) throw new Error('create-account: no element carries the terms checkbox testID');
+      const exactly = (label: string) => tree.filter((el) => (el.AXLabel ?? '').trim() === label);
+      const links: Record<string, { frame: { x: number; y: number; width: number } }> = {};
+      for (const label of ['Terms of Use', 'Privacy Policy']) {
+        const [link] = exactly(label);
+        if (!link) {
+          throw new Error(
+            `create-account: "${label}" is not its own accessibility element — the consent `
+            + 'sentence has been put back inside the checkbox Pressable, and VoiceOver cannot '
+            + 'open a document the user is being asked to accept',
+          );
+        }
+        if (link.frame.x === box.frame.x && link.frame.y === box.frame.y) {
+          throw new Error(`create-account: "${label}" reports the checkbox's own frame — they are one element`);
+        }
+        links[label] = link;
+      }
+      // Distinct from EACH OTHER too, not one merged span carrying both names.
+      const terms = links['Terms of Use']!.frame;
+      const privacy = links['Privacy Policy']!.frame;
+      if (terms.x === privacy.x && terms.y === privacy.y) {
+        throw new Error('create-account: the two terms links share one frame — they are one element');
+      }
+      // Print what was measured. When this assertion regresses the useful question
+      // is "what shape is the tree in NOW", and reconstructing that from a
+      // screenshot afterwards is guesswork.
+      const box0 = box.frame;
+      console.log(
+        '[e2e] create-account consent row: '
+        + `checkbox x=${Math.round(box0.x)} w=${Math.round(box0.width)} h=${Math.round(box0.height)} `
+        + `"${box.AXLabel}" | Terms x=${Math.round(terms.x)} w=${Math.round(terms.width)} `
+        + `| Privacy x=${Math.round(privacy.x)} w=${Math.round(privacy.width)}`,
+      );
+      // And the checkbox is the SQUARE, not a row spanning the sentence. The old
+      // shape measured x=20..382, which is what made tap({id}) open Safari.
+      if (box.frame.width > 60) {
+        throw new Error(
+          `create-account: the terms checkbox spans ${Math.round(box.frame.width)}pt — it should be `
+          + 'the 22pt square alone, with the sentence beside it',
+        );
+      }
+      // It still says WHAT is being agreed to: it has no label text to borrow now.
+      if (!/terms of use/i.test(box.AXLabel ?? '')) {
+        throw new Error(
+          `create-account: the terms checkbox announces itself as "${box.AXLabel}" — it must name the documents`,
+        );
+      }
+    }
+
+    // `tap({id})` would be safe now, but tapCheckbox also asserts the box flipped —
+    // a tap that lands mid-transition is swallowed without a word.
     await tapCheckbox({ id: 'create-account-terms' });
     const submittedAt = Date.now();
     await tap({ label: 'Create account', type: 'Button' });

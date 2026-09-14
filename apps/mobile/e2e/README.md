@@ -158,11 +158,15 @@ standby spots a 5th player joins CONFIRMED (`is_standby`), never waitlisted.
   swallowed, so `typeText` sits at one bullet and exhausts its retries. Call
   `dismissStrongPasswordSheetIfPresent(field)` before typing; iOS does not
   re-offer once declined.
-- **`Checkbox`'s testID names the ROW, not the 22pt square.** `tap({id})` aims at
-  the centre, which on create-account is the "Terms of Use" link — the tap leaves
-  for Safari and the run dies somewhere unrelated. Use `tapCheckbox`, which aims
-  at the leading edge and asserts the tick flipped. The links are invisible in a
-  snapshot (iOS aggregates the row), so nothing warns you.
+- **`Checkbox`'s testID names its Pressable** — the 22pt square alone when the
+  box has no `label`, or the square plus a plain string when it has one. Nothing
+  tappable may live inside it, so `tap({id})` is safe. It was not always: the
+  create-account checkbox used to wrap its consent sentence, so the id named a
+  row whose centre was the "Terms of Use" link, the tap left for Safari and the
+  run died somewhere unrelated — with the links invisible in a snapshot (iOS
+  aggregates a Pressable and its descendants), nothing warned you. The sentence
+  is a sibling now. Still prefer `tapCheckbox`: it asserts the tick actually
+  flipped, which a swallowed tap otherwise hides.
 - **Dismiss every alert you raise.** A system alert empties the app's AX tree, so
   one left up does not fail the test that raised it — it breaks the NEXT test,
   with a navigation error that names nothing relevant. Some flows raise two (a
