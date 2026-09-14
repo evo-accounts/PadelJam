@@ -265,9 +265,20 @@ export async function dismissStrongPasswordSheetIfPresent(field: Selector): Prom
   await sleep(1200);
   if ((await snapshot()).length >= before) return false;
 
-  await tap(STRONG_PASSWORD_SHEET_CLOSE);
-  await sleep(1200);
-  const after = (await snapshot()).length;
+  // Tap close MORE THAN ONCE before giving up. A single tap was enough locally
+  // and failed on the CI runner (run 34838209655): the captured screenshot shows
+  // the sheet still up with its close button exactly under the tap point, which
+  // means the coordinates were right and the sheet was simply still animating in
+  // when the touch landed. A tap into a presenting overlay is swallowed — the
+  // same failure the `settleFrame` comment in actions.ts describes for the app's
+  // own views. Under CI load that window is wider than one fixed sleep.
+  let after = 0;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await tap(STRONG_PASSWORD_SHEET_CLOSE);
+    await sleep(1200);
+    after = (await snapshot()).length;
+    if (after >= before) return true;
+  }
   if (after < before) {
     // Do NOT return quietly and let the caller type into a sheet that is still
     // up: that is the silent-wrong-success shape this driver keeps being bitten
@@ -275,8 +286,8 @@ export async function dismissStrongPasswordSheetIfPresent(field: Selector): Prom
     const reason =
       `dismissStrongPasswordSheetIfPresent: focusing ${describeSelector(field)} hid part of the app `
       + `(${before} elements -> ${after}) and the close tap at `
-      + `(${STRONG_PASSWORD_SHEET_CLOSE.x}, ${STRONG_PASSWORD_SHEET_CLOSE.y}) did not bring it back — `
-      + 'the AutoFill sheet is probably still up, or has moved on this device';
+      + `(${STRONG_PASSWORD_SHEET_CLOSE.x}, ${STRONG_PASSWORD_SHEET_CLOSE.y}), tapped 4 times, did not `
+      + 'bring it back — the AutoFill sheet is probably still up, or has moved on this device';
     const dir = await captureFailure(reason);
     throw new Error(`${reason}\nartifacts: ${dir}`);
   }
