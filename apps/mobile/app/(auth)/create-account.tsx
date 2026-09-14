@@ -8,13 +8,15 @@
  *   - the fields now run name -> the missing identifier -> password -> terms ->
  *     the primary action, instead of opening with a disabled box holding an
  *     address the user did not type.
- *   - the 22pt hand-rolled tick is the `Checkbox` primitive, with a testID. The
- *     E2E used to tap it at a pixel offset from the label's left edge, because
- *     the row's text contains tappable links and the square had no identity of
- *     its own. Half a fix, honestly: the testID lands on the ROW, so the square
- *     still has no handle and the row's centre is the "Terms of Use" link. The
- *     E2E's `tapCheckbox` aims at the leading edge for that reason. Worth
- *     knowing before relying on the id — and see the a11y note below.
+ *   - the 22pt hand-rolled tick is the `Checkbox` primitive, with a testID. That
+ *     was half a fix for a while: the consent SENTENCE was the checkbox's label,
+ *     so the id named a row whose centre was the "Terms of Use" link, and the
+ *     E2E had to aim at the row's leading edge to avoid opening Safari. Worse
+ *     than an awkward test — iOS aggregates a Pressable and its descendants into
+ *     one accessibility element, so VoiceOver could not reach either link and a
+ *     screen-reader user was asked to accept documents they could not open. The
+ *     box and the sentence are SIBLINGS now (see the consent row below), so the
+ *     id names the square and nothing else, and `tap({id})` is safe.
  *   - the raw phone `TextInput` is `PhoneField`. That deletes this screen's own
  *     E.164 guard along with it: the field reports a valid E.164 or nothing, so
  *     there is no longer a local-format number to catch.
@@ -53,10 +55,10 @@ import { useT } from '@padel/i18n';
 import { formatDisplayName } from '@padel/utils';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PRIVACY_URL, TERMS_URL } from '@/components/auth/TermsLine';
+import { TermsLine, useTermsConsentLabel } from '@/components/auth/TermsLine';
 import { safeAuthMessage } from '@/lib/authErrors';
 import { getAuthTarget, type IdentifierKind } from '@/lib/auth-flow';
 import { formatE164ForDisplay } from '@/lib/countries';
@@ -102,6 +104,7 @@ export default function CreateAccountScreen() {
   const banner = useBanner();
   const router = useRouter();
   const { kind } = getAuthTarget();
+  const termsConsentLabel = useTermsConsentLabel();
   const { session, loading: sessionLoading } = useSession();
 
   const sessionEmail = session?.user?.email ?? '';
@@ -533,39 +536,28 @@ export default function CreateAccountScreen() {
             testID="password-input"
           />
 
-          <Checkbox
-            checked={agreed}
-            onChange={setAgreed}
-            // `children`, because the label is a sentence with two tappable
-            // links in it. The URLs come from TermsLine so they are declared
-            // exactly once (the wording differs there, hence the duplicate
-            // sentence but not the duplicate constants).
-            //
-            // A11Y, KNOWN AND NOT FIXED HERE: putting the sentence inside the
-            // Pressable makes iOS aggregate the row into ONE accessibility
-            // element, so VoiceOver reads the links as part of the checkbox
-            // label and cannot open either of them — whereas on sign-in, where
-            // the same sentence is not wrapped, both surface as real links.
-            // Measured while debugging the E2E (which hits the same shape from
-            // the other side: the links still take raw touches, so a tap at the
-            // row's centre opens Terms instead of ticking the box). Fixing it
-            // means deciding whether the label should toggle the box at all,
-            // which is a design call rather than a rename.
-            accessibilityLabel={`${t('termsAgreePrefix')}${t('termsLink')}${t('termsAnd')}${t('privacyLink')}`}
-            style={styles.terms}
-            testID="create-account-terms"
-          >
-            <Text variant="caption" tone="muted" style={styles.termsText}>
-              {t('termsAgreePrefix')}
-              <Text variant="caption" tone="primary" onPress={() => void Linking.openURL(TERMS_URL)}>
-                {t('termsLink')}
-              </Text>
-              {t('termsAnd')}
-              <Text variant="caption" tone="primary" onPress={() => void Linking.openURL(PRIVACY_URL)}>
-                {t('privacyLink')}
-              </Text>
-            </Text>
-          </Checkbox>
+          {/* SIBLINGS, not a pressable wrapping both — ONLY THE SQUARE TOGGLES
+              CONSENT. The sentence used to be the checkbox's label, which put
+              two links inside a Pressable; iOS then aggregated the lot into one
+              accessibility element and VoiceOver could reach neither document
+              the user was being asked to accept. Splitting them costs the
+              "tap anywhere on the row" affordance, which is the trade this
+              takes deliberately: the box keeps a 44pt target via the
+              primitive's hitSlop, and the links become real, individually
+              focusable links exactly as they already are on sign-in.
+
+              The box therefore has no text to borrow a name from, hence the
+              explicit accessibilityLabel — it must still announce WHAT is being
+              agreed to, not just "checkbox". */}
+          <View style={styles.terms}>
+            <Checkbox
+              checked={agreed}
+              onChange={setAgreed}
+              accessibilityLabel={termsConsentLabel}
+              testID="create-account-terms"
+            />
+            <TermsLine copy="consent" style={styles.termsText} testID="create-account-terms-text" />
+          </View>
 
           <Button
             label={t('createAccount')}
@@ -588,7 +580,9 @@ const styles = StyleSheet.create({
   body: { paddingTop: space[6], paddingBottom: space[6] },
   help: { marginTop: space[2], marginBottom: space[6] },
   field: { marginTop: space[4] },
-  terms: { marginTop: space[5] },
+  // `flex-start` and the same gap the Checkbox row itself used, so the square
+  // still sits against the sentence's first line when it wraps.
+  terms: { marginTop: space[5], flexDirection: 'row', alignItems: 'flex-start', gap: space[3] },
   termsText: { flex: 1 },
   resend: { marginTop: space[1] },
   verifyCta: { marginTop: space[3] },
