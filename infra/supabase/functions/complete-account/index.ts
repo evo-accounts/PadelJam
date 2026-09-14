@@ -4,6 +4,16 @@
 // prevents a client from inserting a profile with an email/phone that isn't theirs (profiles is
 // globally readable).
 //
+// CONSENT IS RECORDED HERE, because here is where it is given. The client only reaches this call
+// after ticking the gated checkbox on the create-account screen (the submit is inert until it is
+// ticked), so profiles.terms_accepted_at is written below from the SERVER clock, at the moment the
+// completion is processed. Not from the client: a client-supplied timestamp is exactly the field an
+// attacker would want control of in a consent record, and validating one ("is it recent? is it in
+// the past?") buys a few hundred milliseconds of accuracy in exchange for a value we can no longer
+// testify to. The gap between the tick and this request is the round-trip, not a meaningful delay.
+// See also provision-social-profile, which does the same for social sign-ups, whose consent is the
+// line under the social buttons on the sign-in screen.
+//
 // The SECONDARY identifier (phone if the user started via email, or email if via phone) is NOT
 // attached here (M12 superseded the AU-07 "lazy" attach): the client verifies it as the signed-in
 // user via GoTrue's native change flows (updateUser -> verifyOtp type email_change/phone_change),
@@ -13,6 +23,7 @@
 // Requires the service-role key, so this must run server-side only.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { PASSWORD_OK } from '../_shared/passwordOk.ts';
+import { buildProfileRow } from '../_shared/profileRow.ts';
 
 const E164 = /^\+[1-9]\d{6,14}$/;
 const json = (body: unknown, status = 200) =>
@@ -90,17 +101,20 @@ Deno.serve(async (req) => {
   // The verified PRIMARY identifier must exist; the secondary may still be pending verification.
   if (!authEmail && !authPhone) return json({ error: 'missing_identifier' }, 400);
 
-  // 3) Create the profile from server-trusted values (service role bypasses RLS). The missing
-  //    secondary stays NULL until sync_profile_contact copies it over post-verification.
+  // 3) Create the profile from server-trusted values (service role bypasses RLS), including the
+  //    consent timestamp (see the header). The missing secondary stays NULL until
+  //    sync_profile_contact copies it over post-verification.
   const { error: profileErr } = await admin.from('profiles').upsert(
-    {
+    buildProfileRow({
       id: user.id,
-      // `|| null` (not ??): GoTrue reports a missing phone as "" — an empty string would
-      // collide on the UNIQUE constraint as soon as a second user skips the same secondary.
-      email: authEmail || null,
-      phone: authPhone || null,
-      full_name: full_name.trim().replace(/\s+/g, ' '),
-    },
+      authEmail,
+      authPhone,
+      fullName: full_name,
+      // The server clock, read now rather than at the top of the handler, so the recorded moment
+      // is the one the row was written. A re-run of completion re-records it: every call to this
+      // endpoint is preceded by a fresh tick of the box, so every call is a fresh act of consent.
+      acceptedAt: new Date(),
+    }),
     { onConflict: 'id' },
   );
   if (profileErr) return json({ error: profileErr.message }, 400);

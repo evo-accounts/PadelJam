@@ -1771,7 +1771,7 @@ export type Database = {
           date_of_birth: string | null
           description: string | null
           dominant_hand: string | null
-          email: string
+          email: string | null
           full_name: string
           gender: string | null
           id: string
@@ -1779,8 +1779,9 @@ export type Database = {
           location_point: unknown
           location_text: string | null
           onboarded_at: string | null
-          phone: string
+          phone: string | null
           preferred_time: string | null
+          terms_accepted_at: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1790,7 +1791,7 @@ export type Database = {
           date_of_birth?: string | null
           description?: string | null
           dominant_hand?: string | null
-          email: string
+          email?: string | null
           full_name: string
           gender?: string | null
           id: string
@@ -1798,8 +1799,9 @@ export type Database = {
           location_point?: unknown
           location_text?: string | null
           onboarded_at?: string | null
-          phone: string
+          phone?: string | null
           preferred_time?: string | null
+          terms_accepted_at?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1809,7 +1811,7 @@ export type Database = {
           date_of_birth?: string | null
           description?: string | null
           dominant_hand?: string | null
-          email?: string
+          email?: string | null
           full_name?: string
           gender?: string | null
           id?: string
@@ -1817,8 +1819,9 @@ export type Database = {
           location_point?: unknown
           location_text?: string | null
           onboarded_at?: string | null
-          phone?: string
+          phone?: string | null
           preferred_time?: string | null
+          terms_accepted_at?: string | null
         }
         Relationships: [
           {

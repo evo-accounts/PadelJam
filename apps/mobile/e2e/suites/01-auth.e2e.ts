@@ -12,8 +12,10 @@ import {
   tapCheckbox,
 } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
+import { select } from '../fixtures/db';
 import { latestOtp } from '../fixtures/mailpit';
-import { PASSWORD, PERSONAS, TEST_PHONE_NATIONAL, TEST_PHONE_OTP } from '../fixtures/personas';
+import { pollUntil } from '../fixtures/poll';
+import { PASSWORD, PERSONAS, TEST_PHONE, TEST_PHONE_NATIONAL, TEST_PHONE_OTP } from '../fixtures/personas';
 
 describe('01 auth', () => {
   beforeAll(async () => {
@@ -229,6 +231,27 @@ describe('01 auth', () => {
       await new Promise((r) => setTimeout(r, 600));
     }
     if (!done) await expectVisible({ text: /where do you play/i }, { timeout: 5_000 });
+
+    /**
+     * THE CONSENT RECORD. The box above was ticked, so the account must carry a timestamp
+     * saying so.
+     *
+     * This is asserted here and nowhere else because here is the only place in the product
+     * where consent is actually GIVEN — a checkbox, gating a submit. `terms_accepted_at` used
+     * to be written by exactly one function, provision-social-profile, for social sign-ups who
+     * never tick anything: the only accounts with a consent record were the only ones that
+     * never affirmatively consented, and this screen's own function wrote nothing at all.
+     *
+     * Matched on the phone because that is the identifier this test verified (GoTrue stores it
+     * without the leading '+', and complete-account copies it across verbatim). The secondary
+     * email may or may not have landed by now, depending on whether the stack applied the
+     * change immediately or sent a code.
+     */
+    await pollUntil(
+      () => select('profiles', `phone=eq.${TEST_PHONE.replace(/^\+/, '')}&select=terms_accepted_at`),
+      (rows) => typeof (rows as { terms_accepted_at: string | null }[])[0]?.terms_accepted_at === 'string',
+      { label: 'terms_accepted_at recorded for the account that ticked the box', timeoutMs: 20_000 },
+    );
   });
 
   /**
