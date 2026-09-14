@@ -149,6 +149,20 @@ standby spots a 5th player joins CONFIRMED (`is_standby`), never waitlisted.
   at dead centre often does not actuate one.
 - System dialogs: permission alerts are tappable via the normal selectors; the iOS
   "Save Password" sheet leaves an EMPTY AX tree — use `dismissSavePasswordSheetIfPresent()`.
+- **The iOS "Use Strong Password?" sheet is a different beast** and does NOT empty
+  the tree — it TRUNCATES it, dropping only what it covers (it is modal; the
+  keyboard alone never does this). It appears the first time a secure field is
+  focused on a screen shaped like a sign-up form (a field with a username-ish
+  `textContentType` directly above a secure one — `autoComplete="email"` is
+  enough), and it steals the keyboard: the first character lands and the rest are
+  swallowed, so `typeText` sits at one bullet and exhausts its retries. Call
+  `dismissStrongPasswordSheetIfPresent(field)` before typing; iOS does not
+  re-offer once declined.
+- **`Checkbox`'s testID names the ROW, not the 22pt square.** `tap({id})` aims at
+  the centre, which on create-account is the "Terms of Use" link — the tap leaves
+  for Safari and the run dies somewhere unrelated. Use `tapCheckbox`, which aims
+  at the leading edge and asserts the tick flipped. The links are invisible in a
+  snapshot (iOS aggregates the row), so nothing warns you.
 - **Dismiss every alert you raise.** A system alert empties the app's AX tree, so
   one left up does not fail the test that raised it — it breaks the NEXT test,
   with a navigation error that names nothing relevant. Some flows raise two (a

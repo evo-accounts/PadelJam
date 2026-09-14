@@ -52,6 +52,14 @@ export type PhoneFieldProps = {
   label?: string;
   error?: string | null;
   hint?: string | null;
+  /**
+   * Fires when the number input loses focus. A form that gates its submit on a
+   * complete number needs SOMEWHERE to say why the button is still disabled,
+   * and `value` alone cannot tell "nothing typed" from "half a number" — both
+   * are ''. The meta from the last `onChangeValue` is what the caller inspects;
+   * this is only the moment to inspect it.
+   */
+  onBlur?: () => void;
   /** Defaults to the device region, then 'PT'. */
   defaultRegion?: CountryCode;
   editable?: boolean;
@@ -78,6 +86,7 @@ export function PhoneField({
   label,
   error,
   hint,
+  onBlur,
   defaultRegion,
   editable = true,
   autoFocus = false,
@@ -190,6 +199,7 @@ export function PhoneField({
           onChangeText={onChangeText}
           error={error}
           hint={hint}
+          onBlur={onBlur}
           editable={editable}
           autoFocus={autoFocus}
           keyboardType="phone-pad"

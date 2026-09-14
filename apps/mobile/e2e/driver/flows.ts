@@ -1,4 +1,4 @@
-import { snapshot, query } from './a11y';
+import { snapshot, query, describeSelector, type Selector } from './a11y';
 import { scrollUntilVisible, tap, typeText } from './actions';
 import { captureFailure, expectVisible, waitFor } from './expect';
 import { latestOtp } from '../fixtures/mailpit';
@@ -181,6 +181,106 @@ export async function deepLink(url: string, expect?: RegExp): Promise<void> {
     console.warn(`[e2e] deepLink(${url}) did not render ${expect} — re-issuing (attempt ${attempt + 1})`);
   }
   throw new Error(`deepLink failed: ${url} never rendered ${expect}`);
+}
+
+/**
+ * Tap a `Checkbox`'s SQUARE, and prove the box actually flipped.
+ *
+ * NOT `tap({ id })`, which aims at the element's centre. A `Checkbox`'s testID
+ * sits on the whole ROW — the 22pt square plus its label — and create-account's
+ * label is a sentence with "Terms of Use" and "Privacy Policy" tappable inside
+ * it. MEASURED: that row is x=20..382, so its centre (x=201) lands squarely on
+ * the "Terms of Use" link, and the tap leaves the app for Safari. The test then
+ * fails much later against padeljam.app/terms with a message about onboarding.
+ *
+ * Note the trap that makes this worth a helper: iOS aggregates the row's
+ * children into ONE accessibility element, so the links are invisible to the
+ * tree even though they still take raw touches. There is nothing to select
+ * around, and nothing in a snapshot that hints the centre is unsafe.
+ *
+ * The square is the row's first child under `alignItems: 'flex-start'` (see
+ * components/ui/Checkbox.tsx), so it is always at the row's leading edge and
+ * always at its TOP — which keeps this correct when a long label wraps and the
+ * row grows taller than the square.
+ */
+const CHECKBOX_BOX = 22; // components/ui/Checkbox.tsx `BOX`
+
+export async function tapCheckbox(sel: Selector, opts: { attempts?: number } = {}): Promise<void> {
+  const el = await waitFor(sel);
+  // "checkbox, unchecked" / "checkbox, checked" — compared, not parsed, so this
+  // survives iOS rewording it.
+  const before = el.AXValue;
+  const attempts = opts.attempts ?? 3;
+  for (let i = 0; i < attempts; i++) {
+    const row = query(await snapshot(), sel) ?? el;
+    await tap({ x: row.frame.x + CHECKBOX_BOX / 2, y: row.frame.y + CHECKBOX_BOX / 2 });
+    await sleep(900);
+    if (query(await snapshot(), sel)?.AXValue !== before) return;
+  }
+  const reason =
+    `tapCheckbox did not flip ${describeSelector(sel)} (stuck at "${before}") — `
+    + 'the tap was swallowed, or the square is no longer at the row\'s leading edge';
+  const dir = await captureFailure(reason);
+  throw new Error(`${reason}\nartifacts: ${dir}`);
+}
+
+/**
+ * iOS's "Use Strong Password?" AutoFill sheet — the OTHER system password
+ * overlay, and not the same thing as "Save Password?" below.
+ *
+ * iOS raises it the FIRST time a secure field becomes first responder on a
+ * screen it reads as a sign-up form (an identifier field carrying a username-ish
+ * `textContentType` — which `Field`'s `autoComplete="email"` supplies — directly
+ * above a secure one). create-account is exactly that shape; new-password.tsx,
+ * which has no identifier field, is not, which is why only one screen needs this.
+ *
+ * It steals the keyboard. MEASURED on create-account: with the sheet up, the
+ * first typed character reaches the field and every subsequent one is swallowed,
+ * so the field sits at a single '•' forever and typeText's mask check exhausts
+ * its retries. That is real character loss, not an AX mis-report — the app's own
+ * four-rule checklist (rendered from React state) confirms nine characters land
+ * once the sheet is gone.
+ *
+ * TWO THINGS MAKE IT AWKWARD TO HANDLE, both worth knowing before "simplifying"
+ * this:
+ *
+ *   - it is presented by ANOTHER PROCESS, so it never appears in the app's own
+ *     accessibility tree and its close button cannot be tapped by selector. Hence
+ *     the blind tap, the same concession `dismissSavePasswordSheetIfPresent` and
+ *     `deepLink` already make for springboard overlays.
+ *   - it is MODAL, so every app element it covers drops out of the tree. That is
+ *     the detection signal used here, and it is specific: the KEYBOARD does not
+ *     do this (measured — with the keyboard up, create-account still reports its
+ *     "Create account" button at y=616), so a shrinking tree means an overlay,
+ *     not merely a raised keyboard.
+ *
+ * Declining once settles it for the rest of the app session: iOS does not
+ * re-offer for that field, so the caller's own focus tap afterwards is safe.
+ */
+const STRONG_PASSWORD_SHEET_CLOSE = { x: 365, y: 506 };
+
+export async function dismissStrongPasswordSheetIfPresent(field: Selector): Promise<boolean> {
+  const before = (await snapshot()).length;
+  await tap(field);
+  await sleep(1200);
+  if ((await snapshot()).length >= before) return false;
+
+  await tap(STRONG_PASSWORD_SHEET_CLOSE);
+  await sleep(1200);
+  const after = (await snapshot()).length;
+  if (after < before) {
+    // Do NOT return quietly and let the caller type into a sheet that is still
+    // up: that is the silent-wrong-success shape this driver keeps being bitten
+    // by, and it resurfaces 40s later as an unrelated-looking typeText timeout.
+    const reason =
+      `dismissStrongPasswordSheetIfPresent: focusing ${describeSelector(field)} hid part of the app `
+      + `(${before} elements -> ${after}) and the close tap at `
+      + `(${STRONG_PASSWORD_SHEET_CLOSE.x}, ${STRONG_PASSWORD_SHEET_CLOSE.y}) did not bring it back — `
+      + 'the AutoFill sheet is probably still up, or has moved on this device';
+    const dir = await captureFailure(reason);
+    throw new Error(`${reason}\nartifacts: ${dir}`);
+  }
+  return true;
 }
 
 /**
