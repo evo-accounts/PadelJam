@@ -23,7 +23,7 @@ describe('10 groups', () => {
   beforeAll(async () => {
     await resetDb('full');
     await freshInstall();
-    await loginAs('alex'); // community owner → group admin
+    await loginAs('alex'); // created community A, so admin of it → group admin
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
   });
 

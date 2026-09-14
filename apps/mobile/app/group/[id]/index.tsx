@@ -35,7 +35,6 @@ import { Avatar, Badge, BottomSheet, Button, Chip, EmptyState, emptyIcon, ListRo
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
   'not_a_member',
-  'sole_owner_must_transfer',
   'sole_admin_must_add_another',
   'group_not_found',
 ]);
@@ -79,7 +78,7 @@ export default function GroupHomeScreen() {
   const addAdmins = useAddGroupAdmins(id);
   const groupMemberIds = new Set((members ?? []).map((m) => m.user_id));
   const eligibleAdmins = (communityMembers ?? []).filter(
-    (m) => (m.role === 'owner' || m.role === 'admin') && !groupMemberIds.has(m.user_id),
+    (m) => m.role === 'admin' && !groupMemberIds.has(m.user_id),
   );
 
   const leave = useLeaveGroup();
@@ -120,7 +119,7 @@ export default function GroupHomeScreen() {
   const eventRows = events ?? [];
 
   const myCommunityRole = (communityMembers ?? []).find((m) => m.user_id === uid)?.role;
-  const canManage = myCommunityRole === 'owner' || myCommunityRole === 'admin';
+  const canManage = myCommunityRole === 'admin';
 
   const err = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';

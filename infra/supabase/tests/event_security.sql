@@ -198,7 +198,13 @@ set local role postgres;
 update events set organizer_id='f6000002-0000-0000-0000-000000000002' where id=current_setting('test.grp_ev')::uuid;
 reset role;
 
--- m2 is now the organizer but NOT a community admin -> duplicate must be forbidden.
+-- M2 re-applies create_event's gate to duplicate_event, and since migration 0098 that gate is
+-- may_create_event — the create_events toggle, not the role. So the check is that duplicate_event
+-- tracks it: with the toggle OFF, the non-admin organizer m2 is refused.
+set local role postgres;
+update community_permissions set create_events = false
+  where community_id = (select community_id from groups where id = current_setting('test.gid')::uuid);
+reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"f6000002-0000-0000-0000-000000000002","role":"authenticated"}';
 do $$
@@ -207,10 +213,26 @@ begin
   begin
     perform duplicate_event(grp_ev, '{}'::jsonb);
     raise exception using errcode='PT001',
-      message='M2: non-admin organizer duplicating a group event should raise forbidden';
+      message='M2: a non-admin organizer duplicating a group event should be refused with create_events off';
   exception
     when sqlstate 'P0001' then raise notice 'OK M2: non-admin duplicate_event blocked (%)', sqlerrm;
   end;
+end $$;
+reset role;
+-- With the toggle back ON the same organizer may duplicate: the gate moved from role to permission.
+set local role postgres;
+update community_permissions set create_events = true
+  where community_id = (select community_id from groups where id = current_setting('test.gid')::uuid);
+reset role;
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"f6000002-0000-0000-0000-000000000002","role":"authenticated"}';
+do $$
+declare grp_ev uuid := current_setting('test.grp_ev')::uuid; v_new uuid;
+begin
+  v_new := duplicate_event(grp_ev, '{}'::jsonb);
+  if v_new is null then
+    raise exception using errcode='PT001', message='M2: duplicate should succeed with create_events on'; end if;
+  raise notice 'OK M2: the organizer may duplicate once create_events is on';
 end $$;
 reset role;
 

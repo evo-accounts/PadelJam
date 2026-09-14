@@ -10,12 +10,6 @@ import { Badge, Button, Card, Text, useBanner, useConfirm } from '../ui';
 
 type Props = {
   communityId: string;
-  /**
-   * Whether the viewer can act on the plan (upgrade/downgrade) — the community owner. An
-   * admin still sees the section (P1: it is no longer an owner-only dead end for the cap
-   * errors that route admins here) but gets a read-only hint instead of the action button.
-   */
-  canAct: boolean;
   /** Reports this section's y position on the manage screen so `?section=plan` can scroll to it. */
   onLayout?: (event: LayoutChangeEvent) => void;
 };
@@ -33,11 +27,13 @@ const LIMIT_LABEL_KEYS: Record<LimitKey, string> = {
 /**
  * Manage Community's Plan section (UX-GLOB-10): the current plan and Community Pro side by side,
  * limits read from the `packages/features` registry, the current one marked with a `Badge`. A
- * community on Basic (or Club) sees that plan and its limits on the left, not Starter. The owner
- * action upgrades or downgrades on request — no transaction, reversible, refused with
- * `plan_downgrade_over_limit` while the community exceeds Starter's limits.
+ * community on Basic (or Club) sees that plan and its limits on the left, not Starter. Any admin
+ * can upgrade or downgrade on request — no transaction, reversible, refused with
+ * `plan_downgrade_over_limit` while the community exceeds Starter's limits. The section is only
+ * rendered for admins, and set_community_plan accepts any admin since migration 0098, so there is
+ * no read-only variant of it any more.
  */
-export function PlanSection({ communityId, canAct, onLayout }: Props) {
+export function PlanSection({ communityId, onLayout }: Props) {
   const { t } = useT('community');
   const banner = useBanner();
   const confirm = useConfirm();
@@ -98,26 +94,22 @@ export function PlanSection({ communityId, canAct, onLayout }: Props) {
         <PlanCard title={t(view.leftTitleKey)} current={view.leftCurrent} def={view.left} t={t} />
         <PlanCard title={t('planCommunityPro')} current={view.proCurrent} def={COMMUNITY_PRO} t={t} />
       </View>
-      {view.action === null ? null : canAct ? (
-        view.action === 'downgrade' ? (
-          <Button
-            label={t('returnToStarter')}
-            variant="outline"
-            fullWidth
-            loading={busy}
-            onPress={() => void downgrade()}
-          />
-        ) : (
-          <Button
-            label={t('upgradeToPro')}
-            variant="primary"
-            fullWidth
-            loading={busy}
-            onPress={() => void upgrade()}
-          />
-        )
+      {view.action === null ? null : view.action === 'downgrade' ? (
+        <Button
+          label={t('returnToStarter')}
+          variant="outline"
+          fullWidth
+          loading={busy}
+          onPress={() => void downgrade()}
+        />
       ) : (
-        <Text style={styles.ownerOnlyHint}>{t('planOwnerOnly')}</Text>
+        <Button
+          label={t('upgradeToPro')}
+          variant="primary"
+          fullWidth
+          loading={busy}
+          onPress={() => void upgrade()}
+        />
       )}
     </View>
   );
@@ -173,5 +165,4 @@ const styles = StyleSheet.create({
   limitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   limitLabel: { fontSize: 13, color: colors.mutedForeground, flexShrink: 1 },
   limitValue: { fontSize: 13, fontWeight: '600', color: colors.foreground },
-  ownerOnlyHint: { fontSize: 13, color: colors.mutedForeground, textAlign: 'center' },
 });

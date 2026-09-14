@@ -1,9 +1,10 @@
 // infra/supabase/tests/plans.test.mjs
-import { user, rpc, sel, expectError, assert, run } from './lib.mjs';
+import { user, rpc, sel, patch, expectError, assert, run } from './lib.mjs';
 
 const plan = (jwt) => rpc(jwt, 'account_plan_of_caller');
 const cplan = (jwt, id) => rpc(jwt, 'community_plan', { c: id });
 
+/** The caller becomes the community's creator and its first (and, on Starter, only) admin. */
 async function ownCommunity(owner, name) {
   return rpc(owner.jwt, 'create_community_with_personal_tenant', {
     p_name: name, p_type: 'club', p_country: 'PT', p_privacy: 'public',
@@ -26,7 +27,7 @@ await run('a user can grant and revoke Jammer+ for themselves', async () => {
   await expectError(() => rpc(u.jwt, 'set_account_plan', { p_plan: 'club' }), 'invalid_plan');
 });
 
-await run('the owner can upgrade a community to Community Pro and back', async () => {
+await run('an admin can upgrade a community to Community Pro and back; a member cannot', async () => {
   const owner = await user('own');
   const member = await user('mem');
   const cid = await ownCommunity(owner, 'Plan Club');
@@ -37,6 +38,25 @@ await run('the owner can upgrade a community to Community Pro and back', async (
   await expectError(() => rpc(member.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' }), 'forbidden');
   await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
   assert((await cplan(owner.jwt, cid)) === 'starter', 'downgraded');
+});
+
+// set_community_plan required role = 'owner' until migration 0098. With two roles it accepts any
+// admin, so a PROMOTED admin — who did not create the community — must be able to change the plan.
+await run('any admin can set the plan, not only the community creator', async () => {
+  const creator = await user('planCreator');
+  const promoted = await user('planPromoted');
+  const cid = await ownCommunity(creator, 'Promoted Admin Club');
+  await rpc(promoted.jwt, 'join_community', { p_community_id: cid, p_ack: true });
+
+  // Refused while they are a plain member...
+  await expectError(() => rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' }), 'forbidden');
+
+  // ...and allowed once promoted. Community Pro first, because Starter's co_organizers limit of 0
+  // means "one admin, no co-organizers" and the creator already holds that slot.
+  await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
+  await patch('community_members', `community_id=eq.${cid}&user_id=eq.${promoted.id}`, { role: 'admin' });
+  await rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
+  assert((await cplan(promoted.jwt, cid)) === 'starter', 'a promoted admin downgraded the plan');
 });
 
 await run('a downgrade is refused while the community exceeds Starter limits', async () => {

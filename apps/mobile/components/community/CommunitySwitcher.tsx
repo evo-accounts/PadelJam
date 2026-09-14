@@ -10,7 +10,7 @@ import { Avatar, Button, Chip, IconButton } from '../../components/ui';
 export type CommunityRow = Tables<'communities'>;
 
 export type Membership = {
-  role: 'owner' | 'admin' | 'member' | string;
+  role: 'admin' | 'member' | string;
   community: CommunityRow;
 };
 
@@ -88,7 +88,7 @@ export function CommunitySwitcher({
       showArchived ? m.community.archived_at != null : m.community.archived_at == null,
     );
     return {
-      managing: filtered.filter((m) => m.role === 'owner' || m.role === 'admin'),
+      managing: filtered.filter((m) => m.role === 'admin'),
       participating: filtered.filter((m) => m.role === 'member'),
     };
   }, [memberships, showArchived]);

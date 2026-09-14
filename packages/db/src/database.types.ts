@@ -457,6 +457,8 @@ export type Database = {
         Row: {
           approve_join_requests: boolean
           community_id: string
+          create_events: boolean
+          create_groups: boolean
           create_posts: boolean
           invite_members: boolean
           updated_at: string
@@ -464,6 +466,8 @@ export type Database = {
         Insert: {
           approve_join_requests?: boolean
           community_id: string
+          create_events?: boolean
+          create_groups?: boolean
           create_posts?: boolean
           invite_members?: boolean
           updated_at?: string
@@ -471,6 +475,8 @@ export type Database = {
         Update: {
           approve_join_requests?: boolean
           community_id?: string
+          create_events?: boolean
+          create_groups?: boolean
           create_posts?: boolean
           invite_members?: boolean
           updated_at?: string
@@ -2470,6 +2476,8 @@ export type Database = {
       materialize_occurrence: { Args: { p_after_event_id: string }; Returns: string }
       mask_email: { Args: { p_email: string }; Returns: string }
       mask_phone: { Args: { p_phone: string }; Returns: string }
+      may_create_event: { Args: { c: string }; Returns: boolean }
+      may_create_group: { Args: { c: string }; Returns: boolean }
       set_event_timer: {
         Args: { p_event_id: string; p_action: string }
         Returns: undefined
@@ -3515,10 +3523,6 @@ export type Database = {
           p_side_a: number
           p_side_b: number
         }
-        Returns: undefined
-      }
-      transfer_ownership: {
-        Args: { p_community_id: string; p_new_owner: string }
         Returns: undefined
       }
       unarchive_group: { Args: { p_group_id: string }; Returns: undefined }

@@ -25,7 +25,7 @@ describe('09 communities', () => {
   beforeAll(async () => {
     await resetDb('full');
     await freshInstall();
-    await loginAs('alex'); // owner of A, admin of C
+    await loginAs('alex'); // admin of A (he created it) and of C
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
   });
 
@@ -74,7 +74,8 @@ describe('09 communities', () => {
     await tap({ text: /^about$/i });
     await sleep(1200);
     await expectVisible({ text: /public/i }, { timeout: 20_000 });
-    await expectVisible({ text: /owner|admin/i }, { timeout: 15_000 });
+    // Two roles since migration 0098: the badge reads Admin, never Owner.
+    await expectVisible({ text: /admin/i }, { timeout: 15_000 });
   });
 
   it('composes a post that appears in the feed', async () => {

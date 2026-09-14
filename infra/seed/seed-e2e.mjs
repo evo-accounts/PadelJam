@@ -5,7 +5,7 @@
  * Differences from the demo seed:
  *   - Dates are NOW-relative (join/leave cutoffs and "upcoming" filters depend on now()).
  *   - Extra personas + fixtures for error-state tests (cutoff/full/private events,
- *     private community, review-unlocked community, sole-owner community, plan caps,
+ *     private community, review-unlocked community, single-admin community, plan caps,
  *     an un-onboarded user, and a disposable delete-account user).
  *   - `--profile minimal` seeds users only (fast path for auth/onboarding suites).
  *
@@ -163,7 +163,8 @@ const CAST = [
   { key: 'bruno', email: 'bruno@padeljam.test', phone: '+351910000005', name: 'Bruno Almeida',  gender: 'male',   hand: 'right', side: 'left',  time: 'any' },
   { key: 'rita',  email: 'rita@padeljam.test',  phone: '+351910000006', name: 'Rita Fernandes', gender: 'female', hand: 'left',  side: 'right', time: 'evening' },
   { key: 'pedro', email: 'pedro@padeljam.test', phone: '+351910000007', name: 'Pedro Lopes',    gender: 'male',   hand: 'right', side: 'left',  time: 'morning' },
-  // E2E-only personas (each may own at most one community — can_create_community cap):
+  // E2E-only personas. The one-community cap is gone (0098); they stay distinct because each
+  // fixture community needs a creator who is NOT a member of the others.
   { key: 'nina',  email: 'nina@padeljam.test',  phone: '+351910000008', name: 'Nina Privada',   gender: 'female', hand: 'right', side: 'left',  time: 'evening' },
   { key: 'tiago', email: 'tiago@padeljam.test', phone: '+351910000009', name: 'Tiago Reviews',  gender: 'male',   hand: 'right', side: 'right', time: 'night' },
   { key: 'carla', email: 'carla@padeljam.test', phone: '+351910000010', name: 'Carla Solo',     gender: 'female', hand: 'left',  side: 'left',  time: 'any' },
@@ -269,7 +270,7 @@ async function main() {
   console.log('  follows seeded');
 
   // 3) Communities ----------------------------------------------------------
-  // A: public showcase (owner alex, Basic plan). C: request_to_join (owner maria, Basic).
+  // A: public showcase (created by alex, Basic plan). C: request_to_join (created by maria, Basic).
   const commA = await rpc(jwt('alex'), 'create_community_with_personal_tenant', {
     p_name: 'Lisbon Padel Club', p_type: 'club', p_country: 'PT', p_privacy: 'public',
     p_description: 'The friendliest padel club in Lisbon.', p_location: 'Lisbon, PT',
@@ -293,7 +294,7 @@ async function main() {
   });
   await insert('community_subscriptions', { community_id: commC, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
 
-  // C3: private community (owner nina) — no-access assertions.
+  // C3: private community (created by nina) — no-access assertions.
   const commP = await rpc(jwt('nina'), 'create_community_with_personal_tenant', {
     p_name: 'Private Padel Society', p_type: 'friends', p_country: 'PT', p_privacy: 'private',
     p_description: 'Invite only.', p_location: 'Sintra, PT',
@@ -301,7 +302,7 @@ async function main() {
     p_cancellation_rules_enabled: false, p_cancellation_rules_text: null,
   });
 
-  // C4: review-unlocked community (owner tiago, Basic) — 3 completed events below.
+  // C4: review-unlocked community (created by tiago, Basic) — 3 completed events below.
   const commR = await rpc(jwt('tiago'), 'create_community_with_personal_tenant', {
     p_name: 'Review Club', p_type: 'club', p_country: 'PT', p_privacy: 'public',
     p_description: 'Three finished events and counting.', p_location: 'Porto, PT',
@@ -310,13 +311,13 @@ async function main() {
   });
   await insert('community_subscriptions', { community_id: commR, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
 
-  // C5: sole-owner community on the default Starter plan (owner carla) —
-  // leave-blocked / transfer-ownership / plan-cap fixtures. Starter allows ONE
-  // group per community and the general group created below fills it, so this
+  // C5: single-admin community on the default Starter plan (created by carla) —
+  // the last-admin guard (0098) and plan-cap fixtures. Starter allows ONE group
+  // per community and the general group created below fills it, so this
   // community sits exactly AT the cap (see the groups section).
   const commS = await rpc(jwt('carla'), 'create_community_with_personal_tenant', {
     p_name: 'Carla Solo Club', p_type: 'friends', p_country: 'PT', p_privacy: 'public',
-    p_description: 'Starter plan, one owner.', p_location: 'Faro, PT',
+    p_description: 'Starter plan, one admin.', p_location: 'Faro, PT',
     p_thumbnail_path: null, p_cover_image_path: null,
     p_cancellation_rules_enabled: false, p_cancellation_rules_text: null,
   });
@@ -335,7 +336,7 @@ async function main() {
   });
   for (const k of ['rita', 'pedro']) await rpc(jwt(k), 'join_community', { p_community_id: commC, p_ack: true }); // pending requests
   for (const k of ['joao', 'sofia', 'bruno']) await rpc(jwt(k), 'join_community', { p_community_id: commR, p_ack: true });
-  await rpc(jwt('joao'), 'join_community', { p_community_id: commS, p_ack: true }); // transfer-ownership candidate
+  await rpc(jwt('joao'), 'join_community', { p_community_id: commS, p_ack: true }); // the member carla must promote before she can leave
   console.log('  memberships + admins + pending requests');
 
   // 4) Posts / comments / likes / reviews (A) -------------------------------

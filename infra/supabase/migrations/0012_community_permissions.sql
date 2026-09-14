@@ -1,5 +1,14 @@
 -- Member-grantable capability toggles only. Admin-only actions (create groups / create events)
 -- are NEVER columns here — they are enforced purely by community role.
+--
+-- REVERSED by 0098_community_roles_permissions.sql (2026-09-14). The Community UX audit
+-- (docs/audit/2026-09-14-ux-community.md, UX-COMM-17) makes both of those member-grantable: it
+-- specifies five toggles, with create_events on by default and create_groups off. The rule above
+-- assumed group and event creation were inherently admin-only; the audit's permission matrix says
+-- they are not, and the product owner confirmed the reversal rather than the audit being wrong.
+-- 0098 adds the two columns, flips the defaults to the matrix, and enforces both in
+-- may_create_group / may_create_event. Left here rather than deleted so the earlier reasoning —
+-- and the fact that it was overturned on purpose — is legible from this file.
 create table community_permissions (
   community_id          uuid primary key references communities(id) on delete cascade,
   invite_members        boolean not null default false,

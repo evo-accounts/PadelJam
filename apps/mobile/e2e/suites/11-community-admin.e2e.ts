@@ -17,7 +17,8 @@ import { manifest, resetDb } from '../fixtures/seed';
  * admitted to a private community, or an admin unable to remove them).
  *
  * The seed already sets this up exactly, so nothing new was needed: alex is an
- * ADMIN of community C "Cascais Social" (maria owns it), and rita and pedro both
+ * ADMIN of community C "Cascais Social" (maria created it and also administers it — since
+ * migration 0098 there are only two roles), and rita and pedro both
  * hold PENDING join requests there. That is a request-to-join community, which
  * is what makes the approval queue meaningful.
  */
@@ -60,15 +61,18 @@ describe('11 community admin', () => {
   });
 
   it('the plan section shows the plan the community is on, not Starter', async () => {
-    // Cascais Social is seeded on Basic (seed-e2e.mjs) and alex is only an admin:
-    // the left card must say Basic (with the Current badge), never Starter, and
-    // the action button gives way to the owner-only hint.
+    // Cascais Social is seeded on Basic (seed-e2e.mjs) and alex administers it without having
+    // created it. Since migration 0098 there are two roles and set_community_plan accepts any
+    // admin, so the read-only "only the owner can change the plan" hint is gone and alex gets the
+    // upgrade action instead. The left card must still say Basic (with the Current badge), never
+    // Starter.
     await openManage();
     await scrollUntilVisible({ text: /^plan$/i }, { maxSwipes: 8, direction: 'down' });
     await expectVisible({ text: /^basic$/i }, { timeout: 15_000 });
     await expectVisible({ text: /^current$/i }, { timeout: 15_000 });
     await expectVisible({ text: /^community pro$/i }, { timeout: 15_000 });
-    await expectVisible({ text: /only the owner can change the plan/i }, { timeout: 15_000 });
+    await expectVisible({ text: /upgrade to community pro/i }, { timeout: 15_000 });
+    await expectGone({ text: /only the owner can change the plan/i }, { timeout: 3_000 });
     await expectGone({ text: /^starter$/i }, { timeout: 3_000 });
   });
 
@@ -140,7 +144,7 @@ describe('11 community admin', () => {
   it('the members screen lists the roster', async () => {
     await openManage();
     await openSection(/manage members/i);
-    // maria owns it, alex administers it, and rita was admitted above.
+    // maria created it, alex administers it too, and rita was admitted above.
     await expectVisible({ text: /maria santos/i, }, { timeout: 20_000 });
     await expectVisible({ text: /rita fernandes/i }, { timeout: 20_000 });
   });
@@ -153,16 +157,22 @@ describe('11 community admin', () => {
 
     // RN's Switch surfaces here as an UNLABELED element of type CheckBox, with
     // AXValue "0"/"1" — not as type Switch, and with no text of its own to
-    // match on. So address it by ordinal: the rows render in the order
-    // Invite members / Approve join requests / Create posts, which lines up
-    // with community_permissions' columns.
+    // match on. So address it by ordinal. Migration 0098 added two toggles and
+    // the screen now renders UX-COMM-17's order:
+    //   0 Create groups / 1 Create events / 2 Invite members /
+    //   3 Approve join requests / 4 Create posts
+    // Invite members therefore moved from index 0 to index 2. The order lives in
+    // app/community/[id]/manage/permissions.tsx — change it there and these
+    // indices move with it.
+    await expectVisible({ text: /create groups/i }, { timeout: 15_000 });
+    await expectVisible({ text: /create events/i }, { timeout: 15_000 });
     await expectVisible({ text: /invite members/i }, { timeout: 15_000 });
     const [before] = (await select(
       'community_permissions',
       `community_id=eq.${m.communities.C}&select=invite_members`,
     )) as { invite_members: boolean }[];
 
-    await toggleSwitch({ type: 'CheckBox', nth: 0 });
+    await toggleSwitch({ type: 'CheckBox', nth: 2 });
 
     // The DB is the assertion, not the pixel: a switch that animates but never
     // writes would look identical on screen.

@@ -66,7 +66,7 @@ export default function BlastScreen() {
   const communityId = group?.community_id;
   const { data: communityMembers } = useCommunityMembers(communityId);
   const myRole = communityMembers?.find((m) => m.user_id === uid)?.role;
-  const canManagePlan = myRole === 'owner' || myRole === 'admin';
+  const canManagePlan = myRole === 'admin';
 
   const [tab, setTab] = useState<'templates' | 'yours'>('templates');
   const [editing, setEditing] = useState<{ template: BlastTemplate | null; title: string; description: string } | null>(null);

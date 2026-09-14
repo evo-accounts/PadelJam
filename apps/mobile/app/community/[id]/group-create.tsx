@@ -37,7 +37,7 @@ export default function GroupCreateModal() {
   // an owner or admin — resolve which, so UpgradePrompt's "See plans" can be scoped correctly.
   const { data: communityMembers } = useCommunityMembers(id);
   const myRole = communityMembers?.find((m) => m.user_id === uid)?.role;
-  const canManagePlan = myRole === 'owner' || myRole === 'admin';
+  const canManagePlan = myRole === 'admin';
 
   const create = useCreateGroup();
   const [groupId, setGroupId] = useState<string | null>(null);

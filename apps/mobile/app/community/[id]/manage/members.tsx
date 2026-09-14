@@ -26,7 +26,7 @@ import {
   useBanner,
 } from '../../../../components/ui';
 
-const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 };
+const ROLE_ORDER: Record<string, number> = { admin: 0, member: 1 };
 
 export default function ManageMembersScreen() {
   const { t } = useT('community');
@@ -43,7 +43,7 @@ export default function ManageMembersScreen() {
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const myRole = (members as CommunityMember[] | undefined)?.find((m) => m.user_id === uid)?.role;
-  const canManage = myRole === 'owner' || myRole === 'admin';
+  const canManage = myRole === 'admin';
   const busy = makeAdmin.isPending || removeAdmin.isPending || removeMember.isPending;
 
   const err = (e: unknown) => {
@@ -83,8 +83,10 @@ export default function ManageMembersScreen() {
   };
 
   const openActions = async (member: CommunityMember) => {
-    // Owner row has no destructive actions; you can't act on yourself.
-    if (!canManage || member.role === 'owner' || member.user_id === uid) return;
+    // You can't act on yourself. Every other row is actionable: with two roles there is no
+    // protected member left, and the last-admin guard (migration 0098) is what refuses a
+    // demotion or removal that would orphan the community — err() surfaces it.
+    if (!canManage || member.user_id === uid) return;
     const name = member.profiles?.full_name ?? '—';
 
     // UX-GLOB-04: the member's avatar rides on the first action row (the sheet
@@ -133,8 +135,7 @@ export default function ManageMembersScreen() {
     (a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9),
   );
 
-  const actionable = (m: CommunityMember) =>
-    canManage && m.role !== 'owner' && m.user_id !== uid;
+  const actionable = (m: CommunityMember) => canManage && m.user_id !== uid;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

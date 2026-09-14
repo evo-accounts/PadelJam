@@ -24,7 +24,7 @@ export default function ManageRequestsPage() {
   const decline = useDeclineJoinRequest(id);
 
   const role = (mine.data ?? []).find((r) => r.community?.id === id)?.role;
-  const isAdmin = role === 'owner' || role === 'admin';
+  const isAdmin = role === 'admin';
   useEffect(() => {
     if (!mine.isLoading && mine.data && !isAdmin) router.replace(`/app/community/${id}`);
   }, [mine.isLoading, mine.data, isAdmin, id, router]);

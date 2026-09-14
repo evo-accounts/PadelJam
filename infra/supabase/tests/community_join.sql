@@ -61,7 +61,9 @@ end $$;
 reset role;
 
 -- Rules-enabled community: join without ack must be rejected; request_to_join + private variants.
--- Owned-cap is 1 per user, so each of the 3 communities needs a DISTINCT owner (use fillers 04/05/06).
+-- The owned-community cap is gone (0098), so one creator could make all three. Distinct creators are
+-- kept anyway: each one must stay a non-member of the other two for the join assertions to mean
+-- anything, and a creator is a member of their own community.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"a0000000-0000-0000-0000-000000000004","role":"authenticated"}';
 select create_community_with_personal_tenant('RulesC','club','PT','public',null,null,null,null,true,'Be nice') as rid \gset

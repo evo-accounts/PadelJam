@@ -1,5 +1,6 @@
--- Create RPC contract: general group "[name] group", create_posts default true, owner role,
--- Starter implicit (community_plan='starter'), owned-cap blocks a 2nd create.
+-- Create RPC contract: general group "[name] group", the five permission toggles at UX-COMM-17's
+-- defaults, the creator as ADMIN, Starter implicit (community_plan='starter'), and NO owned-community
+-- cap — UX-COMM-09 lifts it, so a second create must now succeed (migration 0098).
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
   ('c0000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','cr@x.com') on conflict do nothing;
@@ -15,25 +16,29 @@ begin
 
   if (select name from groups where community_id=cid and is_general) <> 'Createy group' then
     raise exception using errcode='PT001', message='general group name should be "Createy group"'; end if;
-  if (select create_posts from community_permissions where community_id=cid) is not true then
-    raise exception using errcode='PT001', message='create_posts should default true'; end if;
+  -- UX-COMM-17: posts, events and invites on; groups and approvals off.
+  if not exists (select 1 from community_permissions
+                 where community_id=cid and create_posts and create_events and invite_members
+                   and not create_groups and not approve_join_requests) then
+    raise exception using errcode='PT001',
+      message='new community should start on the UX-COMM-17 permission matrix'; end if;
   -- community_plan is an internal helper (0094): not executable by authenticated, so ask as postgres.
   perform set_config('role','postgres',true);
   if community_plan(cid) <> 'starter' then
     raise exception using errcode='PT001', message='community should resolve to starter implicitly'; end if;
   perform set_config('role','authenticated',true);
-  if (select role from community_members where community_id=cid and user_id='c0000001-0000-0000-0000-000000000001') <> 'owner' then
-    raise exception using errcode='PT001', message='creator should be owner'; end if;
-  raise notice 'OK create: general="Createy group", create_posts=true, starter implicit, owner set';
+  if (select role from community_members where community_id=cid and user_id='c0000001-0000-0000-0000-000000000001') <> 'admin' then
+    raise exception using errcode='PT001', message='creator should be an admin'; end if;
+  raise notice 'OK create: general="Createy group", permission matrix, starter implicit, creator=admin';
 
-  if can_create_community() then
-    raise exception using errcode='PT001', message='can_create_community should be false after owning one'; end if;
-  raise notice 'OK can_create_community=false after owning one';
-
-  begin
-    perform create_community_with_personal_tenant('Second','club','PT');
-    raise exception using errcode='PT001', message='2nd create should be blocked by owned-cap';
-  exception when sqlstate 'P0001' then raise notice 'OK 2nd create blocked: %', sqlerrm;
-  end;
+  -- The cap is gone (UX-COMM-09: "New community" is always available; plan limits do not apply
+  -- during the MVP). The zero-argument signature is kept, so the client query still compiles.
+  if not can_create_community() then
+    raise exception using errcode='PT001', message='can_create_community should stay true after creating one'; end if;
+  perform create_community_with_personal_tenant('Second','club','PT');
+  if (select count(*) from community_members cm join communities c2 on c2.id=cm.community_id
+      where cm.user_id='c0000001-0000-0000-0000-000000000001' and cm.role='admin') <> 2 then
+    raise exception using errcode='PT001', message='a second community should be creatable'; end if;
+  raise notice 'OK the one-community cap is lifted';
 end $$;
 rollback;

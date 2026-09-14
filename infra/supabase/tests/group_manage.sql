@@ -1,5 +1,9 @@
--- leave_group: sole community owner -> sole_owner_must_transfer (GR-24); sole admin group-member ->
--- sole_admin_must_add_another, then succeeds after a 2nd admin joins; plain member leaves OK.
+-- leave_group: the sole community-admin among a group's members -> sole_admin_must_add_another
+-- (GR-36/40), then succeeds after a 2nd admin joins; plain member leaves OK.
+-- GR-24 (sole_owner_must_transfer) is gone with the owner role: migration 0098 dropped the branch
+-- rather than re-pointing it at 'admin', which would have made two checks of the same condition
+-- raise two different codes. The creator is now an admin, so scenario (1) below — which used to
+-- exercise GR-24 — lands on GR-36/40 instead.
 -- start_new_season (admin) rotates seasons; non-admin -> forbidden. archive/unarchive toggle archived_at.
 -- 'PT001' = "expected behaviour did not hold" sentinel; the RPCs raise P0001.
 begin;
@@ -23,20 +27,21 @@ insert into community_subscriptions (community_id, plan_id)
   select id, 'community_pro' from communities where name='GManageC' order by created_at desc limit 1
   on conflict (community_id) do update set plan_id='community_pro';
 
--- Seed community members: owner is already a member (owner role). Add admins + a plain member.
+-- Seed community members: the creator is already a member (admin role). Add an admin + plain members.
 insert into community_members (community_id, user_id, role) values
   (:'cid','e1300002-0000-0000-0000-000000000002','admin'),
   (:'cid','e1300003-0000-0000-0000-000000000003','member'),
   (:'cid','e1300004-0000-0000-0000-000000000004','member') on conflict do nothing;
 
--- Group G1 used for the leave scenarios. Created by owner (owner becomes a group member).
+-- Group G1 used for the leave scenarios. Created by the community creator, who becomes its member.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"e1300001-0000-0000-0000-000000000001","role":"authenticated"}';
 select create_group(:'cid','LeaveGroup',null,false) as g1 \gset
 reset role;
 select set_config('test.g1', :'g1', false);
 
--- (1) Sole community owner who is a group member -> sole_owner_must_transfer (GR-24).
+-- (1) The group's only community-admin member -> sole_admin_must_add_another (GR-36/40). GmAdmin
+-- also administers the community but is not in G1, so the creator is alone here.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"e1300001-0000-0000-0000-000000000001","role":"authenticated"}';
 do $$
@@ -44,8 +49,11 @@ declare g1 uuid := current_setting('test.g1')::uuid;
 begin
   begin
     perform leave_group(g1);
-    raise exception using errcode='PT001', message='sole owner leave_group should raise sole_owner_must_transfer';
-  exception when sqlstate 'P0001' then raise notice 'OK GR-24 sole owner blocked (%)', sqlerrm;
+    raise exception using errcode='PT001', message='the group''s only admin member should not be able to leave it';
+  exception when sqlstate 'P0001' then
+    if sqlerrm not like '%sole_admin_must_add_another%' then
+      raise exception using errcode='PT001', message='leave_group raised the wrong code: ' || sqlerrm; end if;
+    raise notice 'OK GR-36/40 sole admin member blocked (%)', sqlerrm;
   end;
 end $$;
 reset role;

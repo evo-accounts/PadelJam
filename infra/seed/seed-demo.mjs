@@ -185,10 +185,11 @@ async function main() {
   console.log('  follows seeded');
 
   // 3) Communities ----------------------------------------------------------
-  // NOTE: each user may OWN at most 1 community (can_create_community cap). So Alex
-  // owns A only; the request_to_join "Requests" demo lives in Maria's community C,
-  // where Alex is made an admin so he sees its pending requests.
-  // A: public, owner Alex — the main showcase.
+  // NOTE: the one-community cap was lifted in migration 0098 (UX-COMM-09), so this split is no
+  // longer forced. It is kept because the demo needs a community Alex ADMINISTERS BUT DID NOT
+  // CREATE: C carries the request_to_join "Requests" demo, and Alex is promoted there so he sees
+  // its pending requests as a non-creator admin.
+  // A: public, created by Alex — the main showcase.
   const commA = await rpc(jwt('alex'), 'create_community_with_personal_tenant', {
     p_name: 'Lisbon Padel Club', p_type: 'club', p_country: 'PT', p_privacy: 'public',
     p_description: 'The friendliest padel club in Lisbon.', p_location: 'Lisbon, PT',
@@ -197,20 +198,21 @@ async function main() {
   });
   // Subscribe A to Basic (default 'starter' caps groups=1/members=10; Basic lifts to 3/50).
   await insert('community_subscriptions', { community_id: commA, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
-  // C: request_to_join, owner Maria — Alex is admin (Requests demo + member-view).
+  // C: request_to_join, created by Maria — Alex is promoted to admin (Requests demo + member-view).
   const commC = await rpc(jwt('maria'), 'create_community_with_personal_tenant', {
     p_name: 'Cascais Social', p_type: 'friends', p_country: 'PT', p_privacy: 'request_to_join',
     p_description: 'Weekend social games.', p_location: 'Cascais, PT',
     p_thumbnail_path: null, p_cover_image_path: null,
     p_cancellation_rules_enabled: false, p_cancellation_rules_text: null,
   });
-  // Subscribe C to Basic too (starter caps co_organizers=0, blocking the admin promotion below).
+  // Subscribe C to Basic too. Starter's co_organizers limit is 0, which since 0098 means "one
+  // admin, no co-organizers" — the creator already fills that slot, so promoting Alex needs Basic.
   await insert('community_subscriptions', { community_id: commC, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
   console.log(`  communities: A=${commA} C=${commC}`);
 
   // A (public → immediate join): all five players become members.
   for (const k of ['maria', 'joao', 'sofia', 'bruno', 'rita']) await rpc(jwt(k), 'join_community', { p_community_id: commA, p_ack: true });
-  // Promote Maria to admin of A so she can organize group events.
+  // Promote Maria to admin of A so she can organize group events (A is on Basic: 1 co-organizer).
   await req(`/rest/v1/community_members?community_id=eq.${commA}&user_id=eq.${id('maria')}`, {
     method: 'PATCH', body: { role: 'admin' }, prefer: 'return=minimal',
   });

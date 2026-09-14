@@ -4,16 +4,14 @@ import {
   useCommunityMembers,
   useCommunityRequests,
   useLeaveCommunity,
-  useTransferOwnership,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef } from 'react';
-import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../../theme';
 import { PlanSection } from '../../../../components/community/PlanSection';
-import { Avatar, TopBar, useActionSheet, useBanner, useConfirm } from '../../../../components/ui';
+import { TopBar, useBanner, useConfirm } from '../../../../components/ui';
 import {
   ActivityIndicator,
   Pressable,
@@ -45,18 +43,14 @@ export default function ManageIndexScreen() {
   const { data: requests } = useCommunityRequests(id);
 
   const archive = useArchiveCommunity(id);
-  const transfer = useTransferOwnership(id);
   const leave = useLeaveCommunity();
   const confirm = useConfirm();
-  const show = useActionSheet();
   const banner = useBanner();
 
   const myRole = (members as Member[] | undefined)?.find((m) => m.user_id === uid)?.role;
-  const isOwner = myRole === 'owner';
   const isAdmin = myRole === 'admin';
   const isArchived = !!community?.archived_at;
   const pendingCount = requests?.length ?? 0;
-  const otherMembers = (members as Member[] | undefined)?.filter((m) => m.user_id !== uid) ?? [];
 
   const err = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';
@@ -84,38 +78,6 @@ export default function ManageIndexScreen() {
     }
   };
 
-  const onTransfer = async (newOwnerId: string) => {
-    try {
-      await transfer.mutateAsync(newOwnerId);
-      banner.show(t('transferDoneBody'), 'success');
-    } catch (e) {
-      err(e);
-    }
-  };
-
-  const onPickTransfer = async () => {
-    if (otherMembers.length === 0) {
-      banner.show(t('transferNoMembers'));
-      return;
-    }
-    const newOwnerId = await show({
-      title: t('transferPickTitle'),
-      actions: otherMembers.map((m) => ({
-        key: m.user_id,
-        label: m.profiles?.full_name ?? '—',
-        leading: <Avatar name={m.profiles?.full_name} uri={avatarUrl(m.profiles?.avatar_url)} colourKey={m.user_id} size="sm" />,
-        destructive: true,
-        confirm: {
-          title: t('transferConfirmTitle'),
-          body: t('transferConfirmBody', { name: m.profiles?.full_name ?? '—' }),
-          confirmLabel: t('transferOwnership'),
-        },
-        testID: `transfer-row-${m.user_id}`,
-      })),
-    });
-    if (newOwnerId) await onTransfer(newOwnerId);
-  };
-
   const onLeave = async () => {
     const ok = await confirm({
       title: t('leaveConfirmTitle'),
@@ -131,11 +93,9 @@ export default function ManageIndexScreen() {
       router.dismissAll();
       router.replace('/');
     } catch (e) {
-      if (e instanceof Error && e.message === 'transfer_ownership_first') {
-        banner.show(t('transfer_ownership_first'));
-      } else {
-        err(e);
-      }
+      // The last-admin guard (migration 0098) raises 'last_admin_must_promote_first'; err()
+      // resolves it through the same i18n lookup as every other code.
+      err(e);
     }
   };
 
@@ -170,9 +130,7 @@ export default function ManageIndexScreen() {
           <NavRow label={t('manageInvite')} onPress={() => router.push(`/community/${id}/manage/invite`)} />
         </Section>
 
-        {isOwner || isAdmin ? (
-          <PlanSection communityId={id} canAct={isOwner} onLayout={onPlanLayout} />
-        ) : null}
+        {isAdmin ? <PlanSection communityId={id} onLayout={onPlanLayout} /> : null}
 
         <Section title={t('manageGroupAdvanced')}>
           <ActionRow
@@ -180,13 +138,6 @@ export default function ManageIndexScreen() {
             pending={archive.isPending}
             onPress={onArchive}
           />
-          {isOwner ? (
-            <ActionRow
-              label={t('transferOwnership')}
-              pending={transfer.isPending}
-              onPress={() => void onPickTransfer()}
-            />
-          ) : null}
           <ActionRow
             label={t('leave')}
             destructive

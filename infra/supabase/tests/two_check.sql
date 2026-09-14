@@ -23,10 +23,24 @@ begin
     raise exception using errcode='PT001', message='EXPECTED basic to grant custom_broadcasts';
   end if;
   raise notice 'OK basic grants custom_broadcasts';
-  -- jammer_plus_included derivation: the owner now has account advanced_stats without a personal sub
+  -- jammer_plus_included derivation. 0098 narrowed it from the community OWNER (a role that no
+  -- longer exists) to communities.created_by, so it follows the CREATOR and does not widen to
+  -- every admin.
   if not account_has_feature('55555555-5555-5555-5555-555555555555','advanced_stats') then
-    raise exception using errcode='PT001', message='EXPECTED owner of a basic community to derive jammer_plus advanced_stats';
+    raise exception using errcode='PT001', message='EXPECTED the creator of a basic community to derive jammer_plus advanced_stats';
   end if;
-  raise notice 'OK jammer_plus_included derives advanced_stats for the owner';
+  raise notice 'OK jammer_plus_included derives advanced_stats for the creator';
+
+  -- A second admin of the same community is NOT the creator and must NOT derive it.
+  insert into auth.users (id, instance_id, aud, role, email)
+    values ('55555555-5555-5555-5555-555555555556','00000000-0000-0000-0000-000000000000','authenticated','authenticated','tc2@example.com')
+    on conflict do nothing;
+  insert into profiles (id, email, phone, full_name)
+    values ('55555555-5555-5555-5555-555555555556','tc2@example.com','+351155555556','TC2') on conflict do nothing;
+  insert into community_members (community_id, user_id, role) values (cid, '55555555-5555-5555-5555-555555555556', 'admin');
+  if account_has_feature('55555555-5555-5555-5555-555555555556','advanced_stats') then
+    raise exception using errcode='PT001', message='a non-creator admin must NOT derive jammer_plus';
+  end if;
+  raise notice 'OK a second admin does not derive jammer_plus — it narrowed, not widened';
 end $$;
 rollback;

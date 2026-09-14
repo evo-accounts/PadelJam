@@ -65,7 +65,29 @@ begin
 end $$;
 reset role;
 
--- (2) Plain community member (non-admin) creating create_event for that group -> forbidden (P0001).
+-- (2) A plain community member and create_event. Since migration 0098 the gate is the
+-- create_events TOGGLE (UX-COMM-17), not the role: it is ON by default, so the member succeeds,
+-- and turning it off is what refuses them. Role alone no longer decides.
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"f1000002-0000-0000-0000-000000000002","role":"authenticated"}';
+do $$
+declare gid uuid := current_setting('test.gid')::uuid; v_event uuid;
+begin
+  v_event := create_event(jsonb_build_object(
+    'group_id', gid::text, 'event_type','americano', 'specification','classic',
+    'scoring_mode','points', 'scoring_value', 32, 'num_courts', 1,
+    'starts_at', (now()+interval '7 days'), 'duration_minutes', 90,
+    'organizer_role','organizing_and_playing', 'name','Member Event'));
+  if v_event is null then
+    raise exception using errcode='PT001', message='a member should create group events with create_events on'; end if;
+  raise notice 'OK member create_event allowed while create_events is on';
+end $$;
+reset role;
+
+-- …and refused once an admin turns the toggle off.
+reset role;
+update community_permissions set create_events = false
+  where community_id = (select community_id from groups where id = current_setting('test.gid')::uuid);
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"f1000002-0000-0000-0000-000000000002","role":"authenticated"}';
 do $$
@@ -77,11 +99,14 @@ begin
       'scoring_mode','points', 'scoring_value', 32, 'num_courts', 1,
       'starts_at', (now()+interval '7 days'), 'duration_minutes', 90,
       'organizer_role','organizing_and_playing', 'name','Sneaky Event'));
-    raise exception using errcode='PT001', message='non-admin create_event should raise forbidden';
-  exception when sqlstate 'P0001' then raise notice 'OK non-admin create_event blocked (%)', sqlerrm;
+    raise exception using errcode='PT001', message='member create_event should be refused with create_events off';
+  exception when sqlstate 'P0001' then raise notice 'OK member create_event blocked with the toggle off (%)', sqlerrm;
   end;
 end $$;
 reset role;
+-- Restore the default so the rest of the file sees an untouched community.
+update community_permissions set create_events = true
+  where community_id = (select community_id from groups where id = current_setting('test.gid')::uuid);
 
 -- (3) Standalone event (no group_id) -> is_private forced true.
 set local role authenticated;
