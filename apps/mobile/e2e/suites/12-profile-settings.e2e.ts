@@ -1,12 +1,12 @@
 import { beforeAll, describe, it } from 'vitest';
 import { scrollUntilVisible, tap, toggleSwitch, typeText } from '../driver/actions';
 import { expectGone, expectVisible } from '../driver/expect';
-import { freshInstall } from '../driver/app';
-import { deepLink, loginAs, tabTo } from '../driver/flows';
-import { select } from '../fixtures/db';
+import { freshInstall, relaunch } from '../driver/app';
+import { deepLink, dismissSavePasswordSheetIfPresent, loginAs, tabTo } from '../driver/flows';
+import { psql, select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
-import { PERSONAS } from '../fixtures/personas';
+import { PASSWORD, PERSONAS } from '../fixtures/personas';
 
 describe('12 profile & settings', () => {
   beforeAll(async () => {
@@ -69,6 +69,72 @@ describe('12 profile & settings', () => {
       (rows) => (rows as { notifications_push: boolean }[])[0]?.notifications_push === false,
       { label: 'push pref persisted false' },
     );
+  });
+
+  /**
+   * The Change Password row, for an account that HAS a password and for one that does not.
+   *
+   * The row used to be unconditional, and the screen behind it requires the current password and
+   * verifies it with signInWithPassword. For an account with no password that call can only ever
+   * fail, so a Google or Apple sign-up was told their password was wrong forever, with no way
+   * forward and no explanation — and the one mechanism that could have given them a password
+   * (setPassword, via recovery) is itself gated behind the "Try another way" sheet offering a
+   * password row, which requires has_password to already be true.
+   *
+   * There is no seeded passwordless persona to test the second half with, and there cannot easily
+   * be one: every seeded user is created WITH a password, which is also the only way this suite
+   * can sign one in. So the password is taken away from maria UNDERNEATH the live session, which
+   * is exactly the state a social sign-up is in from its first day. The access token is already
+   * issued, so the session survives it; `auth_providers.has_password` reads
+   * `encrypted_password <> ''`, so the view flips immediately.
+   *
+   * The test then puts it back by USING the feature — typing the seeded password into the create
+   * form — so maria is left exactly as she was found, for whatever runs after this suite.
+   */
+  it('the password row names the screen it opens, with and without a password', async () => {
+    const hasPasswordSql =
+      `select coalesce(encrypted_password, '') <> '' from auth.users where email = '${PERSONAS.maria.email}'`;
+
+    // 1) WITH a password: unchanged behaviour, and the screen still asks for the current one.
+    await deepLink('mobile:///profile/settings', /change password/i);
+    await expectVisible({ text: /change password/i }, { timeout: 20_000 });
+    await expectGone({ text: /create password/i }, { timeout: 2_000 });
+    await tap({ id: 'settings-password-row' });
+    await expectVisible({ id: 'current-password-input' }, { timeout: 15_000 });
+
+    // 2) WITHOUT one. relaunch() rather than a re-navigation: the row is labelled off a React
+    //    Query result that nothing in the app would invalidate for a change made in the database.
+    await psql(`update auth.users set encrypted_password = '' where email = '${PERSONAS.maria.email}'`);
+    await relaunch();
+    await deepLink('mobile:///profile/settings', /create password/i);
+    await expectVisible({ text: /create password/i }, { timeout: 30_000 });
+    await expectGone({ text: /^change password$/i }, { timeout: 2_000 });
+
+    await tap({ id: 'settings-password-row' });
+    await expectVisible({ id: 'new-password-input' }, { timeout: 15_000 });
+    // THE DEAD END, asserted directly: there is no current-password box to fail against.
+    await expectGone({ id: 'current-password-input' }, { timeout: 2_000 });
+    // Matched on the copy: the help paragraph is a plain Text, which iOS surfaces as a
+    // StaticText with no AXUniqueId, so there is no id to select it by.
+    await expectVisible({ text: /does not have a password yet/i });
+    // The screen NAMES what it is doing, in the heading and on the button.
+    await expectVisible({ text: 'Create password', type: 'Heading' });
+    await expectVisible({ id: 'change-password-submit', text: /create password/i });
+
+    // 3) Setting a first password works, on the live session, with no current one asked for.
+    await typeText({ id: 'new-password-input' }, PASSWORD);
+    await typeText({ id: 'repeat-password-input' }, PASSWORD);
+    await tap({ id: 'change-password-submit' });
+    await dismissSavePasswordSheetIfPresent();
+    await pollUntil(
+      () => psql(hasPasswordSql),
+      (out) => out.trim() === 't',
+      { label: 'the passwordless account now has a password', timeoutMs: 20_000 },
+    );
+
+    // And the row follows: the screen invalidates the query, so settings relabels without a
+    // relaunch. This is the half a database assertion alone would miss.
+    await expectVisible({ text: /change password/i }, { timeout: 20_000 });
   });
 
   it('support ticket submits', async () => {

@@ -229,6 +229,37 @@ describe('01 auth', () => {
       await new Promise((r) => setTimeout(r, 600));
     }
     if (!done) await expectVisible({ text: /where do you play/i }, { timeout: 5_000 });
+
+    /**
+     * THE CONSENT RECORD. The box above was ticked, so the account must carry a timestamp
+     * saying so.
+     *
+     * This is asserted here and nowhere else because here is the only place in the product
+     * where consent is actually GIVEN — a checkbox, gating a submit. `terms_accepted_at` used
+     * to be written by exactly one function, provision-social-profile, for social sign-ups who
+     * never tick anything: the only accounts with a consent record were the only ones that
+     * never affirmatively consented, and this screen's own function wrote nothing at all.
+     *
+     * Matched on the phone because that is the identifier this test verified (GoTrue stores it
+     * without the leading '+', and complete-account copies it across verbatim). The secondary
+     * email may or may not have landed by now, depending on whether the stack applied the
+     * change immediately or sent a code.
+     */
+    // NOT asserted here: that `terms_accepted_at` was recorded. It cannot be.
+    // The local edge runtime mounts the MAIN CHECKOUT's functions directory
+    // (`docker inspect supabase_edge_runtime_padeljam` shows the bind), and the
+    // CI step that brings the stack up is a documented no-op when it is already
+    // running — which on this self-hosted runner is always. So every run, local
+    // or CI, exercises whatever complete-account happens to be on disk in the
+    // main checkout, never the branch under test. A green assertion here would
+    // mean nothing and a red one would mean nothing either.
+    //
+    // The consent write is covered where it can be honestly verified:
+    // `_shared/profileRow.test.ts` (unit, runs in CI via `pnpm test:functions`)
+    // and `infra/supabase/tests/complete-account-consent.test.mjs`, which is a
+    // real negative control — it fails with the exact defect message against an
+    // unfixed function — and takes a COMPLETE_ACCOUNT_URL override so it can be
+    // pointed at a directly-served copy.
   });
 
   /**

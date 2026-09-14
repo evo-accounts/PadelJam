@@ -55,6 +55,7 @@ export const qk = {
   followers: (id: string) => ['profile', id, 'followers'] as const,
   myProfile: (id: string) => ['profile', id, 'edit'] as const,
   mySettings: (id: string) => ['user-settings', id] as const,
+  authProviders: (id: string) => ['auth-providers', id] as const,
   streamToken: (uid: string) => ['stream-token', uid] as const,
   searchVenues: (q: string) => ['venues', 'search', q] as const,
   blastTemplates: ['blast-templates'] as const,
