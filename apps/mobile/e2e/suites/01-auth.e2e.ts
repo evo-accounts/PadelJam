@@ -12,10 +12,8 @@ import {
   tapCheckbox,
 } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
-import { select } from '../fixtures/db';
 import { latestOtp } from '../fixtures/mailpit';
-import { pollUntil } from '../fixtures/poll';
-import { PASSWORD, PERSONAS, TEST_PHONE, TEST_PHONE_NATIONAL, TEST_PHONE_OTP } from '../fixtures/personas';
+import { PASSWORD, PERSONAS, TEST_PHONE_NATIONAL, TEST_PHONE_OTP } from '../fixtures/personas';
 
 describe('01 auth', () => {
   beforeAll(async () => {
@@ -247,11 +245,21 @@ describe('01 auth', () => {
      * email may or may not have landed by now, depending on whether the stack applied the
      * change immediately or sent a code.
      */
-    await pollUntil(
-      () => select('profiles', `phone=eq.${TEST_PHONE.replace(/^\+/, '')}&select=terms_accepted_at`),
-      (rows) => typeof (rows as { terms_accepted_at: string | null }[])[0]?.terms_accepted_at === 'string',
-      { label: 'terms_accepted_at recorded for the account that ticked the box', timeoutMs: 20_000 },
-    );
+    // NOT asserted here: that `terms_accepted_at` was recorded. It cannot be.
+    // The local edge runtime mounts the MAIN CHECKOUT's functions directory
+    // (`docker inspect supabase_edge_runtime_padeljam` shows the bind), and the
+    // CI step that brings the stack up is a documented no-op when it is already
+    // running — which on this self-hosted runner is always. So every run, local
+    // or CI, exercises whatever complete-account happens to be on disk in the
+    // main checkout, never the branch under test. A green assertion here would
+    // mean nothing and a red one would mean nothing either.
+    //
+    // The consent write is covered where it can be honestly verified:
+    // `_shared/profileRow.test.ts` (unit, runs in CI via `pnpm test:functions`)
+    // and `infra/supabase/tests/complete-account-consent.test.mjs`, which is a
+    // real negative control — it fails with the exact defect message against an
+    // unfixed function — and takes a COMPLETE_ACCOUNT_URL override so it can be
+    // pointed at a directly-served copy.
   });
 
   /**
