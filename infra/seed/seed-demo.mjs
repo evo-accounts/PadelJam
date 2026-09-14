@@ -69,6 +69,47 @@ async function signIn(email, password) {
   return r.access_token;
 }
 
+// --- migration-seeded reference data ------------------------------------------
+// plans / plan_features / plan_limits (0013) and blast_templates (0072) come
+// from MIGRATIONS, never from this script. The demo seed's own fixtures already
+// fit inside the caps — commA sits exactly at Basic's groups_per_community of 3
+// (its general group + Tuesday Night League + Weekend Warriors) — but that is
+// only meaningful while plan_limits is populated: empty, community_limit()
+// returns null for every key and every cap reads as unlimited. The E2E harness
+// wipes public tables between runs, so a demo seed run after one can land on a
+// database whose reference data is gone. Fail here rather than quietly building
+// a demo graph no cap was ever checked against.
+const EXPECTED_LIMITS = {
+  'starter/groups_per_community': 1,
+  'basic/groups_per_community': 3,
+  'starter/members_per_community': 10,
+  'basic/members_per_community': 50,
+  'starter/co_organizers': 0,
+  'basic/co_organizers': 1,
+};
+
+async function assertReferenceData() {
+  const limits = await sel('plan_limits', 'select=plan_id,limit_key,value');
+  if (!limits.length) {
+    throw new Error('plan_limits is EMPTY — no plan cap can be enforced. Run `supabase db reset` first.');
+  }
+  const have = Object.fromEntries(limits.map((r) => [`${r.plan_id}/${r.limit_key}`, r.value]));
+  for (const [key, expected] of Object.entries(EXPECTED_LIMITS)) {
+    if (have[key] !== expected) {
+      throw new Error(
+        `plan_limits["${key}"] reads back ${JSON.stringify(have[key])}, expected ${expected}. `
+        + 'Either 0013_seed_plans.sql changed (update EXPECTED_LIMITS here) or the table was wiped '
+        + '(the E2E harness truncates public tables) — run `supabase db reset`.',
+      );
+    }
+  }
+  const templates = await sel('blast_templates', 'select=id');
+  if (!templates.length) {
+    throw new Error('blast_templates is EMPTY — run `supabase db reset` to restore it.');
+  }
+  console.log(`  reference data OK (${limits.length} plan limits, ${templates.length} blast templates)`);
+}
+
 const isoIn = (days, hour = 19) => {
   const d = new Date(Date.UTC(2026, 6, 1, hour, 0, 0)); // fixed base (no Date.now drift)
   d.setUTCDate(d.getUTCDate() + days);
@@ -113,6 +154,7 @@ async function main() {
     console.error('Demo data already present (demo@padeljam.test exists). Run `supabase db reset` first, then re-run.');
     process.exit(1);
   }
+  await assertReferenceData();
 
   // 1) Users + profiles -----------------------------------------------------
   for (const c of CAST) {

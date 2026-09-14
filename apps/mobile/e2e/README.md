@@ -108,8 +108,17 @@ personas (password `Demo1234#`), 5 communities, groups, and events E1–E12 cove
 scheduled/team/in-progress/completed/recurring plus error fixtures (join-cutoff, full,
 private, review-gated, sole-owner). Suites call `resetDb('minimal'|'full')` in
 `beforeAll`; the wipe preserves migration-seeded reference tables (`plans`,
-`plan_features`). Email OTPs are read from Mailpit (`:55324`); the phone test number
-`+351912345678` verifies with `123456`.
+`plan_features`, `plan_limits`, `blast_templates`). Email OTPs are read from Mailpit
+(`:55324`); the phone test number `+351912345678` verifies with `123456`.
+
+**The plan caps are live, and the seed sits inside them.** `plan_limits` used to be
+truncated by the wipe, which made `community_limit()` return null for every key and
+every cap read as unlimited — no plan limit was enforced in an E2E run at all. It is
+preserved now, so the fixtures have to fit: `groups_per_community` counts the
+auto-created general group, so a Basic community (A, R) holds it plus two more and a
+Starter community (P, S) holds only it. The seed asserts the reference data before it
+starts and proves the cap actually bites before it finishes; a suite that creates a
+group or promotes a second co-organizer in A or C will now hit a real cap.
 
 **Some states are unreachable through the RPCs alone.** Public group events
 auto-invite every member, so a group member can only ever arrive at an event

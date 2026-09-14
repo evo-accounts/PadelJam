@@ -11,6 +11,12 @@ export interface SeedManifest {
   seededAt: string;
   users: Record<string, string>;
   communities: { A: string; C: string; P: string; R: string; S: string };
+  // g1/g2 are community A's two named groups (A is on Basic, whose
+  // groups_per_community of 3 also counts the auto-created general group, so two
+  // is all it has room for). g3 "Secret Squad" is the private-group fixture and
+  // lives in community R for the same reason. gS is community S's GENERAL group:
+  // S is on Starter (cap 1), so that one group is the whole community and it
+  // sits exactly at the cap. See infra/seed/seed-e2e.mjs.
   groups: { g1: string; g2: string; g3: string; gR: string; gS: string };
   events: {
     e1: string; e2: string; e3: string; e4: string; e5: string; e6: string; e7: string; e8: string;
@@ -39,8 +45,15 @@ export async function wipeDb(): Promise<void> {
       for r in (
         select tablename from pg_tables
         where schemaname = 'public'
-          -- migration-seeded reference data must survive the wipe
-          and tablename not in ('plans', 'plan_features')
+          -- Migration-seeded reference data must survive the wipe: these tables
+          -- are populated by a migration, never by the seed, so truncating them
+          -- leaves them EMPTY for the rest of the run with nothing to refill
+          -- them. plan_limits was missing here for months, and an empty
+          -- plan_limits makes community_limit() return null for every key —
+          -- which the cap triggers read as "unlimited", so no plan cap was ever
+          -- enforced in an E2E run. Anything a migration inserts into the
+          -- public schema belongs here (today: 0013_seed_plans, 0072_event_blasts).
+          and tablename not in ('plans', 'plan_features', 'plan_limits', 'blast_templates')
       ) loop
         execute format('truncate table public.%I cascade', r.tablename);
       end loop;
