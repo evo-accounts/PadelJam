@@ -65,6 +65,10 @@ Every pull request runs lint, typecheck, the i18n check and unit tests, and the 
 
 **Budget explicitly for end-to-end churn.** Suites 09 and 11 assert on exact visible label text and on accessibility element types: the composer body must stay a text area, the permission switches are addressed positionally by index, the invite search must stay a plain text field rather than becoming a labelled one. Roughly nine of eleven admin tests and five of seven community tests need edits. Several carry comments documenting previous multi-minute mystery failures caused by exactly this coupling.
 
-## Still needs a decision
+## Decided
 
-**Jammer+ derivation.** It is currently granted to community *owners* on a plan that includes it. With owners gone, the natural translation grants it to every admin of such a community, which widens a paid entitlement as a side effect of a role change. The alternative is to narrow it deliberately, for example to the community creator. This should be chosen rather than inherited.
+**Jammer+ derivation narrows to the creator**, not to every admin. `account_plan` currently grants it to the community *owner* on a plan that includes it; letting that become "any admin" would widen a paid entitlement as a side effect of a role change, which nobody asked for.
+
+`communities.created_by` already exists (migration 0018) and is populated on every row, so the creator is a recorded fact and not something inferred from the role. The function simply changes which question it asks, and the change is independent of when the backfill runs.
+
+Note this genuinely narrows the entitlement rather than moving it: anyone who holds Jammer+ today because ownership was *transferred* to them will lose it. Count the affected users on the hosted database before running the migration and report the number, rather than discovering it afterwards. `infra/supabase/tests/two_check.sql:26-30` asserts the owner-only version and needs rewriting.
