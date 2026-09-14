@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-native';
 
 import { Avatar } from './Avatar';
 import { Badge } from './Badge';
+import { Button } from './Button';
 import { ListRow } from './ListRow';
 
 const meta = {
@@ -31,3 +32,17 @@ export const TitleOnly: Story = { args: { subtitle: undefined } };
 
 /** Without onPress it renders as a plain View — no button role is claimed. */
 export const NotPressable: Story = { args: { onPress: undefined } };
+
+/**
+ * A control in the trailing slot: the row splits into a pressable body and a
+ * sibling button, so both are reachable by VoiceOver (notifications CTA).
+ */
+export const TrailingInteractive: Story = {
+  args: {
+    variant: 'card',
+    subtitle: 'invited you to Cascais Social',
+    trailing: <Button label="Join" size="sm" onPress={() => {}} />,
+    trailingInteractive: true,
+    onPress: () => {},
+  },
+};

@@ -41,6 +41,24 @@ type Props = {
    * Pass this whenever `trailing` carries INFORMATION rather than decoration.
    */
   trailingLabel?: string;
+  /**
+   * The trailing slot is a CONTROL — a Button, an IconButton — with its own
+   * press handler.
+   *
+   * A pressable row is ONE accessibility element (see `trailingLabel`), so a
+   * control placed inside it can neither be reached nor activated by VoiceOver:
+   * the notifications "Join" / "Confirm spot" CTA shipped exactly that way.
+   * With this flag the row renders as two SIBLINGS — the pressable body and the
+   * trailing control — the structure `chat/ChannelRow` hand-rolls for its kebab.
+   *
+   * `trailingLabel` is ignored here: the control names itself, and repeating its
+   * label on the row would announce the same word twice.
+   *
+   * `disabled` still greys and disables the ROW's body; the control keeps
+   * whatever disabled state its own call site gave it, because the row does not
+   * own it.
+   */
+  trailingInteractive?: boolean;
   variant?: ListRowVariant;
   /**
    * Tone for the title. `destructive` exists for the one row every settings
@@ -77,6 +95,7 @@ export function ListRow({
   leading,
   trailing,
   trailingLabel,
+  trailingInteractive = false,
   variant = 'plain',
   titleTone = 'default',
   subtitleTone = 'muted',
@@ -87,7 +106,7 @@ export function ListRow({
   style,
   testID,
 }: Props) {
-  const body = (
+  const main = (
     <>
       {leading ? <View style={styles.leading}>{leading}</View> : null}
       <View style={styles.text}>
@@ -106,7 +125,13 @@ export function ListRow({
           </Text>
         ) : null}
       </View>
-      {trailing ? <View style={styles.trailing}>{trailing}</View> : null}
+    </>
+  );
+  const trailingSlot = trailing ? <View style={styles.trailing}>{trailing}</View> : null;
+  const body = (
+    <>
+      {main}
+      {trailingSlot}
     </>
   );
 
@@ -125,6 +150,44 @@ export function ListRow({
     );
   }
 
+  // One expression, used by BOTH shapes below: `disabled` landed after the
+  // split branch was first sketched, and a second hand-written copy is exactly
+  // how one of them silently loses it again.
+  const accessibilityState =
+    selected === undefined && !disabled
+      ? undefined
+      : { ...(selected === undefined ? {} : { selected }), ...(disabled ? { disabled: true } : {}) };
+
+  if (trailingInteractive && trailingSlot) {
+    // The surface stays a plain View (and keeps the testID, so E2E selectors do
+    // not move); the pressable shrinks to the body and the control sits beside
+    // it, reachable as its own element.
+    //
+    // The body stretches to the surface's content height and its hit area is
+    // slopped out by the surface padding, so a finger landing anywhere on the
+    // card that is not the control still opens the row — measured at 24pt of
+    // text inside a 56pt card, which is the target the single-pressable shape
+    // had. No `right` slop: that is where the control lives.
+    const pad = variant === 'card' ? space[4] : space[3];
+    return (
+      <View testID={testID} style={[...surface, styles.split, disabled && styles.disabled]}>
+        <Pressable
+          onPress={onPress}
+          disabled={disabled}
+          accessibilityRole="button"
+          // No `trailingLabel`: the control announces itself.
+          accessibilityLabel={[title, subtitle].filter(Boolean).join(', ')}
+          accessibilityState={accessibilityState}
+          hitSlop={{ top: pad, bottom: pad, left: pad }}
+          style={({ pressed }) => [styles.main, pressed && styles.pressed]}
+        >
+          {main}
+        </Pressable>
+        {trailingSlot}
+      </View>
+    );
+  }
+
   return (
     <Pressable
       testID={testID}
@@ -138,11 +201,7 @@ export function ListRow({
       // tree from the failure read exactly "Partner Requests" — no separator at
       // all — so the count had to come back AND come back joined the same way.
       accessibilityLabel={[title, subtitle, trailingLabel].filter(Boolean).join(', ')}
-      accessibilityState={
-        selected === undefined && !disabled
-          ? undefined
-          : { ...(selected === undefined ? {} : { selected }), ...(disabled ? { disabled: true } : {}) }
-      }
+      accessibilityState={accessibilityState}
       style={({ pressed }) => [...surface, disabled && styles.disabled, pressed && styles.pressed]}
     >
       {body}
@@ -173,6 +232,12 @@ const styles = StyleSheet.create({
   },
   highlighted: { backgroundColor: colors.accent },
   disabled: { opacity: 0.45 },
+  // A row whose trailing is interactive: the surface lets its two children
+  // stretch, so the pressable body is as tall as the control beside it.
+  split: { alignItems: 'stretch' },
+  // The body of that row: the same row layout as the surface, minus the
+  // surface. Only this half dims when pressed.
+  main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space[3] },
   leading: { justifyContent: 'center' },
   text: { flex: 1 },
   subtitle: { marginTop: 2 },

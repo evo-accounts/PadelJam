@@ -332,6 +332,22 @@ export function Overview() {
           highlighted
           onPress={() => {}}
         />
+        {/* trailingInteractive: the one shape a screenshot cannot judge on its
+            own — it is an ACCESSIBILITY TREE difference, not a visual one. The
+            card must still read as a single 56pt row with the button on its
+            right, while VoiceOver reaches the row and the button separately.
+            Anything that makes the body look shorter than the button beside it
+            is the regression this section is here to catch. */}
+        <ListRow
+          variant="card"
+          title="Rui Trindade"
+          subtitle="invited you to Cascais Social"
+          leading={<Avatar name="Rui Trindade" size="md" />}
+          trailing={<Button label="Join" size="sm" onPress={() => {}} />}
+          trailingInteractive
+          onPress={() => {}}
+          testID="gallery-listrow-trailing-interactive"
+        />
       </Section>
 
       <Section title="Card">
