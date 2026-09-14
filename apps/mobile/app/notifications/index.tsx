@@ -13,7 +13,7 @@ import { notificationRoute } from '@padel/utils';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors } from '../../theme';
@@ -59,6 +59,22 @@ export default function NotificationsScreen() {
     if (!n.read_at) markRead.mutate(n.id);
     const href = targetHref(n);
     if (href) router.push(href as never);
+  };
+
+  const ctaErrorMessage = (code: string) => t(code, { defaultValue: t('respondError') });
+
+  const onCtaPress = (n: NotificationRow) => {
+    setCtaError(null);
+    completeCta.mutate(n, {
+      onError: (e) => {
+        const code = e instanceof Error ? e.message : 'unknown_error';
+        setCtaError({ id: n.id, code });
+        // The subtitle turns destructive, but a tone change inside an element
+        // that is already labelled is silent to a screen reader. Say it out
+        // loud, once, when it happens.
+        AccessibilityInfo.announceForAccessibility(ctaErrorMessage(code));
+      },
+    });
   };
 
   return (
@@ -132,7 +148,7 @@ export default function NotificationsScreen() {
             <ListRow
               variant="card"
               title={t(item.type, { actor: item.actor_name ?? '', entity: item.entity_name ?? '' })}
-              subtitle={ctaError?.id === item.id ? t(ctaError.code, { defaultValue: t('respondError') }) : undefined}
+              subtitle={ctaError?.id === item.id ? ctaErrorMessage(ctaError.code) : undefined}
               subtitleTone={ctaError?.id === item.id ? 'destructive' : 'muted'}
               highlighted={!item.read_at}
               trailing={
@@ -145,16 +161,16 @@ export default function NotificationsScreen() {
                       size="sm"
                       loading={completeCta.isPending && completeCta.variables?.id === item.id}
                       disabled={completeCta.isPending}
-                      onPress={() => {
-                        setCtaError(null);
-                        completeCta.mutate(item, {
-                          onError: (e) => setCtaError({ id: item.id, code: e instanceof Error ? e.message : 'unknown_error' }),
-                        });
-                      }}
+                      onPress={() => onCtaPress(item)}
                     />
                   )
                 ) : null
               }
+              // A LIVE CTA is a control of its own: it has to sit BESIDE the row's
+              // accessibility element, not inside it, or VoiceOver can neither
+              // reach nor activate it. The done state is static text, so that
+              // row stays a single element and describes itself below.
+              trailingInteractive={CTA_TYPES.has(item.type) && !item.cta_done}
               // Only the static "joined"/"confirmed" state needs describing. The
               // CTA button carries its own label; repeating it here would announce
               // the word twice on a row that already reads as one element.
