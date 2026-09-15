@@ -7,15 +7,7 @@ import {
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
@@ -27,8 +19,8 @@ import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
 import { validateCommunityForm, type CommunityFormFieldKey } from '@/lib/communityFormValidate';
 import { useDirty } from '@/lib/useDirty';
 import { useFieldErrors } from '@/lib/useFieldErrors';
-import { colors } from '../../../theme';
-import { Field, TopBar, useBanner } from '../../../components/ui';
+import { colors, space } from '../../../theme';
+import { Button, Field, Text, TopBar, useBanner } from '../../../components/ui';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
@@ -146,7 +138,7 @@ export default function CreateCommunityScreen() {
           containerStyle={styles.field}
         />
 
-        <Text style={styles.label}>{t('typeLabel')}</Text>
+        <Text variant="label" tone="muted" style={styles.label}>{t('typeLabel')}</Text>
         <SegmentedType value={type} onChange={setType} disabled={pending} />
 
         <ImagePickerRow
@@ -164,7 +156,7 @@ export default function CreateCommunityScreen() {
           disabled={pending}
         />
 
-        <Text style={styles.label}>{t('privacyLabel')}</Text>
+        <Text variant="label" tone="muted" style={styles.label}>{t('privacyLabel')}</Text>
         <PrivacyCards value={privacy} onChange={setPrivacy} disabled={pending} />
 
         <RulesToggle
@@ -176,18 +168,7 @@ export default function CreateCommunityScreen() {
           disabled={pending}
         />
 
-        <Pressable
-          style={[styles.button, pending && styles.buttonDisabled]}
-          onPress={submit}
-          disabled={pending}
-          accessibilityRole="button"
-        >
-          {pending ? (
-            <ActivityIndicator color={colors.card} />
-          ) : (
-            <Text style={styles.buttonText}>{t('create')}</Text>
-          )}
-        </Pressable>
+        <Button label={t('create')} size="lg" fullWidth loading={pending} onPress={submit} />
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -197,15 +178,7 @@ export default function CreateCommunityScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
-  inner: { paddingHorizontal: 24 },
-  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
-  field: { marginBottom: 16 },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
+  inner: { paddingHorizontal: space[6] },
+  label: { marginBottom: space[2] },
+  field: { marginBottom: space[4] },
 });

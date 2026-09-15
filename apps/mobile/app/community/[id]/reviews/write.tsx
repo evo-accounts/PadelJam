@@ -3,22 +3,12 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { StarRating } from '@/components/community/StarRating';
 import { useDirty } from '@/lib/useDirty';
-import { colors } from '../../../../theme';
-import { Field, TopBar, useBanner } from '../../../../components/ui';
+import { colors, space } from '../../../../theme';
+import { Button, Field, Rating, Text, TopBar, useBanner } from '../../../../components/ui';
 
 // Maps a thrown mutation error code to an existing community-namespace i18n key.
 const ERROR_KEY_MAP: Record<string, string> = {
@@ -80,8 +70,8 @@ export default function WriteReviewModal() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {/* Star picker */}
           <View style={styles.section}>
-            <Text style={styles.label}>{t('reviewsRatingLabel')}</Text>
-            <StarRating value={rating} onChange={setRating} size={36} />
+            <Text variant="label">{t('reviewsRatingLabel')}</Text>
+            <Rating value={rating} onChange={setRating} size="lg" testID="review-rating" />
           </View>
 
           {/* Detail text */}
@@ -100,18 +90,7 @@ export default function WriteReviewModal() {
 
         {/* Footer action */}
         <View style={styles.footer}>
-          <Pressable
-            style={[styles.saveBtn, styles.saveBtnFull, isPending && styles.saveBtnDisabled]}
-            onPress={handleSubmit}
-            accessibilityRole="button"
-            disabled={isPending}
-          >
-            {isPending ? (
-              <ActivityIndicator color={colors.card} size="small" />
-            ) : (
-              <Text style={styles.saveText}>{t('save')}</Text>
-            )}
-          </Pressable>
+          <Button label={t('save')} size="lg" fullWidth loading={isPending} onPress={handleSubmit} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -121,25 +100,12 @@ export default function WriteReviewModal() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
-  content: { padding: 20, gap: 20 },
-  section: { gap: 10 },
-  label: { fontSize: 15, fontWeight: '600', color: colors.foreground },
+  content: { padding: space[5], gap: space[5] },
+  section: { gap: space[2] },
   footer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
+    paddingHorizontal: space[5],
+    paddingVertical: space[4],
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
-  saveBtnFull: { flex: 1 },
-  saveBtn: {
-    flex: 2,
-    paddingVertical: 13,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveText: { fontSize: 16, fontWeight: '700', color: colors.card },
 });

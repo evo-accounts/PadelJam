@@ -21,6 +21,7 @@
     "tokens:build": "node scripts/tokens.mjs --write",
     "tokens:check": "node scripts/tokens.mjs",
     "i18n:check": "node scripts/check-i18n-keys.mjs",
+    "size:check": "node scripts/check-size-budget.mjs",
     "schema:check": "node scripts/check-remote-schema.mjs"
   },
   "devDependencies": {

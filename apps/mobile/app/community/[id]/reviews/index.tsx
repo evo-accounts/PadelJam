@@ -8,9 +8,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ReviewCard, type ReviewRow } from '@/components/community/ReviewCard';
-import { StarRating } from '@/components/community/StarRating';
 import { colors, palette } from '../../../../theme';
-import { Button, Chip, EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../../components/ui';
+import { Button, Chip, EmptyState, emptyIcon, listEmptyContent, Rating, TopBar } from '../../../../components/ui';
 
 type SortKey = 'newest' | 'highest' | 'lowest';
 type RatingFilter = 0 | 1 | 2 | 3 | 4 | 5; // 0 = all
@@ -81,7 +80,7 @@ export default function ReviewsScreen() {
         {average != null ? (
           <>
             <Text style={styles.averageText}>{average.toFixed(1)}</Text>
-            <StarRating value={average} size={24} />
+            <Rating value={average} size="md" />
             <Text style={styles.countText}>
               {t('reviewsCount', { count })}
             </Text>

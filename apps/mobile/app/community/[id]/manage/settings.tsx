@@ -8,15 +8,7 @@ import {
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
@@ -29,8 +21,8 @@ import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/
 import { validateCommunityForm, type CommunityFormFieldKey } from '@/lib/communityFormValidate';
 import { useDirty } from '@/lib/useDirty';
 import { useFieldErrors } from '@/lib/useFieldErrors';
-import { colors, palette } from '../../../../theme';
-import { Field, TopBar, useBanner } from '../../../../components/ui';
+import { colors, space } from '../../../../theme';
+import { Button, Field, Text, TopBar, useBanner } from '../../../../components/ui';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
@@ -209,7 +201,7 @@ export default function ManageSettingsScreen() {
           containerStyle={styles.field}
         />
 
-        <Text style={styles.label}>{t('typeLabel')}</Text>
+        <Text variant="label" tone="muted" style={styles.label}>{t('typeLabel')}</Text>
         <SegmentedType value={type} onChange={setType} disabled={pending} />
 
         <ImagePickerRow
@@ -227,7 +219,7 @@ export default function ManageSettingsScreen() {
           disabled={pending}
         />
 
-        <Text style={styles.label}>{t('privacyLabel')}</Text>
+        <Text variant="label" tone="muted" style={styles.label}>{t('privacyLabel')}</Text>
         <PrivacyCards value={privacy} onChange={setPrivacy} disabled={pending} />
 
         <RulesToggle
@@ -239,18 +231,7 @@ export default function ManageSettingsScreen() {
           disabled={pending}
         />
 
-        <Pressable
-          style={[styles.button, pending && styles.buttonDisabled]}
-          onPress={submit}
-          disabled={pending}
-          accessibilityRole="button"
-        >
-          {pending ? (
-            <ActivityIndicator color={colors.card} />
-          ) : (
-            <Text style={styles.buttonText}>{t('save')}</Text>
-          )}
-        </Pressable>
+        <Button label={t('save')} size="lg" fullWidth loading={pending} onPress={submit} />
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -260,16 +241,7 @@ export default function ManageSettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
-  inner: { paddingHorizontal: 24, paddingTop: 16 },
-  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
-  hint: { fontSize: 12, color: palette.slate[400], marginTop: 4, marginBottom: 16 },
-  field: { marginBottom: 16 },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
+  inner: { paddingHorizontal: space[6], paddingTop: space[4] },
+  label: { marginBottom: space[2] },
+  field: { marginBottom: space[4] },
 });

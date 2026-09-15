@@ -1,9 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
-import { StarRating } from './StarRating';
 import { colors, palette } from '../../theme';
-import { Avatar } from '../ui';
+import { Avatar, Rating } from '../ui';
 
 export type ReviewRow = {
   id: string;
@@ -39,7 +38,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
             {name}
           </Text>
           <View style={styles.starsRow}>
-            <StarRating value={review.rating} size={16} />
+            <Rating value={review.rating} size="sm" />
             <Text style={styles.time}>{relativeTime}</Text>
           </View>
         </View>

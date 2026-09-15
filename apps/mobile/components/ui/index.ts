@@ -32,8 +32,12 @@ export { Illustration, type IllustrationName, type IllustrationProps } from './I
 export { ListRow, type ListRowVariant } from './ListRow';
 export { PasswordField } from './PasswordField';
 export { PhoneField, type PhoneFieldProps } from './PhoneField';
+export { RadioCardGroup, type RadioCardOption } from './RadioCardGroup';
+export { Rating, type RatingProps, type RatingSize } from './Rating';
+export { Segmented, type SegmentedOption } from './Segmented';
 export { SheetHost, useConfirm, useActionSheet, type ConfirmOptions, type ActionSheetOptions, type SheetAction } from './SheetHost';
 export { SheetRow } from './SheetRow';
+export { SwitchRow, type SwitchRowProps } from './SwitchRow';
 export { TopBar } from './TopBar';
 export { Loading, Screen } from './Screen';
 export { Text, type TextTone, type TextVariant } from './Text';

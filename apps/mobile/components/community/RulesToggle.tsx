@@ -1,6 +1,14 @@
+/**
+ * Cancellation rules: a labelled switch, and the rules text once it is on.
+ *
+ * The row is `SwitchRow` and the input is `Field`, so this file is now the
+ * community copy and the reveal, nothing else.
+ */
 import { useT } from '@padel/i18n';
-import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { colors } from '../../theme';
+import { StyleSheet, View } from 'react-native';
+
+import { Field, SwitchRow } from '../ui';
+import { space } from '../../theme';
 
 export function RulesToggle({
   enabled,
@@ -20,47 +28,31 @@ export function RulesToggle({
   const { t } = useT('community');
   return (
     <View style={styles.container}>
-      <View style={styles.row}>
-        <View style={styles.textCol}>
-          <Text style={styles.title}>{t('rulesToggle')}</Text>
-          <Text style={styles.desc}>{t('rulesToggleDesc')}</Text>
-        </View>
-        <Switch value={enabled} onValueChange={onToggle} disabled={disabled} />
-      </View>
+      <SwitchRow
+        label={t('rulesToggle')}
+        description={t('rulesToggleDesc')}
+        value={enabled}
+        onValueChange={onToggle}
+        disabled={disabled}
+        testID="community-rules-toggle"
+      />
       {enabled ? (
-        <>
-          <Text style={styles.label}>{t('rulesLabel')}</Text>
-          <TextInput
-            style={styles.input}
-            value={text}
-            onChangeText={onChangeText}
-            placeholder={t('rulesPlaceholder')}
-            multiline
-            editable={!disabled}
-          />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-        </>
+        <Field
+          label={t('rulesLabel')}
+          value={text}
+          onChangeText={onChangeText}
+          placeholder={t('rulesPlaceholder')}
+          multiline
+          editable={!disabled}
+          error={error ?? undefined}
+          containerStyle={styles.input}
+        />
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 16 },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  textCol: { flex: 1, paddingRight: 12 },
-  title: { fontSize: 15, fontWeight: '600', color: colors.foreground },
-  desc: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
-  label: { fontSize: 14, color: colors.mutedForeground, marginTop: 14, marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    minHeight: 88,
-    textAlignVertical: 'top',
-  },
-  error: { color: colors.destructive, marginTop: 8 },
+  container: { marginBottom: space[4] },
+  input: { marginTop: space[3] },
 });
