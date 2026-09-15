@@ -56,6 +56,25 @@ export const useJoinCommunity = (communityId: string) => {
   });
 };
 
+// UX-COMM-04: the action reads "Request to join", becomes "Requested" once tapped, and tapping
+// again cancels. The RPC takes the community rather than the request id — the preview already
+// knows which community it is showing, and (community_id, user_id) is unique.
+export const useCancelJoinRequest = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await db.rpc('cancel_join_request', { p_community_id: communityId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.communities });
+      qc.invalidateQueries({ queryKey: qk.community(communityId) });
+      qc.invalidateQueries({ queryKey: qk.requests(communityId) });
+    },
+  });
+};
+
 export const useAcceptJoinRequest = (communityId: string) => {
   const db = useDb();
   const qc = useQueryClient();
@@ -104,16 +123,39 @@ export const useInviteMembers = (communityId: string) => {
   });
 };
 
+// `ack` is the rules toggle of UX-COMM-05, which applies to private communities as much as to the
+// other two. It is optional so the notification CTA (which passes the invitation id alone) keeps
+// working; the RPC refuses the join when the community has rules and the acceptance is missing.
 export const useAcceptInvitation = () => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (invitationId: string) => {
-      const { error } = await db.rpc('accept_invitation', { p_invitation_id: invitationId });
+    mutationFn: async (input: string | { invitationId: string; ack?: boolean }) => {
+      const { invitationId, ack } = typeof input === 'string' ? { invitationId: input, ack: false } : input;
+      const { error } = await db.rpc('accept_invitation', {
+        p_invitation_id: invitationId,
+        p_ack: ack ?? false,
+      });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.communities });
+    },
+  });
+};
+
+// UX-COMM-04: Decline sits beside Accept on a private invitation, and dismisses it.
+export const useDeclineInvitation = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (invitationId: string) => {
+      const { error } = await db.rpc('decline_invitation', { p_invitation_id: invitationId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.communities });
+      qc.invalidateQueries({ queryKey: qk.notifications });
     },
   });
 };

@@ -55,8 +55,13 @@ export const useJoinGroup = () => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { groupId: string; communityId: string }) => {
-      const { error } = await db.rpc('join_group', { p_group_id: input.groupId });
+    // `ack` carries the rules acceptance of UX-COMM-05: joining a public group is also entry into
+    // its community, so a community with rules refuses the join until they are accepted.
+    mutationFn: async (input: { groupId: string; communityId: string; ack?: boolean }) => {
+      const { error } = await db.rpc('join_group', {
+        p_group_id: input.groupId,
+        p_ack: input.ack ?? false,
+      });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
     onSuccess: (_data, input) => {
@@ -106,8 +111,11 @@ export const useAcceptGroupInvitation = () => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { groupId: string; communityId: string }) => {
-      const { error } = await db.rpc('accept_group_invitation', { p_group_id: input.groupId });
+    mutationFn: async (input: { groupId: string; communityId: string; ack?: boolean }) => {
+      const { error } = await db.rpc('accept_group_invitation', {
+        p_group_id: input.groupId,
+        p_ack: input.ack ?? false,
+      });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
     onSuccess: (_data, input) => {

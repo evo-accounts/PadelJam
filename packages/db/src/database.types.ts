@@ -309,6 +309,7 @@ export type Database = {
           accepted_at: string | null
           community_id: string
           created_at: string
+          declined_at: string | null
           group_ids: string[]
           id: string
           invitee_id: string
@@ -319,6 +320,7 @@ export type Database = {
           accepted_at?: string | null
           community_id: string
           created_at?: string
+          declined_at?: string | null
           group_ids?: string[]
           id?: string
           invitee_id: string
@@ -329,6 +331,7 @@ export type Database = {
           accepted_at?: string | null
           community_id?: string
           created_at?: string
+          declined_at?: string | null
           group_ids?: string[]
           id?: string
           invitee_id?: string
@@ -420,6 +423,7 @@ export type Database = {
           created_at: string
           id: string
           role: string
+          rules_accepted_at: string | null
           user_id: string
         }
         Insert: {
@@ -427,6 +431,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          rules_accepted_at?: string | null
           user_id: string
         }
         Update: {
@@ -434,6 +439,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          rules_accepted_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1460,6 +1466,7 @@ export type Database = {
       groups: {
         Row: {
           archived_at: string | null
+          archived_with_community: boolean
           community_id: string
           created_at: string
           created_by: string | null
@@ -1473,6 +1480,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          archived_with_community?: boolean
           community_id: string
           created_at?: string
           created_by?: string | null
@@ -1486,6 +1494,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          archived_with_community?: boolean
           community_id?: string
           created_at?: string
           created_by?: string | null
@@ -2280,11 +2289,11 @@ export type Database = {
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       accept_event_invitation: { Args: { p_event_id: string }; Returns: string }
       accept_group_invitation: {
-        Args: { p_group_id: string }
+        Args: { p_ack?: boolean; p_group_id: string }
         Returns: undefined
       }
       accept_invitation: {
-        Args: { p_invitation_id: string }
+        Args: { p_ack?: boolean; p_invitation_id: string }
         Returns: undefined
       }
       accept_join_request: {
@@ -2306,8 +2315,24 @@ export type Database = {
         Returns: string
       }
       add_member_to_community: {
-        Args: { p_community: string; p_user: string }
+        Args: { p_ack?: boolean; p_community: string; p_user: string }
         Returns: undefined
+      }
+      cancel_join_request: {
+        Args: { p_community_id: string }
+        Returns: undefined
+      }
+      decline_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
+      record_community_entry: {
+        Args: { p_ack?: boolean; p_community: string; p_user: string }
+        Returns: undefined
+      }
+      rules_ack_required: {
+        Args: { c: string; p_ack: boolean }
+        Returns: boolean
       }
       addauth: { Args: { "": string }; Returns: boolean }
       addgeometrycolumn:
@@ -2476,6 +2501,7 @@ export type Database = {
       materialize_occurrence: { Args: { p_after_event_id: string }; Returns: string }
       mask_email: { Args: { p_email: string }; Returns: string }
       mask_phone: { Args: { p_phone: string }; Returns: string }
+      may_approve_requests: { Args: { c: string }; Returns: boolean }
       may_create_event: { Args: { c: string }; Returns: boolean }
       may_create_group: { Args: { c: string }; Returns: boolean }
       set_event_timer: {
@@ -2814,7 +2840,7 @@ export type Database = {
         Returns: string
       }
       join_event: { Args: { p_event_id: string }; Returns: string }
-      join_group: { Args: { p_group_id: string }; Returns: undefined }
+      join_group: { Args: { p_ack?: boolean; p_group_id: string }; Returns: undefined }
       leave_community: { Args: { p_community_id: string }; Returns: undefined }
       leave_event: { Args: { p_event_id: string }; Returns: undefined }
       leave_group: { Args: { p_group_id: string }; Returns: undefined }
