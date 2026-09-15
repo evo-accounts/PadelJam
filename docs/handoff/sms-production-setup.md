@@ -34,7 +34,31 @@ In Authentication, then Providers, then Phone:
 - Enable the phone provider.
 - Choose Twilio as the SMS provider.
 - Paste the Account SID, the Auth Token and the Messaging Service SID.
-- Set the message template to `Your code is {{ .Code }}`.
+- Set the message template to exactly this, with nothing around it:
+
+  ```
+  Your code is {{ .Code }}
+  ```
+
+  This went wrong once and cost a TestFlight round trip, so it is worth being
+  precise about. The value has three different spellings in this repository and
+  only one of them is what you paste:
+
+  | where | what it looks like | paste it? |
+  |---|---|---|
+  | the dashboard field | `Your code is {{ .Code }}` | this one |
+  | `infra/supabase/config.toml` | `Your code is {{ \`{{ .Code }}\` }}` | no |
+  | a markdown code span in a doc | wrapped in backtick characters | no |
+
+  The config.toml form carries backticks because the Supabase CLI runs that file
+  through Go templating itself; the escape makes the inner placeholder survive so
+  GoTrue receives it intact. Paste that spelling into the dashboard and the
+  backticks become part of the message, and the code never reaches the user —
+  the SMS arrives, which makes it look like a delivery problem rather than a
+  template one.
+
+  A live send is the only way to be sure. `POST /auth/v1/otp` tells you whether
+  Twilio ACCEPTED the message, not what the message said.
 - Enable phone confirmations. The account completion step attaches a second
   identifier with `updateUser`, and this setting is what forces that attachment to
   be verified by a code rather than trusted.
