@@ -27,6 +27,7 @@ const MOBILE = join(ROOT, 'apps', 'mobile');
 const DERIVED = join(MOBILE, '.e2e-derived');
 const APP_PATH = join(DERIVED, 'Build', 'Products', 'Release-iphonesimulator', 'PadelJam.app');
 const STAMP = join(DERIVED, 'source-stamp.txt');
+const PODS_STAMP = join(MOBILE, 'ios', 'Pods', '.padeljam-podfile-stamp');
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -305,6 +306,41 @@ function pruneArtifacts(root, keep) {
   if (dirs.length) log(`Pruned ${dirs.length} old artifact dir(s)`);
 }
 
+/**
+ * Pods are reinstalled when they are missing OR when the Podfile has changed
+ * since they were installed.
+ *
+ * The missing-only check was not enough. `expo prebuild` regenerates the
+ * Podfile from app.json and its config plugins, so a plugin change rewrites the
+ * Podfile while Pods/ still holds the project built from the previous one —
+ * and CocoaPods' own "sandbox is not in sync" guard does not fire, because that
+ * compares Podfile.lock against Manifest.lock and a build-settings change moves
+ * neither. That is exactly the shape of the Xcode 27 deployment-target fix in
+ * apps/mobile/plugins/withPodMinimumDeploymentTarget.js: same dependencies,
+ * different build settings.
+ */
+function installPodsIfStale() {
+  const podfile = join(MOBILE, 'ios', 'Podfile');
+  const lock = join(MOBILE, 'ios', 'Podfile.lock');
+  const hash = createHash('sha1')
+    .update(readFileSync(podfile))
+    .update(existsSync(lock) ? readFileSync(lock) : '')
+    .digest('hex');
+
+  const installed = existsSync(join(MOBILE, 'ios', 'Pods'));
+  if (installed && existsSync(PODS_STAMP) && readFileSync(PODS_STAMP, 'utf8') === hash) return;
+
+  log(installed ? 'Podfile changed — running pod install' : 'Pods missing — running pod install');
+  // CocoaPods refuses to run under an ASCII-8BIT locale, and a launchd-started
+  // runner does not inherit one from a login shell.
+  sh('/usr/local/bin/pod', ['install'], {
+    cwd: join(MOBILE, 'ios'),
+    inherit: true,
+    env: { ...ENV, LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' },
+  });
+  writeFileSync(PODS_STAMP, hash);
+}
+
 function buildIfStale(udid) {
   const hash = sourceHash();
   if (existsSync(APP_PATH) && existsSync(STAMP) && readFileSync(STAMP, 'utf8') === hash && !flag('--force-build')) {
@@ -312,10 +348,7 @@ function buildIfStale(udid) {
     return;
   }
   log('Building Release for simulator (this takes a few minutes)…');
-  if (!existsSync(join(MOBILE, 'ios', 'Pods'))) {
-    log('Pods missing — running pod install');
-    sh('/usr/local/bin/pod', ['install'], { cwd: join(MOBILE, 'ios'), inherit: true });
-  }
+  installPodsIfStale();
   sh('xcodebuild', [
     '-workspace', join(MOBILE, 'ios', 'PadelJam.xcworkspace'),
     '-scheme', 'PadelJam',

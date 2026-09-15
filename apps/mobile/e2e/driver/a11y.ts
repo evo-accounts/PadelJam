@@ -9,6 +9,21 @@ export interface AxElement {
   role: string;
   enabled: boolean;
   frame: { x: number; y: number; width: number; height: number };
+  /** iOS accessibility traits. Present from idb; absent on older companions. */
+  traits?: string[];
+}
+
+/**
+ * Top edge of the software keyboard, or null when it is not up.
+ *
+ * Every key carries the `KeyboardKey` trait, which is what makes this reliable:
+ * the keys have no stable labels (they change with language and layout) and the
+ * panel itself is not one addressable element.
+ */
+export function keyboardTop(tree: AxElement[]): number | null {
+  const keys = tree.filter((e) => e.traits?.includes('KeyboardKey'));
+  if (keys.length === 0) return null;
+  return Math.min(...keys.map((k) => k.frame.y));
 }
 
 export interface Selector {

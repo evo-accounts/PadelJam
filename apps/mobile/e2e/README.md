@@ -20,6 +20,109 @@ The web app has its own separate end-to-end suite (Playwright) at
 - Xcode (the runner exports `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`).
 - idb client: `pip3 install --user fb-idb` (+ `idb_companion` from the facebook/fb brew tap).
 
+## After a major Xcode upgrade, do this first
+
+Xcode 27 landed on the build Mac on 2026-09-15 and broke the suite in five
+separate places, each hidden behind the one before it. Every failure looked like
+an app bug and none of them was. Work the list in order.
+
+1. **`sudo xcodebuild -license accept`.** Until this is done `xcrun simctl`
+   refuses everything and the job dies in 26 seconds. It also breaks the system
+   `python3`, which is what the `idb` client runs on.
+
+2. **Kill any running `idb_companion`.** It is a long-lived per-device process,
+   and one started before the upgrade keeps running against stale framework
+   handles: it answers every request and returns an EMPTY accessibility tree.
+
+   ```
+   [{"AXFrame":"{{0, 0}, {0, 0}}","AXLabel":null,"role":null,"type":null, …}]
+   ```
+
+   The app is fine — it launches, renders, and the failure screenshots show the
+   right screen. But the driver is blind, so all 15 suites fail in `beforeAll`
+   at `freshInstall` with `saw ""`, which reads like a stale session and is not
+   one. `driver/idb.ts` respawns the companion, so killing it is enough.
+
+3. **Rebuild `idb_companion` from upstream source.** Restarting it fixes
+   READING. It does not fix INPUT: taps and swipes still fail with
+
+   ```
+   SimulatorKit is required for HID interactions: Attempting to load a file at path
+   '…/Contents/Developer/Library/PrivateFrameworks/SimulatorKit.framework',
+   but it does not exist
+   ```
+
+   Xcode 27 moved that framework to `Contents/SharedFrameworks`. Homebrew's
+   idb-companion is pinned at v1.1.8 (2022), which hardcodes the old path, and
+   **the formula cannot help you**: its `install` only unpacks a prebuilt
+   universal tarball, so `--build-from-source` compiles nothing and `--HEAD`
+   fails outright with `No such file or directory - bin/idb_companion`.
+
+   facebook/idb itself is actively maintained — upstream had commits the same
+   day, and `FBControlCore/Utility/FBWeakFramework+ApplePrivateFrameworks.swift`
+   already prefers the new location and falls back to the old one. Build it:
+
+   ```bash
+   git clone https://github.com/facebook/idb.git ~/idb-build   # NOT under /tmp, see below
+   /opt/homebrew/bin/brew install xcodegen protobuf            # NOT /usr/local/bin/brew, see below
+   cd ~/idb-build && PATH="/opt/homebrew/bin:$PATH" ./build.sh build
+   ```
+
+   Then install the result and point the PATH entry at it, keeping the Homebrew
+   keg intact so this is one command to undo:
+
+   ```bash
+   cp -R ~/idb-build/Build/Distribution/. /usr/local/lib/idb-companion-head/
+   brew unlink idb-companion
+   ln -sfn /usr/local/lib/idb-companion-head/idb_companion /usr/local/bin/idb_companion
+   # to revert: rm /usr/local/bin/idb_companion && brew link idb-companion
+   ```
+
+   The binary finds its frameworks through `@executable_path`, so the whole
+   Distribution directory has to stay together; a symlink to it is fine because
+   dyld resolves the link first.
+
+   Confirm both halves before rerunning the suite — reading and input fail
+   independently, and only the companion log distinguishes them:
+
+   ```bash
+   idb ui describe-all --udid "$UDID" | head -c 200   # a real tree, not []
+   idb ui tap 200 800 --udid "$UDID"                  # silence means success
+   grep -E "SimulatorKit|hid succeeded" /tmp/idb/companion.log
+   ```
+
+   Two traps in those commands, both of which cost time here:
+
+   - **Do not build under `/tmp`.** It is a symlink to `/private/tmp`, and
+     XcodeGen's relative-path fixup doubles the prefix, so the build dies on
+     `Unable to open base configuration reference file '/tmp/claude-501/tmp/…'`.
+   - **Use `/opt/homebrew/bin/brew`.** This Mac has both: `/usr/local` is an
+     x86_64 install running under Rosetta (`brew config` says
+     `CPU: westmere`, `Rosetta 2: true`) and it is first in PATH, so a bare
+     `brew install protobuf` tries to compile with `-march=westmere` and fails.
+     The native arm64 install at `/opt/homebrew` does it in seconds. Same root
+     cause as the `pnpm dlx` CLI-architecture incident in
+     `.github/workflows/e2e-mobile.yml`.
+
+   `idb_companion --version` is no help for any of this: its `build_date` is a
+   constant baked into the source ("Aug 12 2022"), not the compile date.
+
+   Only if a source build also fails should you install the previous Xcode
+   alongside and point `DEVELOPER_DIR` at it for this job; the workflow already
+   sets that variable.
+
+4. **Pod deployment targets.** Xcode rejects any below its floor (15.0 for
+   Xcode 27), and CocoaPods gives each pod's resource-bundle target the platform
+   from its own podspec rather than the app's.
+   `apps/mobile/plugins/withPodMinimumDeploymentTarget.js` raises them; if the
+   floor moves again, raise `target` there.
+
+5. **Expo's own Swift may not compile.** Xcode 27's Swift rejected a
+   `@convention(c)` pointer formed inside a ternary in `expo-modules-jsi`. Expo
+   fixed it in a patch release, pinned through `pnpm.overrides` in the root
+   `package.json`. Check for a newer patch of the failing package before
+   reaching for an SDK bump.
+
 ## Running
 
 ```bash
