@@ -20,6 +20,57 @@ The web app has its own separate end-to-end suite (Playwright) at
 - Xcode (the runner exports `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`).
 - idb client: `pip3 install --user fb-idb` (+ `idb_companion` from the facebook/fb brew tap).
 
+## After a major Xcode upgrade, do this first
+
+Xcode 27 landed on the build Mac on 2026-09-15 and broke the suite in four
+separate places, each hidden behind the one before it. Every failure looked like
+an app bug and none of them was. Work the list in order:
+
+1. **`sudo xcodebuild -license accept`.** Until this is done `xcrun simctl`
+   refuses everything and the job dies in 26 seconds. It also breaks the system
+   `python3`, which is what `idb` runs on.
+
+2. **`brew reinstall --build-from-source idb-companion`.** This is the one that
+   costs a day if you do not know it. `idb_companion` links Xcode's private
+   frameworks, so a companion compiled against the previous Xcode keeps running
+   and keeps answering — it just returns an EMPTY accessibility tree:
+
+   ```
+   [{"AXFrame":"{{0, 0}, {0, 0}}","AXLabel":null,"role":null,"type":null, …}]
+   ```
+
+   The app is fine. It launches, renders, and the failure screenshots show the
+   right screen. But the driver is blind, so all 15 suites fail in `beforeAll`
+   at `freshInstall` with `saw ""` — which reads like a stale session and is
+   not one. The giveaway is in the companion's own stderr:
+
+   ```
+   objc: Class FBProcess is implemented in both
+     /System/Library/PrivateFrameworks/FrontBoard.framework  and
+     …/idb-companion/1.1.8/Frameworks/FBControlCore.framework
+   ```
+
+   `idb_companion --version` does NOT help: its `build_date` is a constant baked
+   into the source ("Aug 12 2022"), not the compile date. Use
+   `brew info idb-companion` and read "Built from source on …".
+
+   Note that facebook/idb is effectively unmaintained — 1.1.8 is the latest
+   stable. If a rebuild ever stops being enough, install the previous Xcode
+   alongside and point `DEVELOPER_DIR` at it for this job; the workflow already
+   sets that variable.
+
+3. **Pod deployment targets.** Xcode rejects any below its floor (15.0 for
+   Xcode 27), and CocoaPods gives each pod's resource-bundle target the platform
+   from its own podspec rather than the app's.
+   `apps/mobile/plugins/withPodMinimumDeploymentTarget.js` raises them; if the
+   floor moves again, raise `target` there.
+
+4. **Expo's own Swift may not compile.** Xcode 27's Swift rejected a
+   `@convention(c)` pointer formed inside a ternary in `expo-modules-jsi`. Expo
+   fixed it in a patch release, pinned through `pnpm.overrides` in the root
+   `package.json`. Check for a newer patch of the failing package before
+   reaching for an SDK bump.
+
 ## Running
 
 ```bash
