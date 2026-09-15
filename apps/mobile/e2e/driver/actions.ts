@@ -1,4 +1,4 @@
-import { snapshot, query, describeSelector, type AxElement, type Selector } from './a11y';
+import { snapshot, query, describeSelector, keyboardTop, type AxElement, type Selector } from './a11y';
 import { idbKey, idbSwipe, idbTap, idbText } from './idb';
 import { captureFailure, waitFor, type WaitOpts } from './expect';
 
@@ -250,11 +250,21 @@ export async function clearText(field: Selector, chars = 40): Promise<void> {
 
 export const pressReturn = () => idbKey(40);
 
-export async function swipe(direction: 'up' | 'down' | 'left' | 'right', opts: { fromY?: number } = {}): Promise<void> {
+export async function swipe(
+  direction: 'up' | 'down' | 'left' | 'right',
+  opts: { fromY?: number; keyboardTopY?: number | null } = {},
+): Promise<void> {
   // Device points; start away from edges (edge swipes trigger OS gestures at <4pt).
   const cx = 200;
-  const cy = opts.fromY ?? 500;
   const d = 250;
+  // A swipe that STARTS on the software keyboard scrolls nothing: the keyboard
+  // swallows it, the content does not move, and the caller reports an element
+  // stuck at an unchanged y. The default band is 375..625 and the keyboard's top
+  // is around 575 on this device, so every scroll behind a focused field failed
+  // this way the moment Xcode 27 began showing the software keyboard (it had
+  // been suppressed by a connected hardware keyboard before). Slide the band up
+  // so the whole gesture clears the keyboard.
+  const cy = opts.fromY ?? clearOfKeyboard(500, d, opts.keyboardTopY ?? null);
   const map = {
     up: [cx, cy + d / 2, cx, cy - d / 2],
     down: [cx, cy - d / 2, cx, cy + d / 2],
@@ -383,6 +393,31 @@ function safeBackY(tree: AxElement[]): number {
 }
 
 /**
+ * Move a swipe's centre well up the area above the keyboard.
+ *
+ * "Above the keyboard" is not enough, which is the whole point of this
+ * function. Measured on Edit profile with the keyboard top at y=590:
+ *
+ *   swipe 566 -> 316   Save stays at y=955   (clears the keyboard by 24pt)
+ *   swipe 570 -> 480   Save stays at y=955
+ *   swipe 570 -> 200   Save stays at y=955
+ *   swipe 420 -> 170   Save moves to y=782   scrolled
+ *   swipe 300 -> 150   Save moves to y=782   scrolled
+ *
+ * A band that hugs the keyboard's top edge is swallowed even though every
+ * coordinate in it is above the keyboard; one centred in the upper half of the
+ * remaining space works. So aim for the middle of the space above the keyboard
+ * rather than for the largest legal offset.
+ */
+function clearOfKeyboard(cy: number, d: number, keyboardTopY: number | null): number {
+  if (keyboardTopY == null) return cy;
+  let centred = Math.min(cy, Math.round(keyboardTopY / 2));
+  // Keep the far end clear of the status bar; an edge swipe there is an OS gesture.
+  if (centred - d / 2 < 60) centred = 60 + d / 2;
+  return centred;
+}
+
+/**
  * Scroll (default up-swipe = scroll down) until the selector is on screen.
  *
  * Two DIFFERENT thresholds here, deliberately:
@@ -413,8 +448,12 @@ export async function scrollUntilVisible(
 ): Promise<void> {
   const { direction = 'up', maxSwipes = 8 } = opts;
   for (let i = 0; i < maxSwipes; i++) {
-    if (restsComfortably(query(await snapshot(), sel))) return;
-    await swipe(direction);
+    // One snapshot per iteration serves both purposes: the stop rule, and the
+    // keyboard position the swipe needs. Asking for it inside swipe() would add
+    // a describe-all per gesture, which is the expensive call in this driver.
+    const tree = await snapshot();
+    if (restsComfortably(query(tree, sel))) return;
+    await swipe(direction, { keyboardTopY: keyboardTop(tree) });
   }
   const el = query(await snapshot(), sel);
   if (onScreen(el)) return;

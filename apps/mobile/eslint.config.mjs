@@ -17,9 +17,10 @@ export default [
   ...rootConfig,
 
   {
-    // Metro's config and the web stubs are real CommonJS, not ESM that happens
-    // to end in .js — they are loaded by the bundler, not the app.
-    files: ['metro.config.js', 'stubs/**/*.js'],
+    // Metro's config, the web stubs and the Expo config plugins are real
+    // CommonJS, not ESM that happens to end in .js — they are loaded by the
+    // bundler or by `expo prebuild`, on Node, not by the app.
+    files: ['metro.config.js', 'stubs/**/*.js', 'plugins/**/*.js'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: globals.node,

@@ -27,11 +27,29 @@ export default async function globalSetup(): Promise<void> {
     problems.push(`Postgres container ${CONFIG.dbContainer} not reachable via docker exec.`);
   }
 
+  // PARSE the listing, do not pattern-match it. This was a regex allowing 200
+  // characters between the udid and its "state" key, and Xcode 27 added
+  // `lastUsedAt` and `logPathSize` to every device entry — pushing the real gap
+  // to 245 and making a booted simulator report as not booted. The whole suite
+  // then failed in global setup, a long way from the cause. scripts/e2e/run.mjs
+  // has always parsed this properly; this is the copy that did not.
   const sim = await run('xcrun', ['simctl', 'list', 'devices', '-j']);
-  if (sim.code !== 0 || !sim.stdout.includes(CONFIG.udid)) {
+  let device: { udid: string; state?: string } | undefined;
+  if (sim.code === 0) {
+    try {
+      const listing = JSON.parse(sim.stdout) as { devices: Record<string, { udid: string; state?: string }[]> };
+      device = Object.values(listing.devices).flat().find((d) => d.udid === CONFIG.udid);
+    } catch {
+      problems.push('xcrun simctl list devices -j did not return JSON.');
+    }
+  }
+  if (sim.code !== 0 || (!device && !problems.some((p) => p.startsWith('xcrun')))) {
     problems.push(`Simulator ${CONFIG.udid} not found (set E2E_UDID or create the device).`);
-  } else if (!new RegExp(`"${CONFIG.udid}"[\\s\\S]{0,200}?"state"\\s*:\\s*"Booted"`).test(sim.stdout)) {
-    problems.push(`Simulator ${CONFIG.udid} is not booted — the orchestrator (scripts/e2e/run.mjs) boots it.`);
+  } else if (device && device.state !== 'Booted') {
+    problems.push(
+      `Simulator ${CONFIG.udid} is ${device.state ?? 'in an unknown state'}, not Booted — ` +
+        'the orchestrator (scripts/e2e/run.mjs) boots it.',
+    );
   }
 
   if (!existsSync(APP_PATH)) {

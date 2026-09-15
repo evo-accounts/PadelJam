@@ -104,18 +104,22 @@ jobs:
 
       # apps/mobile/ios is gitignored, so a workspace that has never run this
       # job has none — and run.mjs points xcodebuild straight at
-      # ios/PadelJam.xcworkspace. Generate it once here; `clean: false` above
-      # keeps it for later runs. --no-install deliberately skips pod install:
-      # run.mjs already installs Pods when they are missing, using an explicit
+      # ios/PadelJam.xcworkspace.
+      #
+      # Run EVERY time rather than only when the directory is absent. `clean:
+      # false` above keeps the workspace between runs, so a skip meant the
+      # runner kept whatever native project the first run ever generated: a
+      # change to app.json or to a config plugin would never reach it. That is
+      # how the Xcode 27 deployment-target fix would have been invisible here.
+      # Prebuild is idempotent and takes about four seconds over an existing
+      # directory, so there is nothing to save by skipping it.
+      #
+      # --no-install deliberately skips pod install: run.mjs installs Pods when
+      # they are missing or when the Podfile has changed, using an explicit
       # /usr/local/bin/pod, and a second copy of that here would be a second
       # thing to keep in sync.
-      - name: Prebuild the iOS project if absent
-        run: |
-          if [ -d apps/mobile/ios ]; then
-            echo "apps/mobile/ios present — skipping prebuild"
-          else
-            pnpm --filter mobile exec expo prebuild --platform ios --no-install
-          fi
+      - name: Prebuild the iOS project
+        run: pnpm --filter mobile exec expo prebuild --platform ios --no-install
 
       # Deliberately thin: scripts/e2e/run.mjs already resolves the simulator,
       # boots it tolerating an already-booted device, and preflights the
