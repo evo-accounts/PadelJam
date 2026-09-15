@@ -98,7 +98,15 @@ export const useCommunities = () => {
         .select('role, communities(*)')
         .eq('user_id', uid!);
       if (error) throw error;
-      return (data ?? []).map((row) => ({ role: row.role, community: row.communities }));
+      // The embed resolves under the reader's own RLS, and since migration 0099 an ARCHIVED
+      // community is readable by its admins alone (UX-COMM-24). A member who was in one when it
+      // was archived therefore keeps the membership row but gets `communities: null` back, so
+      // those rows are dropped here rather than reaching the switcher as a community with no
+      // fields. An admin's archived communities still arrive, which is what the switcher's
+      // Archived section is built on.
+      return (data ?? [])
+        .filter((row) => row.communities != null)
+        .map((row) => ({ role: row.role, community: row.communities }));
     },
   });
 };
