@@ -75,6 +75,73 @@ async function signIn(email, password) {
   return r.access_token;
 }
 
+// --- migration-seeded reference data ------------------------------------------
+// plans / plan_features / plan_limits (0013) and blast_templates (0072) are
+// inserted by MIGRATIONS, never by this script. A wipe that truncates them
+// leaves them empty for the rest of the run with nothing to refill them, and an
+// empty plan_limits is silent: community_limit() returns null for every key,
+// which the cap triggers (0015/0017/0045) read as "unlimited". That is how the
+// whole E2E suite ran for months with no plan limit enforced at all. Assert the
+// tables up front so the next regression fails here instead of nowhere.
+const EXPECTED_LIMITS = {
+  'starter/groups_per_community': 1,
+  'basic/groups_per_community': 3,
+  'starter/members_per_community': 10,
+  'basic/members_per_community': 50,
+  'starter/co_organizers': 0,
+  'basic/co_organizers': 1,
+};
+const WIPE_HINT =
+  'wipeDb() in apps/mobile/e2e/fixtures/seed.ts truncates every public table except an '
+  + 'explicit allow-list; add the table there, or run `supabase db reset` to restore it.';
+
+async function assertReferenceData() {
+  const limits = await sel('plan_limits', 'select=plan_id,limit_key,value');
+  if (!limits.length) {
+    throw new Error(`plan_limits is EMPTY — no plan cap can be enforced. ${WIPE_HINT}`);
+  }
+  const have = Object.fromEntries(limits.map((r) => [`${r.plan_id}/${r.limit_key}`, r.value]));
+  for (const [key, expected] of Object.entries(EXPECTED_LIMITS)) {
+    if (have[key] !== expected) {
+      throw new Error(
+        `plan_limits["${key}"] reads back ${JSON.stringify(have[key])}, expected ${expected}. `
+        + `Either 0013_seed_plans.sql changed (update EXPECTED_LIMITS here) or the table was wiped. ${WIPE_HINT}`,
+      );
+    }
+  }
+  const templates = await sel('blast_templates', 'select=id');
+  if (!templates.length) {
+    throw new Error(`blast_templates is EMPTY — the blast template picker has no fixtures. ${WIPE_HINT}`);
+  }
+  console.log(`  reference data OK (${limits.length} plan limits, ${templates.length} blast templates)`);
+}
+
+/**
+ * End-to-end proof that the caps actually BITE, not just that the rows exist:
+ * `communityId` must already sit at its groups_per_community cap, so one more
+ * group has to be refused. Reading plan_limits (above) only shows the data is
+ * there; this shows the trigger reaches it.
+ */
+async function assertGroupCapEnforced(communityId, ownerKey) {
+  let created = null;
+  try {
+    created = await rpc(U[ownerKey].jwt, 'create_group', {
+      p_community_id: communityId, p_name: 'Cap Probe', p_description: null,
+      p_is_private: false, p_thumbnail_path: null,
+    });
+  } catch (e) {
+    if (/groups_per_community/.test(e.message)) return; // the cap fired — as it must
+    throw e;
+  }
+  // Best-effort cleanup; the throw below is the point, so never let a failed
+  // delete replace it with a less useful error.
+  try { await req(`/rest/v1/groups?id=eq.${created}`, { method: 'DELETE' }); } catch { /* ignore */ }
+  throw new Error(
+    'plan caps are NOT enforced: a community already at its groups_per_community cap '
+    + `accepted another group (${created}). ${WIPE_HINT}`,
+  );
+}
+
 // --- dates: NOW-relative ---------------------------------------------------
 // Base = current hour (truncated) so repeated runs within an hour are stable-ish
 // while cutoffs (6h join / 12h leave) and "upcoming" filters behave correctly.
@@ -164,6 +231,7 @@ async function main() {
     console.error('Data already present (demo@padeljam.test exists). Reset the DB first.');
     process.exit(1);
   }
+  await assertReferenceData();
 
   // 1) Users + profiles -----------------------------------------------------
   for (const c of CAST) {
@@ -208,7 +276,15 @@ async function main() {
     p_thumbnail_path: null, p_cover_image_path: null,
     p_cancellation_rules_enabled: true, p_cancellation_rules_text: 'Cancel at least 12h before.',
   });
-  await insert('community_subscriptions', { community_id: commA, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
+  // community_pro, not basic. A is seeded with FOUR groups (its general group plus
+  // Tuesday Night League, Weekend Warriors and Secret Squad) and basic caps
+  // groups_per_community at 3 — invisible until plan_limits stopped being wiped.
+  // Raising the plan keeps every other fixture in A EXACTLY as it was, which
+  // matters: moving a group out of A changes what Home renders for alex, and
+  // suite 10 reaches its groups through Home. community_pro also RAISES
+  // co_organizers (3, against basic's 1), so maria's promotion still fits.
+  // Nothing asserts A's plan — suite 11's Basic assertions are on community C.
+  await insert('community_subscriptions', { community_id: commA, dimension: 'community', plan_id: 'community_pro', status: 'active', provider: 'manual' });
   const commC = await rpc(jwt('maria'), 'create_community_with_personal_tenant', {
     p_name: 'Cascais Social', p_type: 'friends', p_country: 'PT', p_privacy: 'request_to_join',
     p_description: 'Weekend social games.', p_location: 'Cascais, PT',
@@ -235,7 +311,9 @@ async function main() {
   await insert('community_subscriptions', { community_id: commR, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
 
   // C5: sole-owner community on the default Starter plan (owner carla) —
-  // leave-blocked / transfer-ownership / plan-cap (1 group on starter) fixtures.
+  // leave-blocked / transfer-ownership / plan-cap fixtures. Starter allows ONE
+  // group per community and the general group created below fills it, so this
+  // community sits exactly AT the cap (see the groups section).
   const commS = await rpc(jwt('carla'), 'create_community_with_personal_tenant', {
     p_name: 'Carla Solo Club', p_type: 'friends', p_country: 'PT', p_privacy: 'public',
     p_description: 'Starter plan, one owner.', p_location: 'Faro, PT',
@@ -277,17 +355,36 @@ async function main() {
   console.log('  posts/comments/likes');
 
   // 5) Groups ---------------------------------------------------------------
+  // groups_per_community COUNTS the auto-created general group (0015/0017), so
+  // Basic's 3 buys a community its general group plus two more — which is
+  // exactly the shape seed-demo.mjs has always had for commA. This fork added a
+  // third named group and went one over; it only ever succeeded because the
+  // harness wiped plan_limits (see assertReferenceData above).
   const g1 = await rpc(jwt('alex'), 'create_group', { p_community_id: commA, p_name: 'Tuesday Night League', p_description: 'Weekly competitive americano.', p_is_private: false, p_thumbnail_path: null });
   const g2 = await rpc(jwt('alex'), 'create_group', { p_community_id: commA, p_name: 'Weekend Warriors', p_description: 'Casual weekend games.', p_is_private: false, p_thumbnail_path: null });
-  const g3 = await rpc(jwt('alex'), 'create_group', { p_community_id: commA, p_name: 'Secret Squad', p_description: 'Private group.', p_is_private: true, p_thumbnail_path: null });
   for (const k of ['maria', 'joao', 'sofia', 'bruno', 'rita']) await rpc(jwt(k), 'join_group', { p_group_id: g1 });
   for (const k of ['maria', 'joao']) await rpc(jwt(k), 'join_group', { p_group_id: g2 });
   await rpc(jwt('alex'), 'invite_to_group', { p_group_id: g2, p_invitee_id: id('rita') }); // pending
-  await rpc(jwt('alex'), 'invite_to_group', { p_group_id: g3, p_invitee_id: id('maria') }); // invited-private join path
   const gR = await rpc(jwt('tiago'), 'create_group', { p_community_id: commR, p_name: 'Review League', p_description: 'Completed events live here.', p_is_private: false, p_thumbnail_path: null });
   for (const k of ['joao', 'sofia', 'bruno']) await rpc(jwt(k), 'join_group', { p_group_id: gR });
-  const gS = await rpc(jwt('carla'), 'create_group', { p_community_id: commS, p_name: 'Only Group', p_description: 'Starter cap reached.', p_is_private: false, p_thumbnail_path: null });
-  console.log(`  groups: g1=${g1} g2=${g2} g3(private)=${g3} gR=${gR} gS=${gS}`);
+  // community with a free slot (general + Review League = 2 of 3). The move
+  // costs the tests nothing: the assertion it feeds needs a viewer who is in the
+  // COMMUNITY but not in the group, and joao is a member of Review Club too.
+  const g3 = await rpc(jwt('alex'), 'create_group', { p_community_id: commA, p_name: 'Secret Squad', p_description: 'Private group.', p_is_private: true, p_thumbnail_path: null });
+  await rpc(jwt('alex'), 'invite_to_group', { p_group_id: g3, p_invitee_id: id('maria') }); // invited-private join path
+  // commS has NO subscription, so it is on Starter, whose groups_per_community
+  // is 1 — and its auto-created general group already occupies that one slot.
+  // "Starter cap reached" is therefore the state the community is ALREADY in;
+  // the "Only Group" the seed used to create on top of it was one OVER the cap,
+  // not at it. gS is that general group: the only group in the community, which
+  // is what the fixture always meant.
+  const generalS = await sel('groups', `community_id=eq.${commS}&is_general=eq.true&select=id`);
+  if (generalS.length !== 1) {
+    throw new Error(`commS should have exactly one general group, found ${generalS.length}`);
+  }
+  const gS = generalS[0].id;
+  console.log(`  groups: g1=${g1} g2=${g2} g3(private, in R)=${g3} gR=${gR} gS(general, at Starter cap)=${gS}`);
+  await assertGroupCapEnforced(commS, 'carla');
 
   // 6) Venue + courts -------------------------------------------------------
   const venue = await insert('venues', { name: 'Lisbon Padel Arena', address: 'Av. da Liberdade, Lisbon', community_id: commA, created_by: id('alex') });
