@@ -37,6 +37,7 @@
   "pnpm": {
     "overrides": {
       "react": "19.2.3",
+      "expo-modules-jsi": "56.0.13",
       "react-dom": "19.2.3",
       "@tanstack/react-query": "5.101.0",
       "react-i18next": "15.7.4"
