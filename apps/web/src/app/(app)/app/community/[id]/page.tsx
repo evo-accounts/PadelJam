@@ -87,10 +87,10 @@ export default function CommunityDetailPage() {
   const isMember = !!mineRow;
 
   const myRole = mineRow?.role;
-  const isAdmin = myRole === 'owner' || myRole === 'admin';
+  const isAdmin = myRole === 'admin';
   const canPost =
     isMember &&
-    (myRole === 'owner' || myRole === 'admin' || perms.data?.create_posts === true);
+    (myRole === 'admin' || perms.data?.create_posts === true);
 
   const needsAck = community.cancellation_rules_enabled && !isMember;
 
@@ -148,7 +148,7 @@ export default function CommunityDetailPage() {
     </div>
   );
 
-  const admins = memberRows.filter((m) => m.role === 'owner' || m.role === 'admin');
+  const admins = memberRows.filter((m) => m.role === 'admin');
   const createdLabel = (() => {
     if (!community.created_at) return null;
     const d = new Date(community.created_at);

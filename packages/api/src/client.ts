@@ -5,11 +5,15 @@ export const useDb = (): TypedClient => useSession().client;
 
 const KNOWN = [
   'owned_community_cap_reached', 'rules_acknowledgement_required', 'invite_required',
-  'transfer_ownership_first', 'community_not_found', 'forbidden', 'not_a_member',
-  'request_not_found', 'invitation_not_found', 'new_owner_not_member',
+  'community_not_found', 'forbidden', 'not_a_member',
+  'request_not_found', 'invitation_not_found',
+  // The last-admin guard (migration 0098's trg_last_admin trigger). It replaces
+  // 'transfer_ownership_first' and covers all four ways an admin row can leave: leave_community,
+  // remove_member, a direct demotion under RLS, and soft_delete_account.
+  'last_admin_must_promote_first',
   // groups: RPC/validation codes the group screens translate directly
   'name_required', 'group_not_found', 'group_private_join_forbidden',
-  'sole_owner_must_transfer', 'sole_admin_must_add_another', 'groups_per_community', 'general_group_only_group',
+  'sole_admin_must_add_another', 'groups_per_community', 'general_group_only_group',
   // events: RPC/validation codes the event screens translate directly
   'invalid_event_config', 'series_requires_group', 'event_not_found', 'event_closed',
   'event_full', 'leave_deadline_passed', 'already_joined', 'not_invited', 'not_participant',

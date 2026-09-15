@@ -7,9 +7,24 @@ import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 
-type PermCol = 'invite_members' | 'approve_join_requests' | 'create_posts';
+type PermCol =
+  | 'create_groups'
+  | 'create_events'
+  | 'invite_members'
+  | 'approve_join_requests'
+  | 'create_posts';
 
-const rows: { labelKey: 'permInvite' | 'permApprove' | 'permCreatePosts'; col: PermCol }[] = [
+type LabelKey =
+  | 'permCreateGroups'
+  | 'permCreateEvents'
+  | 'permInvite'
+  | 'permApprove'
+  | 'permCreatePosts';
+
+/** UX-COMM-17's order, which is also the order the mobile screen uses. */
+const rows: { labelKey: LabelKey; col: PermCol }[] = [
+  { labelKey: 'permCreateGroups', col: 'create_groups' },
+  { labelKey: 'permCreateEvents', col: 'create_events' },
   { labelKey: 'permInvite', col: 'invite_members' },
   { labelKey: 'permApprove', col: 'approve_join_requests' },
   { labelKey: 'permCreatePosts', col: 'create_posts' },
@@ -27,7 +42,7 @@ export default function ManagePermissionsPage() {
   const [saveError, setSaveError] = useState(false);
 
   const role = (mine.data ?? []).find((r) => r.community?.id === id)?.role;
-  const isAdmin = role === 'owner' || role === 'admin';
+  const isAdmin = role === 'admin';
   useEffect(() => {
     if (!mine.isLoading && mine.data && !isAdmin) router.replace(`/app/community/${id}`);
   }, [mine.isLoading, mine.data, isAdmin, id, router]);

@@ -22,7 +22,7 @@ export default function InvitePage() {
   const [invited, setInvited] = useState<Set<string>>(new Set());
 
   const role = (mine.data ?? []).find((r) => r.community?.id === id)?.role;
-  const isAdmin = role === 'owner' || role === 'admin';
+  const isAdmin = role === 'admin';
   useEffect(() => {
     if (!mine.isLoading && mine.data && !isAdmin) router.replace(`/app/community/${id}`);
   }, [mine.isLoading, mine.data, isAdmin, id, router]);

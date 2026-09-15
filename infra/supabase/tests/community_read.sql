@@ -12,8 +12,8 @@ insert into profiles (id, email, phone, full_name) values
 do $$
 declare cid_priv uuid; cid_pub uuid;
 begin
-  -- owner creates a PRIVATE and a PUBLIC community (owner can only own one, so use two owners?).
-  -- Owned-cap is 1 per user, so make the public community under a second owner.
+  -- The owned-community cap was lifted in 0098 (UX-COMM-09), so one user could hold both. The
+  -- fixture keeps a single private community: what is under test is the non-member's view of it.
   perform set_config('role','authenticated',true);
   perform set_config('request.jwt.claims','{"sub":"d0000001-0000-0000-0000-000000000001","role":"authenticated"}',true);
   cid_priv := create_community_with_personal_tenant('PrivC','club','PT','private');

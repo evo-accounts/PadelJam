@@ -33,7 +33,6 @@ const PRIVACY_SUMMARY_KEY: Record<string, string> = {
 };
 
 const ROLE_LABEL_KEY: Record<string, string> = {
-  owner: 'aboutOwnerRole',
   admin: 'aboutAdminRole',
 };
 
@@ -61,7 +60,7 @@ export default function CommunityAboutScreen() {
   const privacyLabel = t(PRIVACY_TITLE_KEY[community.privacy] ?? 'privacyPublicTitle');
   const privacySummary = t(PRIVACY_SUMMARY_KEY[community.privacy] ?? 'privacySummaryPublic');
   const memberCount = members?.length ?? 0;
-  const admins = (members ?? []).filter((m) => m.role === 'owner' || m.role === 'admin');
+  const admins = (members ?? []).filter((m) => m.role === 'admin');
 
   const created = new Date(community.created_at).toLocaleDateString(i18n.language, {
     year: 'numeric',

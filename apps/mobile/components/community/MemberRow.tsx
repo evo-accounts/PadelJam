@@ -12,11 +12,10 @@ export type CommunityMember = {
 };
 
 const ROLE_KEY: Record<string, string> = {
-  owner: 'aboutOwnerRole',
   admin: 'aboutAdminRole',
 };
 
-/** Single member roster row: avatar, name and a role badge for owner/admin. */
+/** Single member roster row: avatar, name and a role badge for admins. */
 export function MemberRow({ member }: { member: CommunityMember }) {
   const { t } = useT('community');
   const name = member.profiles?.full_name ?? '—';

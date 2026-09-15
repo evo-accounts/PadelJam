@@ -30,7 +30,6 @@ import { avatarUrl } from '@/lib/upload';
 const KNOWN = new Set([
   'forbidden',
   'sole_admin_must_add_another',
-  'sole_owner_must_transfer',
   'not_a_member',
   'group_not_found',
 ]);

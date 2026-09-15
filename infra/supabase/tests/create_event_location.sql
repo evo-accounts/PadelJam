@@ -15,7 +15,7 @@ begin
   insert into venues (name, address, created_by) values ('Padel Central Lisboa', 'Av. Test 1', o) returning id into v_venue;
   insert into tenants (type, name, country) values ('community','CE Tenant','PT') returning id into v_tenant;
   insert into communities (tenant_id, name, type, privacy) values (v_tenant,'CE Community','club','public') returning id into v_comm;
-  insert into community_members (community_id, user_id, role) values (v_comm, o, 'owner');
+  insert into community_members (community_id, user_id, role) values (v_comm, o, 'admin');
   insert into groups (community_id, name) values (v_comm,'CE Group') returning id into v_group;
   insert into group_members (group_id, user_id) values (v_group, o);
 

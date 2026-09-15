@@ -21,7 +21,7 @@ begin
   insert into communities (tenant_id, name, type, privacy) values (v_tenant,'GG Community','club','public') returning id into v_comm;
   insert into community_subscriptions (community_id, plan_id) values (v_comm,'community_pro')
     on conflict (community_id) do update set plan_id='community_pro';
-  insert into community_members (community_id, user_id, role) values (v_comm, a, 'owner'), (v_comm, b, 'admin'), (v_comm, c, 'member');
+  insert into community_members (community_id, user_id, role) values (v_comm, a, 'admin'), (v_comm, b, 'admin'), (v_comm, c, 'member');
   insert into groups (community_id, name) values (v_comm,'GG Group') returning id into v_group;
   insert into group_members (group_id, user_id) values (v_group, a);
 

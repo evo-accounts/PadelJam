@@ -5,7 +5,7 @@ import type { AuthContext } from './context';
 export type AppAbility = MongoAbility<[Action, Subject]>;
 
 export function abilityFor(ctx: AuthContext): AppAbility {
-  const { can, cannot, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
+  const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
 
   // 1) Platform super-admin short-circuit.
   if (ctx.tenantRoles.some((t) => t.role === 'super_admin')) {
@@ -17,16 +17,17 @@ export function abilityFor(ctx: AuthContext): AppAbility {
   if (cr) {
     const scope = { community_id: cr.communityId } as const;
 
-    if (cr.role === 'owner') {
-      can('manage', 'all', scope);
-    } else if (cr.role === 'admin') {
+    if (cr.role === 'admin') {
+      // Two roles since migration 0098. The owner branch used to hold `manage all`; the only two
+      // abilities admins lacked were deleting the community and managing Payment (the plan), and
+      // the audit hands both to every admin — archiving is admin-level (UX-COMM-24) and the plan
+      // moved into the admin settings sheet (UX-COMM-15). So the branches fold into this one.
       for (const s of ['Group', 'Event', 'Post', 'Member', 'JoinRequest', 'Broadcast', 'Review', 'Comment', 'Like', 'Invitation'] as Subject[]) {
         can('manage', s, scope);
       }
       can('read', 'Analytics', scope);
-      can(['read', 'update'], 'Community', scope);
-      cannot('delete', 'Community', scope);
-      cannot('manage', 'Payment', scope);
+      can('manage', 'Community', scope);
+      can('manage', 'Payment', scope);
     } else {
       for (const s of ['Community', 'Group', 'Event', 'Post', 'Member'] as Subject[]) {
         can('read', s, scope);
@@ -39,6 +40,8 @@ export function abilityFor(ctx: AuthContext): AppAbility {
       if (p?.invite_members) can('create', 'Member', scope);
       if (p?.approve_join_requests) can('update', 'JoinRequest', scope);
       if (p?.create_posts) can('create', 'Post', scope);
+      if (p?.create_groups) can('create', 'Group', scope);
+      if (p?.create_events) can('create', 'Event', scope);
     }
   }
 

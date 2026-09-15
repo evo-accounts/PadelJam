@@ -10,7 +10,6 @@ import {
   useMakeAdmin,
   useRemoveAdmin,
   useRemoveMember,
-  useTransferOwnership,
 } from '@padel/api';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -46,13 +45,11 @@ export default function ManageMembersPage() {
   const makeAdmin = useMakeAdmin(id);
   const removeAdmin = useRemoveAdmin(id);
   const removeMember = useRemoveMember(id);
-  const transfer = useTransferOwnership(id);
   const myUid = useSession().session?.user.id;
   const [err, setErr] = useState<string | null>(null);
 
   const role = (mine.data ?? []).find((r) => r.community?.id === id)?.role;
-  const isAdmin = role === 'owner' || role === 'admin';
-  const isOwner = role === 'owner';
+  const isAdmin = role === 'admin';
   useEffect(() => {
     if (!mine.isLoading && mine.data && !isAdmin) router.replace(`/app/community/${id}`);
   }, [mine.isLoading, mine.data, isAdmin, id, router]);
@@ -107,7 +104,7 @@ export default function ManageMembersPage() {
                     </DropdownMenuItem>
                   ) : null}
 
-                  {m.role !== 'owner' && m.user_id !== myUid ? (
+                  {m.user_id !== myUid ? (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
@@ -133,31 +130,6 @@ export default function ManageMembersPage() {
                     </AlertDialog>
                   ) : null}
 
-                  {isOwner && m.role !== 'owner' ? (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          {t('transferOwnership')}
-                        </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{t('confirmTransferTitle')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('confirmTransferBody')}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => transfer.mutate(m.user_id, { onError })}
-                          >
-                            {t('confirm')}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

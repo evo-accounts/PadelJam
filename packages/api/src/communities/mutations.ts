@@ -153,24 +153,6 @@ export const useArchiveCommunity = (communityId: string) => {
   });
 };
 
-export const useTransferOwnership = (communityId: string) => {
-  const db = useDb();
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (newOwner: string) => {
-      const { error } = await db.rpc('transfer_ownership', {
-        p_community_id: communityId,
-        p_new_owner: newOwner,
-      });
-      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.members(communityId) });
-      qc.invalidateQueries({ queryKey: qk.community(communityId) });
-    },
-  });
-};
-
 export const useRemoveMember = (communityId: string) => {
   const db = useDb();
   const qc = useQueryClient();
@@ -392,10 +374,14 @@ export const useUpdatePermissions = (communityId: string) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (
+      // The five toggles of UX-COMM-17. create_groups and create_events were added in
+      // migration 0098, reversing 0012's "these are admin-only, never columns" rule.
       patch: Partial<{
         invite_members: boolean;
         approve_join_requests: boolean;
         create_posts: boolean;
+        create_groups: boolean;
+        create_events: boolean;
       }>,
     ) => {
       const { error } = await db

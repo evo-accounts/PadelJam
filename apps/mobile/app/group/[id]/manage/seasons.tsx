@@ -40,7 +40,7 @@ export default function GroupManageSeasonsScreen() {
   // is one of the two — resolve which, so UpgradePrompt's "See plans" can be scoped correctly.
   const { data: communityMembers } = useCommunityMembers(group?.community_id);
   const myRole = communityMembers?.find((m) => m.user_id === uid)?.role;
-  const canManagePlan = myRole === 'owner' || myRole === 'admin';
+  const canManagePlan = myRole === 'admin';
 
   if (!group) {
     return (

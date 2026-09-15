@@ -12,7 +12,6 @@ import { TopBar, useBanner, useConfirm } from '../../../../components/ui';
 
 const KNOWN_ERROR_KEYS = new Set([
   'forbidden',
-  'sole_owner_must_transfer',
   'sole_admin_must_add_another',
   'not_a_member',
 ]);

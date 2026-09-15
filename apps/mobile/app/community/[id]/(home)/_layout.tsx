@@ -31,7 +31,7 @@ export default function CommunityHomeLayout() {
   const uid = useSession().session?.user.id;
   const { data: members } = useCommunityMembers(id);
   const myRole = members?.find((m) => m.user_id === uid)?.role;
-  const canManage = myRole === 'owner' || myRole === 'admin';
+  const canManage = myRole === 'admin';
 
   // `id` is always present on this route, but guard rather than hand `undefined`
   // to the provider: a missing id must surface as "not found", never as tabs that
