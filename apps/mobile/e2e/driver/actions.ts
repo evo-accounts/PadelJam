@@ -393,19 +393,28 @@ function safeBackY(tree: AxElement[]): number {
 }
 
 /**
- * Move a swipe's centre up so the gesture finishes clear of the keyboard.
+ * Move a swipe's centre well up the area above the keyboard.
  *
- * Returns the original centre when the keyboard is down, or when there is not
- * enough room above it — in that case the swipe is doomed either way and a
- * failure with the real frame is more useful than one at a clamped coordinate.
+ * "Above the keyboard" is not enough, which is the whole point of this
+ * function. Measured on Edit profile with the keyboard top at y=590:
+ *
+ *   swipe 566 -> 316   Save stays at y=955   (clears the keyboard by 24pt)
+ *   swipe 570 -> 480   Save stays at y=955
+ *   swipe 570 -> 200   Save stays at y=955
+ *   swipe 420 -> 170   Save moves to y=782   scrolled
+ *   swipe 300 -> 150   Save moves to y=782   scrolled
+ *
+ * A band that hugs the keyboard's top edge is swallowed even though every
+ * coordinate in it is above the keyboard; one centred in the upper half of the
+ * remaining space works. So aim for the middle of the space above the keyboard
+ * rather than for the largest legal offset.
  */
 function clearOfKeyboard(cy: number, d: number, keyboardTopY: number | null): number {
   if (keyboardTopY == null) return cy;
-  const margin = 24;
-  const lowest = keyboardTopY - margin;
-  if (cy + d / 2 <= lowest) return cy;
-  const shifted = lowest - d / 2;
-  return shifted - d / 2 > 60 ? shifted : cy;
+  let centred = Math.min(cy, Math.round(keyboardTopY / 2));
+  // Keep the far end clear of the status bar; an edge swipe there is an OS gesture.
+  if (centred - d / 2 < 60) centred = 60 + d / 2;
+  return centred;
 }
 
 /**
