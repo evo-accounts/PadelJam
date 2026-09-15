@@ -1,14 +1,16 @@
+/**
+ * Acknowledgement gate for cancellation rules: a labelled switch plus a
+ * brand-coloured link that opens the rules in a modal. The parent owns the
+ * `value`; this only renders.
+ */
 import { useT } from '@padel/i18n';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { RulesModal } from '@/components/community/RulesModal';
-import { colors } from '../../theme';
+import { SwitchRow, Text } from '../ui';
+import { space } from '../../theme';
 
-/**
- * Acknowledgement gate for cancellation rules: a toggle plus a brand-coloured link
- * that opens the rules in a modal. The parent owns the `value`; this only renders.
- */
 export function AckGate({
   value,
   onChange,
@@ -23,12 +25,16 @@ export function AckGate({
 
   return (
     <View style={styles.container}>
-      <View style={styles.row}>
-        <Switch value={value} onValueChange={onChange} accessibilityRole="switch" />
-        <Text style={styles.label}>{t('ackLabel')}</Text>
-      </View>
+      <SwitchRow
+        label={t('ackLabel')}
+        value={value}
+        onValueChange={onChange}
+        testID="community-ack-toggle"
+      />
       <Pressable onPress={() => setShowRules(true)} accessibilityRole="button">
-        <Text style={styles.link}>{t('cancellationRulesLink')}</Text>
+        <Text variant="label" tone="primary">
+          {t('cancellationRulesLink')}
+        </Text>
       </Pressable>
       <RulesModal visible={showRules} text={rulesText} onClose={() => setShowRules(false)} />
     </View>
@@ -36,8 +42,5 @@ export function AckGate({
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  label: { flex: 1, fontSize: 14, color: colors.foreground, lineHeight: 20 },
-  link: { fontSize: 14, fontWeight: '700', color: colors.primary, marginLeft: 52 },
+  container: { gap: space[2] },
 });

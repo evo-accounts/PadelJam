@@ -41,6 +41,10 @@ import { TopBar } from './TopBar';
 import { Field } from './Field';
 import { PasswordField } from './PasswordField';
 import { PhoneField } from './PhoneField';
+import { RadioCardGroup } from './RadioCardGroup';
+import { Rating } from './Rating';
+import { Segmented } from './Segmented';
+import { SwitchRow } from './SwitchRow';
 import { Loading, Screen } from './Screen';
 import { Text } from './Text';
 
@@ -464,6 +468,16 @@ export function Overview() {
         <GalleryPhoneFieldDemo />
       </Section>
 
+      {/*
+        Choice controls together. These four were each drawn by hand in four
+        different screens before they moved here, so the point of showing them
+        in one frame is that a reviewer can see they now share one radius, one
+        label size and one selected treatment.
+      */}
+      <Section title="Choice controls">
+        <GalleryChoiceDemo />
+      </Section>
+
       <Section title="EmptyState">
         <Card padding="none" style={styles.stacked}>
           <EmptyState
@@ -488,6 +502,75 @@ export function Overview() {
         </Card>
       </Section>
     </Screen>
+  );
+}
+
+function GalleryChoiceDemo() {
+  const [type, setType] = useState('club');
+  const [privacy, setPrivacy] = useState('public');
+  const [notify, setNotify] = useState(true);
+  const [digest, setDigest] = useState(false);
+  const [score, setScore] = useState(4);
+  return (
+    <>
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        Segmented
+      </Text>
+      <Segmented
+        options={[
+          { value: 'club', label: 'Club' },
+          { value: 'team', label: 'Team' },
+          { value: 'friends', label: 'Friends' },
+        ]}
+        value={type}
+        onChange={setType}
+        testID="gallery-segmented"
+      />
+
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        RadioCardGroup
+      </Text>
+      <RadioCardGroup
+        options={[
+          { value: 'public', title: 'Public', description: 'Anyone can find and join.' },
+          { value: 'request_to_join', title: 'Request to join', description: 'An admin approves each request.' },
+          { value: 'private', title: 'Private', description: 'Invite only — it never shows in search.' },
+        ]}
+        value={privacy}
+        onChange={setPrivacy}
+        testID="gallery-radio-cards"
+      />
+
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        SwitchRow
+      </Text>
+      <Card padding="none">
+        <SwitchRow
+          label="Push notifications"
+          value={notify}
+          onValueChange={setNotify}
+          style={styles.switchRow}
+          testID="gallery-switch-row"
+        />
+        <SwitchRow
+          label="Weekly digest"
+          description="One email on Sunday with everything you missed."
+          value={digest}
+          onValueChange={setDigest}
+          style={styles.switchRow}
+          testID="gallery-switch-row-described"
+        />
+      </Card>
+
+      <Text variant="label" tone="muted" style={styles.cardKindLabel}>
+        Rating
+      </Text>
+      <Row>
+        <Rating value={3} size="sm" />
+        <Rating value={4} size="md" />
+      </Row>
+      <Rating value={score} onChange={setScore} size="lg" testID="gallery-rating" />
+    </>
   );
 }
 
@@ -715,6 +798,7 @@ const styles = StyleSheet.create({
   },
   typeRow: { marginBottom: space[2] },
   cardKindLabel: { marginTop: space[4], marginBottom: space[2] },
+  switchRow: { paddingHorizontal: space[4], paddingVertical: space[3] },
   radiusItem: { alignItems: 'center', gap: space[1] },
   radiusBox: {
     width: 56,

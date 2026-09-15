@@ -76,6 +76,15 @@ jobs:
         if: '!cancelled()'
         run: pnpm i18n:check
 
+      # A ratchet, not a rule: 416 literal font sizes and corner radii are still
+      # spread across unmigrated screens, so this holds the number and fails in
+      # both directions. Lower the budget whenever a change takes screens onto
+      # `Text` and the `radius` tokens. It becomes an eslint rule at zero, the
+      # way the raw-colour check did.
+      - name: Size budget
+        if: '!cancelled()'
+        run: pnpm size:check
+
       - name: Deployed schema matches the code the app ships
         if: '!cancelled()'
         # A missing migration on the remote is invisible to typecheck and to

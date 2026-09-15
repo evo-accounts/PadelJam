@@ -1,7 +1,13 @@
-import { useT } from '@padel/i18n';
+/**
+ * The community type choice. Only the values and their copy live here now — the
+ * bar itself is `Segmented` in `components/ui`.
+ */
 import { COMMUNITY_TYPES } from '@padel/api';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../theme';
+import { useT } from '@padel/i18n';
+import { StyleSheet } from 'react-native';
+
+import { Segmented, type SegmentedOption } from '../ui';
+import { space } from '../../theme';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 
@@ -21,40 +27,23 @@ export function SegmentedType({
   disabled?: boolean;
 }) {
   const { t } = useT('community');
+  const options: SegmentedOption<CommunityType>[] = COMMUNITY_TYPES.map((type) => ({
+    value: type,
+    label: t(LABEL_KEY[type]),
+  }));
+
   return (
-    <View style={styles.row}>
-      {COMMUNITY_TYPES.map((type) => {
-        const selected = type === value;
-        return (
-          <Pressable
-            key={type}
-            style={[styles.segment, selected && styles.segmentSelected]}
-            onPress={() => onChange(type)}
-            disabled={disabled}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-          >
-            <Text style={[styles.label, selected && styles.labelSelected]}>
-              {t(LABEL_KEY[type])}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+    <Segmented
+      options={options}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      style={styles.spacing}
+      testID="community-type"
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  segment: { flex: 1, paddingVertical: 12, alignItems: 'center', backgroundColor: colors.card },
-  segmentSelected: { backgroundColor: colors.primary },
-  label: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
-  labelSelected: { color: colors.card },
+  spacing: { marginBottom: space[4] },
 });

@@ -2,11 +2,11 @@ import { useCommunityPermissions, useUpdatePermissions } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, palette } from '../../../../theme';
-import { TopBar, useBanner } from '../../../../components/ui';
+import { colors, radius, space } from '../../../../theme';
+import { SwitchRow, Text, TopBar, useBanner } from '../../../../components/ui';
 
 /** The five toggles of UX-COMM-17; create_groups and create_events arrived with migration 0098. */
 type PermKey =
@@ -86,20 +86,21 @@ export default function ManagePermissionsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('managePermissions')} onBack={() => router.back()} backLabel={t('back')} />
       <View style={styles.body}>
-        <Text style={styles.intro}>{t('permissionsIntro')}</Text>
+        <Text variant="caption" tone="muted" style={styles.intro}>
+          {t('permissionsIntro')}
+        </Text>
         <View style={styles.card}>
           {rows.map((r) => (
-            <View key={r.key} style={styles.row}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>{r.label}</Text>
-                <Text style={styles.rowDesc}>{r.desc}</Text>
-              </View>
-              <Switch
-                value={state[r.key]}
-                onValueChange={(v) => toggle(r.key, v)}
-                disabled={update.isPending}
-              />
-            </View>
+            <SwitchRow
+              key={r.key}
+              label={r.label}
+              description={r.desc}
+              value={state[r.key]}
+              onValueChange={(v) => toggle(r.key, v)}
+              disabled={update.isPending}
+              style={styles.row}
+              testID={`permission-${r.key}`}
+            />
           ))}
         </View>
       </View>
@@ -109,21 +110,14 @@ export default function ManagePermissionsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  body: { padding: 16 },
+  body: { padding: space[4] },
   center: { alignItems: 'center', justifyContent: 'center' },
-  intro: { fontSize: 14, color: colors.mutedForeground, marginBottom: 12, lineHeight: 20 },
-  card: { backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
+  intro: { marginBottom: space[3] },
+  card: { backgroundColor: colors.card, borderRadius: radius.lg, overflow: 'hidden' },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
+    paddingHorizontal: space[4],
+    paddingVertical: space[3],
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  rowText: { flex: 1 },
-  rowLabel: { fontSize: 16, color: colors.foreground, fontWeight: '500' },
-  rowDesc: { fontSize: 13, color: palette.slate[400], marginTop: 2 },
 });

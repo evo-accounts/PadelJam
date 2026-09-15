@@ -128,6 +128,12 @@ export default [
     // which colour a token replaced. This works on the AST, so prose about
     // colours is fine and only real values are rejected. That is the better
     // behaviour, and worth knowing if a comment ever "should" have been flagged.
+    //
+    // SIZES ARE NOT HERE, DELIBERATELY. Literal `fontSize` and `borderRadius`
+    // are where colours were before the ratchet: 416 of them, across screens
+    // that have not moved onto `Text` and the `radius` tokens yet. They are
+    // held by scripts/check-size-budget.mjs, a decreasing integer, and become a
+    // rule in this block once that budget reaches zero.
     files: ['**/*.{ts,tsx}'],
     ignores: ['theme/**'], // where colours are ALLOWED to be spelled out
     rules: {

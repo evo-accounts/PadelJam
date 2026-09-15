@@ -1,11 +1,11 @@
 import { useMySettings, useUpdateSettings, type NotificationSettings } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors } from '../../theme';
-import { TopBar } from '../../components/ui';
+import { colors, radius, space } from '../../theme';
+import { SwitchRow, TopBar } from '../../components/ui';
 
 export default function NotificationsScreen() {
   const { t } = useT('profile');
@@ -37,10 +37,14 @@ export default function NotificationsScreen() {
       <TopBar title={t('notifications')} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.content}>
         {ROWS.map((r) => (
-          <View key={r.key} style={styles.row}>
-            <Text style={styles.rowLabel}>{r.label}</Text>
-            <Switch value={value[r.key]} onValueChange={toggle(r.key)} />
-          </View>
+          <SwitchRow
+            key={r.key}
+            label={r.label}
+            value={value[r.key]}
+            onValueChange={toggle(r.key)}
+            style={styles.row}
+            testID={`setting-${r.key}`}
+          />
         ))}
       </ScrollView>
     </SafeAreaView>
@@ -49,7 +53,11 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, gap: 6 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  rowLabel: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
+  content: { padding: space[4], gap: space[1] },
+  row: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    paddingHorizontal: space[4],
+    paddingVertical: space[3],
+  },
 });

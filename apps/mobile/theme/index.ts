@@ -18,6 +18,11 @@
  * took the count from 1316 to 0; the script is gone, and the rule is what keeps
  * it there.
  *
+ * Sizes are one stage behind: literal `fontSize` and `borderRadius` are still
+ * spread across unmigrated screens, so they are held by a decreasing budget in
+ * `scripts/check-size-budget.mjs` rather than by a rule. Lower it whenever a
+ * change takes a screen onto `Text` and `radius`; it becomes a rule at zero.
+ *
  * LIGHT ONLY, deliberately. `@padel/ui` also exports a `dark` scheme, but
  * nothing renders it yet and it carries a known defect (its background and
  * primary are the same colour). Wiring a theme switch is its own change.
