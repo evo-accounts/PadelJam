@@ -276,7 +276,15 @@ async function main() {
     p_thumbnail_path: null, p_cover_image_path: null,
     p_cancellation_rules_enabled: true, p_cancellation_rules_text: 'Cancel at least 12h before.',
   });
-  await insert('community_subscriptions', { community_id: commA, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
+  // community_pro, not basic. A is seeded with FOUR groups (its general group plus
+  // Tuesday Night League, Weekend Warriors and Secret Squad) and basic caps
+  // groups_per_community at 3 — invisible until plan_limits stopped being wiped.
+  // Raising the plan keeps every other fixture in A EXACTLY as it was, which
+  // matters: moving a group out of A changes what Home renders for alex, and
+  // suite 10 reaches its groups through Home. community_pro also RAISES
+  // co_organizers (3, against basic's 1), so maria's promotion still fits.
+  // Nothing asserts A's plan — suite 11's Basic assertions are on community C.
+  await insert('community_subscriptions', { community_id: commA, dimension: 'community', plan_id: 'community_pro', status: 'active', provider: 'manual' });
   const commC = await rpc(jwt('maria'), 'create_community_with_personal_tenant', {
     p_name: 'Cascais Social', p_type: 'friends', p_country: 'PT', p_privacy: 'request_to_join',
     p_description: 'Weekend social games.', p_location: 'Cascais, PT',
@@ -359,12 +367,11 @@ async function main() {
   await rpc(jwt('alex'), 'invite_to_group', { p_group_id: g2, p_invitee_id: id('rita') }); // pending
   const gR = await rpc(jwt('tiago'), 'create_group', { p_community_id: commR, p_name: 'Review League', p_description: 'Completed events live here.', p_is_private: false, p_thumbnail_path: null });
   for (const k of ['joao', 'sofia', 'bruno']) await rpc(jwt(k), 'join_group', { p_group_id: gR });
-  // g3 is the private-group fixture and it lives in Review Club, the one Basic
   // community with a free slot (general + Review League = 2 of 3). The move
   // costs the tests nothing: the assertion it feeds needs a viewer who is in the
   // COMMUNITY but not in the group, and joao is a member of Review Club too.
-  const g3 = await rpc(jwt('tiago'), 'create_group', { p_community_id: commR, p_name: 'Secret Squad', p_description: 'Private group.', p_is_private: true, p_thumbnail_path: null });
-  await rpc(jwt('tiago'), 'invite_to_group', { p_group_id: g3, p_invitee_id: id('maria') }); // invited-private join path
+  const g3 = await rpc(jwt('alex'), 'create_group', { p_community_id: commA, p_name: 'Secret Squad', p_description: 'Private group.', p_is_private: true, p_thumbnail_path: null });
+  await rpc(jwt('alex'), 'invite_to_group', { p_group_id: g3, p_invitee_id: id('maria') }); // invited-private join path
   // commS has NO subscription, so it is on Starter, whose groups_per_community
   // is 1 — and its auto-created general group already occupies that one slot.
   // "Starter cap reached" is therefore the state the community is ALREADY in;
