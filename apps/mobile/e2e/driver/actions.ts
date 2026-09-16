@@ -73,6 +73,47 @@ function avoidStatusBar(p: { x: number; y: number }, el?: { frame: { x: number; 
 }
 
 /** Tap an element (waits for it first) or an absolute point in device points. */
+/**
+ * Get the software keyboard out of the way, returning true if it is gone.
+ *
+ * A control the keyboard covers is still in the accessibility tree at its
+ * layout position, so a tap aimed there is delivered to the KEYBOARD and
+ * silently does nothing — the flow then fails somewhere later, looking like the
+ * app ignored the press. Measured on the create-event wizard: "Next" sits at
+ * y=784 with the keyboard's top edge at y=590, the tap lands on the keyboard,
+ * the wizard never leaves step 9, and the test times out waiting for a step-10
+ * button.
+ *
+ * Scrolling is not a fix for this. The buttons it affects — the wizard's Next,
+ * live scoring's Save score, the invite sheet's confirm — are pinned to the
+ * bottom of the screen, so no amount of scrolling moves them out from under the
+ * keyboard. The keyboard has to go.
+ *
+ * Tapping a caption above the keyboard is what a person does, and it works
+ * because these screens set keyboardShouldPersistTaps="handled": a tap that no
+ * control handles falls through and dismisses. A heading is chosen rather than
+ * any free space because free space is not addressable — the tree only gives us
+ * elements — and a caption is the one thing on a form guaranteed not to be
+ * interactive.
+ */
+async function dismissKeyboard(): Promise<boolean> {
+  const tree = await snapshot();
+  const top = keyboardTop(tree);
+  if (top == null) return true;
+
+  const caption = tree
+    .filter((e) => e.type === 'StaticText' && e.frame.y > 60 && e.frame.y < top - 80)
+    .sort((a, b) => a.frame.y - b.frame.y)[0];
+  if (!caption) return false;
+
+  await idbTap(
+    Math.round(caption.frame.x + caption.frame.width / 2),
+    Math.round(caption.frame.y + caption.frame.height / 2),
+  );
+  await sleep(600);
+  return keyboardTop(await snapshot()) == null;
+}
+
 export async function tap(target: Selector | { x: number; y: number }, opts?: WaitOpts): Promise<void> {
   if ('x' in target && 'y' in target && !('text' in target)) {
     const p = clampToScreen(target.x, target.y);
@@ -85,8 +126,19 @@ export async function tap(target: Selector | { x: number; y: number }, opts?: Wa
   // broke 5 passing tests across suites 01/05/09 ("Create account" and the
   // create-wizard buttons), so the flag is unreliable in both directions and
   // cannot be used to decide whether a tap is worth delivering.
-  const el = await waitFor(target as Selector, opts);
-  const settled = await settleFrame(target as Selector, el);
+  let el = await waitFor(target as Selector, opts);
+  let settled = await settleFrame(target as Selector, el);
+
+  // If the keyboard covers the point we are about to tap, get rid of it and
+  // re-measure: dismissing reflows the screen, so the old frame is stale.
+  const kbd = keyboardTop(await snapshot());
+  if (kbd != null && settled.frame.y + settled.frame.height / 2 >= kbd) {
+    if (await dismissKeyboard()) {
+      el = await waitFor(target as Selector, opts);
+      settled = await settleFrame(target as Selector, el);
+    }
+  }
+
   const visible = visibleTapPoint(settled);
   if (!visible) {
     const { x, y, width, height } = settled.frame;
