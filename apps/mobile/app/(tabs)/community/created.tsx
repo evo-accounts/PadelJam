@@ -87,7 +87,7 @@ export default function CommunityCreatedScreen() {
   const onManage = () => {
     // The community page (Task 17) now exists; open it on its first tab. The bare
     // `/community/[id]` group route resolves at runtime but isn't typed.
-    if (id) router.replace(`/community/${id}/posts`);
+    if (id) router.replace(`/community/${id}`);
     else router.back();
   };
 

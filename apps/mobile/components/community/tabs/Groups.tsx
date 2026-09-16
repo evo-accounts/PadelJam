@@ -6,8 +6,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { GroupCard } from '@/components/group/GroupCard';
-import { colors } from '../../../../theme';
-import { EmptyState, emptyIcon, listEmptyContent } from '../../../../components/ui';
+import { colors } from '../../../theme';
+import { EmptyState, emptyIcon, listEmptyContent } from '../../ui';
 
 export default function CommunityGroupsScreen() {
   const { t } = useT('group');

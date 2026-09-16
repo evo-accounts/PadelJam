@@ -8,8 +8,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { EventCard } from '@/components/event/EventCard';
-import { colors } from '../../../../theme';
-import { Chip, EmptyState, emptyIcon, listEmptyContent } from '../../../../components/ui';
+import { colors } from '../../../theme';
+import { Chip, EmptyState, emptyIcon, listEmptyContent } from '../../ui';
 
 type Filter = 'all' | 'organizing';
 

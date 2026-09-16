@@ -6,13 +6,14 @@ import {
 import { useT } from '@padel/i18n';
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
+import { Image } from 'expo-image';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { RulesModal } from '@/components/community/RulesModal';
-import { avatarUrl } from '@/lib/community-images';
+import { avatarUrl, coverUrl, thumbnailUrl } from '@/lib/community-images';
 import { Avatar } from '@/components/ui';
-import { colors, palette } from '../../../../theme';
+import { colors, palette, radius, space, type } from '../../../theme';
 
 const TYPE_KEY: Record<string, string> = {
   club: 'typeClub',
@@ -72,6 +73,30 @@ export default function CommunityAboutScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/*
+        The identity block (UX-COMM-08). It used to be a persistent hero above
+        every tab; the audit moves it here so the header carries only the
+        thumbnail and name and the tabs get the vertical space back.
+      */}
+      <View style={styles.identity}>
+        {coverUrl(community.cover_image_path) ? (
+          <Image
+            source={{ uri: coverUrl(community.cover_image_path) as string }}
+            style={styles.cover}
+            contentFit="cover"
+            accessibilityIgnoresInvertColors
+          />
+        ) : null}
+        <Avatar
+          uri={thumbnailUrl(community.thumbnail_path)}
+          name={community.name}
+          colourKey={community.id}
+          size="lg"
+          decorative
+        />
+        <Text style={styles.identityName}>{community.name}</Text>
+      </View>
+
       {community.description ? <Text style={styles.description}>{community.description}</Text> : null}
 
       <View style={styles.row}>
@@ -165,6 +190,9 @@ export default function CommunityAboutScreen() {
 }
 
 const styles = StyleSheet.create({
+  identity: { alignItems: 'center', gap: space[2], marginBottom: space[5] },
+  cover: { width: '100%', height: 120, borderRadius: radius.lg, marginBottom: space[2] },
+  identityName: { ...type.heading, color: colors.foreground, textAlign: 'center' },
   container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
   error: { fontSize: 15, color: colors.destructive, fontWeight: '600', textAlign: 'center' },

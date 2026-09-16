@@ -102,7 +102,7 @@ export function ExploreList({
         <CommunityCard
           community={item as never}
           orientation="horizontal"
-          onOpen={() => router.push(`/community/${item.id}/posts`)}
+          onOpen={() => router.push(`/community/${item.id}`)}
           onRequestJoin={() => router.push(`/community/${item.id}/join`)}
         />
       );

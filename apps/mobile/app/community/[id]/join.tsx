@@ -60,7 +60,7 @@ export default function CommunityJoinModal() {
           banner.show(t('joinedToast'), 'success');
           // The bare `/community/[id]` group route resolves at runtime but isn't in
           // the typed-route table; target its first tab, which is the same landing.
-          router.replace(`/community/${id}/posts`);
+          router.replace(`/community/${id}`);
         } else {
           setRequested(true);
         }
