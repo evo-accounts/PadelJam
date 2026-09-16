@@ -19,6 +19,11 @@ import { describe, expect, it } from 'vitest';
  * header said "6 members". The id is resolved once in `(home)/_layout.tsx` and
  * published through `CommunityIdProvider`; tabs must read `useCommunityId()`.
  *
+ * The paths moved when the Community TAB became the community (UX-COMM-08): the
+ * five screens are plain components now, and the layout that resolves the id is
+ * the tab's. The invariant is unchanged and this guard fired loudly on the move,
+ * which is exactly what the vacuity check below is for.
+ *
  * This is a source-text assertion rather than a behavioural test, deliberately: it
  * is instant, needs no simulator, and cannot flake. It covers any tab added later
  * because the file list is read from disk. It does NOT protect a *different* tab
@@ -29,9 +34,10 @@ import { describe, expect, it } from 'vitest';
  * would attach a failure message ("...=eq.undefined") that is simply untrue of it.
  */
 const MOBILE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const HOME_DIR = join(MOBILE_ROOT, 'app', 'community', '[id]', '(home)');
+const TABS_DIR = join(MOBILE_ROOT, 'components', 'community', 'tabs');
+const LAYOUT = join(MOBILE_ROOT, 'app', '(tabs)', 'community', '(home)', '_layout.tsx');
 
-const read = (f: string) => readFileSync(join(HOME_DIR, f), 'utf8');
+const readTab = (f: string) => readFileSync(join(TABS_DIR, f), 'utf8');
 
 /**
  * Matches a *use* of the hook — a call, with or without a type argument — not the
@@ -43,14 +49,13 @@ const read = (f: string) => readFileSync(join(HOME_DIR, f), 'utf8');
 const USES_LOCAL_SEARCH_PARAMS = /useLocalSearchParams\s*[(<]/;
 
 describe('community (home) tabs resolve the community id from context', () => {
-  const files = readdirSync(HOME_DIR).filter((f) => f.endsWith('.tsx'));
-  const tabs = files.filter((f) => f !== '_layout.tsx');
+  const tabs = readdirSync(TABS_DIR).filter((f) => f.endsWith('.tsx'));
 
   // Without this the suite could pass vacuously if the directory ever moves —
   // a silently-green guard is the exact failure mode being guarded against.
   it('finds the tab screens and their layout', () => {
-    expect(files).toContain('_layout.tsx');
     expect(tabs.length).toBeGreaterThanOrEqual(5);
+    expect(readFileSync(LAYOUT, 'utf8').length).toBeGreaterThan(0);
   });
 
   // The two assertions below are source-text matches, so the pattern *is* the guard:
@@ -71,7 +76,7 @@ describe('community (home) tabs resolve the community id from context', () => {
 
   it.each(tabs)('%s does not read the route param directly', (file) => {
     expect(
-      read(file),
+      readTab(file),
       `${file} calls useLocalSearchParams(). Inside the top-tabs layout that is undefined `
         + 'on every tab but the anchor, so its queries go out as `...=eq.undefined` and the '
         + 'screen renders an empty state. Use useCommunityId() instead.',
@@ -79,14 +84,15 @@ describe('community (home) tabs resolve the community id from context', () => {
   });
 
   it('the layout publishes the id it resolved', () => {
-    const layout = read('_layout.tsx');
-    // The layout is the one route here that DOES carry the param, so it is the
-    // correct place to read it — and it must pass it down for the tabs to use.
-    expect(layout).toMatch(USES_LOCAL_SEARCH_PARAMS);
+    const layout = readFileSync(LAYOUT, 'utf8');
+    // The tab layout no longer reads a route param at all — the community is the
+    // user's default, not a path segment — so only the publishing half of the
+    // invariant is asserted. Without the provider useCommunityId() throws in
+    // every tab.
     expect(
       layout,
-      '(home)/_layout.tsx must wrap the tabs in CommunityIdProvider, otherwise '
-        + 'useCommunityId() throws in every tab.',
+      "the Community tab's layout must wrap the tabs in CommunityIdProvider, "
+        + 'otherwise useCommunityId() throws in every tab.',
     ).toMatch(/CommunityIdProvider/);
   });
 });

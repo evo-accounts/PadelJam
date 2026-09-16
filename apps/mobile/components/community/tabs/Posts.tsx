@@ -6,8 +6,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { PostCard, type CommunityPost } from '@/components/community/PostCard';
-import { EmptyState, emptyIcon, listEmptyContent } from '../../../../components/ui';
-import { colors } from '../../../../theme';
+import { EmptyState, emptyIcon, listEmptyContent } from '../../ui';
+import { colors } from '../../../theme';
 
 export default function CommunityPostsScreen() {
   const { t } = useT('community');
