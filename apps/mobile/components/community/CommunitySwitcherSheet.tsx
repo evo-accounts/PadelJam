@@ -33,8 +33,6 @@ type Props = {
   onNewCommunity: () => void;
 };
 
-const roleLabelKey = (role: string) => (role === 'admin' ? 'roleAdmin' : 'roleMember');
-
 export function CommunitySwitcherSheet({
   visible,
   onClose,
@@ -49,11 +47,19 @@ export function CommunitySwitcherSheet({
   // Admin-only, per UX-COMM-09.
   const archived = memberships.filter((m) => m.community.archived_at && m.role === 'admin');
 
-  const row = (m: Membership) => (
+  const row = (m: Membership) => {
+    const isActive = m.community.id === activeId;
+    // Two literal t() calls rather than t(keyFor(role)). scripts/check-i18n-keys.mjs
+    // only sees LITERAL keys — a computed one is skipped, which is how this
+    // shipped rendering the raw string "roleAdmin" to users with every gate
+    // green. Keep them literal so the checker can do its job.
+    const roleLabel = m.role === 'admin' ? t('roleAdmin') : t('roleMember');
+
+    return (
     <SheetRow
       key={m.community.id}
       label={m.community.name}
-      selected={m.community.id === activeId}
+      selected={isActive}
       onPress={() => onSelect(m.community.id)}
       leading={
         <Avatar
@@ -65,13 +71,23 @@ export function CommunitySwitcherSheet({
         />
       }
       trailing={
-        <Text variant="hint" tone="muted">
-          {t(roleLabelKey(m.role))}
-        </Text>
+        <View style={styles.trailing}>
+          {/* ListRow's `selected` only sets accessibilityState, so the active
+              community is announced but invisible. UX-COMM-09 wants it marked. */}
+          {isActive ? (
+            <Text variant="hint" tone="primary">
+              ✓
+            </Text>
+          ) : null}
+          <Text variant="hint" tone="muted">
+            {roleLabel}
+          </Text>
+        </View>
       }
       testID={`switcher-community-${m.community.id}`}
     />
-  );
+    );
+  };
 
   return (
     <BottomSheet visible={visible} onClose={onClose} title={t('switcherTitle')} testID="community-switcher">
@@ -99,5 +115,6 @@ export function CommunitySwitcherSheet({
 
 const styles = StyleSheet.create({
   section: { marginTop: space[4] },
+  trailing: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
   sectionTitle: { paddingHorizontal: space[4], marginBottom: space[2] },
 });
