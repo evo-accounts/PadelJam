@@ -130,19 +130,20 @@ export default function CommunityTabLayout() {
             </Text>
           </Pressable>
         }
-        actions={[
+        actions={
           isAdmin
-            ? {
-                icon: '⚙',
-                label: t('manageTitle'),
-                onPress: () => router.push(`/community/${community.id}/manage`),
-              }
-            : {
-                icon: '⋯',
-                label: t('moreActions'),
-                onPress: () => router.push(`/community/${community.id}/about`),
-              },
-        ]}
+            ? [
+                {
+                  icon: '⚙',
+                  label: t('manageTitle'),
+                  onPress: () => router.push(`/community/${community.id}/manage`),
+                },
+              ]
+            : // A member's "⋯" opens the overflow sheet of UX-COMM-14, which a
+              // later pull request builds. Until it has something to open there
+              // is no control here — better than one that goes nowhere.
+              []
+        }
       />
 
       <CommunityIdProvider id={community.id}>

@@ -130,7 +130,7 @@ function ForYou() {
             <CommunityCard
               community={c}
               orientation="vertical"
-              onOpen={() => router.push(`/community/${c.id}/posts`)}
+              onOpen={() => router.push(`/community/${c.id}`)}
               onRequestJoin={() => router.push(`/community/${c.id}/join`)}
             />
           )}
