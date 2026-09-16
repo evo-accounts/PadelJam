@@ -259,11 +259,24 @@ export async function tapCheckbox(sel: Selector, opts: { attempts?: number } = {
  */
 const STRONG_PASSWORD_SHEET_CLOSE = { x: 365, y: 506 };
 
+/**
+ * How much of the APP is on screen, ignoring the keyboard.
+ *
+ * The bare snapshot().length counts keyboard keys — about 34 of them — so it
+ * moves far more when the keyboard toggles than when a sheet covers the app,
+ * and the "did part of the app disappear?" test below was really measuring the
+ * keyboard. Observed on create-account: 57 elements with the keyboard up, 21
+ * with it down and the ENTIRE screen visible, which the helper read as an
+ * AutoFill sheet that was never there.
+ */
+const appElementCount = async (): Promise<number> =>
+  (await snapshot()).filter((e) => !e.traits?.includes('KeyboardKey')).length;
+
 export async function dismissStrongPasswordSheetIfPresent(field: Selector): Promise<boolean> {
-  const before = (await snapshot()).length;
+  const before = await appElementCount();
   await tap(field);
   await sleep(1200);
-  if ((await snapshot()).length >= before) return false;
+  if ((await appElementCount()) >= before) return false;
 
   // Tap close MORE THAN ONCE before giving up. A single tap was enough locally
   // and failed on the CI runner (run 34838209655): the captured screenshot shows
@@ -276,7 +289,7 @@ export async function dismissStrongPasswordSheetIfPresent(field: Selector): Prom
   for (let attempt = 0; attempt < 4; attempt++) {
     await tap(STRONG_PASSWORD_SHEET_CLOSE);
     await sleep(1200);
-    after = (await snapshot()).length;
+    after = await appElementCount();
     if (after >= before) return true;
   }
   if (after < before) {

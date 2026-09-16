@@ -9,7 +9,15 @@
 import { useT } from '@padel/i18n';
 import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, space } from '../../theme';
@@ -68,6 +76,24 @@ export function BottomSheet({ visible, onClose, onDismissed, title, children, st
       onRequestClose={onClose}
       onDismiss={onDismissed}
     >
+      {/*
+        The sheet is bottom-anchored, so an open keyboard sits ON TOP of it.
+        Everything it covered was not merely hidden but ABSENT from the
+        accessibility tree — measured on the country picker, keyboard top y=590
+        and no element below it — which made rows unreachable to VoiceOver and
+        invisible to the end-to-end driver.
+
+        There is a second, sharper reason this matters. When a control is
+        occluded, driver/actions.ts dismisses the keyboard by tapping a caption;
+        the only captions left reachable were BEHIND the sheet, and a tap there
+        lands on this backdrop and closes it. The sheet vanished mid-test and
+        the failure surfaced somewhere else entirely. Lifting the sheet above
+        the keyboard removes the occlusion, and with it the whole path.
+      */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
         <View
           testID={testID}
@@ -95,11 +121,13 @@ export function BottomSheet({ visible, onClose, onDismissed, title, children, st
           {children}
         </View>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.card,
