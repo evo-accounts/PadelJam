@@ -95,7 +95,7 @@ function avoidStatusBar(p: { x: number; y: number }, el?: { frame: { x: number; 
  * keyboardDismiss.ts, which is pure precisely so that choice is tested against
  * real captured trees rather than by driving a device into one state by hand.
  */
-async function dismissKeyboard(): Promise<boolean> {
+export async function dismissKeyboard(): Promise<boolean> {
   let tree = await snapshot();
 
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -132,11 +132,32 @@ export async function tap(target: Selector | { x: number; y: number }, opts?: Wa
 
   // If the keyboard covers the point we are about to tap, get rid of it and
   // re-measure: dismissing reflows the screen, so the old frame is stale.
+  //
+  // When dismissal FAILS, refuse rather than tap. dismissKeyboard() works by
+  // tapping a caption, and a screen can have none to offer — the Invite members
+  // screen is a search field, a list of people and a pinned button, with not one
+  // piece of inert text on it. Tapping anyway delivered the touch to whatever
+  // keyboard key occupies that coordinate: a letter was typed, the button was
+  // never pressed, nothing reported an error, and the run failed 15s later
+  // waiting for a sheet that was never asked to open. Four CI runs read that as
+  // "the confirm sheet is missing". The tap point being behind the keyboard is
+  // also, on a real device, exactly the thing a user cannot reach — so this
+  // failing loudly is how the product defect gets found instead of papered over.
   const kbd = keyboardTop(await snapshot());
   if (kbd != null && settled.frame.y + settled.frame.height / 2 >= kbd) {
     if (await dismissKeyboard()) {
       el = await waitFor(target as Selector, opts);
       settled = await settleFrame(target as Selector, el);
+    } else {
+      const { y, height } = settled.frame;
+      const reason =
+        `tap target sits behind the software keyboard and it could not be dismissed: `
+        + `${describeSelector(target as Selector)} at y=${Math.round(y)}..${Math.round(y + height)}, `
+        + `keyboard top y=${Math.round(kbd)}. No caption on this screen is safe to tap to dismiss. `
+        + 'Tapping anyway would press a keyboard key. If a real user would be just as stuck, the '
+        + 'screen needs to lift its controls above the keyboard (KeyboardAvoidingView).';
+      const dir = await captureFailure(reason);
+      throw new Error(`${reason}\nartifacts: ${dir}`);
     }
   }
 
@@ -505,7 +526,21 @@ export async function scrollUntilVisible(
     // keyboard position the swipe needs. Asking for it inside swipe() would add
     // a describe-all per gesture, which is the expensive call in this driver.
     const tree = await snapshot();
-    if (restsComfortably(query(tree, sel))) return;
+    // Only stop once the SETTLED position is comfortable. swipe() sleeps 400ms,
+    // which is not the end of the gesture: iOS keeps decelerating, and near the
+    // end of the content it rubber-bands past the limit and springs back. The
+    // snapshot taken during that overshoot is a real reading of a position the
+    // screen does not keep. Measured on community manage/settings: Save came into
+    // view mid-flight, this loop returned, the content sprang back under the
+    // keyboard, and the tap() that followed spent 15s waiting for an element that
+    // had been there a moment ago. It failed on one CI run, passed on the next
+    // three, and failed on the two after that — the shape of a race, not a bug in
+    // the screen.
+    if (restsComfortably(query(tree, sel))) {
+      await sleep(700);
+      if (restsComfortably(query(await snapshot(), sel))) return;
+      continue;
+    }
     await swipe(direction, { keyboardTopY: keyboardTop(tree) });
   }
   const el = query(await snapshot(), sel);

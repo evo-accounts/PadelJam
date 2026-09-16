@@ -1,6 +1,6 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
-import { tap, typeText, clearText } from '../driver/actions';
+import { dismissKeyboard, tap, typeText, clearText } from '../driver/actions';
 import { expectVisible, expectGone } from '../driver/expect';
 import { freshInstall, relaunch } from '../driver/app';
 import {
@@ -197,6 +197,25 @@ describe('01 auth', () => {
       }
     }
 
+    // Put the keyboard away before the last two controls, because the terms row is
+    // CLIPPED BY ITS SCROLLER while it is up — a different thing from being behind
+    // the keyboard, and invisible to the driver.
+    //
+    // Measured: keyboard up, the submit button is pinned outside the scroller at
+    // y=522, so the ScrollView's own bottom edge is y=510 (its paddingTop above the
+    // button). The terms checkbox lays out at y=508..530, so TWO of its 22 points
+    // are inside the clip. iOS reports the full 22pt frame regardless, tap() sees an
+    // element comfortably inside the 874pt viewport, and the touch at its centre
+    // (y=519) lands 9pt into the footer's padding, where nothing handles it.
+    // tapCheckbox retried three times and reported the box "stuck at unchecked".
+    //
+    // The driver cannot see this: an element's frame says nothing about which
+    // ancestor clips it, and visibleTapPoint only knows the viewport. Scrolling
+    // would work too — the content has 44pt of slack — but dismissing is what
+    // actually happens when someone finishes typing a password, and it leaves the
+    // whole form visible rather than a specific scroll offset the next assertion
+    // would have to assume.
+    await dismissKeyboard();
     // `tap({id})` would be safe now, but tapCheckbox also asserts the box flipped —
     // a tap that lands mid-transition is swallowed without a word.
     await tapCheckbox({ id: 'create-account-terms' });

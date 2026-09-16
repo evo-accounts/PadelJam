@@ -171,7 +171,7 @@ export default function EditEventScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={dirty} />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Details */}
         <Text variant="label" tone="muted" style={styles.section}>{t('editDetailsSection')}</Text>
         <Field

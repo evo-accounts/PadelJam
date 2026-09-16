@@ -60,7 +60,7 @@ export default function ChangeEmailScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={t('changeEmail')} onClose={() => router.back()} dirty={dirty} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {phase === 'email' ? (
         <>
           <Text style={styles.label}>{t('newEmailLabel')}</Text>

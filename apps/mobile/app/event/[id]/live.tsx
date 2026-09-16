@@ -381,7 +381,7 @@ export default function EventLiveScreen() {
         </ScrollView>
       ) : null}
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {effectiveTab === 'overview' ? (
           <View style={styles.overview}>
             {event.finish_message != null && event.finish_message.length > 0 ? (
