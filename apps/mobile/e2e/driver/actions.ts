@@ -1,5 +1,6 @@
 import { snapshot, query, describeSelector, keyboardTop, type AxElement, type Selector } from './a11y';
 import { idbKey, idbSwipe, idbTap, idbText } from './idb';
+import { dismissCaptions } from './keyboardDismiss';
 import { captureFailure, waitFor, type WaitOpts } from './expect';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -78,40 +79,40 @@ function avoidStatusBar(p: { x: number; y: number }, el?: { frame: { x: number; 
  *
  * A control the keyboard covers is still in the accessibility tree at its
  * layout position, so a tap aimed there is delivered to the KEYBOARD and
- * silently does nothing — the flow then fails somewhere later, looking like the
- * app ignored the press. Measured on the create-event wizard: "Next" sits at
- * y=784 with the keyboard's top edge at y=590, the tap lands on the keyboard,
- * the wizard never leaves step 9, and the test times out waiting for a step-10
+ * silently does nothing — the flow then fails later, looking like the app
+ * ignored the press. Measured on the create-event wizard: "Next" sits at y=784
+ * with the keyboard's top edge at y=590, the tap lands on the keyboard, the
+ * wizard never leaves step 9, and the test times out waiting for a step-10
  * button.
  *
- * Scrolling is not a fix for this. The buttons it affects — the wizard's Next,
- * live scoring's Save score, the invite sheet's confirm — are pinned to the
- * bottom of the screen, so no amount of scrolling moves them out from under the
- * keyboard. The keyboard has to go.
+ * Scrolling is not a fix. The buttons it affects — the wizard's Next, live
+ * scoring's Save score, the invite sheet's confirm — are pinned to the bottom of
+ * the screen, so no amount of scrolling moves them out from under the keyboard.
  *
- * Tapping a caption above the keyboard is what a person does, and it works
- * because these screens set keyboardShouldPersistTaps="handled": a tap that no
- * control handles falls through and dismisses. A heading is chosen rather than
- * any free space because free space is not addressable — the tree only gives us
- * elements — and a caption is the one thing on a form guaranteed not to be
- * interactive.
+ * Tapping a caption is what a person does, and it works because these screens
+ * set keyboardShouldPersistTaps="handled": a tap no control handles falls
+ * through and dismisses. WHICH caption is the whole difficulty — see
+ * keyboardDismiss.ts, which is pure precisely so that choice is tested against
+ * real captured trees rather than by driving a device into one state by hand.
  */
 async function dismissKeyboard(): Promise<boolean> {
-  const tree = await snapshot();
-  const top = keyboardTop(tree);
-  if (top == null) return true;
+  let tree = await snapshot();
 
-  const caption = tree
-    .filter((e) => e.type === 'StaticText' && e.frame.y > 60 && e.frame.y < top - 80)
-    .sort((a, b) => a.frame.y - b.frame.y)[0];
-  if (!caption) return false;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const top = keyboardTop(tree);
+    if (top == null) return true;
 
-  await idbTap(
-    Math.round(caption.frame.x + caption.frame.width / 2),
-    Math.round(caption.frame.y + caption.frame.height / 2),
-  );
-  await sleep(600);
-  return keyboardTop(await snapshot()) == null;
+    const caption = dismissCaptions(tree, top)[attempt];
+    if (!caption) return false;
+
+    await idbTap(
+      Math.round(caption.frame.x + caption.frame.width / 2),
+      Math.round(caption.frame.y + caption.frame.height / 2),
+    );
+    await sleep(600);
+    tree = await snapshot();
+  }
+  return keyboardTop(tree) == null;
 }
 
 export async function tap(target: Selector | { x: number; y: number }, opts?: WaitOpts): Promise<void> {
