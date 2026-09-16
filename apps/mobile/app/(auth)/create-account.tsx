@@ -559,16 +559,28 @@ export default function CreateAccountScreen() {
             <TermsLine copy="consent" style={styles.termsText} testID="create-account-terms-text" />
           </View>
 
+        </Screen>
+
+        {/*
+          Pinned OUTSIDE the scroller, inside the KeyboardAvoidingView.
+          It used to sit at the end of the scroll content, which reads as the
+          same thing and is not: once the keyboard shrinks the viewport, an
+          action inside the scroller simply scrolls out of it. Measured on the
+          device with the keyboard up (top y=590), this button and the terms
+          checkbox were absent from the accessibility tree altogether — not
+          merely off screen — so VoiceOver could not reach the last step of
+          sign-up at all.
+        */}
+        <View style={styles.footer}>
           <Button
             label={t('createAccount')}
             fullWidth
             loading={busy}
             disabled={!canSubmit}
             onPress={submit}
-            style={styles.cta}
             testID="create-account-submit"
           />
-        </Screen>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -577,6 +589,7 @@ export default function CreateAccountScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
+  footer: { paddingHorizontal: space[6], paddingTop: space[3] },
   body: { paddingTop: space[6], paddingBottom: space[6] },
   help: { marginTop: space[2], marginBottom: space[6] },
   field: { marginTop: space[4] },
@@ -586,6 +599,5 @@ const styles = StyleSheet.create({
   termsText: { flex: 1 },
   resend: { marginTop: space[1] },
   verifyCta: { marginTop: space[3] },
-  cta: { marginTop: space[5] },
   another: { marginTop: space[3] },
 });
