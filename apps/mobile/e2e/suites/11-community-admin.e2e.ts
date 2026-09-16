@@ -30,13 +30,31 @@ describe('11 community admin', () => {
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
   });
 
+  /**
+   * Put the tab on a given community.
+   *
+   * The tab IS a community now (UX-COMM-08), so there is no list to scroll and
+   * tap. It opens on whichever community is active; anything else is reached
+   * through the switcher sheet.
+   *
+   * The active one is checked FIRST rather than always opening the sheet,
+   * because the community's name is in the header as well as in the sheet's
+   * rows — with both on screen a `{ text: name }` selector is ambiguous, and
+   * the header match would just re-open the switcher.
+   */
+  const switchTo = async (name: RegExp) => {
+    await tabTo('Community');
+    if (query(await snapshot(), { text: name })) return;
+    await tap({ id: 'community-switcher-trigger' });
+    await tap({ text: name });
+    await expectVisible({ text: name }, { timeout: 20_000 });
+  };
+
   /** Community tab → Cascais Social → Manage community. */
   const openManage = async () => {
-    await tabTo('Community');
-    await scrollUntilVisible({ text: /cascais social/i }, { maxSwipes: 8 });
-    await tap({ text: /cascais social/i });
-    await expectVisible({ text: /cascais social/i }, { timeout: 20_000 });
-    await scrollUntilVisible({ text: /manage community/i }, { maxSwipes: 6 });
+    await switchTo(/cascais social/i);
+    // The gear is a header action now, always on screen, so there is nothing to
+    // scroll to. Its accessibility label is still t('manageTitle').
     await tap({ text: /manage community/i });
     await expectVisible({ text: /member requests/i }, { timeout: 20_000 });
   };
