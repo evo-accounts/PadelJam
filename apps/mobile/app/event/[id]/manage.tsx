@@ -19,12 +19,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamManage } from '@/components/event/TeamManage';
@@ -37,6 +32,7 @@ import {
   EmptyState,
   emptyIcon,
   Field,
+  Screen,
   Text,
   TopBar,
   useActionSheet,
@@ -305,7 +301,7 @@ export default function EventManageScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('manageTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Screen scroll padded={false} style={styles.content}>
         {/* Header stats */}
         <View style={styles.stats}>
           <Text variant="bodyStrong">
@@ -487,7 +483,7 @@ export default function EventManageScreen() {
             onPress={onDuplicate}
           />
         </View>
-      </ScrollView>
+      </Screen>
     </SafeAreaView>
   );
 }

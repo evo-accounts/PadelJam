@@ -4,7 +4,7 @@ import { useT } from '@padel/i18n';
 import { geocodeQuery } from '@padel/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
@@ -21,7 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { useDirty } from '@/lib/useDirty';
 import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors, palette } from '../../../theme';
-import { Button, Field, Text, TopBar, useBanner } from '../../../components/ui';
+import { Button, Field, Screen, Text, TopBar, useBanner } from '../../../components/ui';
 
 type EditEventFieldKey = 'name';
 
@@ -171,7 +171,7 @@ export default function EditEventScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={dirty} />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Screen scroll padded={false} style={styles.content}>
         {/* Details */}
         <Text variant="label" tone="muted" style={styles.section}>{t('editDetailsSection')}</Text>
         <Field
@@ -224,7 +224,7 @@ export default function EditEventScreen() {
         />
 
         <Button label={t('saveCta')} loading={busy} fullWidth onPress={onSave} />
-      </ScrollView>
+      </Screen>
     </SafeAreaView>
   );
 }

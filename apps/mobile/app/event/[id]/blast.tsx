@@ -15,16 +15,12 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFieldErrors } from '@/lib/useFieldErrors';
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { colors, palette, space } from '../../../theme';
-import { BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, Field, Loading, Text, TopBar, useBanner } from '../../../components/ui';
+import { BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, Field, Loading, Screen, Text, TopBar, useBanner } from '../../../components/ui';
 
 type Channel = 'email' | 'whatsapp';
 type BlastFieldKey = 'title' | 'description' | 'channels';
@@ -170,7 +166,7 @@ export default function BlastScreen() {
 
       {!canCustomize ? (
         // --- Starter: read-only default template + channels + send ---
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Screen scroll padded={false} style={styles.content}>
           {defaultTemplate ? (
             <View style={styles.card}>
               <Text variant="bodyStrong">{defaultTemplate.title}</Text>
@@ -197,10 +193,10 @@ export default function BlastScreen() {
             onPress={() => setShowUpgrade(true)}
             testID="blast-customize-upgrade-cta"
           />
-        </ScrollView>
+        </Screen>
       ) : (
         // --- Basic/Pro: tabs + customize modal ---
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Screen scroll padded={false} style={styles.content}>
           <View style={styles.tabs}>
             {(['templates', 'yours'] as const).map((tb) => (
               <Chip
@@ -265,7 +261,7 @@ export default function BlastScreen() {
               </Card>
             ))
           )}
-        </ScrollView>
+        </Screen>
       )}
 
       {/* Customize sheet (Basic/Pro) */}

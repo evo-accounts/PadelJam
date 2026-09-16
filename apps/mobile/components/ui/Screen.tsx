@@ -19,9 +19,24 @@ import { Text } from './Text';
 
 type ScreenProps = {
   children?: React.ReactNode;
-  /** Wraps content in a ScrollView. Off by default — most lists scroll themselves. */
+  /**
+   * Wraps content in a ScrollView. Off by default — most lists scroll themselves.
+   *
+   * That ScrollView sets `keyboardShouldPersistTaps="handled"`, which is the whole reason a
+   * screen with a form should reach for this rather than roll its own. The RN default is
+   * "never": the first tap anywhere inside the scroller while the keyboard is up is spent
+   * DISMISSING the keyboard and never reaches the child. Submit is the last thing you touch
+   * after typing, so it takes two taps, and the first reads as nothing happening at all — no
+   * banner, no spinner, the form still filled. "handled" keeps dismiss-on-tap-outside for
+   * taps no control claims, which is what was wanted in the first place.
+   */
   scroll?: boolean;
-  /** Horizontal gutter. `none` for full-bleed lists that pad their own rows. */
+  /**
+   * Horizontal gutter of `space[5]` (20). Off for full-bleed lists that pad their own rows —
+   * and for the screens whose content container already sets `padding: 16`, which is BOTH a
+   * narrower gutter and a vertical pad this prop does not give. Those pass `padded={false}`
+   * with their own `style`, so they take the scroll behaviour without a layout change.
+   */
   padded?: boolean;
   style?: ViewStyle;
   testID?: string;

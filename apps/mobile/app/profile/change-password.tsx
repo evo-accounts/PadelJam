@@ -31,13 +31,13 @@ import { useT } from '@padel/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { passwordValid } from '@/lib/passwordRules';
 import { supabase } from '@/lib/supabase';
 import { useFieldErrors } from '@/lib/useFieldErrors';
-import { Button, Loading, PasswordField, Text, TopBar, useBanner } from '../../components/ui';
+import { Button, Loading, PasswordField, Screen, Text, TopBar, useBanner } from '../../components/ui';
 import { colors, space } from '../../theme';
 
 type FieldKey = 'current' | 'password' | 'confirm';
@@ -134,7 +134,7 @@ export default function ChangePasswordScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={title} onClose={() => router.back()} dirty={dirty} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Screen scroll padded={false} style={styles.content}>
         {/* No testID on the help paragraph: a plain RN Text surfaces as a StaticText with no
             AXUniqueId, so an id here would be unreachable from the accessibility tree. The E2E
             matches its copy instead. */}
@@ -173,14 +173,13 @@ export default function ChangePasswordScreen() {
           testID="repeat-password-input"
         />
         <Button fullWidth label={title} onPress={onSave} loading={busy} testID="change-password-submit" />
-      </ScrollView>
+      </Screen>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
   content: { padding: 16, gap: 8 },
   help: { marginBottom: space[2] },
 });
