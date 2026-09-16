@@ -1,5 +1,5 @@
 import { useT } from '@padel/i18n';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ReactNode } from 'react';
@@ -30,8 +30,30 @@ export function OnboardingStep({
   const { t } = useT('onboarding');
   const insets = useSafeAreaInsets();
 
+  /*
+   * The primary action must stay ABOVE the keyboard.
+   *
+   * This was a plain flex column with the button pinned last, and no keyboard
+   * avoidance at all. Once Xcode 27 started showing the software keyboard, the
+   * button on the location step was not merely hidden behind it — it left the
+   * accessibility tree entirely. Measured on the device: keyboard top y=590, and
+   * the lowest element of any kind y=583.
+   *
+   * That makes it unreachable to VoiceOver, which can only navigate what the
+   * tree contains, and it is a dead end for anyone who does not think to dismiss
+   * the keyboard first. It also failed all four onboarding end-to-end tests,
+   * which are sequential through this one screen.
+   *
+   * So: the content scrolls, and the action is pinned as the last child of the
+   * KeyboardAvoidingView rather than inside the scroll area — the distinction
+   * that matters, since an action inside the scroller just scrolls out of the
+   * shrunken viewport instead of staying above the keyboard.
+   */
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <View style={styles.headerRow}>
         {/* IconButton, not Button: `back` is the glyph "‹", and Button derives
             its accessible name FROM the label — so a screen reader announced
@@ -45,7 +67,11 @@ export function OnboardingStep({
         <Button variant="ghost" size="sm" label={t('skip')} onPress={onSkip} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Text variant="display" style={styles.title}>
           {title}
         </Text>
@@ -53,12 +79,12 @@ export function OnboardingStep({
           {body}
         </Text>
         {children}
-      </View>
+      </ScrollView>
 
       {!hidePrimary && (
         <Button fullWidth label={primaryLabel} onPress={onPrimary} disabled={primaryDisabled} />
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -109,7 +135,7 @@ const choiceStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card, paddingHorizontal: 24 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  content: { flex: 1, justifyContent: 'center' },
+  content: { flexGrow: 1, justifyContent: 'center' },
   title: { marginBottom: 12 },
   body: { lineHeight: 22, marginBottom: 24 },
 });
