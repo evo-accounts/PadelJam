@@ -198,7 +198,13 @@ describe('00 design system', () => {
   it('sheet and banner primitives are reachable and labelled', async () => {
     // The screenshot pass leaves the gallery scrolled to the bottom; the sheet
     // demo sits above the viewport, so scroll the content back DOWN to it.
-    await scrollUntilVisible({ text: /open confirm/i }, { direction: 'down', maxSwipes: 10 });
+    //
+    // The budget has to cover the whole gallery BELOW this section, so it grows
+    // every time one is added. 10 was enough until "Choice controls" landed
+    // between BottomSheet and the end (#130): the target then came to rest at
+    // y=-166, a swipe and a half short, and the failure read as if the sheet
+    // demo had vanished.
+    await scrollUntilVisible({ text: /open confirm/i }, { direction: 'down', maxSwipes: 20 });
     await tap({ text: /open confirm/i, type: 'Button' });
     let tree = await snapshot();
     expect(query(tree, { text: /delete this\?/i }), 'confirm sheet title').toBeDefined();
