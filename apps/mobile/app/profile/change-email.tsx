@@ -2,11 +2,11 @@ import { startEmailChange, verifyEmailChange } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
-import { Button, TopBar, useBanner } from '../../components/ui';
+import { Button, Screen, TopBar, useBanner } from '../../components/ui';
 import { colors } from '../../theme';
 
 export default function ChangeEmailScreen() {
@@ -60,7 +60,7 @@ export default function ChangeEmailScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={t('changeEmail')} onClose={() => router.back()} dirty={dirty} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Screen scroll padded={false} style={styles.content}>
       {phase === 'email' ? (
         <>
           <Text style={styles.label}>{t('newEmailLabel')}</Text>
@@ -75,14 +75,13 @@ export default function ChangeEmailScreen() {
           <Button fullWidth label={t('verify')} onPress={onVerify} loading={busy} />
         </>
       )}
-      </ScrollView>
+      </Screen>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
   content: { padding: 16, gap: 8 },
   hint: { color: colors.mutedForeground, fontSize: 14 },
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },

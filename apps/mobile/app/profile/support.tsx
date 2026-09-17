@@ -2,9 +2,9 @@ import { useCreateSupportTicket } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Field, TopBar, useBanner } from '../../components/ui';
+import { Button, Field, Screen, TopBar, useBanner } from '../../components/ui';
 import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors } from '../../theme';
 
@@ -54,16 +54,7 @@ export default function SupportScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={t('contactSupport')} onClose={() => router.back()} dirty={dirty} />
-      {/*
-        keyboardShouldPersistTaps defaults to "never", which means the first tap
-        anywhere in this scroller while the keyboard is up is spent DISMISSING the
-        keyboard and never reaches the child. Send is the last thing you touch
-        after typing, so it took two taps: the first appeared to do nothing at
-        all — no banner, no spinner, the form still filled — and the ticket was
-        simply never filed. "handled" keeps the dismiss-on-tap-outside behaviour
-        for taps no control claims, which is what was actually wanted.
-      */}
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Screen scroll padded={false} style={styles.content}>
         <Field
           label={t('supportTitle')}
           value={title}
@@ -80,14 +71,13 @@ export default function SupportScreen() {
           containerStyle={styles.field}
         />
         <Button fullWidth label={t('supportSend')} onPress={onSend} loading={busy} />
-      </ScrollView>
+      </Screen>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
   content: { padding: 16, gap: 8 },
   field: { marginTop: 8 },
 });

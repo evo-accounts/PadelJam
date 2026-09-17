@@ -381,6 +381,29 @@ export default function EventLiveScreen() {
         </ScrollView>
       ) : null}
 
+      {/* The one screen of the eight that did NOT move onto `<Screen scroll>`, and the
+          round-tab strip above is why. RN composes `baseVertical`/`baseHorizontal` onto
+          every ScrollView's outer node (ScrollView.js: `compose(baseStyle, props.style)`),
+          and BOTH carry flexGrow: 1 — so a `horizontal` scroller in a COLUMN parent is a
+          flexible child competing for vertical space. `Screen` adds `flex: 1`, which in
+          Yoga is flexBasis 0 rather than auto, and with two flexible children that
+          re-apportions the free space towards the strip.
+
+          Not a theory — measured on the simulator, both fixtures, keyboard down:
+
+                             strip height    first content y
+            hand-rolled         176.67            335
+            <Screen scroll>     331.67            490
+
+          The strip took 155pt more of an 874pt screen and pushed every match down with
+          it, and its chips stretch on the cross axis to fill it. E3 (two rounds) and E11
+          (one) reported identical bands, which is the tell: the strip is sized by its
+          container, not its content.
+
+          Nothing catches this. It compiles, it lints, and suite 07 passes either way —
+          the labels stay in the accessibility tree, just 155pt lower. The other seven
+          screens have no flexible sibling, so there `flex: 1` is genuinely invisible and
+          the migration stands. */}
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {effectiveTab === 'overview' ? (
           <View style={styles.overview}>

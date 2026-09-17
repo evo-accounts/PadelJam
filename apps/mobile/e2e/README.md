@@ -133,6 +133,32 @@ pnpm --filter mobile e2e -- --no-build  # reuse the existing Release build
 pnpm --filter mobile e2e -- --wait      # queue behind a running suite instead of failing
 ```
 
+### Scratch specs (`99-*`)
+
+A one-off repro — a bug investigation, or a measurement you want on two builds —
+goes in `suites/99-<name>.e2e.ts` and is never committed. `vitest.e2e.config.ts`
+excludes `suites/99-*` so it stays out of the normal run.
+
+**There is no flag that runs one.** That `exclude` is applied to the found files,
+so it beats a positional filter too: `--suite 99` (run.mjs pushes `suites/99` as
+exactly that kind of filter), `e2e:test -- suites/99-…` and a CLI `--exclude`
+override all collect ZERO files. It fails with "No test files found" rather than
+passing silently, but no incantation gets you past it.
+
+So rename it for the run, and rename it back:
+
+```bash
+git mv e2e/suites/99-thing.e2e.ts e2e/suites/97-thing.e2e.ts
+pnpm --filter mobile e2e -- --suite 97 --wait
+git mv e2e/suites/97-thing.e2e.ts e2e/suites/99-thing.e2e.ts
+```
+
+Pick a prefix no committed suite uses (97 is free; 98 is the user-switch suite).
+Rename it back before you commit anything — under a non-99 prefix it joins the
+default run, which is the thing the convention exists to prevent.
+
+Go through `run.mjs`, not vitest directly: run.mjs is what takes the lock below.
+
 ### Only one run at a time
 
 There is exactly **one** target simulator and **one** local Supabase, and a run owns

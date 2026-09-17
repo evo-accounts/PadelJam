@@ -3,7 +3,7 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceRow } from '@/components/OnboardingStep';
@@ -13,7 +13,7 @@ import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/
 import { useDirty } from '@/lib/useDirty';
 import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors } from '../../theme';
-import { Avatar, Button, Field, TopBar, useBanner } from '../../components/ui';
+import { Avatar, Button, Field, Screen, TopBar, useBanner } from '../../components/ui';
 
 const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -132,7 +132,7 @@ export default function EditProfileScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Gate on `prefilled`: `initial` tracks the query result but the form fields are seeded a render later, so `dirty` is briefly true after load. */}
       <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={prefilled && dirty} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Screen scroll padded={false} style={styles.content}>
       <Pressable style={styles.avatarWrap} onPress={onPickAvatar} accessibilityRole="button">
         <Avatar uri={shownAvatar} name={fullName || my.data?.full_name} colourKey={uid} size="xl" />
         <Text style={styles.avatarHint}>{t('avatarHint')}</Text>
@@ -186,7 +186,7 @@ export default function EditProfileScreen() {
       />
 
       <Button label={t('save')} fullWidth loading={saving} onPress={onSave} />
-      </ScrollView>
+      </Screen>
     </SafeAreaView>
   );
 }
@@ -194,7 +194,6 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  flex: { flex: 1 },
   content: { padding: 16, gap: 8, paddingBottom: 48 },
   avatarWrap: { alignItems: 'center', gap: 6, marginBottom: 8 },
   avatarHint: { color: colors.primary, fontSize: 13, fontWeight: '600' },
