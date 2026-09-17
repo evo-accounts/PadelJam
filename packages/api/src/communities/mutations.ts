@@ -52,6 +52,7 @@ export const useJoinCommunity = (communityId: string) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.community(communityId) });
+      qc.invalidateQueries({ queryKey: qk.standing(communityId) });
     },
   });
 };
@@ -71,6 +72,7 @@ export const useCancelJoinRequest = (communityId: string) => {
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.community(communityId) });
       qc.invalidateQueries({ queryKey: qk.requests(communityId) });
+      qc.invalidateQueries({ queryKey: qk.standing(communityId) });
     },
   });
 };
@@ -130,7 +132,7 @@ export const useAcceptInvitation = () => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: string | { invitationId: string; ack?: boolean }) => {
+    mutationFn: async (input: string | { invitationId: string; communityId?: string; ack?: boolean }) => {
       const { invitationId, ack } = typeof input === 'string' ? { invitationId: input, ack: false } : input;
       const { error } = await db.rpc('accept_invitation', {
         p_invitation_id: invitationId,
@@ -138,8 +140,16 @@ export const useAcceptInvitation = () => {
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
-    onSuccess: () => {
+    // `communityId` is optional because the notification path knows only the invitation id.
+    // When the preview passes it, the standing query behind the action is refreshed too —
+    // otherwise the screen would still read 'invited' after the accept resolved.
+    onSuccess: (_data, input) => {
+      const communityId = typeof input === 'string' ? undefined : input.communityId;
       qc.invalidateQueries({ queryKey: qk.communities });
+      if (communityId) {
+        qc.invalidateQueries({ queryKey: qk.standing(communityId) });
+        qc.invalidateQueries({ queryKey: qk.members(communityId) });
+      }
     },
   });
 };
@@ -149,13 +159,16 @@ export const useDeclineInvitation = () => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (invitationId: string) => {
+    mutationFn: async (input: string | { invitationId: string; communityId?: string }) => {
+      const invitationId = typeof input === 'string' ? input : input.invitationId;
       const { error } = await db.rpc('decline_invitation', { p_invitation_id: invitationId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
+      const communityId = typeof input === 'string' ? undefined : input.communityId;
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.notifications });
+      if (communityId) qc.invalidateQueries({ queryKey: qk.standing(communityId) });
     },
   });
 };

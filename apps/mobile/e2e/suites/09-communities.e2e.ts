@@ -14,12 +14,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * Community home (posts / events / groups / members / about), posting, and the
  * join paths for each privacy mode.
  *
- * KNOWN_ISSUE (task_9cb95a32): the tab screens under (home)/ read the route
- * param with useLocalSearchParams, which is undefined inside the top-tabs
- * layout, so Members/Groups/About/Reviews query `community_id=eq.undefined`,
- * get a 400 and render their EMPTY STATES. The two tests below are the
- * regression signal and fail until that is fixed. Community A "Lisbon Padel Club" is public
- * with seeded posts; C "Cascais Social" is request-to-join; P is private.
+ * The tab screens used to read the route param with useLocalSearchParams, which
+ * is undefined inside the top-tabs layout, so Members/Groups/About/Reviews
+ * queried `community_id=eq.undefined` and rendered their empty states. #134
+ * replaced that with the `CommunityIdProvider` context and the tests below went
+ * green; they stay as the regression signal.
+ *
+ * Community A "Lisbon Padel Club" is public with seeded posts; C "Cascais
+ * Social" is request-to-join; P is private.
  */
 describe('09 communities', () => {
   beforeAll(async () => {
@@ -129,10 +131,18 @@ describe('09 communities', () => {
     );
   });
 
-  // Blocked by the same KNOWN_ISSUE as the tab tests: community/[id]/join.tsx
-  // also reads the id via useLocalSearchParams, so an outsider's join screen
-  // queries `id=eq.undefined` too. Expected to pass once task_9cb95a32 lands.
-  it('a request-to-join community shows the request path to an outsider', async () => {
+  /**
+   * The preview's already-requested state, and the cancel that UX-COMM-04 hangs
+   * off the same button.
+   *
+   * pedro's request for C is SEEDED pending (`seed-e2e.mjs` calls
+   * `join_community` for him), so the preview must open on "Requested" rather
+   * than offering to request again — which is what it did before the preview
+   * knew standing at all. Tapping it cancels, and the action falls back to
+   * "Request to join": one button, two states, which is the whole item.
+   */
+  it('a request-to-join community shows an outsider their pending request, and cancels it', async () => {
+    const m = manifest();
     // pedro is not a member of C "Cascais Social" (his seeded request is pending).
     // Logout starts from the Profile tab, so we must be on a tab screen first.
     await returnToTabs();
@@ -148,11 +158,22 @@ describe('09 communities', () => {
     await sleep(800);
     await scrollUntilVisible({ text: /cascais social/i }, { maxSwipes: 8 });
     await tap({ text: /cascais social/i });
-    await sleep(1500);
-    const tree = await snapshot();
-    // Either the request CTA or the already-requested state.
-    const cta = query(tree, { text: /request to join|request sent|admins must approve/i });
-    if (!cta) throw new Error('request-to-join community offered no request path');
+
+    // Seeded pending: the action says so rather than offering a second request.
+    await expectVisible({ label: 'Requested', type: 'Button' }, { timeout: 20_000 });
+
+    // And tapping it withdraws the request (cancel_join_request, migration 0099).
+    await tap({ label: 'Requested', type: 'Button' });
+    await expectVisible({ label: 'Request to join', type: 'Button' }, { timeout: 20_000 });
+    await pollUntil(
+      () =>
+        select(
+          'community_join_requests',
+          `user_id=eq.${m.users.pedro}&status=eq.pending&select=id`,
+        ),
+      (rows) => (rows as unknown[]).length === 0,
+      { label: 'pending request withdrawn', timeoutMs: 20_000 },
+    );
   });
 
   /**
