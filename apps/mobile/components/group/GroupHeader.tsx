@@ -8,9 +8,13 @@ import { SeasonTag } from './SeasonTag';
 import { colors } from '../../theme';
 
 /**
- * Group page hero (mirrors CommunityHero): thumbnail, name, optional
- * description, a member-count pill and the current SeasonTag. Render-only —
- * props in, no data fetching.
+ * Group page hero: thumbnail, name, optional description, a member-count pill
+ * and the current SeasonTag. Render-only — props in, no data fetching.
+ *
+ * It used to be described as mirroring `CommunityHero`, which is gone: the
+ * community identity block moved into the About tab (UX-COMM-08) and the
+ * preview's own header (UX-COMM-04). Groups have no equivalent restructure yet,
+ * so this stayed.
  */
 export function GroupHeader({
   name,

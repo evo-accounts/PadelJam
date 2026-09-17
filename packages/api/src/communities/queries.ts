@@ -207,6 +207,90 @@ export const useCommunityRequests = (id: string) => {
   });
 };
 
+/**
+ * Where the VIEWER stands with a community they are looking at, as one fact.
+ *
+ * The preview (UX-COMM-04) branches six ways — member, invited, requested, and the three
+ * privacy modes for someone with no relationship — and each branch needs a different action.
+ * Assembling that from `useCommunities` plus two more reads in the screen would mean three
+ * loading states resolving independently and an action button that changes shape twice while
+ * they land. One query, one answer.
+ *
+ * Precedence is member > invited > requested. A pending invitation outranks a pending request
+ * because accepting it resolves both at once, and it is the only path into a private community.
+ *
+ * Every read here is already the viewer's own row under RLS (`cjr: read` and `ci: read` in
+ * migration 0024 both key on `auth.uid()`), so this cannot report on anyone else.
+ */
+export type CommunityStandingState = 'member' | 'invited' | 'requested' | 'none';
+
+export type CommunityStanding = {
+  state: CommunityStandingState;
+  /** The viewer's own role, only when `state` is 'member'. */
+  role: string | null;
+  /** The pending invitation and who sent it, only when `state` is 'invited'. */
+  invitation: {
+    id: string;
+    inviter: { id: string; full_name: string | null; avatar_url: string | null } | null;
+  } | null;
+};
+
+export const useCommunityStanding = (id: string | undefined) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.standing(id ?? ''),
+    enabled: !!id && !!uid,
+    queryFn: async (): Promise<CommunityStanding> => {
+      const [membership, request, invitation] = await Promise.all([
+        db
+          .from('community_members')
+          .select('role')
+          .eq('community_id', id!)
+          .eq('user_id', uid!)
+          .maybeSingle(),
+        db
+          .from('community_join_requests')
+          .select('id')
+          .eq('community_id', id!)
+          .eq('user_id', uid!)
+          .eq('status', 'pending')
+          .maybeSingle(),
+        db
+          .from('community_invitations')
+          // inviter_id and invitee_id both reach profiles, so the embed is disambiguated by
+          // the constraint name — the same idiom as `useGroupInvitations` (migration 0021).
+          .select('id, inviter:profiles!community_invitations_inviter_id_fkey(id, full_name, avatar_url)')
+          .eq('community_id', id!)
+          .eq('invitee_id', uid!)
+          .eq('status', 'pending')
+          .maybeSingle()
+          .returns<{
+            id: string;
+            inviter: { id: string; full_name: string | null; avatar_url: string | null } | null;
+          } | null>(),
+      ]);
+
+      if (membership.error) throw membership.error;
+      if (request.error) throw request.error;
+      if (invitation.error) throw invitation.error;
+
+      if (membership.data) {
+        return { state: 'member', role: membership.data.role, invitation: null };
+      }
+      if (invitation.data) {
+        return {
+          state: 'invited',
+          role: null,
+          invitation: { id: invitation.data.id, inviter: invitation.data.inviter },
+        };
+      }
+      if (request.data) return { state: 'requested', role: null, invitation: null };
+      return { state: 'none', role: null, invitation: null };
+    },
+  });
+};
+
 export const useCommunityPosts = (id: string) => {
   const db = useDb();
   const uid = useSession().session?.user.id;
