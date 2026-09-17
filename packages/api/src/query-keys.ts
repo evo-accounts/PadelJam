@@ -10,6 +10,7 @@ export const qk = {
   canReview: (id: string) => ['community', id, 'can-review'] as const,
   requests: (id: string) => ['community', id, 'requests'] as const,
   standing: (id: string) => ['community', id, 'standing'] as const,
+  memberCount: (id: string) => ['community', id, 'member-count'] as const,
   suggested: ['communities', 'suggested'] as const,
   canCreate: ['communities', 'can-create'] as const,
   defaultCommunity: ['communities', 'default'] as const,

@@ -1,7 +1,7 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
 import { backGesture, scrollUntilVisible, tap, typeText } from '../driver/actions';
-import { expectVisible } from '../driver/expect';
+import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall, relaunch } from '../driver/app';
 import { loginAs, switchUser, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
@@ -174,6 +174,42 @@ describe('09 communities', () => {
       (rows) => (rows as unknown[]).length === 0,
       { label: 'pending request withdrawn', timeoutMs: 20_000 },
     );
+  });
+
+  /**
+   * Migration 0100 end to end: a NON-MEMBER reads a public community's content.
+   *
+   * This is the assertion the tabs exist for. Before 0100 every one of these
+   * queries was gated on `is_community_member`, so an outsider opening Posts saw
+   * the empty state — indistinguishable, on screen, from a community that has
+   * never posted. A "Posts" chip alone would prove nothing; reading alex's
+   * SEEDED post through it is the proof.
+   *
+   * pedro is still on the preview for C from the test above, so this starts by
+   * going back out to Explore. A "Join" button rather than "Request to join" is
+   * also how we know the preview read A's privacy as public.
+   */
+  it('a public community lets an outsider read its posts from the preview', async () => {
+    await returnToTabs();
+    await tabTo('Explore');
+    await tap({ text: /^communities$/i, type: 'Button' });
+    await sleep(800);
+    await scrollUntilVisible({ text: /lisbon padel club/i }, { maxSwipes: 8 });
+    await tap({ text: /lisbon padel club/i });
+
+    // Public, and pedro is no member of it: the plain Join action, not a request.
+    await expectVisible({ label: 'Join', type: 'Button' }, { timeout: 20_000 });
+    // The five tabs of UX-COMM-04, which only a public community gets.
+    await expectVisible({ text: /^posts$/i, type: 'Button' }, { timeout: 15_000 });
+
+    await tap({ text: /^posts$/i, type: 'Button' });
+    // alex's seeded post, read by someone who is not in the community.
+    await expectVisible({ text: /welcome/i }, { timeout: 20_000 });
+    // Read-only: liking is still members-only, so the heart is not a control here.
+    await expectGone({ label: 'Like', type: 'Button' }, { timeout: 3_000 });
+
+    // The pinned action survives the tab change (UX-COMM-04).
+    await expectVisible({ label: 'Join', type: 'Button' }, { timeout: 10_000 });
   });
 
   /**

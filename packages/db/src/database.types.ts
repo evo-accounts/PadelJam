@@ -2410,6 +2410,8 @@ export type Database = {
         Args: { c: string; key: string }
         Returns: boolean
       }
+      community_is_public: { Args: { c: string }; Returns: boolean }
+      community_member_count: { Args: { c: string }; Returns: number }
       community_limit: { Args: { c: string; key: string }; Returns: number }
       community_limit_for_plan: { Args: { p_plan: string; p_key: string }; Returns: number }
       community_plan: { Args: { c: string }; Returns: string }

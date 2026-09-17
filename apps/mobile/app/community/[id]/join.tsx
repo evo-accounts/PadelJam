@@ -29,6 +29,7 @@ import {
   useAcceptInvitation,
   useCancelJoinRequest,
   useCommunity,
+  useCommunityMemberCount,
   useCommunityMembers,
   useCommunityStanding,
   useDeclineInvitation,
@@ -39,12 +40,24 @@ import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AckGate } from '@/components/community/AckGate';
 import { CommunityAttributes } from '@/components/community/CommunityAttributes';
-import { actionNeedsAck, previewAction } from '@/components/community/previewAction';
+import { CommunityIdProvider } from '@/components/community/CommunityIdContext';
+import {
+  actionNeedsAck,
+  PREVIEW_TAB_KEY,
+  PREVIEW_TABS,
+  previewAction,
+  previewHasTabs,
+  type PreviewTab,
+} from '@/components/community/previewAction';
+import CommunityEventsTab from '@/components/community/tabs/Events';
+import CommunityGroupsTab from '@/components/community/tabs/Groups';
+import CommunityMembersTab from '@/components/community/tabs/Members';
+import CommunityPostsTab from '@/components/community/tabs/Posts';
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { avatarUrl, coverUrl, thumbnailUrl } from '@/lib/community-images';
 import { colors, radius, space } from '../../../theme';
@@ -52,6 +65,7 @@ import {
   Avatar,
   Button,
   Card,
+  Chip,
   ListRow,
   Loading,
   Screen,
@@ -84,6 +98,7 @@ export default function CommunityPreviewScreen() {
 
   const { data: community, isLoading, isError } = useCommunity(id);
   const { data: members, isError: membersError } = useCommunityMembers(id);
+  const { data: memberCountData, isError: memberCountError } = useCommunityMemberCount(id);
   const { data: standing, isLoading: standingLoading } = useCommunityStanding(id);
 
   const join = useJoinCommunity(id);
@@ -95,6 +110,8 @@ export default function CommunityPreviewScreen() {
   const [ack, setAck] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  // About is the default (UX-COMM-04) and the only tab every privacy mode shows.
+  const [tab, setTab] = useState<PreviewTab>('about');
   // router.replace twice in one frame pushes a second animation onto a screen
   // that is already leaving. Both the mount guard and the join handler can fire.
   const leaving = useRef(false);
@@ -165,19 +182,22 @@ export default function CommunityPreviewScreen() {
   const blockedByAck = ackRequired && !ack;
 
   /**
-   * The roster is readable to a member, and to anyone at all only when the
-   * community is PUBLIC (`community_members: read`, migration 0024). For a
-   * request-to-join or private community an outsider gets an empty array back —
-   * that is row-level security, not an empty community, and rendering it as "0
-   * members" would state something false about a community with fifty. Null
-   * makes the card show "—", and the admins section simply does not appear.
+   * The COUNT comes from the server (migration 0100), the NAMES from the roster.
    *
-   * UX-COMM-04 does want the count on a request-to-join preview. That needs the
-   * same read widening the tabs are waiting on, so it arrives with them.
+   * They are separate on purpose. `community_members: read` (0024) gives an outsider the roster
+   * of a public community and an empty array for the other two modes — RLS, not an empty
+   * community — so counting rows here would print a confident "0" for a request-to-join
+   * community with fifty people in it. `community_member_count` answers the number for any
+   * community without disclosing who is in it, which is exactly what the attribute card needs.
+   *
+   * The admins list still depends on the roster, so it appears only where the names are
+   * genuinely readable. That is the audit's shape too: attribute widgets on every preview, the
+   * admin rows only where there is something to show.
    */
+  const memberCount = memberCountError ? null : (memberCountData ?? null);
   const rosterReadable = community.privacy === 'public' || state === 'member';
-  const memberCount = membersError || !rosterReadable ? null : (members?.length ?? 0);
-  const admins = rosterReadable ? (members ?? []).filter((m) => m.role === 'admin') : [];
+  const admins = rosterReadable && !membersError ? (members ?? []).filter((m) => m.role === 'admin') : [];
+  const hasTabs = previewHasTabs(community.privacy);
   const cover = coverUrl(community.cover_image_path);
 
   const fail = (e: unknown) => {
@@ -250,6 +270,53 @@ export default function CommunityPreviewScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" onClose={() => router.back()} />
 
+      {/*
+        UX-COMM-04 gives a PUBLIC community's preview all five tabs; the other two
+        privacy modes get About alone. That line is also exactly what migration 0100
+        made readable to a non-member, which is not a coincidence — a tab whose
+        queries RLS refuses renders an empty state indistinguishable from an empty
+        community, which is worse than no tab.
+
+        Chips rather than Material Top Tabs: those need a route layout, and the
+        preview is one screen. `Chip` also carries accessibilityState.selected,
+        which colour alone would not and the E2E tree reads.
+      */}
+      {hasTabs ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabStrip}
+          style={styles.tabStripOuter}
+        >
+          {PREVIEW_TABS.map((key) => (
+            <Chip
+              key={key}
+              label={t(PREVIEW_TAB_KEY[key])}
+              selected={tab === key}
+              onPress={() => setTab(key)}
+              testID={`preview-tab-${key}`}
+            />
+          ))}
+        </ScrollView>
+      ) : null}
+
+      {tab !== 'about' ? (
+        /*
+          The member view's own tab components, rendered directly rather than through
+          the router. Each reads its community from CommunityIdContext and gates every
+          create affordance on `useAbility` / `can_create_*`, which a non-member fails —
+          so they come up read-only here without a preview-specific variant to keep in
+          step with them.
+        */
+        <CommunityIdProvider id={id}>
+          <View style={styles.pane}>
+            {tab === 'posts' ? <CommunityPostsTab /> : null}
+            {tab === 'events' ? <CommunityEventsTab /> : null}
+            {tab === 'groups' ? <CommunityGroupsTab /> : null}
+            {tab === 'members' ? <CommunityMembersTab /> : null}
+          </View>
+        </CommunityIdProvider>
+      ) : (
       <Screen scroll style={styles.content} testID="community-preview">
         <View style={styles.identity}>
           {cover ? (
@@ -337,6 +404,7 @@ export default function CommunityPreviewScreen() {
           {t(PRIVACY_SUMMARY_KEY[community.privacy] ?? 'privacySummaryPublic')}
         </Text>
       </Screen>
+      )}
 
       {/*
         The action is PINNED (UX-COMM-04: "the join action fixed at the bottom
@@ -439,6 +507,11 @@ export default function CommunityPreviewScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { gap: space[4], paddingVertical: space[4] },
+  // `flexGrow: 0` so the strip is as tall as a chip, not a third of the screen —
+  // a horizontal ScrollView inside a flex column otherwise takes what it is given (#138).
+  tabStripOuter: { flexGrow: 0, backgroundColor: colors.card },
+  tabStrip: { gap: space[2], paddingHorizontal: space[5], paddingVertical: space[3] },
+  pane: { flex: 1 },
   notFound: { gap: space[2], alignItems: 'center', justifyContent: 'center' },
   centred: { textAlign: 'center' },
   identity: { alignItems: 'center', gap: space[2] },
