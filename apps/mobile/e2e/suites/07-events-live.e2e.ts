@@ -41,6 +41,40 @@ describe('07 event live scoring', () => {
     await expectVisible({ text: /not scored yet|round 2/i }, { timeout: 15_000 });
   });
 
+  /**
+   * The only assertion in this suite about WHERE something is rather than whether
+   * it exists, and it is here because everything else in the file would have
+   * passed while the screen looked wrong.
+   *
+   * The round-tab strip is a horizontal ScrollView in a column. RN's
+   * `baseHorizontal` carries flexGrow: 1, so it claimed the column's spare
+   * vertical space and `alignItems: stretch` then stretched each Chip to fill
+   * it: a chip measured 176.67pt against an intrinsic 36, and on a one-round
+   * event that was a SINGLE chip 176pt tall, pushing the first match from
+   * y=194 down to y=335. Every label stayed in the accessibility tree at its new
+   * position, so this suite was green throughout.
+   *
+   * Assert the CHIP, not the strip. A chip is a chip on any device, so 48pt
+   * holds regardless of screen height, tab count, or which simulator run.mjs
+   * resolved — whereas a threshold on the strip's band, or a ratio of screen
+   * height, encodes this machine's geometry and would need re-baselining after
+   * any padding change. It is deliberately not a ratchet: there is no value in
+   * failing when a chip gets SMALLER, and a ratchet pinned at today's number
+   * would have enshrined the 176.67 as correct.
+   */
+  it('round tabs are chips, not stretched to fill the column', async () => {
+    await openLive();
+    const tabs = queryAll(await snapshot(), { text: /^round \d+$/i, type: 'Button' });
+    if (tabs.length === 0) throw new Error('no round-tab chips on the live screen');
+    const tallest = Math.max(...tabs.map((e) => e.frame.height));
+    if (tallest > 48) {
+      throw new Error(
+        `a round tab is ${tallest.toFixed(2)}pt tall — a chip is ~36. The strip is stretching `
+        + 'them to fill the column again: check flexGrow on its outer node (live.tsx roundTabsOuter).',
+      );
+    }
+  });
+
   it('submits a score for a pending match', async () => {
     const m = manifest();
     // PostgREST filters cannot contain SQL subqueries — resolve the round ids

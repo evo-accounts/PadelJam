@@ -31,7 +31,7 @@ import { ShareResultsModal } from '@/components/event/ShareResultsModal';
 import { TimerTab } from '@/components/event/TimerTab';
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../../theme';
-import { Avatar, BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, TopBar } from '../../../components/ui';
+import { Avatar, BottomSheet, Button, Card, Chip, EmptyState, emptyIcon, Screen, TopBar } from '../../../components/ui';
 
 type MatchRow = NonNullable<ReturnType<typeof useEventMatches>['data']>[number];
 type MatchPlayer = MatchRow['match_players'][number];
@@ -365,6 +365,7 @@ export default function EventLiveScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.roundTabsOuter}
           contentContainerStyle={styles.roundTabs}
         >
           {rounds.map((r) => {
@@ -381,30 +382,26 @@ export default function EventLiveScreen() {
         </ScrollView>
       ) : null}
 
-      {/* The one screen of the eight that did NOT move onto `<Screen scroll>`, and the
-          round-tab strip above is why. RN composes `baseVertical`/`baseHorizontal` onto
-          every ScrollView's outer node (ScrollView.js: `compose(baseStyle, props.style)`),
-          and BOTH carry flexGrow: 1 — so a `horizontal` scroller in a COLUMN parent is a
-          flexible child competing for vertical space. `Screen` adds `flex: 1`, which in
-          Yoga is flexBasis 0 rather than auto, and with two flexible children that
-          re-apportions the free space towards the strip.
+      {/*
+        This screen was the one of eight that #137 could NOT move onto `<Screen scroll>`,
+        and the round-tab strip above was why: `baseHorizontal` made it a second flexible
+        child of the column, so `Screen`'s `flex: 1` (flexBasis 0, not auto) re-apportioned
+        the free space towards it — measured at the time, the strip went 176.67 -> 331.67
+        and the first match y=335 -> 490.
 
-          Not a theory — measured on the simulator, both fixtures, keyboard down:
+        `flexGrow: 0` on the strip removes it from that competition, so the scroller is
+        once again the single flexible child and the migration is safe. Measured here,
+        both fixtures, keyboard down, to confirm the move changes nothing:
 
-                             strip height    first content y
-            hand-rolled         176.67            335
-            <Screen scroll>     331.67            490
+                                      chip height    first content y
+          main (before flexGrow: 0)      176.67           335
+          flexGrow: 0, hand-rolled        36              194.33
+          flexGrow: 0, <Screen scroll>    36              194.33
 
-          The strip took 155pt more of an 874pt screen and pushed every match down with
-          it, and its chips stretch on the cross axis to fill it. E3 (two rounds) and E11
-          (one) reported identical bands, which is the tell: the strip is sized by its
-          container, not its content.
-
-          Nothing catches this. It compiles, it lints, and suite 07 passes either way —
-          the labels stay in the accessibility tree, just 155pt lower. The other seven
-          screens have no flexible sibling, so there `flex: 1` is genuinely invisible and
-          the migration stands. */}
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        `padded={false}` because `content` is `padding: 16`, which is both a narrower
+        gutter than Screen's space[5] (20) and a vertical pad it does not give.
+      */}
+      <Screen scroll padded={false} style={styles.content}>
         {effectiveTab === 'overview' ? (
           <View style={styles.overview}>
             {event.finish_message != null && event.finish_message.length > 0 ? (
@@ -563,7 +560,7 @@ export default function EventLiveScreen() {
             })}
           </View>
         )}
-      </ScrollView>
+      </Screen>
 
       {/* Floating finish button (organizer, in-progress) */}
       {isOrganizer && isInProgress ? (
@@ -746,6 +743,26 @@ const styles = StyleSheet.create({
 
 
   // Round tabs
+  /**
+   * `flexGrow: 0` is the whole fix, and it belongs on the OUTER node.
+   *
+   * RN composes `baseHorizontal` onto every horizontal ScrollView's outer node
+   * (ScrollView.js: `compose(baseStyle, props.style)`), and it carries
+   * `flexGrow: 1`. That is right for a horizontal scroller filling a row; this
+   * one sits in a COLUMN, where flexGrow means "take the spare vertical space".
+   * So a strip of chips stretched to whatever height was going spare — measured
+   * at 176.67pt against an intrinsic ~56 (10pt of padding around a ~36pt chip),
+   * with `alignItems: stretch` on the row then stretching each Chip to fill it.
+   * On a one-round event that is a SINGLE chip 176pt tall.
+   *
+   * The giveaway in the measurements was that a two-round event and a one-round
+   * event reported identical bands: a strip sized by its content cannot do that.
+   *
+   * This also removes the second flexible child from the column, which is what
+   * disqualified this screen from `<Screen scroll>` in #137 — see the comment on
+   * the content scroller below.
+   */
+  roundTabsOuter: { flexGrow: 0 },
   roundTabs: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
   roundTab: {
     paddingHorizontal: 14,
