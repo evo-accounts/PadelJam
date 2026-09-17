@@ -402,9 +402,13 @@ describe('01 auth', () => {
    * `auth_methods_for` — byte-for-byte what an account whose only method is the
    * one in use returns, which is the point (no account-existence oracle). The
    * sheet must therefore never open empty: it says this is the only way in and
-   * offers to start again. `signInWithOtp` creates the unknown user as it sends,
-   * so this lands in the "account with nothing else" case either way, and the
-   * two being the same is exactly what is being pinned.
+   * offers to start again.
+   *
+   * `signInWithOtp` creates the unknown user as it sends, so WHICH of those two
+   * cases this lands in depends on ordering — and sign-in resolves the lookup
+   * before it sends precisely so this is always the first one. Fire them
+   * together and the send wins often enough to flake: the sheet then describes
+   * an account one second old, password row and all.
    */
   it('an identifier with no account gets the only-way-in state, not an empty sheet', async () => {
     await freshInstall();
