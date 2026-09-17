@@ -134,7 +134,7 @@ export default function ChangePasswordScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={title} onClose={() => router.back()} dirty={dirty} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* No testID on the help paragraph: a plain RN Text surfaces as a StaticText with no
             AXUniqueId, so an id here would be unreachable from the accessibility tree. The E2E
             matches its copy instead. */}

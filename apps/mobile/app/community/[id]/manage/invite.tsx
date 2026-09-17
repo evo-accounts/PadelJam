@@ -2,7 +2,7 @@ import { useCommunityMembers, useDb, useInviteMembers } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
@@ -148,6 +148,20 @@ export default function ManageInviteScreen() {
   return (
     <SafeAreaView style={[styles.container, { paddingBottom: insets.bottom }]} edges={['top']}>
       <TopBar variant="edit" title={t('manageInvite')} onClose={() => router.back()} dirty={dirty} />
+      {/*
+        The search field holds focus for the whole task — you type a name, tap a
+        result, type the next one — so the keyboard is up at the moment the CTA
+        matters. Pinned to the bottom of the SafeAreaView it sat at y=773 with
+        the keyboard covering everything from y=583: not merely hidden, but
+        ABSENT from the accessibility tree, and with no caption anywhere on this
+        screen to tap to dismiss. There was no way to send the invitations
+        without first backing out of the field. Same defect #135 fixed for the
+        first-run funnel, on a screen no audit has reached yet.
+      */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <View style={styles.searchWrap}>
         <TextInput
           style={styles.search}
@@ -254,12 +268,14 @@ export default function ManageInviteScreen() {
           </Text>
         )}
       </Pressable>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
+  flex: { flex: 1 },
   searchWrap: { padding: 16 },
   search: {
     borderWidth: 1,

@@ -1,6 +1,6 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
-import { scrollUntilVisible, tap, toggleSwitch, typeText } from '../driver/actions';
+import { dismissKeyboard, scrollUntilVisible, tap, toggleSwitch, typeText } from '../driver/actions';
 import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { loginAs, tabTo } from '../driver/flows';
@@ -261,6 +261,12 @@ describe('11 community admin', () => {
     // lands inside the "Cover image" picker (y=689..888) and opens the iOS photo
     // library, after which the app's AX tree is empty and the failure surfaces
     // 80s later as an unrelated-looking timeout. Scroll it into view first.
+    // Put the keyboard away FIRST. Leaving it up cost the scroll two ways at once:
+    // it shrinks the scroller to ~469pt so Save's settled position lands under the
+    // keyboard's top edge, where iOS drops it from the accessibility tree entirely,
+    // and the swipe has to happen in the narrow band above it. Dismissed, the
+    // viewport is the full screen and Save simply ends up on it.
+    await dismissKeyboard();
     await scrollUntilVisible({ text: /^save$/i }, { maxSwipes: 8 });
     await tap({ text: /^save$/i });
 

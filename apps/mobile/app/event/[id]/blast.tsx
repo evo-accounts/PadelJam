@@ -170,7 +170,7 @@ export default function BlastScreen() {
 
       {!canCustomize ? (
         // --- Starter: read-only default template + channels + send ---
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {defaultTemplate ? (
             <View style={styles.card}>
               <Text variant="bodyStrong">{defaultTemplate.title}</Text>
@@ -200,7 +200,7 @@ export default function BlastScreen() {
         </ScrollView>
       ) : (
         // --- Basic/Pro: tabs + customize modal ---
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.tabs}>
             {(['templates', 'yours'] as const).map((tb) => (
               <Chip

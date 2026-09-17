@@ -305,7 +305,7 @@ export default function EventManageScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('manageTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Header stats */}
         <View style={styles.stats}>
           <Text variant="bodyStrong">

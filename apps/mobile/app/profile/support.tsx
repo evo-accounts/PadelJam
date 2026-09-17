@@ -54,7 +54,16 @@ export default function SupportScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={t('contactSupport')} onClose={() => router.back()} dirty={dirty} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+      {/*
+        keyboardShouldPersistTaps defaults to "never", which means the first tap
+        anywhere in this scroller while the keyboard is up is spent DISMISSING the
+        keyboard and never reaches the child. Send is the last thing you touch
+        after typing, so it took two taps: the first appeared to do nothing at
+        all — no banner, no spinner, the form still filled — and the ticket was
+        simply never filed. "handled" keeps the dismiss-on-tap-outside behaviour
+        for taps no control claims, which is what was actually wanted.
+      */}
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Field
           label={t('supportTitle')}
           value={title}

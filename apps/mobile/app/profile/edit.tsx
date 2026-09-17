@@ -132,7 +132,7 @@ export default function EditProfileScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Gate on `prefilled`: `initial` tracks the query result but the form fields are seeded a render later, so `dirty` is briefly true after load. */}
       <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={prefilled && dirty} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Pressable style={styles.avatarWrap} onPress={onPickAvatar} accessibilityRole="button">
         <Avatar uri={shownAvatar} name={fullName || my.data?.full_name} colourKey={uid} size="xl" />
         <Text style={styles.avatarHint}>{t('avatarHint')}</Text>
