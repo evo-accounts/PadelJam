@@ -197,11 +197,11 @@ export default function OtpScreen() {
   /**
    * Open the sheet IMMEDIATELY, with whatever is known.
    *
-   * sign-in fires the lookup alongside the OTP send, so by the time anyone can
-   * reach this button the answer is usually already on the auth-flow singleton
-   * — read here rather than at mount, because it lands asynchronously and a
-   * mount-time snapshot would be `null` forever. When it genuinely is not there
-   * (a slow network, a restored route, a lookup that failed), the tap still
+   * sign-in resolves the lookup before it sends, so by the time anyone can
+   * reach this button the answer is already on the auth-flow singleton — read
+   * here rather than at mount, because the singleton is not reactive and a
+   * mount-time snapshot would miss a later write. When it genuinely is not
+   * there (a restored route, a lookup that failed), the tap still
    * opens the sheet and the sheet shows its loading state. Blocking the tap on
    * a network call is the one thing this must not do.
    */

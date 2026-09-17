@@ -104,13 +104,19 @@ export default function SignInScreen() {
     setBusy(true);
     try {
       /**
-       * Fired BEFORE the await, so it runs alongside the send rather than after
-       * it, and the OTP screen's "Try another way" sheet has its answer by the
-       * time anyone can open it (UX-AUTH-04). `.catch` here, not `try`: a lookup
-       * that fails must never fail or delay a sign-in — it becomes `null`, which
-       * is the same thing an unknown identifier produces.
+       * AWAITED, and before the send, because the send CREATES the account:
+       * `signInWithOtp` signs up unknown identifiers by default. Run the two
+       * together and a brand-new user races into existence mid-lookup, and the
+       * "Try another way" sheet describes the account the send just made rather
+       * than the one the user came with — offering, among other things, a
+       * password they have never set (see `has_password`). One extra round trip
+       * buys an answer that is about the user, not about our own side effect.
+       *
+       * `.catch` here, not `try`: a lookup that fails must never fail a sign-in
+       * — it becomes `null`, which is the same thing an unknown identifier
+       * produces, so the sheet renders its only-way-in state either way.
        */
-      const methods = lookupAuthMethods(value).catch(() => null);
+      const methods = await lookupAuthMethods(value).catch(() => null);
 
       const { error: otpError } =
         mode === 'phone'
@@ -123,9 +129,7 @@ export default function SignInScreen() {
       }
 
       setAuthTarget(value, mode, mode);
-      // Not awaited: whenever it lands, it lands. `setAuthMethods` drops the
-      // result if the target has moved on by then.
-      void methods.then((m) => setAuthMethods(value, m));
+      setAuthMethods(value, methods);
       router.push('/(auth)/otp');
     } finally {
       setBusy(false);
