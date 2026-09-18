@@ -194,8 +194,17 @@ export default function CommunityPreviewScreen() {
    * genuinely readable. That is the audit's shape too: attribute widgets on every preview, the
    * admin rows only where there is something to show.
    */
-  const memberCount = memberCountError ? null : (memberCountData ?? null);
   const rosterReadable = community.privacy === 'public' || state === 'member';
+  /**
+   * The RPC first, the roster as a fallback where the roster is readable at all.
+   *
+   * The fallback is not redundant: `community_member_count` ships in migration
+   * 0100, and until that is applied to a given database the RPC simply is not
+   * there. On a public community the roster answers the same question, so the
+   * card shows a number rather than "—" for a gap the viewer cannot see.
+   */
+  const rosterCount = rosterReadable && !membersError ? (members?.length ?? null) : null;
+  const memberCount = memberCountError ? rosterCount : (memberCountData ?? rosterCount);
   const admins = rosterReadable && !membersError ? (members ?? []).filter((m) => m.role === 'admin') : [];
   const hasTabs = previewHasTabs(community.privacy);
   const cover = coverUrl(community.cover_image_path);

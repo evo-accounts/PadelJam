@@ -1,31 +1,34 @@
-import {
-  useCommunity,
-  useCommunityMembers,
-  useCommunityReviews,
-} from '@padel/api';
+/**
+ * The About tab (UX-COMM-12).
+ *
+ * This is where the community's identity lives now: UX-COMM-08 stripped the
+ * header down to a thumbnail and a name, so the cover, the large thumbnail and
+ * the name-in-full belong here rather than above every tab.
+ *
+ * Two changes from the version PR 4 left behind:
+ *
+ *  - Type / members / privacy were three label-and-value rows. The audit wants
+ *    the same three attribute WIDGETS the preview shows, side by side, and they
+ *    are literally the same component — an outsider and a member should not be
+ *    reading two different renderings of one fact.
+ *  - The rating was a Pressable wrapping a line of text, which "must read as
+ *    tappable, not as a static summary with a text link". It is a `ListRow` with
+ *    a chevron now, the same affordance every other destination row in the app
+ *    uses.
+ */
+import { useCommunity, useCommunityMemberCount, useCommunityMembers, useCommunityReviews } from '@padel/api';
 import { useT } from '@padel/i18n';
+import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { Image } from 'expo-image';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { CommunityAttributes } from '@/components/community/CommunityAttributes';
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { RulesModal } from '@/components/community/RulesModal';
 import { avatarUrl, coverUrl, thumbnailUrl } from '@/lib/community-images';
-import { Avatar } from '@/components/ui';
-import { colors, palette, radius, space, type } from '../../../theme';
-
-const TYPE_KEY: Record<string, string> = {
-  club: 'typeClub',
-  team: 'typeTeam',
-  friends: 'typeFriends',
-};
-
-const PRIVACY_TITLE_KEY: Record<string, string> = {
-  public: 'privacyPublicTitle',
-  request_to_join: 'privacyRequestTitle',
-  private: 'privacyPrivateTitle',
-};
+import { Avatar, ListRow, Text } from '@/components/ui';
+import { colors, radius, space } from '../../../theme';
 
 const PRIVACY_SUMMARY_KEY: Record<string, string> = {
   public: 'privacySummaryPublic',
@@ -45,43 +48,49 @@ export default function CommunityAboutScreen() {
 
   const { data: community, isError } = useCommunity(id);
   const { data: members, isError: membersError } = useCommunityMembers(id);
+  const { data: memberCount, isError: countError } = useCommunityMemberCount(id);
   const { data: reviews, isError: reviewsError } = useCommunityReviews(id);
 
   if (isError) {
     return (
       <View style={[styles.container, styles.center]}>
-        <Text style={styles.error}>{t('loadError')}</Text>
+        <Text variant="body" tone="destructive">
+          {t('loadError')}
+        </Text>
       </View>
     );
   }
 
   if (!community) return <View style={styles.container} />;
 
-  const typeLabel = t(TYPE_KEY[community.type] ?? 'typeClub');
-  const privacyLabel = t(PRIVACY_TITLE_KEY[community.privacy] ?? 'privacyPublicTitle');
-  const privacySummary = t(PRIVACY_SUMMARY_KEY[community.privacy] ?? 'privacySummaryPublic');
-  const memberCount = members?.length ?? 0;
-  const admins = (members ?? []).filter((m) => m.role === 'admin');
+  /**
+   * The RPC first, the roster as a fallback.
+   *
+   * `community_member_count` (migration 0100) is the only way to count a
+   * community whose roster you may not list. But a MEMBER can always list it,
+   * and this tab is the member view — so when the RPC is unavailable the honest
+   * number is right there. That matters concretely: 0100 is merged but not yet
+   * applied to hosted, and without this the count would read "—" on every real
+   * device while the data sat in the query beside it.
+   */
+  const rosterCount = membersError ? null : (members?.length ?? null);
+  const shownCount = countError ? rosterCount : (memberCount ?? rosterCount);
 
+  const admins = (members ?? []).filter((m) => m.role === 'admin');
+  const cover = coverUrl(community.cover_image_path);
   const created = new Date(community.created_at).toLocaleDateString(i18n.language, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-
   const hasReviews = reviews != null && reviews.count > 0 && reviews.average != null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/*
-        The identity block (UX-COMM-08). It used to be a persistent hero above
-        every tab; the audit moves it here so the header carries only the
-        thumbnail and name and the tabs get the vertical space back.
-      */}
       <View style={styles.identity}>
-        {coverUrl(community.cover_image_path) ? (
+        {cover ? (
           <Image
-            source={{ uri: coverUrl(community.cover_image_path) as string }}
+            source={{ uri: cover }}
             style={styles.cover}
             contentFit="cover"
             accessibilityIgnoresInvertColors
@@ -94,89 +103,109 @@ export default function CommunityAboutScreen() {
           size="lg"
           decorative
         />
-        <Text style={styles.identityName}>{community.name}</Text>
-      </View>
-
-      {community.description ? <Text style={styles.description}>{community.description}</Text> : null}
-
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('aboutTypeLabel')}</Text>
-        <Text style={styles.value}>{typeLabel}</Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('aboutMembersLabel')}</Text>
-        <Text style={[styles.value, membersError && styles.error]}>
-          {membersError ? t('loadError') : t('membersPill', { count: memberCount })}
+        <Text variant="title" style={styles.centred}>
+          {community.name}
         </Text>
       </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('aboutPrivacyLabel')}</Text>
-        <Text style={styles.value}>{privacyLabel}</Text>
-      </View>
-      <Text style={styles.summary}>{privacySummary}</Text>
+
+      <CommunityAttributes
+        type={community.type}
+        privacy={community.privacy}
+        memberCount={shownCount}
+      />
+
+      {community.description ? <Text variant="body">{community.description}</Text> : null}
 
       {community.location ? (
-        <View style={styles.row}>
-          <Text style={styles.label}>{t('aboutLocationLabel')}</Text>
-          <Text style={styles.value}>{community.location}</Text>
+        <View style={styles.factRow}>
+          <Text variant="label" tone="muted">
+            {t('aboutLocationLabel')}
+          </Text>
+          <Text variant="label" style={styles.factValue} numberOfLines={2}>
+            {community.location}
+          </Text>
         </View>
       ) : null}
 
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('aboutCreatedLabel')}</Text>
-        <Text style={styles.value}>{created}</Text>
+      <View style={styles.factRow}>
+        <Text variant="label" tone="muted">
+          {t('aboutCreatedLabel')}
+        </Text>
+        <Text variant="label" style={styles.factValue}>
+          {created}
+        </Text>
       </View>
 
-      {membersError ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('aboutAdminsLabel')}</Text>
-          <Text style={styles.error}>{t('loadError')}</Text>
-        </View>
-      ) : admins.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('aboutAdminsLabel')}</Text>
-          {admins.map((a) => (
-            <View key={a.user_id} style={styles.adminRow}>
-              {/* Decorative: the admin's name is right beside it as its own Text node. */}
-              <Avatar
-                uri={avatarUrl(a.profiles?.avatar_url)}
-                name={a.profiles?.full_name}
-                colourKey={a.user_id}
-                size="md"
-                style={styles.adminAvatar}
-                decorative
-              />
-              <Text style={styles.adminName} numberOfLines={1}>
-                {a.profiles?.full_name ?? '—'}
-              </Text>
-              <Text style={styles.adminRole}>{t(ROLE_LABEL_KEY[a.role] ?? 'aboutAdminRole')}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
+      <Text variant="caption" tone="muted">
+        {t(PRIVACY_SUMMARY_KEY[community.privacy] ?? 'privacySummaryPublic')}
+      </Text>
+
+      <View style={styles.section}>
+        <Text variant="label" tone="muted">
+          {t('aboutAdminsLabel')}
+        </Text>
+        {membersError ? (
+          <Text variant="body" tone="destructive">
+            {t('loadError')}
+          </Text>
+        ) : (
+          admins.map((a) => (
+            <ListRow
+              key={a.user_id}
+              title={a.profiles?.full_name ?? '—'}
+              subtitle={t(ROLE_LABEL_KEY[a.role] ?? 'aboutAdminRole')}
+              variant="plain"
+              leading={
+                <Avatar
+                  uri={avatarUrl(a.profiles?.avatar_url)}
+                  name={a.profiles?.full_name}
+                  colourKey={a.user_id}
+                  size="md"
+                  decorative
+                />
+              }
+              trailing={
+                <Text variant="body" tone="muted">
+                  ›
+                </Text>
+              }
+              onPress={() => router.push(`/profile/${a.user_id}`)}
+            />
+          ))
+        )}
+      </View>
 
       {community.cancellation_rules_enabled && community.cancellation_rules_text ? (
         <Pressable onPress={() => setShowRules(true)} accessibilityRole="button" style={styles.section}>
-          <Text style={styles.link}>{t('cancellationRulesLink')}</Text>
+          <Text variant="label" tone="primary">
+            {t('cancellationRulesLink')}
+          </Text>
         </Pressable>
       ) : null}
 
-      <Pressable
-        style={styles.reviews}
-        accessibilityRole="button"
-        onPress={() => router.push(`/community/${id}/reviews` as Href)}
-      >
-        <Text style={[styles.reviewsText, reviewsError && styles.error]}>
-          {reviewsError
+      {/*
+        UX-COMM-12: "a tappable row with a chevron, opening Reviews. It must read
+        as tappable, not as a static summary with a text link."
+      */}
+      <ListRow
+        title={t('tabReviews')}
+        subtitle={
+          reviewsError
             ? t('loadError')
             : hasReviews
-              ? t('reviewsSummary', {
-                  average: reviews!.average!.toFixed(1),
-                  count: reviews!.count,
-                })
-              : t('noReviews')}
-        </Text>
-      </Pressable>
+              ? t('reviewsSummary', { average: reviews!.average!.toFixed(1), count: reviews!.count })
+              : t('noReviews')
+        }
+        subtitleTone={reviewsError ? 'destructive' : 'muted'}
+        variant="card"
+        onPress={() => router.push(`/community/${id}/reviews` as Href)}
+        trailing={
+          <Text variant="body" tone="muted">
+            ›
+          </Text>
+        }
+        testID="about-reviews-row"
+      />
 
       {community.cancellation_rules_text ? (
         <RulesModal
@@ -190,25 +219,19 @@ export default function CommunityAboutScreen() {
 }
 
 const styles = StyleSheet.create({
-  identity: { alignItems: 'center', gap: space[2], marginBottom: space[5] },
-  cover: { width: '100%', height: 120, borderRadius: radius.lg, marginBottom: space[2] },
-  identityName: { ...type.heading, color: colors.foreground, textAlign: 'center' },
   container: { flex: 1, backgroundColor: colors.card },
-  center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  error: { fontSize: 15, color: colors.destructive, fontWeight: '600', textAlign: 'center' },
-  content: { padding: 16, gap: 4 },
-  description: { fontSize: 15, color: colors.foreground, lineHeight: 22, marginBottom: 8 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
-  label: { fontSize: 14, color: palette.slate[400], fontWeight: '600' },
-  value: { fontSize: 14, color: colors.foreground, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
-  summary: { fontSize: 13, color: colors.mutedForeground, lineHeight: 19, marginTop: 2, marginBottom: 4 },
-  section: { marginTop: 16 },
-  sectionTitle: { fontSize: 13, color: palette.slate[400], fontWeight: '700', marginBottom: 8, textTransform: 'uppercase' },
-  adminRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, gap: 8 },
-  adminAvatar: { marginRight: 2 },
-  adminName: { fontSize: 15, color: colors.foreground, fontWeight: '600', flexShrink: 1, flexGrow: 1 },
-  adminRole: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600' },
-  link: { fontSize: 15, fontWeight: '700', color: colors.primary },
-  reviews: { marginTop: 20, paddingVertical: 8 },
-  reviewsText: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+  center: { alignItems: 'center', justifyContent: 'center', padding: space[8] },
+  content: { padding: space[4], gap: space[3] },
+  centred: { textAlign: 'center' },
+  identity: { alignItems: 'center', gap: space[2] },
+  cover: {
+    width: '100%',
+    height: 120,
+    borderRadius: radius.lg,
+    backgroundColor: colors.muted,
+    marginBottom: space[2],
+  },
+  factRow: { flexDirection: 'row', justifyContent: 'space-between', gap: space[3] },
+  factValue: { flexShrink: 1, textAlign: 'right' },
+  section: { gap: space[1] },
 });
