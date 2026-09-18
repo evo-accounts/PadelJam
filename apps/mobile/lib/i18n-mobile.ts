@@ -560,9 +560,6 @@ const mobileCommunity = {
     manageMembers: 'Gerir membros',
     manageRequests: 'Pedidos de adesão',
     manageInvite: 'Convidar membros',
-    manageGroupCommunity: 'Comunidade',
-    manageGroupPeople: 'Pessoas',
-    manageGroupAdvanced: 'Avançado',
     // --- UX-COMM-14/15: the two header menus ---
     moreActions: 'Mais opções',
     shareCommunity: 'Partilhar comunidade',
@@ -841,9 +838,6 @@ const mobileCommunity = {
     manageMembers: 'Gerenciar membros',
     manageRequests: 'Solicitações de entrada',
     manageInvite: 'Convidar membros',
-    manageGroupCommunity: 'Comunidade',
-    manageGroupPeople: 'Pessoas',
-    manageGroupAdvanced: 'Avançado',
     // --- UX-COMM-14/15: the two header menus ---
     moreActions: 'Mais opções',
     shareCommunity: 'Compartilhar comunidade',
@@ -1121,9 +1115,6 @@ const mobileCommunity = {
     manageMembers: 'Manage members',
     manageRequests: 'Member requests',
     manageInvite: 'Invite members',
-    manageGroupCommunity: 'Community',
-    manageGroupPeople: 'People',
-    manageGroupAdvanced: 'Advanced',
     // --- UX-COMM-14/15: the two header menus ---
     moreActions: 'More options',
     shareCommunity: 'Share community',
