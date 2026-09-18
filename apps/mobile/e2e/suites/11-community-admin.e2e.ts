@@ -50,32 +50,41 @@ describe('11 community admin', () => {
     await expectVisible({ text: name }, { timeout: 20_000 });
   };
 
-  /** Community tab → Cascais Social → Manage community. */
+  /** Community tab → Cascais Social → the admin menu. */
   const openManage = async () => {
     await switchTo(/cascais social/i);
-    // The gear is a header action now, always on screen, so there is nothing to
-    // scroll to. Its accessibility label is still t('manageTitle').
+    // The gear is a header action, always on screen, so there is nothing to
+    // scroll to. Its accessibility label is still t('manageTitle'). Since
+    // UX-COMM-15 it opens a SHEET rather than pushing a hub screen, so every
+    // openSection() below is a row in that sheet and the app returns to the tab
+    // — not to a hub — when the pushed screen is dismissed.
     await tap({ text: /manage community/i });
-    await expectVisible({ text: /member requests/i }, { timeout: 20_000 });
+    await expectVisible({ text: /community settings/i }, { timeout: 20_000 });
   };
 
-  /** From the hub into one section, and back out to the hub. */
+  /** From the admin menu into one of the screens it opens. */
   const openSection = async (label: RegExp) => {
     await scrollUntilVisible({ text: label }, { maxSwipes: 8 });
     await tap({ text: label });
   };
 
-  it('the manage hub lists every admin section', async () => {
+  it('the admin menu lists every admin action', async () => {
     await openManage();
-    for (const section of [
+    for (const action of [
       /community settings/i,
       /member permissions/i,
       /manage members/i,
       /member requests/i,
-      /invite members/i,
+      /community plan/i,
+      /share community/i,
+      /archive community|^archive$/i,
+      /^leave/i,
     ]) {
-      await expectVisible({ text: section }, { timeout: 15_000 });
+      await expectVisible({ text: action }, { timeout: 15_000 });
     }
+    // Inviting is deliberately NOT here (UX-COMM-15): it lives on the Members
+    // tab and inside Manage Members, so the menu does not offer a third way in.
+    await expectGone({ text: /invite members/i }, { timeout: 3_000 });
   });
 
   it('the plan section shows the plan the community is on, not Starter', async () => {
@@ -85,6 +94,9 @@ describe('11 community admin', () => {
     // upgrade action instead. The left card must still say Basic (with the Current badge), never
     // Starter.
     await openManage();
+    // The plan is the one piece of administration that stayed a screen; the hub
+    // around it became the menu, so it is now reached by its own row.
+    await openSection(/community plan/i);
     await scrollUntilVisible({ text: /^plan$/i }, { maxSwipes: 8, direction: 'down' });
     await expectVisible({ text: /^basic$/i }, { timeout: 15_000 });
     await expectVisible({ text: /^current$/i }, { timeout: 15_000 });
@@ -107,6 +119,7 @@ describe('11 community admin', () => {
       throw new Error('fixture drift: rita is already a member, so this test cannot prove anything');
     }
 
+    await openManage();
     await openSection(/member requests/i);
     // Both rita and pedro are pending; act on rita's row specifically rather
     // than "the first Accept", so the decline test below has a known subject.
@@ -213,8 +226,11 @@ describe('11 community admin', () => {
       throw new Error('fixture drift: sofia already has an invitation to community C');
     }
 
-    await openManage();
-    await openSection(/invite members/i);
+    // UX-COMM-15 took invite out of the admin menu, so this is the Members tab's
+    // pinned entry (testID from #142) — the path a real admin takes.
+    await switchTo(/cascais social/i);
+    await tap({ text: /^members$/i });
+    await tap({ id: 'invite-member-entry' });
     await typeText({ type: 'TextField' }, 'Sofia');
     await expectVisible({ text: /sofia costa/i }, { timeout: 20_000 });
     await tap({ text: /sofia costa/i });
@@ -256,18 +272,13 @@ describe('11 community admin', () => {
     // pre-filled value: its first pass appends, settled() rejects that, and the
     // retry clears the field before retyping.
     await typeText({ type: 'TextField' }, renamed);
-    // Save sits BELOW the fold on this screen, and tap() clamps an off-screen
-    // coordinate into the viewport rather than refusing — measured, that clamp
-    // lands inside the "Cover image" picker (y=689..888) and opens the iOS photo
-    // library, after which the app's AX tree is empty and the failure surfaces
-    // 80s later as an unrelated-looking timeout. Scroll it into view first.
-    // Put the keyboard away FIRST. Leaving it up cost the scroll two ways at once:
-    // it shrinks the scroller to ~469pt so Save's settled position lands under the
-    // keyboard's top edge, where iOS drops it from the accessibility tree entirely,
-    // and the swipe has to happen in the narrow band above it. Dismissed, the
-    // viewport is the full screen and Save simply ends up on it.
+    // Save is PINNED to the bottom since UX-COMM-16, so the scroll-and-clamp
+    // hazard this test used to document is gone: it no longer sits below the
+    // fold where tap()'s clamp landed in the cover-image picker and opened the
+    // iOS photo library. The keyboard is still dismissed first — the footer sits
+    // inside the KeyboardAvoidingView, and iOS drops anything under the
+    // keyboard's top edge from the accessibility tree.
     await dismissKeyboard();
-    await scrollUntilVisible({ text: /^save$/i }, { maxSwipes: 8 });
     await tap({ text: /^save$/i });
 
     await pollUntil(

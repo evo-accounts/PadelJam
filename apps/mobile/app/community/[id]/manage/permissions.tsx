@@ -2,7 +2,7 @@ import { useCommunityPermissions, useUpdatePermissions } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radius, space } from '../../../../theme';
@@ -84,8 +84,28 @@ export default function ManagePermissionsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar title={t('managePermissions')} onBack={() => router.back()} backLabel={t('back')} />
-      <View style={styles.body}>
+      {/*
+        UX-COMM-17: ✕ on the left, centred title, divider below — TopBar's `edit`
+        variant. It is NOT marked `dirty`: every toggle is applied the moment it is
+        flipped (with an optimistic rollback on failure), so there is never unsaved
+        input to discard, and no fixed save action for the same reason. The audit
+        asks for one; a save button over switches that have already taken effect
+        would be a lie about what the screen is doing.
+      */}
+      <TopBar variant="edit" title={t('managePermissions')} onClose={() => router.back()} />
+      <ScrollView contentContainerStyle={styles.body}>
+        {/* Admins first, so what follows reads as the exception rather than as the
+            whole permission model. Read-only: there is nothing to configure here. */}
+        <Text variant="label" style={styles.blockTitle}>
+          {t('permAdminsTitle')}
+        </Text>
+        <Text variant="caption" tone="muted" style={styles.intro}>
+          {t('permAdminsBody')}
+        </Text>
+
+        <Text variant="label" style={styles.blockTitle}>
+          {t('permMembersTitle')}
+        </Text>
         <Text variant="caption" tone="muted" style={styles.intro}>
           {t('permissionsIntro')}
         </Text>
@@ -103,7 +123,7 @@ export default function ManagePermissionsScreen() {
             />
           ))}
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -112,7 +132,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   body: { padding: space[4] },
   center: { alignItems: 'center', justifyContent: 'center' },
-  intro: { marginBottom: space[3] },
+  intro: { marginBottom: space[4] },
+  blockTitle: { marginBottom: space[1] },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, overflow: 'hidden' },
   row: {
     paddingHorizontal: space[4],
