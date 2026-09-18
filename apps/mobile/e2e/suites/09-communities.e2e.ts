@@ -175,15 +175,27 @@ describe('09 communities', () => {
     await sleep(1200);
     await tap({ id: 'about-reviews-row' });
 
-    await expectVisible({ id: 'review-distribution' }, { timeout: 20_000 });
-    // 4.0 of (5+4+5+2)/4, and one of the seeded bodies.
+    /*
+      Asserted through the chart's CONTENT, not its container's testID. A plain
+      View is not an accessibility element, so its testID never reaches the tree
+      the driver reads — only elements that are (a Pressable, a TextField, or
+      anything marked `accessible`) carry one. The first version of this test
+      waited 20s for `review-distribution` while the chart was on screen the
+      whole time.
+
+      Asserting the rows is the better test anyway: it pins the seeded shape
+      (5:2, 4:1, 2:1) rather than the mere presence of a container.
+    */
+    await expectVisible({ text: /4\.0 out of 5, 4 reviews/i }, { timeout: 20_000 });
+    await expectVisible({ text: /rating 5, 2 reviews/i }, { timeout: 10_000 });
+    await expectVisible({ text: /rating 3, 0 reviews/i }, { timeout: 10_000 });
     await expectVisible({ text: /best club in lisbon/i }, { timeout: 15_000 });
 
-    // The selector shows its current value, then the sheet changes it.
-    await expectVisible({ text: /newest/i }, { timeout: 10_000 });
+    // The selector states its current value, and the sheet changes it.
+    await expectVisible({ text: /sort, newest/i }, { timeout: 10_000 });
     await tap({ id: 'reviews-sort' });
-    await tap({ text: /highest/i });
-    await expectGone({ text: /newest/i }, { timeout: 10_000 });
+    await tap({ text: /highest rated/i });
+    await expectVisible({ text: /sort, highest rated/i }, { timeout: 10_000 });
   });
 
   /**

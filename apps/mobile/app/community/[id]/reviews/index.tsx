@@ -98,7 +98,7 @@ export default function ReviewsScreen() {
   }, [reviews, sort, ratingFilter]);
 
   const ratingLabel = (value: RatingFilter) =>
-    value === 0 ? t('reviewsFilterAll') : t('reviewsFilterScore', { score: value });
+    value === 0 ? t('reviewsFilterAll') : t('reviewsFilterScore', { count: value });
 
   const pickSort = async () => {
     const key = await showSheet({
