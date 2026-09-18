@@ -158,6 +158,35 @@ describe('09 communities', () => {
   });
 
   /**
+   * UX-COMM-13, reached the way UX-COMM-12 says it should be: About's rating is
+   * "a tappable row with a chevron", not a text link, so this taps the ROW.
+   *
+   * The seed gives A four reviews at 5/4/5/2 — varied on purpose, because a
+   * distribution chart drawn from four identical scores is one full bar and
+   * four empty ones, which is indistinguishable from a broken chart.
+   *
+   * The sort selector is the other half: the audit replaced two rows of inline
+   * chips with "dropdown selectors ... opening as bottom sheets", and a
+   * selector that states its current value in words is the thing the chips
+   * could not do.
+   */
+  it('the About rating opens reviews, with a distribution and a sort sheet', async () => {
+    await tap({ text: /^about$/i });
+    await sleep(1200);
+    await tap({ id: 'about-reviews-row' });
+
+    await expectVisible({ id: 'review-distribution' }, { timeout: 20_000 });
+    // 4.0 of (5+4+5+2)/4, and one of the seeded bodies.
+    await expectVisible({ text: /best club in lisbon/i }, { timeout: 15_000 });
+
+    // The selector shows its current value, then the sheet changes it.
+    await expectVisible({ text: /newest/i }, { timeout: 10_000 });
+    await tap({ id: 'reviews-sort' });
+    await tap({ text: /highest/i });
+    await expectGone({ text: /newest/i }, { timeout: 10_000 });
+  });
+
+  /**
    * The preview's already-requested state, and the cancel that UX-COMM-04 hangs
    * off the same button.
    *

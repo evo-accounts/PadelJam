@@ -353,7 +353,16 @@ async function main() {
     { post_id: posts[0].id, user_id: id('joao') },
     { post_id: posts[1].id, user_id: id('alex') },
   ]);
-  console.log('  posts/comments/likes');
+  // Varied SCORES, not just a plausible average: UX-COMM-13's distribution chart
+  // is a picture of the spread, and four fives would draw one full bar and four
+  // empty ones — a chart that cannot be told apart from a broken one.
+  await insert('community_reviews', [
+    { community_id: commA, user_id: id('maria'), rating: 5, body: 'Best club in Lisbon. Courts are always in great shape.' },
+    { community_id: commA, user_id: id('joao'), rating: 4, body: 'Good level, friendly people. Parking is tight on weekends.' },
+    { community_id: commA, user_id: id('sofia'), rating: 5, body: 'Organisation is excellent.' },
+    { community_id: commA, user_id: id('bruno'), rating: 2, body: 'Hard to get a spot at peak times.' },
+  ]);
+  console.log('  posts/comments/likes/reviews');
 
   // 5) Groups ---------------------------------------------------------------
   // groups_per_community COUNTS the auto-created general group (0015/0017), so
