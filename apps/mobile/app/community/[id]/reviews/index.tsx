@@ -15,8 +15,10 @@
  *    of them to everybody with the gate explained in a separate paragraph
  *    further up.
  *
- * "Write a review" is now fixed at the bottom rather than sitting above the
- * filters, so it survives scrolling — it is the action of the screen.
+ * "Write a review" is fixed at the bottom rather than sitting above the filters,
+ * so it survives scrolling — it is the action of the screen — and it opens a
+ * SHEET rather than pushing a screen (UX-COMM-13). See `WriteReviewSheet` for
+ * why the form stopped being a full screen.
  */
 import { useCanReviewCommunity, useCommunityReviews } from '@padel/api';
 import { useSession } from '@padel/auth';
@@ -29,6 +31,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ReviewCard, type ReviewRow } from '@/components/community/ReviewCard';
 import { ReviewDistribution } from '@/components/community/ReviewDistribution';
+import { WriteReviewSheet } from '@/components/community/WriteReviewSheet';
 import { colors, space } from '../../../../theme';
 import {
   Button,
@@ -70,6 +73,17 @@ export default function ReviewsScreen() {
 
   const [sort, setSort] = useState<SortKey>('newest');
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>(0);
+  const [writeOpen, setWriteOpen] = useState(false);
+  /**
+   * Bumped on every open so the sheet REMOUNTS and re-seeds its fields from the
+   * current review. It is not part of `writeOpen` because closing must NOT
+   * change the key — the sheet has to stay mounted to animate out.
+   */
+  const [writeSeq, setWriteSeq] = useState(0);
+  const openWrite = () => {
+    setWriteSeq((n) => n + 1);
+    setWriteOpen(true);
+  };
 
   const myReview = reviews.find((r) => r.user_id === uid);
   const { data: canReview } = useCanReviewCommunity(id);
@@ -248,11 +262,18 @@ export default function ReviewsScreen() {
           <Button
             label={myReview ? t('reviewsEditCta') : t('reviewsWriteCta')}
             fullWidth
-            onPress={() => router.push(`/community/${id}/reviews/write`)}
+            onPress={openWrite}
             testID="reviews-write"
           />
         </View>
       ) : null}
+
+      <WriteReviewSheet
+        key={writeSeq}
+        communityId={id}
+        visible={writeOpen}
+        onClose={() => setWriteOpen(false)}
+      />
     </SafeAreaView>
   );
 }

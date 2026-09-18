@@ -186,7 +186,7 @@ describe('09 communities', () => {
       Asserting the rows is the better test anyway: it pins the seeded shape
       (5:2, 4:1, 2:1) rather than the mere presence of a container.
     */
-    await expectVisible({ text: /4\.0 out of 5, 4 reviews/i }, { timeout: 20_000 });
+    await expectVisible({ text: /4\.0 out of 5, 5 reviews/i }, { timeout: 20_000 });
     await expectVisible({ text: /rating 5, 2 reviews/i }, { timeout: 10_000 });
     await expectVisible({ text: /rating 3, 0 reviews/i }, { timeout: 10_000 });
     await expectVisible({ text: /best club in lisbon/i }, { timeout: 15_000 });
@@ -196,6 +196,21 @@ describe('09 communities', () => {
     await tap({ id: 'reviews-sort' });
     await tap({ text: /highest rated/i });
     await expectVisible({ text: /sort, highest rated/i }, { timeout: 10_000 });
+
+    /*
+      UX-COMM-13's write form is a SHEET, not a pushed screen. alex reviewed his
+      own club in the seed, so the action reads "Edit your review" for him.
+
+      Asserted through "Cancel", which exists only inside the sheet: the sheet's
+      own container is not an accessibility element, so its testID never reaches
+      the tree — the same trap this test already fell into once with the
+      distribution chart.
+    */
+    await tap({ text: /edit your review/i });
+    await expectVisible({ label: 'Cancel', type: 'Button' }, { timeout: 15_000 });
+    await expectVisible({ text: /biased, but we work hard/i }, { timeout: 10_000 });
+    await tap({ label: 'Cancel', type: 'Button' });
+    await expectGone({ label: 'Cancel', type: 'Button' }, { timeout: 10_000 });
   });
 
   /**
