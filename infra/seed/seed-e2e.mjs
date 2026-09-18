@@ -361,6 +361,10 @@ async function main() {
     { community_id: commA, user_id: id('joao'), rating: 4, body: 'Good level, friendly people. Parking is tight on weekends.' },
     { community_id: commA, user_id: id('sofia'), rating: 5, body: 'Organisation is excellent.' },
     { community_id: commA, user_id: id('bruno'), rating: 2, body: 'Hard to get a spot at peak times.' },
+    // alex reviews his own club so suite 09 has a signed-in user who can OPEN the
+    // write sheet. A 4 keeps the average at 4.0 and leaves score 3 empty, which is
+    // the zero-count bar the distribution test asserts.
+    { community_id: commA, user_id: id('alex'), rating: 4, body: 'Biased, but we work hard on the courts.' },
   ]);
   console.log('  posts/comments/likes/reviews');
 
