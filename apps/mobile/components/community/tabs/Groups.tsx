@@ -2,12 +2,12 @@ import { useCanCreateGroup, useCommunityGroups } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { type Href, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { GroupCard } from '@/components/group/GroupCard';
 import { colors } from '../../../theme';
-import { EmptyState, emptyIcon, listEmptyContent } from '../../ui';
+import { Button, EmptyState, emptyIcon, listEmptyContent } from '../../ui';
 
 export default function CommunityGroupsScreen() {
   const { t } = useT('group');
@@ -16,14 +16,13 @@ export default function CommunityGroupsScreen() {
   const { data: groups, isLoading, isError, refetch } = useCommunityGroups(id);
   const { data: canCreate } = useCanCreateGroup(id);
 
+  const createGroup = () => router.push(`/community/${id}/group-create` as Href);
+
+  // UX-COMM-11: full-width at the top, only with permission. Was a hand-rolled
+  // Pressable with its own radius and type; `Button fullWidth` is the same shape
+  // in the primitive that owns it, and takes three literal sizes off the budget.
   const newGroupButton = canCreate ? (
-    <Pressable
-      style={styles.newButton}
-      onPress={() => router.push(`/community/${id}/group-create` as Href)}
-      accessibilityRole="button"
-    >
-      <Text style={styles.newButtonText}>+ {t('newGroupCta')}</Text>
-    </Pressable>
+    <Button label={t('newGroupCta')} fullWidth onPress={createGroup} testID="community-create-group" />
   ) : null;
 
   if (isLoading) {
@@ -62,14 +61,7 @@ export default function CommunityGroupsScreen() {
               icon={emptyIcon('person.3')}
               title={t('emptyAll')}
               body={t('communityGroupsEmptyBody')}
-              action={
-                canCreate
-                  ? {
-                      label: t('communityGroupsEmptyCta'),
-                      onPress: () => router.push(`/community/${id}/group-create` as Href),
-                    }
-                  : undefined
-              }
+              // Pinned above this empty state now, so not repeated inside it.
               testID="empty-groups"
             />
           )
@@ -84,12 +76,5 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   listContent: { paddingHorizontal: 12, paddingVertical: 8 },
   header: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
-  newButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  newButtonText: { color: colors.card, fontSize: 15, fontWeight: '700' },
   separator: { height: 8 },
 });

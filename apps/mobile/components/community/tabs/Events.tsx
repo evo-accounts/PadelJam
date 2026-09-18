@@ -9,7 +9,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useCommunityId } from '@/components/community/CommunityIdContext';
 import { EventCard } from '@/components/event/EventCard';
 import { colors } from '../../../theme';
-import { Chip, EmptyState, emptyIcon, listEmptyContent } from '../../ui';
+import { Button, Chip, EmptyState, emptyIcon, listEmptyContent } from '../../ui';
 
 type Filter = 'all' | 'organizing';
 
@@ -36,14 +36,27 @@ export default function CommunityEventsScreen() {
   const rows = events ?? [];
   const visible = filter === 'organizing' ? rows.filter((e) => e.organizer_id === uid) : rows;
 
+  const createEvent = () => router.push(`/event/create?communityId=${id}` as Href);
+
+  /*
+    UX-COMM-11: "Create event" full-width AT THE TOP, only with permission, and
+    no floating action button anywhere on this tab. The filters stay below it —
+    the audit does not mention them, but it does not ask for their removal
+    either, and they are the only way to see just your own events here.
+  */
   const header = (
-    <View style={styles.filters}>
-      <FilterPill label={t('filterAll')} active={filter === 'all'} onPress={() => setFilter('all')} />
-      <FilterPill
-        label={t('filterOrganizing')}
-        active={filter === 'organizing'}
-        onPress={() => setFilter('organizing')}
-      />
+    <View style={styles.header}>
+      {canCreateEvent ? (
+        <Button label={t('communityEventsEmptyCta')} fullWidth onPress={createEvent} testID="community-create-event" />
+      ) : null}
+      <View style={styles.filters}>
+        <FilterPill label={t('filterAll')} active={filter === 'all'} onPress={() => setFilter('all')} />
+        <FilterPill
+          label={t('filterOrganizing')}
+          active={filter === 'organizing'}
+          onPress={() => setFilter('organizing')}
+        />
+      </View>
     </View>
   );
 
@@ -73,14 +86,8 @@ export default function CommunityEventsScreen() {
               icon={emptyIcon('calendar')}
               title={filter === 'organizing' ? t('eventsEmptyOrganizing') : t('eventsEmpty')}
               body={t('communityEventsEmptyBody')}
-              action={
-                canCreateEvent
-                  ? {
-                      label: t('communityEventsEmptyCta'),
-                      onPress: () => router.push(`/event/create?communityId=${id}` as Href),
-                    }
-                  : undefined
-              }
+              // The create action is pinned above this empty state now, so
+              // repeating it inside would be the same button twice.
               testID="empty-community-events"
             />
           )
@@ -113,5 +120,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   listContent: { paddingHorizontal: 12, paddingVertical: 8 },
   separator: { height: 8 },
-  filters: { flexDirection: 'row', gap: 8, paddingTop: 8, paddingBottom: 4 },
+  header: { gap: 8, paddingTop: 8, paddingBottom: 4 },
+  filters: { flexDirection: 'row', gap: 8 },
 });

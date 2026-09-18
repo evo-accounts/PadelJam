@@ -79,6 +79,25 @@ describe('09 communities', () => {
     await expectVisible({ text: /maria santos|joão pereira|sofia costa/i }, { timeout: 20_000 });
   });
 
+  /**
+   * UX-COMM-11's Members tab: a search input at the top, and rows that go
+   * somewhere. The search is a plain filter over the roster already in hand —
+   * the audit resolved the UX-GLOB-08 conflict in favour of filtering the list
+   * in place rather than opening the global search screen.
+   */
+  it('members tab filters the roster and its rows open a profile', async () => {
+    await tap({ text: /^members$/i });
+    await expectVisible({ id: 'member-search' }, { timeout: 20_000 });
+
+    // ONE pass, not two: typeText appends rather than replaces, so a second
+    // call would be searching for "sofiajoao". "joao" is the better single
+    // query anyway — it proves the filter AND that it is accent-folded, which
+    // it has to be for a roster full of Portuguese names.
+    await typeText({ id: 'member-search' }, 'joao');
+    await expectVisible({ text: /joão pereira/i }, { timeout: 15_000 });
+    await expectGone({ text: /sofia costa/i }, { timeout: 5_000 });
+  });
+
   it('groups tab lists the community groups', async () => {
     await tap({ text: /^groups$/i });
     await sleep(1200);
@@ -93,13 +112,20 @@ describe('09 communities', () => {
     await expectVisible({ text: /admin/i }, { timeout: 15_000 });
   });
 
+  /**
+   * UX-COMM-10 replaced the floating action button with a composer entry pinned
+   * at the top of the feed, so the way IN changed: this used to scroll until it
+   * found the FAB's "New post" label. The entry is the list header now — always
+   * visible, and reached without scrolling — and "New post" survives only as the
+   * title of the screen it opens, which is what the second assertion checks.
+   */
   it('composes a post that appears in the feed', async () => {
     const m = manifest();
     const body = `E2E post ${Date.now() % 100000}`;
     await tap({ text: /^posts$/i });
     await sleep(800);
-    await scrollUntilVisible({ text: /new post/i }, { maxSwipes: 6 });
-    await tap({ text: /new post/i });
+    await expectVisible({ id: 'community-composer-entry' }, { timeout: 20_000 });
+    await tap({ id: 'community-composer-entry' });
     await expectVisible({ text: /new post/i }, { timeout: 20_000 });
     await typeText({ type: 'TextArea' }, body);
     await tap({ text: /^post$/i });

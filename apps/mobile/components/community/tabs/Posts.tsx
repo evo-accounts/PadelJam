@@ -1,10 +1,11 @@
-import { useAbility, useCommunityFeedRealtime, useCommunityPosts } from '@padel/api';
+import { useAbility, useCommunityFeedRealtime, useCommunityPosts, useMyProfile } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useCommunityId } from '@/components/community/CommunityIdContext';
+import { ComposerEntry } from '@/components/community/ComposerEntry';
 import { PostCard, type CommunityPost } from '@/components/community/PostCard';
 import { EmptyState, emptyIcon, listEmptyContent } from '../../ui';
 import { colors } from '../../../theme';
@@ -17,10 +18,12 @@ export default function CommunityPostsScreen() {
   useCommunityFeedRealtime(id);
   const { data: posts, isLoading, isError, refetch } = useCommunityPosts(id);
   const { data: ability } = useAbility(id);
+  const { data: me } = useMyProfile();
   // The ability is already scoped to this community (built from the member's role
   // + permissions for `id`), so a type-only check evaluates its community_id
   // conditions correctly without importing CASL's subject() helper into mobile.
   const canCompose = ability?.can('create', 'Post') ?? false;
+  const openComposer = () => router.push(`/community/${id}/compose`);
 
   if (isLoading) {
     return (
@@ -37,6 +40,22 @@ export default function CommunityPostsScreen() {
       <FlashList
         data={rows}
         keyExtractor={(p) => p.id}
+        /*
+          UX-COMM-10: pinned at the top and "always visible even with no posts",
+          so it is the list header rather than part of the empty state — the one
+          thing you can do with an empty feed should not live inside the message
+          saying it is empty. `ListHeaderComponent` renders above
+          `ListEmptyComponent`, which is exactly that.
+        */
+        ListHeaderComponent={
+          canCompose ? (
+            <ComposerEntry
+              avatarPath={me?.avatar_url}
+              name={me?.full_name}
+              onPress={openComposer}
+            />
+          ) : null
+        }
         renderItem={({ item }) => (
           <PostCard
             post={item}
@@ -60,29 +79,14 @@ export default function CommunityPostsScreen() {
               icon={emptyIcon('text.bubble')}
               title={t('noPosts')}
               body={t('communityPostsEmptyBody')}
-              action={
-                canCompose
-                  ? {
-                      label: t('communityPostsEmptyCta'),
-                      onPress: () => router.push(`/community/${id}/compose`),
-                    }
-                  : undefined
-              }
+              // No CTA here any more: the composer entry is pinned directly
+              // above this empty state, so a second identical action inside it
+              // would be the same button twice in one screenful.
               testID="empty-posts"
             />
           )
         }
       />
-      {canCompose ? (
-        <Pressable
-          style={styles.fab}
-          accessibilityRole="button"
-          accessibilityLabel={t('composePost')}
-          onPress={() => router.push(`/community/${id}/compose`)}
-        >
-          <Text style={styles.fabText}>＋</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
@@ -91,21 +95,4 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   list: { paddingVertical: 8 },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.foreground,
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  fabText: { color: colors.card, fontSize: 28, fontWeight: '700', marginTop: -2 },
 });
