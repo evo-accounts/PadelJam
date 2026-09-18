@@ -158,6 +158,47 @@ describe('09 communities', () => {
   });
 
   /**
+   * UX-COMM-13, reached the way UX-COMM-12 says it should be: About's rating is
+   * "a tappable row with a chevron", not a text link, so this taps the ROW.
+   *
+   * The seed gives A four reviews at 5/4/5/2 — varied on purpose, because a
+   * distribution chart drawn from four identical scores is one full bar and
+   * four empty ones, which is indistinguishable from a broken chart.
+   *
+   * The sort selector is the other half: the audit replaced two rows of inline
+   * chips with "dropdown selectors ... opening as bottom sheets", and a
+   * selector that states its current value in words is the thing the chips
+   * could not do.
+   */
+  it('the About rating opens reviews, with a distribution and a sort sheet', async () => {
+    await tap({ text: /^about$/i });
+    await sleep(1200);
+    await tap({ id: 'about-reviews-row' });
+
+    /*
+      Asserted through the chart's CONTENT, not its container's testID. A plain
+      View is not an accessibility element, so its testID never reaches the tree
+      the driver reads — only elements that are (a Pressable, a TextField, or
+      anything marked `accessible`) carry one. The first version of this test
+      waited 20s for `review-distribution` while the chart was on screen the
+      whole time.
+
+      Asserting the rows is the better test anyway: it pins the seeded shape
+      (5:2, 4:1, 2:1) rather than the mere presence of a container.
+    */
+    await expectVisible({ text: /4\.0 out of 5, 4 reviews/i }, { timeout: 20_000 });
+    await expectVisible({ text: /rating 5, 2 reviews/i }, { timeout: 10_000 });
+    await expectVisible({ text: /rating 3, 0 reviews/i }, { timeout: 10_000 });
+    await expectVisible({ text: /best club in lisbon/i }, { timeout: 15_000 });
+
+    // The selector states its current value, and the sheet changes it.
+    await expectVisible({ text: /sort, newest/i }, { timeout: 10_000 });
+    await tap({ id: 'reviews-sort' });
+    await tap({ text: /highest rated/i });
+    await expectVisible({ text: /sort, highest rated/i }, { timeout: 10_000 });
+  });
+
+  /**
    * The preview's already-requested state, and the cancel that UX-COMM-04 hangs
    * off the same button.
    *
