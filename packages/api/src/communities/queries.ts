@@ -222,6 +222,32 @@ export const useCommunityRequests = (id: string) => {
  * Every read here is already the viewer's own row under RLS (`cjr: read` and `ci: read` in
  * migration 0024 both key on `auth.uid()`), so this cannot report on anyone else.
  */
+/**
+ * How many members a community has, for someone who may not be allowed to list them.
+ *
+ * `community_members: read` (0024) gives an outsider the roster of a PUBLIC community and
+ * nothing for the other two modes — and "nothing" arrives as an empty array, not an error, so
+ * counting rows client-side reports a confident 0 for a request-to-join community with fifty
+ * people in it. Migration 0100 answers the number without disclosing the names.
+ *
+ * Members and public-community viewers could count the roster they already hold, but then the
+ * attribute card would be computed two different ways depending on who is looking, and only one
+ * of them would be exercised by any given test.
+ */
+export const useCommunityMemberCount = (id: string | undefined) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.memberCount(id ?? ''),
+    enabled: !!id && !!uid,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('community_member_count', { c: id! });
+      if (error) throw error;
+      return (data as number | null) ?? 0;
+    },
+  });
+};
+
 export type CommunityStandingState = 'member' | 'invited' | 'requested' | 'none';
 
 export type CommunityStanding = {

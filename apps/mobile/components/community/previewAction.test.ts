@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { actionNeedsAck, previewAction } from './previewAction';
+import {
+  actionNeedsAck,
+  PREVIEW_TAB_KEY,
+  PREVIEW_TABS,
+  previewAction,
+  previewHasTabs,
+} from './previewAction';
 
 describe('previewAction', () => {
   it('offers the privacy-appropriate way in to someone with no relationship', () => {
@@ -51,5 +57,34 @@ describe('actionNeedsAck', () => {
   it('does not gate cancelling a request, which is a way out', () => {
     expect(actionNeedsAck('requested')).toBe(false);
     expect(actionNeedsAck('none')).toBe(false);
+  });
+});
+
+describe('previewHasTabs', () => {
+  /**
+   * The strip appears exactly where migration 0100 made the content readable. If these two ever
+   * disagree, the preview shows a tab whose queries RLS refuses — and an empty state is
+   * indistinguishable from an empty community, so it reads as fact rather than as a wall.
+   */
+  it('gives the five tabs to a public community only', () => {
+    expect(previewHasTabs('public')).toBe(true);
+    expect(previewHasTabs('request_to_join')).toBe(false);
+    expect(previewHasTabs('private')).toBe(false);
+  });
+
+  it('treats an unknown privacy value as no tabs', () => {
+    expect(previewHasTabs('whatever-the-server-adds-next')).toBe(false);
+  });
+});
+
+describe('PREVIEW_TABS', () => {
+  // UX-COMM-04: "with About default". It is also the only tab every privacy mode shows.
+  it('starts with About', () => {
+    expect(PREVIEW_TABS[0]).toBe('about');
+  });
+
+  it('names all five, and each has copy', () => {
+    expect([...PREVIEW_TABS]).toEqual(['about', 'posts', 'events', 'groups', 'members']);
+    for (const tab of PREVIEW_TABS) expect(PREVIEW_TAB_KEY[tab]).toBeTruthy();
   });
 });

@@ -52,3 +52,33 @@ export function previewAction(state: CommunityStandingState, privacy: string): P
 export function actionNeedsAck(action: PreviewAction): boolean {
   return action === 'join' || action === 'request' || action === 'invited';
 }
+
+/**
+ * The preview's tabs, and who gets them (UX-COMM-04).
+ *
+ * "Public: all tabs accessible from the preview — Posts, Events, Groups, Members, About — with
+ * About default." A request-to-join community shows "only About ... other tabs inaccessible",
+ * and a private one is reached by invitation alone. So the strip appears for public communities
+ * and nowhere else, which happens to line up exactly with what migration 0100 made readable:
+ * showing a tab a non-member cannot read would render an empty state that looks like an empty
+ * community.
+ *
+ * About is FIRST as well as default — it is the one tab every privacy mode shows, so it is the
+ * one that must never move.
+ */
+export const PREVIEW_TABS = ['about', 'posts', 'events', 'groups', 'members'] as const;
+
+export type PreviewTab = (typeof PREVIEW_TABS)[number];
+
+/** i18n key per tab, so the strip and the member view read identically. */
+export const PREVIEW_TAB_KEY: Record<PreviewTab, string> = {
+  about: 'tabAbout',
+  posts: 'tabPosts',
+  events: 'tabEvents',
+  groups: 'tabGroups',
+  members: 'tabMembers',
+};
+
+export function previewHasTabs(privacy: string): boolean {
+  return privacy === 'public';
+}

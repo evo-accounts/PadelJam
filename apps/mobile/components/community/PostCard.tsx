@@ -1,4 +1,4 @@
-import { useEventResultSummary, useToggleLike } from '@padel/api';
+import { useAbility, useEventResultSummary, useToggleLike } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -72,6 +72,17 @@ export function PostCard({
 }) {
   const { t } = useT('community');
   const toggleLike = useToggleLike(communityId);
+  /**
+   * Since migration 0100 a NON-MEMBER can read a public community's posts from the preview, and
+   * liking is still members-only ("likes: write" was deliberately left alone). Without this the
+   * preview would offer a heart that row-level security refuses — a control that looks live,
+   * does nothing, and reports no reason.
+   *
+   * The count still shows; only the CONTROL goes. Deduped by React Query, so a list of cards
+   * shares one ability query rather than one per row.
+   */
+  const { data: ability } = useAbility(communityId);
+  const canLike = ability?.can('create', 'Like') ?? false;
 
   const name = post.author?.full_name ?? '—';
   const avatar = avatarUrl(post.author?.avatar_url);
@@ -102,20 +113,29 @@ export function PostCard({
         )}
       </Pressable>
       <View style={styles.actions}>
-        <Pressable
-          style={styles.action}
-          accessibilityRole="button"
-          accessibilityLabel={t('like')}
-          // Icon PLUS a count is not Button's shape, so this stays a Pressable —
-          // but "liked" was conveyed by colour and glyph alone, indistinguishable
-          // to assistive tech. Same fix as the post detail screen.
-          accessibilityState={{ selected: likedByMe, disabled: toggleLike.isPending }}
-          disabled={toggleLike.isPending}
-          onPress={() => toggleLike.mutate({ postId: post.id, liked: likedByMe })}
-        >
-          <Text style={[styles.actionIcon, likedByMe && styles.liked]}>{likedByMe ? '♥' : '♡'}</Text>
-          <Text style={styles.actionText}>{likeCount}</Text>
-        </Pressable>
+        {canLike ? (
+          <Pressable
+            style={styles.action}
+            accessibilityRole="button"
+            accessibilityLabel={t('like')}
+            // Icon PLUS a count is not Button's shape, so this stays a Pressable —
+            // but "liked" was conveyed by colour and glyph alone, indistinguishable
+            // to assistive tech. Same fix as the post detail screen.
+            accessibilityState={{ selected: likedByMe, disabled: toggleLike.isPending }}
+            disabled={toggleLike.isPending}
+            onPress={() => toggleLike.mutate({ postId: post.id, liked: likedByMe })}
+          >
+            <Text style={[styles.actionIcon, likedByMe && styles.liked]}>{likedByMe ? '♥' : '♡'}</Text>
+            <Text style={styles.actionText}>{likeCount}</Text>
+          </Pressable>
+        ) : (
+          // Not a button, and said as one element: "Like, 4" rather than a heart
+          // and a number a screen reader walks past separately.
+          <View style={styles.action} accessible accessibilityLabel={`${t('like')}, ${likeCount}`}>
+            <Text style={styles.actionIcon}>♡</Text>
+            <Text style={styles.actionText}>{likeCount}</Text>
+          </View>
+        )}
         <Pressable
           style={styles.action}
           accessibilityRole="button"
