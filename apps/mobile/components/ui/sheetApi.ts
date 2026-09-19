@@ -35,6 +35,15 @@ export type SheetAction = {
    * a non-destructive action that merely asks first).
    */
   confirm?: Pick<ConfirmOptions, 'title' | 'body' | 'confirmLabel'>;
+  /**
+   * Keep the destructive STYLING but run no automatic confirmation — the caller
+   * asks for itself. For UX-COMM-23, whose whole point is that leaving checks
+   * your standing BEFORE asking anything: a last admin must be offered
+   * "promote someone first", not asked to confirm and then refused. Without
+   * this the row would have to drop `destructive` to take control, and lose the
+   * one visual cue that it is dangerous.
+   */
+  selfConfirm?: boolean;
   /** Overrides the row's default `action-sheet-<key>` testID — for a call site that had its own convention before migrating to `useActionSheet`. */
   testID?: string;
 };
@@ -75,7 +84,7 @@ export function createSheetApi(
         return null;
       }
       const action = options.actions.find((a) => a.key === key);
-      if (action?.destructive || action?.confirm) {
+      if ((action?.destructive || action?.confirm) && !action?.selfConfirm) {
         const phrasing = action.confirm ?? { title: action.label, confirmLabel: action.label };
         const ok =
           (await queue.open({

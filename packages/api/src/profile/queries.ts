@@ -52,6 +52,39 @@ export const useFollowing = (userId: string | undefined, search = '') =>
 export const useFollowers = (userId: string | undefined, search = '') =>
   useFollowList('list_followers', userId, search);
 
+/**
+ * People matching a name, for the invite picker (UX-COMM-22).
+ *
+ * This lived inline in `manage/invite.tsx` as a raw `db.from('profiles')` call
+ * with its own `useState`/`useEffect`/`setTimeout` machinery, which meant the
+ * screen re-ran the query on every remount and cached nothing. React Query
+ * already de-duplicates and caches per search term; the CALLER still debounces
+ * the keystrokes, since this only sees the term it is given.
+ *
+ * Deliberately not filtered to non-members here: who is already in the
+ * community is the caller's business, and doing it in SQL would need the
+ * community id threaded through a query that has nothing else to do with it.
+ */
+export const useSearchProfiles = (search: string) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  const term = search.trim();
+  return useQuery({
+    queryKey: qk.profileSearch(term),
+    enabled: !!uid && term.length > 0,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .ilike('full_name', `%${term}%`)
+        .limit(20)
+        .returns<{ id: string; full_name: string | null; avatar_url: string | null }[]>();
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
 export const useMyProfile = () => {
   const db = useDb();
   const uid = useSession().session?.user.id;
