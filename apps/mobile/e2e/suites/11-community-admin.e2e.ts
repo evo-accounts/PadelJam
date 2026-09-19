@@ -249,7 +249,12 @@ describe('11 community admin', () => {
     // primary CTA has been observed reporting as AX type GenericElement despite
     // rendering with accessibilityRole="button" — the same trait unreliability
     // documented on tap() in actions.ts. AXUniqueId does not depend on it.
-    await expectVisible({ id: 'invite-confirm-sheet' }, { timeout: 15_000 });
+    // Waited on the SUBMIT button, not the sheet container: `BottomSheet` puts
+    // its testID on a plain View, which never reaches the accessibility tree —
+    // the only node carrying "invite-confirm-sheet" is the close button it
+    // derives ("invite-confirm-sheet-close"). Assert on elements that are
+    // already accessibility elements.
+    await expectVisible({ id: 'invite-confirm-submit' }, { timeout: 15_000 });
     await tap({ id: 'invite-confirm-submit' });
 
     await pollUntil(
