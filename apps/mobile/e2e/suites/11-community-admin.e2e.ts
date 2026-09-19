@@ -306,7 +306,10 @@ describe('11 community admin', () => {
     await tap({ text: /maria santos/i });
     await expectVisible({ text: /see profile/i }, { timeout: 20_000 });
     await expectVisible({ text: /remove admin|make admin/i }, { timeout: 15_000 });
-    await expectVisible({ text: /remove member/i }, { timeout: 15_000 });
+    // t('removeMember') reads "Remove from community", not "Remove member" —
+    // the key name and the copy disagree, which is the label coupling the plan
+    // warned about and cost this assertion a full run.
+    await expectVisible({ text: /remove from community/i }, { timeout: 15_000 });
     // Leave by the sheet's own escape rather than acting: the roster these later
     // assertions rest on must survive this test.
     await tap({ id: 'action-sheet-close' });
