@@ -60,19 +60,48 @@ concurrency:
   # One run at a time: the simulator and the local database are shared
   # singletons, and parallel runs corrupt each other's seeded data.
   group: e2e-mobile
-  cancel-in-progress: false
+  # Abandon a run the next push has already superseded. This used to be false,
+  # which cost this ONE Mac two full runs for every fix pushed mid-run — ~70
+  # minutes to answer a question only the second run was still asking.
+  #
+  # Cancelling is safe here, and both halves were checked rather than assumed:
+  #   - the lock at /tmp/padeljam-e2e.lock is stale-safe by construction. It
+  #     stores a pid and `lockHolder()` treats it as held only while that pid is
+  #     alive AND still a run.mjs, so a killed run does not wedge the next one.
+  #   - a half-seeded database does not leak into the next run: every suite
+  #     calls resetDb() in its own setup, which rotates the seeded ids anyway.
+  # It also does not reintroduce parallelism — one run still executes at a time.
+  cancel-in-progress: true
 
 jobs:
   e2e:
-    # No `if:` gate any more — the paths filter above decides what runs. A PR
-    # that does not touch those paths cannot reach the E2E code, so gating it
-    # twice only created a way to forget.
+    # WHAT DECIDES WHETHER THIS RUNS. The paths filter above answers "could this
+    # change affect the E2E code"; the `if:` below answers "is this PR ready to
+    # spend the machine". The old comment here said there was no `if:` gate, on
+    # the reasoning that gating twice only created a way to forget — which holds
+    # for a gate someone has to remember to set, like the `e2e` label it
+    # replaced, but not for draft status, which is already part of how a PR is
+    # opened and marked ready.
+    #
+    # Note the paths filter is evaluated against the PR's WHOLE diff, not the
+    # individual push, so once a PR has touched apps/mobile every later push
+    # re-runs the suite — even one that only edits, say, a script outside these
+    # paths. That is the cost the draft gate and cancel-in-progress address.
     #
     # To run the suite against something the filter excludes, use
     # workflow_dispatch (it also takes a `suite` input for a single suite).
     #
     # Swap in a dedicated label (e.g. `padeljam-e2e`) if you ever add a second
     # self-hosted macOS runner that must not pick this up.
+    # A draft PR does not run the suite. 35 minutes on the one shared Mac is too
+    # much to spend on every intermediate push of work still being shaped; mark
+    # the PR ready (or use workflow_dispatch) when it is worth the machine.
+    #
+    # Spelled out rather than `github.event.pull_request.draft == false` alone,
+    # because this workflow also runs on schedule and workflow_dispatch, where
+    # `github.event.pull_request` does not exist and the bare comparison would
+    # rest on how GitHub coerces null.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 90
 
