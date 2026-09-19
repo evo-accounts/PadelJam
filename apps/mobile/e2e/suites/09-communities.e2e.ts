@@ -85,7 +85,12 @@ describe('09 communities', () => {
    * the audit resolved the UX-GLOB-08 conflict in favour of filtering the list
    * in place rather than opening the global search screen.
    */
-  it('members tab filters the roster and its rows open a profile', async () => {
+  // Row behaviour is asserted in suite 11, where the signed-in user administers
+  // the community: since UX-COMM-19 merged this list with Manage Members, what a
+  // tap does depends on the VIEWER's role — an admin gets the actions sheet, and
+  // everyone else goes to the profile. This test covers the filter only, which is
+  // what it always did despite its old name.
+  it('members tab filters the roster', async () => {
     await tap({ text: /^members$/i });
     await expectVisible({ id: 'member-search' }, { timeout: 20_000 });
 

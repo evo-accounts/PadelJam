@@ -37,6 +37,7 @@ export { Rating, type RatingProps, type RatingSize } from './Rating';
 export { Segmented, type SegmentedOption } from './Segmented';
 export { SheetHost, useConfirm, useActionSheet, type ConfirmOptions, type ActionSheetOptions, type SheetAction } from './SheetHost';
 export { SheetRow } from './SheetRow';
+export { SwipeRow } from './SwipeRow';
 export { SwitchRow, type SwitchRowProps } from './SwitchRow';
 export { TopBar } from './TopBar';
 export { Loading, Screen } from './Screen';

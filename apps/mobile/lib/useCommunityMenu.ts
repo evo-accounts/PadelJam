@@ -19,8 +19,7 @@
  *     replaced by this menu it would otherwise be reachable only from
  *     `UpgradePrompt`'s deep link.
  *
- * "Manage groups" is absent because the screen does not exist yet; plan PR 9
- * builds it and adds the row.
+ * "Manage groups" arrived with plan PR 9, which built the screen it opens.
  */
 import { useArchiveCommunity, useLeaveCommunity } from '@padel/api';
 import { useT } from '@padel/i18n';
@@ -118,6 +117,7 @@ export function useCommunityMenu(
     { key: 'settings', label: t('manageSettings') },
     { key: 'permissions', label: t('managePermissions') },
     { key: 'members', label: t('manageMembers') },
+    { key: 'groups', label: t('manageGroups') },
     ...(target.privacy === 'request_to_join' ? [{ key: 'requests', label: t('manageRequests') }] : []),
     { key: 'plan', label: t('managePlan') },
     share,
@@ -145,6 +145,8 @@ export function useCommunityMenu(
         return go(`/community/${id}/manage/permissions`);
       case 'members':
         return go(`/community/${id}/manage/members`);
+      case 'groups':
+        return go(`/community/${id}/manage/groups`);
       case 'requests':
         return go(`/community/${id}/manage/requests`);
       case 'plan':

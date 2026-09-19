@@ -33,6 +33,34 @@ export const useCommunityGroups = (communityId: string) => {
   });
 };
 
+/**
+ * The community's ARCHIVED groups, for Manage Groups (UX-COMM-18) — the only
+ * screen in the app where they are visible.
+ *
+ * A separate hook rather than a flag on `useCommunityGroups`: every other caller
+ * of that one wants live groups and would now have to opt out of archived ones,
+ * which is the kind of default that goes wrong silently. Keeping the archived
+ * read explicit also keeps its own cache entry, so archiving invalidates both
+ * lists and the group moves from one section to the other in a single pass.
+ */
+export const useArchivedCommunityGroups = (communityId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.archivedGroups(communityId),
+    enabled: !!communityId,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('groups')
+        .select('*')
+        .eq('community_id', communityId)
+        .not('archived_at', 'is', null)
+        .order('archived_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
 export const useMyGroupMemberships = (communityId: string) => {
   const db = useDb();
   const uid = useSession().session?.user.id;

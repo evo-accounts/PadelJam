@@ -74,6 +74,7 @@ describe('11 community admin', () => {
       /community settings/i,
       /member permissions/i,
       /manage members/i,
+      /manage groups/i,
       /member requests/i,
       /community plan/i,
       /share community/i,
@@ -286,5 +287,84 @@ describe('11 community admin', () => {
       (r) => (r as { name: string }[])[0]?.name === renamed,
       { label: 'community renamed', timeoutMs: 20_000 },
     );
+  });
+
+  /**
+   * UX-COMM-20 through the merged roster of UX-COMM-19. Manage Members and the
+   * Members tab are one component now, and what a row offers comes from the
+   * VIEWER's role: alex administers this community, so a row that is not his own
+   * opens the actions sheet instead of navigating to the profile.
+   *
+   * Asserted on the sheet's contents rather than on a testID — a sheet row is an
+   * accessibility element, and the labels are the thing the audit specifies.
+   */
+  it('a member row opens the actions sheet for an admin', async () => {
+    await openManage();
+    await openSection(/manage members/i);
+    // maria created the community and is not the signed-in admin, so her row is
+    // actionable. Her name is in the row; tapping it opens the sheet.
+    await tap({ text: /maria santos/i });
+    await expectVisible({ text: /see profile/i }, { timeout: 20_000 });
+    await expectVisible({ text: /remove admin|make admin/i }, { timeout: 15_000 });
+    await expectVisible({ text: /remove member/i }, { timeout: 15_000 });
+    // Leave by the sheet's own escape rather than acting: the roster these later
+    // assertions rest on must survive this test.
+    await tap({ id: 'action-sheet-close' });
+  });
+
+  /**
+   * UX-COMM-18. Runs LAST because it archives a group, and the plan test above
+   * reads group counts against the plan's limit.
+   *
+   * Archiving goes through the row's "⋯" rather than the swipe the audit
+   * describes. Both reach the same sheet, and the button is addressable: a
+   * swipe-revealed control is not in the accessibility tree until it is
+   * revealed, so it is unreachable for VoiceOver and for this driver alike.
+   * That is why the screen offers the tap route at all.
+   */
+  it('manage groups archives a group into its own section, and back', async () => {
+    const m = manifest();
+    // Community A, not C: C has only its auto-created general group, while A is
+    // alex's own community with four real ones. The seed warns that A's groups
+    // feed Home and suite 10, so this test puts the group back at the end —
+    // suites reset the database independently, but leaving a fixture altered
+    // mid-suite is how the next test in THIS file would start lying.
+    await switchTo(/lisbon padel club/i);
+    await tap({ text: /manage community/i });
+    await openSection(/manage groups/i);
+    await expectVisible({ text: /tuesday night league/i, }, { timeout: 20_000 });
+    // No archived groups yet, so the section header must be absent.
+    await expectGone({ text: /archived groups/i }, { timeout: 5_000 });
+
+    await tap({ text: /actions for tuesday night league/i });
+    await tap({ text: /^archive$/i });
+    // Destructive rows route through a confirm sheet automatically (sheetApi),
+    // whose primary button carries the same label.
+    await tap({ id: 'confirm-sheet-confirm' });
+
+    const archivedAt = () =>
+      select(
+        'groups',
+        `community_id=eq.${m.communities.A}&name=eq.Tuesday%20Night%20League&select=archived_at`,
+      );
+    await pollUntil(
+      archivedAt,
+      (r) => (r as { archived_at: string | null }[])[0]?.archived_at != null,
+      { label: 'group archived', timeoutMs: 20_000 },
+    );
+    // The group MOVES rather than disappearing — the section header proves the
+    // archived query and its cache invalidation both ran.
+    await expectVisible({ text: /archived groups/i }, { timeout: 20_000 });
+
+    // Put it back, which also exercises the other direction of the same
+    // invalidation: unarchiving must move the row out of the archived section.
+    await tap({ text: /actions for tuesday night league/i });
+    await tap({ text: /^unarchive$/i });
+    await pollUntil(
+      archivedAt,
+      (r) => (r as { archived_at: string | null }[])[0]?.archived_at == null,
+      { label: 'group restored', timeoutMs: 20_000 },
+    );
+    await expectGone({ text: /archived groups/i }, { timeout: 15_000 });
   });
 });

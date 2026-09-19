@@ -154,6 +154,10 @@ export const useArchiveGroup = () => {
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.group(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.groups(input.communityId) });
+      // Archiving MOVES a group between the two lists Manage Groups renders
+      // (UX-COMM-18); without this it disappears from one and never arrives in
+      // the other until the screen is left and re-entered.
+      qc.invalidateQueries({ queryKey: qk.archivedGroups(input.communityId) });
       qc.invalidateQueries({ queryKey: qk.canCreateGroup(input.communityId) });
     },
   });
@@ -170,6 +174,10 @@ export const useUnarchiveGroup = () => {
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.group(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.groups(input.communityId) });
+      // Archiving MOVES a group between the two lists Manage Groups renders
+      // (UX-COMM-18); without this it disappears from one and never arrives in
+      // the other until the screen is left and re-entered.
+      qc.invalidateQueries({ queryKey: qk.archivedGroups(input.communityId) });
       qc.invalidateQueries({ queryKey: qk.canCreateGroup(input.communityId) });
     },
   });
