@@ -15,6 +15,7 @@ export const qk = {
   canCreate: ['communities', 'can-create'] as const,
   defaultCommunity: ['communities', 'default'] as const,
   groups: (cid: string) => ['community', cid, 'groups'] as const,
+  archivedGroups: (cid: string) => ['community', cid, 'groups', 'archived'] as const,
   group: (id: string) => ['group', id] as const,
   groupMembers: (id: string) => ['group', id, 'members'] as const,
   groupSeasons: (id: string) => ['group', id, 'seasons'] as const,
