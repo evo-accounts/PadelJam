@@ -232,27 +232,25 @@ describe('11 community admin', () => {
     await switchTo(/cascais social/i);
     await tap({ text: /^members$/i });
     await tap({ id: 'invite-member-entry' });
-    await typeText({ type: 'TextField' }, 'Sofia');
+    // Addressed by testID now that the screen uses `Field` — its label makes it
+    // a labelled element rather than the bare TextField this used to find.
+    await typeText({ id: 'invite-search' }, 'Sofia');
     await expectVisible({ text: /sofia costa/i }, { timeout: 20_000 });
     await tap({ text: /sofia costa/i });
     // The CTA counts the selection — "Invite 1 person", not "Invite" — so an
     // anchored /^invite$/ never matches it.
     await tap({ text: /^invite \d+ (person|people)$/i });
-    // The confirm sheet's primary button is labelled "Invite" (same label the
-    // alert button used to carry) — tap it like any other in-app control now
-    // that it's a bottom sheet rather than a native alert. Success is a banner
-    // that auto-dismisses and doesn't block navigation, so there's no second
-    // button to answer.
+    // UX-COMM-22 replaced the generic confirm sheet with `InviteConfirmSheet`,
+    // because the multi-group case needs checkboxes inside it. Cascais Social has
+    // only its general group, so this is the single-group branch: a line of
+    // explanation and the Invite button, with no choice to make.
     //
-    // Matched by testID, not `{ text, type: 'Button' }`: the sheet's primary
-    // CTA (SheetHost's confirm Button, non-destructive variant here) has been
-    // observed reporting as AX type GenericElement rather than Button even
-    // though it renders with accessibilityRole="button" like every other
-    // Button — the same "enabled" unreliability documented on tap() in
-    // actions.ts, but for `type`. AXUniqueId (testID="confirm-sheet-confirm")
-    // doesn't depend on that trait and is exactly what suite 00 already uses
-    // for the sheet's close button.
-    await tap({ id: 'confirm-sheet-confirm' });
+    // Still matched by testID rather than `{ text, type: 'Button' }`: a sheet's
+    // primary CTA has been observed reporting as AX type GenericElement despite
+    // rendering with accessibilityRole="button" — the same trait unreliability
+    // documented on tap() in actions.ts. AXUniqueId does not depend on it.
+    await expectVisible({ id: 'invite-confirm-sheet' }, { timeout: 15_000 });
+    await tap({ id: 'invite-confirm-submit' });
 
     await pollUntil(
       () => select('community_invitations', `community_id=eq.${m.communities.C}&invitee_id=eq.${m.users.sofia}&select=status`),
