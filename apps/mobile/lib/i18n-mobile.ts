@@ -560,9 +560,14 @@ const mobileCommunity = {
     manageMembers: 'Gerir membros',
     manageRequests: 'Pedidos de adesão',
     manageInvite: 'Convidar membros',
-    manageGroupCommunity: 'Comunidade',
-    manageGroupPeople: 'Pessoas',
-    manageGroupAdvanced: 'Avançado',
+    // --- UX-COMM-14/15: the two header menus ---
+    moreActions: 'Mais opções',
+    shareCommunity: 'Partilhar comunidade',
+    managePlan: 'Plano da comunidade',
+    // --- UX-COMM-17: the two explanatory blocks ---
+    permAdminsTitle: 'Administradores',
+    permAdminsBody: 'Os administradores têm controlo total sobre a comunidade.',
+    permMembersTitle: 'Membros',
     // --- UX-GLOB-10 Task 5: Manage Community plan section ---
     planSectionTitle: 'Plano',
     planStarter: 'Starter',
@@ -833,9 +838,14 @@ const mobileCommunity = {
     manageMembers: 'Gerenciar membros',
     manageRequests: 'Solicitações de entrada',
     manageInvite: 'Convidar membros',
-    manageGroupCommunity: 'Comunidade',
-    manageGroupPeople: 'Pessoas',
-    manageGroupAdvanced: 'Avançado',
+    // --- UX-COMM-14/15: the two header menus ---
+    moreActions: 'Mais opções',
+    shareCommunity: 'Compartilhar comunidade',
+    managePlan: 'Plano da comunidade',
+    // --- UX-COMM-17: the two explanatory blocks ---
+    permAdminsTitle: 'Administradores',
+    permAdminsBody: 'Os administradores têm controle total sobre a comunidade.',
+    permMembersTitle: 'Membros',
     // --- UX-GLOB-10 Task 5: Manage Community plan section ---
     planSectionTitle: 'Plano',
     planStarter: 'Starter',
@@ -1105,9 +1115,14 @@ const mobileCommunity = {
     manageMembers: 'Manage members',
     manageRequests: 'Member requests',
     manageInvite: 'Invite members',
-    manageGroupCommunity: 'Community',
-    manageGroupPeople: 'People',
-    manageGroupAdvanced: 'Advanced',
+    // --- UX-COMM-14/15: the two header menus ---
+    moreActions: 'More options',
+    shareCommunity: 'Share community',
+    managePlan: 'Community plan',
+    // --- UX-COMM-17: the two explanatory blocks ---
+    permAdminsTitle: 'Admins',
+    permAdminsBody: 'Admins have full control of the community.',
+    permMembersTitle: 'Members',
     // --- UX-GLOB-10 Task 5: Manage Community plan section ---
     planSectionTitle: 'Plan',
     planStarter: 'Starter',

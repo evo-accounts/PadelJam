@@ -39,6 +39,7 @@ import {
 import { EmptyState } from '@/components/community/EmptyState';
 import type { SuggestedCommunity } from '@/components/community/SuggestedCommunityCard';
 import { thumbnailUrl } from '@/lib/community-images';
+import { useCommunityMenu } from '@/lib/useCommunityMenu';
 import { colors, palette, space } from '../../../../theme';
 import { Avatar, Loading, Text, TopBar } from '../../../../components/ui';
 
@@ -69,6 +70,21 @@ export default function CommunityTabLayout() {
 
   const { data: members } = useCommunityMembers(active?.community.id);
   const isAdmin = members?.find((m) => m.user_id === uid)?.role === 'admin';
+
+  // UX-COMM-14 / UX-COMM-15: one hook decides which of the two menus the header
+  // carries. Called before the early returns below so its own hooks are
+  // unconditional; it tolerates a null target while the memberships load.
+  const menu = useCommunityMenu(
+    active
+      ? {
+          id: active.community.id,
+          name: active.community.name,
+          privacy: active.community.privacy ?? null,
+          archivedAt: active.community.archived_at ?? null,
+        }
+      : null,
+    isAdmin,
+  );
 
   const goCreate = () => router.push('/(tabs)/community/create');
 
@@ -130,20 +146,7 @@ export default function CommunityTabLayout() {
             </Text>
           </Pressable>
         }
-        actions={
-          isAdmin
-            ? [
-                {
-                  icon: '⚙',
-                  label: t('manageTitle'),
-                  onPress: () => router.push(`/community/${community.id}/manage`),
-                },
-              ]
-            : // A member's "⋯" opens the overflow sheet of UX-COMM-14, which a
-              // later pull request builds. Until it has something to open there
-              // is no control here — better than one that goes nowhere.
-              []
-        }
+        actions={menu ? [menu] : []}
       />
 
       <CommunityIdProvider id={community.id}>

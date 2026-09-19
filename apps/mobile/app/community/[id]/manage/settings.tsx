@@ -8,7 +8,7 @@ import {
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
@@ -169,7 +169,7 @@ export default function ManageSettingsScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
       <ScrollView
-        contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={styles.inner}
         keyboardShouldPersistTaps="handled"
       >
         <Field
@@ -231,8 +231,16 @@ export default function ManageSettingsScreen() {
           disabled={pending}
         />
 
-        <Button label={t('save')} size="lg" fullWidth loading={pending} onPress={submit} />
       </ScrollView>
+      {/*
+        UX-COMM-16: the primary save is pinned rather than being the last thing in
+        the scroller, so it is reachable without scrolling past the rules text area.
+        Inside the KeyboardAvoidingView on purpose — a pinned action that the
+        keyboard covers is worse than one you have to scroll to.
+      */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + space[2] }]}>
+        <Button label={t('save')} size="lg" fullWidth loading={pending} onPress={submit} />
+      </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -241,7 +249,14 @@ export default function ManageSettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
-  inner: { paddingHorizontal: space[6], paddingTop: space[4] },
+  inner: { paddingHorizontal: space[6], paddingTop: space[4], paddingBottom: space[4] },
+  footer: {
+    paddingHorizontal: space[6],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
+  },
   label: { marginBottom: space[2] },
   field: { marginBottom: space[4] },
 });
