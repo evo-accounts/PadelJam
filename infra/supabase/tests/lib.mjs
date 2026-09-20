@@ -57,8 +57,16 @@ export const del = (table, qs) => req(`/rest/v1/${table}?${qs}`, { method: 'DELE
 
 export async function adminCreateUser(email, phone, password) {
   const u = await req('/auth/v1/admin/users', {
-    method: 'POST', body: { email, phone, password, email_confirm: true, phone_confirm: true },
+    method: 'POST', body: { email, phone, email_confirm: true, phone_confirm: true },
   });
+  // Two calls on purpose. A one-step create-with-password is an INSERT, and 0101's
+  // trg_record_password_set is deliberately AFTER UPDATE — the INSERT that creates an OTP user
+  // writes a bcrypt placeholder into encrypted_password, so firing on it would recreate the very
+  // bug 0101 removed. A persona born with a password would therefore never be recorded and would
+  // report has_password: false. No real user is made that way: there is no signUp anywhere in
+  // apps/ or packages/, every password lands on an account that already exists (auth.updateUser,
+  // or the admin UPDATE in complete-account). Fixtures acquire theirs the same way.
+  if (password != null) await req(`/auth/v1/admin/users/${u.id}`, { method: 'PUT', body: { password } });
   return u.id;
 }
 export async function signIn(email, password) {
