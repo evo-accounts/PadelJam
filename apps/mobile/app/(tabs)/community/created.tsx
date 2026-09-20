@@ -1,17 +1,17 @@
-import { useUpdateCommunity } from '@padel/api';
+import { useCommunity, useUpdateCommunity } from '@padel/api';
 import { useT } from '@padel/i18n';
-import * as Clipboard from 'expo-clipboard';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as Sharing from 'expo-sharing';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@padel/auth';
+import { QrSheet } from '@/components/community/QrSheet';
 import { consumePendingCommunityImages } from '@/lib/community-image-handoff';
+import { copyCommunityLink, shareCommunity } from '@/lib/communityShare';
 import { uploadCommunityImage } from '@/lib/storage';
-import { Button, Text, TopBar } from '../../../components/ui';
-import { colors } from '../../../theme';
+import { Button, Illustration, Text, TopBar, useBanner } from '../../../components/ui';
+import { colors, space } from '../../../theme';
 
 const THUMBNAIL_BUCKET = 'community-thumbnails';
 const COVER_BUCKET = 'community-covers';
@@ -23,9 +23,10 @@ export default function CommunityCreatedScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { client } = useSession();
   const updateCommunity = useUpdateCommunity(id ?? '');
+  const { data: community } = useCommunity(id);
 
-  const [copied, setCopied] = useState(false);
-  const deepLink = `padeljam://community/${id}`;
+  const banner = useBanner();
+  const [qrOpen, setQrOpen] = useState(false);
   const uploadedRef = useRef(false);
 
   // Upload the picked images now that the community exists, then persist paths.
@@ -66,70 +67,73 @@ export default function CommunityCreatedScreen() {
     })();
   }, [id, client, updateCommunity]);
 
+  const onShare = () => void shareCommunity(id ?? '', community?.name ?? '');
+
   const onCopy = async () => {
-    await Clipboard.setStringAsync(deepLink);
-    setCopied(true);
-  };
-
-  const onShare = async () => {
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(deepLink);
-    } else {
-      await Clipboard.setStringAsync(deepLink);
-      setCopied(true);
-    }
-  };
-
-  const onQr = () => {
-    router.push(`/community/${id}/qr` as never);
-  };
-
-  const onManage = () => {
-    // The community page (Task 17) now exists; open it on its first tab. The bare
-    // `/community/[id]` group route resolves at runtime but isn't typed.
-    if (id) router.replace(`/community/${id}`);
-    else router.back();
+    await copyCommunityLink(id ?? '');
+    banner.show(t('linkCopied'), 'success');
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar title={t('createdTitle')} onBack={() => router.back()} backLabel={t('back')} />
-      <View style={[styles.body, { paddingBottom: insets.bottom + 24 }]}>
-        <Text variant="body" tone="muted" style={styles.subtitle}>
-          {t('createdSubtitle')}
-        </Text>
+      {/* No back affordance: the community exists, so there is nothing to go
+          back TO. Both bottom actions leave this screen for somewhere real. */}
+      <TopBar variant="edit" title={t('createdTitle')} onClose={() => router.replace(`/community/${id}` as Href)} />
 
-        <View style={styles.actions}>
-          <Button fullWidth label={t('share')} onPress={onShare} />
-          <Button
-            variant="outline"
-            fullWidth
-            label={copied ? t('linkCopied') : t('copyLink')}
-            onPress={onCopy}
-          />
-          <Button variant="outline" fullWidth label={t('qrCode')} onPress={onQr} />
-          {/* Still disabled, and still announced as such: Button forwards
-              accessibilityState.disabled, which the hand-rolled version did not —
-              it dimmed to 0.45 opacity and told a screen reader nothing. */}
-          <Button
-            variant="outline"
-            fullWidth
-            disabled
-            label={`${t('createEvent')} (${t('comingSoon')})`}
-            onPress={() => {}}
-          />
+      <View style={[styles.body, { paddingBottom: insets.bottom + space[3] }]}>
+        <View style={styles.hero}>
+          <Illustration name="communityCreated" />
+          <Text variant="title" style={styles.centred}>
+            {t('createdTitle')}
+          </Text>
+          <Text variant="body" tone="muted" style={styles.centred}>
+            {t('createdSubtitle')}
+          </Text>
         </View>
 
-        <Button fullWidth label={t('manageCommunity')} onPress={onManage} />
+        {/* UX-COMM-02: three square actions side by side, not a stack of
+            full-width buttons — they are peers, and none is the next step. */}
+        <View style={styles.squares}>
+          <Button variant="outline" label={t('share')} style={styles.square} onPress={onShare} testID="created-share" />
+          <Button variant="outline" label={t('copyLink')} style={styles.square} onPress={() => void onCopy()} testID="created-copy" />
+          <Button variant="outline" label={t('qrCode')} style={styles.square} onPress={() => setQrOpen(true)} testID="created-qr" />
+        </View>
+
+        <View style={styles.footer}>
+          {/*
+            Always enabled. It used to be disabled with "(coming soon)" beside it,
+            which UX-COMM-02 rules out explicitly — and the event wizard has taken
+            a communityId for some time, so there was nothing left to wait for.
+          */}
+          <Button
+            label={t('createEvent')}
+            size="lg"
+            fullWidth
+            onPress={() => router.push(`/event/create?communityId=${id}` as Href)}
+            testID="created-create-event"
+          />
+          <Button
+            label={t('manageCommunity')}
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onPress={() => router.replace(`/community/${id}` as Href)}
+            testID="created-manage"
+          />
+        </View>
       </View>
+
+      <QrSheet visible={qrOpen} onClose={() => setQrOpen(false)} communityId={id ?? ''} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
-  body: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
-  // Spacing only — size, weight and colour now come from the variant/tone.
-  subtitle: { marginBottom: 32 },
-  actions: { gap: 12, flex: 1 },
+  body: { flex: 1, paddingHorizontal: space[6], paddingTop: space[5], gap: space[5] },
+  hero: { alignItems: 'center', gap: space[3] },
+  centred: { textAlign: 'center' },
+  squares: { flexDirection: 'row', gap: space[3] },
+  square: { flex: 1 },
+  footer: { marginTop: 'auto', gap: space[3] },
 });

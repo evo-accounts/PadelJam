@@ -7,10 +7,11 @@ import {
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
+import { LocationPickerSheet } from '@/components/community/LocationPickerSheet';
 import { PrivacyCards } from '@/components/community/PrivacyCards';
 import { RulesToggle } from '@/components/community/RulesToggle';
 import { SegmentedType } from '@/components/community/SegmentedType';
@@ -20,7 +21,7 @@ import { validateCommunityForm, type CommunityFormFieldKey } from '@/lib/communi
 import { useDirty } from '@/lib/useDirty';
 import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors, space } from '../../../theme';
-import { Button, Field, Text, TopBar, useBanner } from '../../../components/ui';
+import { Button, Field, ListRow, Text, TopBar, useBanner } from '../../../components/ui';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
@@ -42,10 +43,19 @@ export default function CreateCommunityScreen() {
   const [cover, setCover] = useState<PickedImage | null>(null);
   const [rulesEnabled, setRulesEnabled] = useState(false);
   const [rulesText, setRulesText] = useState('');
+  const [pickingLocation, setPickingLocation] = useState(false);
 
   const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<CommunityFormFieldKey>();
 
   const pending = createCommunity.isPending;
+
+  /**
+   * UX-COMM-01's footer is "disabled until every required field is filled", so
+   * validity is computed on every render rather than only on submit. Same
+   * function the submit path uses, so the button and the error state can never
+   * disagree about what "required" means.
+   */
+  const isValid = Object.keys(validateCommunityForm({ name, rulesEnabled, rulesText })).length === 0;
 
   const initial = useMemo(() => ({ name: '', description: '', location: '', rules: '' }), []);
   const dirty = useDirty({ name, description, location, rules: rulesText }, initial);
@@ -103,10 +113,7 @@ export default function CreateCommunityScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
       <ScrollView
-        contentContainerStyle={[
-          styles.inner,
-          { paddingTop: 24, paddingBottom: insets.bottom + 24 },
-        ]}
+        contentContainerStyle={[styles.inner, styles.innerPad]}
         keyboardShouldPersistTaps="handled"
       >
         <Field
@@ -129,13 +136,16 @@ export default function CreateCommunityScreen() {
           containerStyle={styles.field}
         />
 
-        <Field
-          label={t('locationLabel')}
-          value={location}
-          onChangeText={setLocation}
-          placeholder={t('locationPlaceholder')}
-          editable={!pending}
-          containerStyle={styles.field}
+        {/* A picker, not free text (UX-COMM-01). Rendered as a Field-shaped row
+            so it reads as part of the same form; the sheet owns the search. */}
+        <Text variant="label" tone="muted" style={styles.label}>{t('locationLabel')}</Text>
+        <ListRow
+          title={location || t('locationPlaceholder')}
+          variant="plain"
+          onPress={() => setPickingLocation(true)}
+          disabled={pending}
+          style={styles.field}
+          testID="create-location"
         />
 
         <Text variant="label" tone="muted" style={styles.label}>{t('typeLabel')}</Text>
@@ -146,6 +156,7 @@ export default function CreateCommunityScreen() {
           variant="square"
           uri={thumbnail?.uri ?? null}
           onPress={() => pick(setThumbnail)}
+          onRemove={() => setThumbnail(null)}
           disabled={pending}
         />
         <ImagePickerRow
@@ -153,6 +164,7 @@ export default function CreateCommunityScreen() {
           variant="cover"
           uri={cover?.uri ?? null}
           onPress={() => pick(setCover)}
+          onRemove={() => setCover(null)}
           disabled={pending}
         />
 
@@ -168,9 +180,32 @@ export default function CreateCommunityScreen() {
           disabled={pending}
         />
 
-        <Button label={t('create')} size="lg" fullWidth loading={pending} onPress={submit} />
       </ScrollView>
+      {/* Pinned, and disabled until the form is answerable — the audit's footer.
+          Inside the KeyboardAvoidingView: a pinned action the keyboard covers is
+          worse than one you have to scroll to. */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + space[2] }]}>
+        <Button
+          label={t('create')}
+          size="lg"
+          fullWidth
+          loading={pending}
+          disabled={!isValid}
+          onPress={submit}
+          testID="create-submit"
+        />
+      </View>
       </KeyboardAvoidingView>
+
+      <LocationPickerSheet
+        visible={pickingLocation}
+        onClose={() => setPickingLocation(false)}
+        initial={location || undefined}
+        onConfirm={(value) => {
+          setLocation(value);
+          setPickingLocation(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -179,6 +214,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
   inner: { paddingHorizontal: space[6] },
+  innerPad: { paddingTop: space[5], paddingBottom: space[5] },
+  footer: {
+    paddingHorizontal: space[6],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
+  },
   label: { marginBottom: space[2] },
   field: { marginBottom: space[4] },
 });

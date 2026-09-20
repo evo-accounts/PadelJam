@@ -9,12 +9,26 @@ export function ImagePickerRow({
   variant,
   uri,
   onPress,
+  onRemove,
   disabled,
 }: {
   label: string;
   variant: 'square' | 'cover';
   uri: string | null;
   onPress: () => void;
+  /**
+   * Clears the image. UX-COMM-01 puts change and remove in the preview's
+   * top-right corner once one is set — before this there was a "Change" button
+   * and NO way back to having none, so a mis-picked cover was permanent until
+   * the whole form was abandoned.
+   *
+   * PRESETS are the other half of that audit line ("a row of presets plus
+   * custom upload") and are deliberately not built yet: the repo has no preset
+   * artwork, and inventing some would be a placeholder someone has to unpick.
+   * Same reasoning as `Illustration`, which ships glyphs behind a commented-out
+   * require() until the assets land.
+   */
+  onRemove?: () => void;
   disabled?: boolean;
 }) {
   const { t } = useT('community');
@@ -46,20 +60,40 @@ export function ImagePickerRow({
         )}
       </Pressable>
       {uri ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          label={t('changeImage')}
-          onPress={onPress}
-          disabled={disabled}
-        />
+        /* Overlaid on the preview's top-right rather than sitting below it, so
+           the actions belong visibly to the image they act on. Absolute, so
+           adding them does not move the form under it. */
+        <View style={[styles.overlay, variant === 'square' ? styles.overlaySquare : styles.overlayCover]}>
+          <Button
+            variant="secondary"
+            size="sm"
+            label={t('changeImage')}
+            onPress={onPress}
+            disabled={disabled}
+            testID="image-change"
+          />
+          {onRemove ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              label={t('removeImage')}
+              onPress={onRemove}
+              disabled={disabled}
+              testID="image-remove"
+            />
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 16 },
+  container: { marginBottom: 16, position: 'relative' },
+  overlay: { position: 'absolute', flexDirection: 'row', gap: 8 },
+  // The label sits above the preview in both variants, so the offset clears it.
+  overlaySquare: { top: 28, left: 8 },
+  overlayCover: { top: 28, right: 8 },
   label: { marginBottom: 8 },
   preview: {
     borderRadius: 12,
