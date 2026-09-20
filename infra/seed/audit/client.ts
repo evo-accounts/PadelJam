@@ -46,8 +46,19 @@ export function makeClient(env: Env) {
 
   async function adminCreateUser(email: string, phone: string, password: string): Promise<string> {
     const u = await req<{ id: string }>('/auth/v1/admin/users', {
-      method: 'POST', body: { email, phone, password, email_confirm: true, phone_confirm: true },
+      method: 'POST', body: { email, phone, email_confirm: true, phone_confirm: true },
     });
+    // Two calls on purpose — same reasoning as seed-e2e.mjs and seed-demo.mjs. A one-step
+    // create-with-password is an INSERT, and 0101's trg_record_password_set is deliberately
+    // AFTER UPDATE, because the INSERT that creates an OTP user writes a bcrypt placeholder
+    // into encrypted_password and firing on it would recreate the bug 0101 removed. A persona
+    // born with a password is never recorded and reports has_password: false — which matters
+    // most HERE, since this is the corpus an auditor walks, and a fixture that offers "Create
+    // password" to someone who has one manufactures exactly the class of bug an audit exists
+    // to find.
+    if (password != null) {
+      await req(`/auth/v1/admin/users/${u.id}`, { method: 'PUT', body: { password } });
+    }
     return u.id;
   }
   const adminDeleteUser = (id: string) => req(`/auth/v1/admin/users/${id}`, { method: 'DELETE' });

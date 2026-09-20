@@ -60,8 +60,19 @@ const sel = (table, qs) => req(`/rest/v1/${table}?${qs}`);
 async function adminCreateUser(email, phone, password) {
   const u = await req('/auth/v1/admin/users', {
     method: 'POST',
-    body: { email, phone, password, email_confirm: true, phone_confirm: true },
+    body: { email, phone, email_confirm: true, phone_confirm: true },
   });
+  // Two calls on purpose — same reasoning as seed-e2e.mjs. A one-step
+  // create-with-password is an INSERT, and 0101's trg_record_password_set is
+  // deliberately AFTER UPDATE, because the INSERT that creates an OTP user writes a
+  // bcrypt placeholder into encrypted_password and firing on it would recreate the bug
+  // 0101 removed. A persona born with a password is therefore never recorded and reports
+  // has_password: false — which in the demo app offers "Create password" to someone who
+  // has one. No real user is made that way: every password lands on an account that
+  // already exists.
+  if (password != null) {
+    await req(`/auth/v1/admin/users/${u.id}`, { method: 'PUT', body: { password } });
+  }
   return u.id;
 }
 async function signIn(email, password) {
@@ -110,9 +121,24 @@ async function assertReferenceData() {
   console.log(`  reference data OK (${limits.length} plan limits, ${templates.length} blast templates)`);
 }
 
+// Captured ONCE at module load, so every isoIn() in a run shares one base and the
+// events keep their intended positions relative to each other — which is what the
+// original "fixed base (no Date.now drift)" was protecting against.
+//
+// It used to be a hardcoded Date.UTC(2026, 6, 1), and that is a different thing: it
+// does not drift, it EXPIRES. Once real time passed 2026-07-01 every "scheduled"
+// event was created in the past, and the seed died at its first join_event with
+// `event_closed`. Nothing caught it because `seed:demo` runs in no workflow.
+const DEMO_BASE = (() => {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+})();
+
 const isoIn = (days, hour = 19) => {
-  const d = new Date(Date.UTC(2026, 6, 1, hour, 0, 0)); // fixed base (no Date.now drift)
+  const d = new Date(DEMO_BASE);
   d.setUTCDate(d.getUTCDate() + days);
+  d.setUTCHours(hour, 0, 0, 0);
   return d.toISOString();
 };
 
