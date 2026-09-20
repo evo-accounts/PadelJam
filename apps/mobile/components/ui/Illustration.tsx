@@ -16,7 +16,7 @@ import { Image, StyleSheet, View, type ImageSourcePropType, type ViewStyle } fro
 import { colors, radius } from '../../theme';
 import { Text } from './Text';
 
-export type IllustrationName = 'welcomeFind' | 'welcomeCommunity' | 'welcomePlay' | 'passwordChanged';
+export type IllustrationName = 'welcomeFind' | 'welcomeCommunity' | 'welcomePlay' | 'passwordChanged' | 'communityCreated';
 
 export type IllustrationProps = {
   name: IllustrationName;
@@ -45,6 +45,9 @@ const REGISTRY: Record<IllustrationName, { source?: ImageSourcePropType; glyph: 
   welcomePlay: { glyph: '🏆' },
   // source: require('../../assets/illustrations/password-changed.png'),
   passwordChanged: { glyph: '✅' },
+  // UX-COMM-02 asks for a generic success image, explicitly unrelated to the
+  // community's own cover — this is the placeholder until artwork lands.
+  communityCreated: { glyph: '🎉' },
 };
 
 export function Illustration({ name, size = 'hero', accessibilityLabel, style, testID }: IllustrationProps) {
