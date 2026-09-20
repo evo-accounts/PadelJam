@@ -82,18 +82,27 @@ describe('12 profile & settings', () => {
    * password row, which requires has_password to already be true.
    *
    * There is no seeded passwordless persona to test the second half with, and there cannot easily
-   * be one: every seeded user is created WITH a password, which is also the only way this suite
-   * can sign one in. So the password is taken away from maria UNDERNEATH the live session, which
-   * is exactly the state a social sign-up is in from its first day. The access token is already
-   * issued, so the session survives it; `auth_providers.has_password` reads
-   * `encrypted_password <> ''`, so the view flips immediately.
+   * be one: every seeded persona ends up WITH a password, which is also the only way this suite
+   * can sign one in. (Since migration 0101 the seed gets there in TWO admin calls — create, then
+   * set — because only the UPDATE is recorded; a one-step create is an INSERT, which `0101`'s
+   * trigger deliberately ignores.) So the password is taken away from maria UNDERNEATH the live
+   * session, which is exactly the state a social sign-up is in from its first day. The access
+   * token is already issued, so the session survives it; blanking `encrypted_password` is an
+   * UPDATE, so the trigger fires and DELETES her `auth_password_set` row, and the view flips
+   * immediately.
    *
    * The test then puts it back by USING the feature — typing the seeded password into the create
    * form — so maria is left exactly as she was found, for whatever runs after this suite.
    */
   it('the password row names the screen it opens, with and without a password', async () => {
+    // Reads what the APP reads. Before migration 0101 this asked auth.users for
+    // `coalesce(encrypted_password,'') <> ''`, which is the inference 0101 exists to
+    // replace — GoTrue writes a 60-character placeholder there for every OTP user, so
+    // it answered true for people with no password at all. It happens to agree with the
+    // new source throughout this test; asserting on the deprecated one anyway would be
+    // testing a definition the product no longer uses.
     const hasPasswordSql =
-      `select coalesce(encrypted_password, '') <> '' from auth.users where email = '${PERSONAS.maria.email}'`;
+      `select exists (select 1 from auth_password_set s join auth.users u on u.id = s.user_id where u.email = '${PERSONAS.maria.email}')`;
 
     // 1) WITH a password: unchanged behaviour, and the screen still asks for the current one.
     await deepLink('mobile:///profile/settings', /change password/i);
