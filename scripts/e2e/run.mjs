@@ -24,6 +24,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const MOBILE = join(ROOT, 'apps', 'mobile');
+const MOBILE_ENV = join(MOBILE, '.env');
+const ROOT_ENV = join(ROOT, '.env');
 const DERIVED = join(MOBILE, '.e2e-derived');
 const APP_PATH = join(DERIVED, 'Build', 'Products', 'Release-iphonesimulator', 'PadelJam.app');
 const STAMP = join(DERIVED, 'source-stamp.txt');
@@ -70,12 +72,18 @@ const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : unde
  * a different Supabase is precisely the confusion worth ruling out.
  */
 function publicEnvFromMobileDotenv() {
-  const file = join(MOBILE, '.env');
+  return Object.fromEntries(
+    Object.entries(parseDotenv(MOBILE_ENV)).filter(([k]) => k.startsWith('EXPO_PUBLIC_')),
+  );
+}
+
+/** Every `KEY=value` a dotenv file holds, quotes stripped. `{}` if it is absent. */
+function parseDotenv(file) {
   if (!existsSync(file)) return {};
   const out = {};
   for (const line of readFileSync(file, 'utf8').split('\n')) {
     const m = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
-    if (!m || !m[1].startsWith('EXPO_PUBLIC_')) continue;
+    if (!m) continue;
     out[m[1]] = m[2].trim().replace(/^(['"])(.*)\1$/, '$2');
   }
   return out;
@@ -238,7 +246,112 @@ function resolveUdid() {
 }
 
 // --- 2. Preflight the stack -------------------------------------------------
+
+/** The main checkout backing this worktree, or null if we ARE the main checkout. */
+function mainCheckoutDir() {
+  try {
+    const common = execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], {
+      cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    const main = dirname(common);
+    return main && main !== ROOT ? main : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Both .env files are git-ignored, so a fresh worktree starts without either and
+ * the documented setup step is to copy them from the main checkout. Forgetting
+ * one is easy, and until this check existed it was also expensive:
+ *
+ *   - apps/mobile/.env was noticed only by assertPublicEnvInlined(), which runs
+ *     AFTER the build. Measured 2026-09-20: a run in a fresh worktree reached
+ *     `** BUILD SUCCEEDED **` and only then died on a file that had been missing
+ *     since second zero — ~10 minutes to learn something knowable immediately.
+ *   - The repo-root .env was worse. Nothing looked at it until the first suite's
+ *     seed/db fixture, i.e. after the build AND the install.
+ *
+ * Here it costs a stat and a regex. The bundle-inlining half of the old check
+ * genuinely needs the build and stays in assertPublicEnvInlined().
+ */
+function assertDotenvFiles() {
+  const required = [
+    {
+      rel: 'apps/mobile/.env',
+      file: MOBILE_ENV,
+      keys: [
+        'EXPO_PUBLIC_SUPABASE_URL',
+        'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+        // Only the opt-in chat suites need this one; requiring it always would
+        // fail a perfectly good setup.
+        ...(ENV.E2E_STREAM === '1' ? ['EXPO_PUBLIC_STREAM_API_KEY'] : []),
+      ],
+      // Keyed on what is actually absent: a missing Stream key does NOT stop the
+      // app booting, and saying it does would send the next person hunting the
+      // wrong failure.
+      why: (absent) => (absent.every((k) => k === 'EXPO_PUBLIC_STREAM_API_KEY')
+        ? 'E2E_STREAM=1 selects the opt-in chat suites. The key is inlined into the\n'
+          + '         bundle, and without it streamEnabled is false and chat never mounts.'
+        : 'EXPO_PUBLIC_* values are inlined into the bundle at build time. Without\n'
+          + '         them the app throws "[@padel/config] Invalid environment" before it\n'
+          + '         renders anything, and every suite fails in its hook on a selector\n'
+          + '         that never appears.'),
+    },
+    // --build-only never runs a suite, so nothing reads the root .env.
+    ...(flag('--build-only') ? [] : [{
+      rel: '.env',
+      file: ROOT_ENV,
+      keys: ['SUPABASE_SERVICE_ROLE_KEY'],
+      // SUPABASE_URL is deliberately NOT required: both readers default it to
+      // the local stack, so demanding it would reject a working setup.
+      why: () => 'the E2E seed (infra/seed/seed-e2e.mjs) and the db fixture\n'
+        + '         (apps/mobile/e2e/fixtures/db.ts) read the service-role key from here to\n'
+        + '         reset and seed the stack. Both run inside the first suite — i.e. after\n'
+        + '         the whole build.',
+    }]),
+  ];
+
+  const problems = [];
+  for (const { rel, file, keys, why } of required) {
+    if (!existsSync(file)) {
+      problems.push({ rel, file, what: `${rel} is missing`, why: why(keys) });
+      continue;
+    }
+    const have = parseDotenv(file);
+    const absent = keys.filter((k) => !have[k]);
+    if (absent.length) {
+      problems.push({ rel, file, what: `${rel} has no ${absent.join(', ')}`, why: why(absent) });
+    }
+  }
+  if (!problems.length) {
+    log('.env files ✓');
+    return;
+  }
+
+  // Named singly or together, because the recipe is to copy BOTH and having one
+  // already in place is exactly how the other gets forgotten.
+  const main = mainCheckoutDir();
+  const preamble = problems.length > 1
+    ? '  Both .env files are git-ignored, so a fresh worktree starts without them.'
+    : '  Both .env files are git-ignored; this one did not make it over.';
+  const fix = main
+    ? [preamble, '  Copy from the main checkout:',
+       ...problems.map((p) => `    cp ${join(main, p.rel)} ${p.file}`)].join('\n')
+    : [preamble, '  Copy from a checkout that has them (they hold the local stack\'s keys):',
+       ...problems.map((p) => `    ${p.file}`)].join('\n');
+
+  die([
+    'the .env files this run needs are missing or incomplete.',
+    ...problems.flatMap((p) => ['', `  ${p.what}`, `    ${p.file}`, `    Why: ${p.why}`]),
+    '',
+    fix,
+  ].join('\n'));
+}
+
 async function preflight() {
+  assertDotenvFiles();
+
   const stackHint = `Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@2.117.0 --workdir "${join(ROOT, 'infra')}" start`;
 
   // A stack that is "already running" can still be missing pieces: `supabase
@@ -428,11 +541,11 @@ function assertPublicEnvInlined() {
   const bundle = join(APP_PATH, 'main.jsbundle');
   // A Debug build loads JS from Metro and embeds nothing — nothing to check.
   if (!existsSync(bundle)) return;
+  // preflight()'s assertDotenvFiles() already guaranteed this, seconds into the
+  // run rather than ten minutes in. Kept only so a reordering cannot quietly turn
+  // the substring test below into a search for the string "undefined".
   const url = ENV.EXPO_PUBLIC_SUPABASE_URL;
-  if (!url) {
-    die('EXPO_PUBLIC_SUPABASE_URL is not set.\n'
-      + `  apps/mobile/.env is missing or has no EXPO_PUBLIC_* keys (${join(MOBILE, '.env')}).`);
-  }
+  if (!url) die(`EXPO_PUBLIC_SUPABASE_URL is not set — see ${MOBILE_ENV}.`);
   if (!readFileSync(bundle, 'latin1').includes(url)) {
     die(`the built app does not contain ${url}.\n`
       + '  EXPO_PUBLIC_* was not inlined, so the app will throw\n'
