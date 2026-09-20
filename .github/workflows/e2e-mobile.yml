@@ -57,21 +57,26 @@ on:
       - '.github/workflows/e2e-mobile.yml'
 
 concurrency:
-  # One run at a time: the simulator and the local database are shared
-  # singletons, and parallel runs corrupt each other's seeded data.
-  group: e2e-mobile
-  # Abandon a run the next push has already superseded. This used to be false,
-  # which cost this ONE Mac two full runs for every fix pushed mid-run — ~70
-  # minutes to answer a question only the second run was still asking.
+  # SERIALISATION DOES NOT LIVE HERE, which is what the previous version of this
+  # block got wrong. This Mac has ONE runner (a single Runner.Listener, so one
+  # job at a time) and `run.mjs` additionally holds a machine-wide lock that
+  # `--wait` queues on. Two jobs cannot touch the simulator at once whatever this
+  # group says; the group only decides what gets CANCELLED.
   #
-  # Cancelling is safe here, and both halves were checked rather than assumed:
-  #   - the lock at /tmp/padeljam-e2e.lock is stale-safe by construction. It
-  #     stores a pid and `lockHolder()` treats it as held only while that pid is
-  #     alive AND still a run.mjs, so a killed run does not wedge the next one.
-  #   - a half-seeded database does not leak into the next run: every suite
-  #     calls resetDb() in its own setup, which rotates the seeded ids anyway.
-  # It also does not reintroduce parallelism — one run still executes at a time.
-  cancel-in-progress: true
+  # One global group plus cancel-in-progress therefore bought a saving at a price
+  # nobody intended: a push to any PR cancelled whatever occupied the group —
+  # including the WEEKLY scheduled run, which is the only thing watching for
+  # Xcode, simulator, idb and CLI drift. Losing it costs a week of that signal.
+  #
+  # So: per BRANCH for a pull request, so the next push abandons the run it
+  # supersedes; unique per run for schedule and workflow_dispatch, so nothing can
+  # cancel them. Different PRs now queue on the runner instead of cancelling each
+  # other, which is the correct outcome — they are asking different questions.
+  group: >-
+    ${{ github.event_name == 'pull_request'
+        && format('e2e-pr-{0}', github.head_ref)
+        || format('e2e-{0}-{1}', github.event_name, github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   e2e:
