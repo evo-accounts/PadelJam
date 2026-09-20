@@ -1,124 +1,115 @@
-import { useCommunityMembers, useDb, useInviteMembers } from '@padel/api';
+/**
+ * Invite Members (UX-COMM-22). A rewrite rather than an edit, because most of
+ * what was here was a second implementation of something the app already owns:
+ * a raw TextInput instead of `Field`, a `db.from('profiles')` query with its own
+ * debounce living in the component, a second `db.from('groups')` query beside
+ * it, and two hand-rolled checkboxes.
+ *
+ * Two accessibility faults went with them. The selected-person chips carried
+ * their own "✕" inside the label, so VoiceOver announced "João Pereira ✕" as
+ * the person's name and nothing said the chip removed them — `Chip`'s
+ * `removeLabel` now owns that. And the group picker sat in the list footer,
+ * below the results, where pressing the CTA without a choice produced a banner
+ * saying one was required: asked, then refused. The choice moved into the
+ * confirmation sheet, where the button is simply unavailable until it is
+ * answerable.
+ */
+import { useCommunity, useCommunityGroups, useCommunityMembers, useInviteMembers, useSearchProfiles } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { InviteConfirmSheet, type InviteGroup } from '@/components/community/InviteConfirmSheet';
 import { avatarUrl } from '@/lib/community-images';
-import { colors, palette } from '../../../../theme';
+import { copyCommunityLink, shareCommunity } from '@/lib/communityShare';
+import { colors, space } from '../../../../theme';
 import {
   Avatar,
+  Button,
+  Checkbox,
   Chip,
   EmptyState,
   emptyIcon,
+  Field,
   listEmptyContent,
+  ListRow,
+  Text,
   TopBar,
   useBanner,
-  useConfirm,
 } from '../../../../components/ui';
 
 type Profile = { id: string; full_name: string | null; avatar_url: string | null };
-type Group = { id: string; name: string; is_general: boolean };
 
 export default function ManageInviteScreen() {
   const { t } = useT('community');
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const db = useDb();
 
+  const { data: community } = useCommunity(id);
   const { data: members } = useCommunityMembers(id);
+  const { data: groups } = useCommunityGroups(id);
   const invite = useInviteMembers(id);
-  const confirm = useConfirm();
   const banner = useBanner();
 
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Profile[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [term, setTerm] = useState('');
   const [selected, setSelected] = useState<Record<string, Profile>>({});
-
-  const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<Record<string, boolean>>({});
+  const [confirming, setConfirming] = useState(false);
 
-  const memberIds = useMemo(
-    () => new Set((members ?? []).map((m) => m.user_id)),
-    [members],
+  // The hook caches per term, so the debounce is only about not asking for
+  // every keystroke — it is not load-bearing for correctness any more.
+  useEffect(() => {
+    const handle = setTimeout(() => setTerm(query), 300);
+    return () => clearTimeout(handle);
+  }, [query]);
+
+  const { data: found, isFetching } = useSearchProfiles(term);
+
+  const groupList = useMemo<InviteGroup[]>(
+    () => ((groups ?? []) as InviteGroup[]).slice().sort((a, b) => Number(b.is_general) - Number(a.is_general)),
+    [groups],
   );
 
-  // Load the community's active groups for the picker.
+  // Default-select the general group so a single-group community needs no
+  // picking. Guarded on "untouched" so it cannot undo a deliberate choice.
   useEffect(() => {
-    let active = true;
-    (async () => {
-      const { data, error } = await db
-        .from('groups')
-        .select('id, name, is_general')
-        .eq('community_id', id)
-        .is('archived_at', null)
-        .returns<Group[]>();
-      if (!active || error) return;
-      const list = data ?? [];
-      setGroups(list);
-      // Default-select the general group(s) so a single-group community needs no picking.
+    if (groupList.length === 0) return;
+    setSelectedGroups((s) => {
+      if (Object.keys(s).length > 0) return s;
       const general: Record<string, boolean> = {};
-      for (const g of list) if (g.is_general) general[g.id] = true;
-      setSelectedGroups(general);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [db, id]);
+      for (const g of groupList) if (g.is_general) general[g.id] = true;
+      return general;
+    });
+  }, [groupList]);
 
-  // Debounced people search, excluding existing members from the visible list.
-  useEffect(() => {
-    const q = query.trim();
-    if (q.length === 0) {
-      setResults([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const handle = setTimeout(async () => {
-      const { data, error } = await db
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .ilike('full_name', `%${q}%`)
-        .limit(20)
-        .returns<Profile[]>();
-      if (!error) {
-        setResults((data ?? []).filter((p) => !memberIds.has(p.id)));
-      }
-      setSearching(false);
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [query, db, memberIds]);
+  const memberIds = useMemo(() => new Set((members ?? []).map((m) => m.user_id)), [members]);
+  const results = useMemo(
+    () => ((found ?? []) as Profile[]).filter((p) => !memberIds.has(p.id)),
+    [found, memberIds],
+  );
 
-  const toggleSelect = (p: Profile) => {
+  const selectedList = Object.values(selected);
+  const dirty = selectedList.length > 0;
+
+  const toggleSelect = (p: Profile) =>
     setSelected((s) => {
       const next = { ...s };
       if (next[p.id]) delete next[p.id];
       else next[p.id] = p;
       return next;
     });
-  };
-
-  const toggleGroup = (gid: string) => {
-    setSelectedGroups((s) => ({ ...s, [gid]: !s[gid] }));
-  };
-
-  const selectedList = Object.values(selected);
-  const dirty = selectedList.length > 0;
-  const hasMultipleGroups = groups.length > 1;
-  const chosenGroupIds = Object.entries(selectedGroups)
-    .filter(([, v]) => v)
-    .map(([k]) => k);
 
   const doInvite = async () => {
     try {
       await invite.mutateAsync({
         inviteeIds: selectedList.map((p) => p.id),
-        groupIds: chosenGroupIds,
+        groupIds: Object.entries(selectedGroups).filter(([, v]) => v).map(([k]) => k),
       });
+      setConfirming(false);
       banner.show(t('inviteSentBody'), 'success');
       router.back();
     } catch (e) {
@@ -127,26 +118,70 @@ export default function ManageInviteScreen() {
     }
   };
 
-  const onConfirm = async () => {
-    if (selectedList.length === 0) return;
+  const header = (
+    <View style={styles.header}>
+      {/* UX-COMM-22 opens with the two ways to invite someone who is not
+          searchable yet — sharing a link reaches people with no account. */}
+      <View style={styles.shareRow}>
+        <Button
+          label={t('shareCommunity')}
+          variant="secondary"
+          style={styles.shareButton}
+          onPress={() => void shareCommunity(id, community?.name ?? '')}
+          testID="invite-share"
+        />
+        <Button
+          label={t('copyLink')}
+          variant="secondary"
+          style={styles.shareButton}
+          onPress={async () => {
+            await copyCommunityLink(id);
+            banner.show(t('linkCopied'), 'success');
+          }}
+          testID="invite-copy-link"
+        />
+      </View>
 
-    if (hasMultipleGroups && chosenGroupIds.length === 0) {
-      banner.show(t('inviteGroupRequired'));
-      return;
-    }
+      <View style={styles.orRow}>
+        <View style={styles.rule} />
+        <Text variant="caption" tone="muted">
+          {t('orDivider')}
+        </Text>
+        <View style={styles.rule} />
+      </View>
 
-    const body = hasMultipleGroups ? t('inviteConfirmGroups') : t('inviteConfirmGeneral');
-    const ok = await confirm({
-      title: t('inviteConfirmTitle'),
-      body,
-      confirmLabel: t('invite'),
-      cancelLabel: t('cancel'),
-    });
-    if (ok) await doInvite();
-  };
+      <Field
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t('inviteSearchPlaceholder')}
+        accessibilityLabel={t('inviteSearchPlaceholder')}
+        autoCapitalize="none"
+        autoCorrect={false}
+        testID="invite-search"
+      />
+
+      {selectedList.length > 0 ? (
+        <View style={styles.chips}>
+          {selectedList.map((p) => {
+            const name = p.full_name ?? '—';
+            return (
+              <Chip
+                key={p.id}
+                label={name}
+                selected
+                removeLabel={t('removeSelected', { name })}
+                onPress={() => toggleSelect(p)}
+                testID={`invite-chip-${p.id}`}
+              />
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
+  );
 
   return (
-    <SafeAreaView style={[styles.container, { paddingBottom: insets.bottom }]} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={t('manageInvite')} onClose={() => router.back()} dirty={dirty} />
       {/*
         The search field holds focus for the whole task — you type a name, tap a
@@ -154,121 +189,85 @@ export default function ManageInviteScreen() {
         matters. Pinned to the bottom of the SafeAreaView it sat at y=773 with
         the keyboard covering everything from y=583: not merely hidden, but
         ABSENT from the accessibility tree, and with no caption anywhere on this
-        screen to tap to dismiss. There was no way to send the invitations
-        without first backing out of the field. Same defect #135 fixed for the
-        first-run funnel, on a screen no audit has reached yet.
+        screen to tap to dismiss.
       */}
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-      <View style={styles.searchWrap}>
-        <TextInput
-          style={styles.search}
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('inviteSearchPlaceholder')}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
-
-      {selectedList.length > 0 ? (
-        <View style={styles.chips}>
-          {selectedList.map((p) => (
-            <Chip
-              key={p.id}
-              label={`${p.full_name ?? '—'} ✕`}
-              selected
-              onPress={() => toggleSelect(p)}
-            />
-          ))}
-        </View>
-      ) : null}
-
-      <FlatList
-        data={results}
-        keyExtractor={(p) => p.id}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={listEmptyContent}
-        ListEmptyComponent={
-          searching ? (
-            <View style={styles.center}>
-              <ActivityIndicator color={colors.foreground} />
-            </View>
-          ) : query.trim().length > 0 ? (
-            <EmptyState
-              fill
-              icon={emptyIcon('magnifyingglass')}
-              title={t('inviteNoResults')}
-              body={t('manageInviteEmptyBody')}
-              testID="empty-invite"
-            />
-          ) : (
-            <EmptyState
-              fill
-              icon={emptyIcon('magnifyingglass')}
-              title={t('inviteSearchHint')}
-              testID="empty-invite-hint"
-            />
-          )
-        }
-        renderItem={({ item }) => {
-          const name = item.full_name ?? '—';
-          const isSelected = !!selected[item.id];
-          return (
-            <Pressable style={styles.personRow} onPress={() => toggleSelect(item)}>
-              {/* The row's name Text already labels this button; hide the
-                  avatar from the accessibility tree so it isn't announced twice. */}
-              <Avatar uri={avatarUrl(item.avatar_url)} name={name} colourKey={item.id} size="md" decorative />
-              <Text style={styles.name} numberOfLines={1}>
-                {name}
-              </Text>
-              <View style={[styles.check, isSelected && styles.checkOn]}>
-                {isSelected ? <Text style={styles.checkMark}>✓</Text> : null}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <FlatList
+          data={results}
+          keyExtractor={(p) => p.id}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={listEmptyContent}
+          ListHeaderComponent={header}
+          ListEmptyComponent={
+            isFetching ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={colors.foreground} />
               </View>
-            </Pressable>
-          );
-        }}
-        ListFooterComponent={
-          hasMultipleGroups ? (
-            <View style={styles.groupsSection}>
-              <Text style={styles.groupsTitle}>{t('inviteGroupsTitle')}</Text>
-              {groups.map((g) => {
-                const on = !!selectedGroups[g.id];
-                const label = g.is_general ? t('generalGroup') : g.name;
-                return (
-                  <Pressable key={g.id} style={styles.groupRow} onPress={() => toggleGroup(g.id)}>
-                    <Text style={styles.groupLabel}>{label}</Text>
-                    <View style={[styles.check, on && styles.checkOn]}>
-                      {on ? <Text style={styles.checkMark}>✓</Text> : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null
-        }
-      />
+            ) : term.trim().length > 0 ? (
+              <EmptyState
+                fill
+                icon={emptyIcon('magnifyingglass')}
+                title={t('inviteNoResults')}
+                body={t('manageInviteEmptyBody')}
+                testID="empty-invite"
+              />
+            ) : (
+              <EmptyState
+                fill
+                icon={emptyIcon('magnifyingglass')}
+                title={t('inviteSearchHint')}
+                testID="empty-invite-hint"
+              />
+            )
+          }
+          renderItem={({ item }) => {
+            const name = item.full_name ?? '—';
+            return (
+              <ListRow
+                title={name}
+                variant="plain"
+                onPress={() => toggleSelect(item)}
+                leading={
+                  <Avatar uri={avatarUrl(item.avatar_url)} name={name} colourKey={item.id} size="md" decorative />
+                }
+                trailing={
+                  // A CHECKBOX, not a radio (UX-COMM-22): several people at once.
+                  // The row owns the press, so the box is decorative here.
+                  <Checkbox
+                    checked={!!selected[item.id]}
+                    onChange={() => toggleSelect(item)}
+                    accessibilityLabel={name}
+                    testID={`invite-check-${item.id}`}
+                  />
+                }
+                testID={`invite-row-${item.id}`}
+              />
+            );
+          }}
+        />
 
-      <Pressable
-        style={[
-          styles.cta,
-          (selectedList.length === 0 || invite.isPending) && styles.ctaDisabled,
-        ]}
-        onPress={onConfirm}
-        disabled={selectedList.length === 0 || invite.isPending}
-        accessibilityRole="button"
-      >
-        {invite.isPending ? (
-          <ActivityIndicator color={colors.card} />
-        ) : (
-          <Text style={styles.ctaText}>
-            {t('inviteCta', { count: selectedList.length })}
-          </Text>
-        )}
-      </Pressable>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + space[2] }]}>
+          <Button
+            label={t('inviteCta', { count: selectedList.length })}
+            size="lg"
+            fullWidth
+            disabled={selectedList.length === 0 || invite.isPending}
+            onPress={() => setConfirming(true)}
+            testID="invite-submit"
+          />
+        </View>
       </KeyboardAvoidingView>
+
+      <InviteConfirmSheet
+        visible={confirming}
+        onClose={() => setConfirming(false)}
+        count={selectedList.length}
+        groups={groupList}
+        selected={selectedGroups}
+        onToggle={(gid) => setSelectedGroups((s) => ({ ...s, [gid]: !s[gid] }))}
+        onConfirm={() => void doInvite()}
+        pending={invite.isPending}
+      />
     </SafeAreaView>
   );
 }
@@ -276,61 +275,18 @@ export default function ManageInviteScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
-  searchWrap: { padding: 16 },
-  search: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+  center: { alignItems: 'center', justifyContent: 'center', padding: space[6] },
+  header: { paddingHorizontal: space[4], paddingTop: space[3], gap: space[3] },
+  shareRow: { flexDirection: 'row', gap: space[3] },
+  shareButton: { flex: 1 },
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  rule: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
+  footer: {
+    paddingHorizontal: space[4],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
   },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 8 },
-  chip: {
-    backgroundColor: colors.accent,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    maxWidth: 180,
-  },
-  center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  personRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  name: { flex: 1, fontSize: 16, color: colors.foreground, fontWeight: '500' },
-  check: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  checkMark: { color: colors.card, fontSize: 14, fontWeight: '700' },
-  groupsSection: { padding: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  groupsTitle: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase', marginBottom: 8 },
-  groupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  groupLabel: { fontSize: 16, color: colors.foreground },
-  cta: {
-    backgroundColor: colors.primary,
-    margin: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  ctaDisabled: { opacity: 0.5 },
-  ctaText: { color: colors.card, fontSize: 16, fontWeight: '700' },
 });
