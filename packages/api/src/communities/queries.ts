@@ -378,6 +378,7 @@ export const usePost = (postId: string) => {
           community_id: string;
           author_id: string;
           kind: string;
+          result_event_id: string | null;
           body: string | null;
           image_path: string | null;
           created_at: string;
