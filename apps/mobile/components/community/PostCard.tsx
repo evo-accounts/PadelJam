@@ -35,8 +35,12 @@ function ResultBody({ eventId }: { eventId: string }) {
       {top.length === 0 ? (
         <Text style={styles.resultRow}>{t('resultUnavailable')}</Text>
       ) : (
-        top.map((r) => (
-          <Text key={r.rank} style={styles.resultRow}>{`${r.rank}. ${r.name} · ${r.points}`}</Text>
+        // standings() ranks with SQL rank(), which ties: two players level on
+        // points are both rank 1, so the rank alone is not unique. The RPC
+        // returns no id to key on, and the list is static for a completed
+        // event, so the index disambiguates. Same key as ResultCard.
+        top.map((r, i) => (
+          <Text key={`${r.rank}-${i}`} style={styles.resultRow}>{`${r.rank}. ${r.name} · ${r.points}`}</Text>
         ))
       )}
       <Button

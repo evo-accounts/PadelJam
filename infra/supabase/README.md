@@ -35,8 +35,12 @@ Docker must be running.
   real SMS. Real Twilio creds are required for staging/prod.
 - Before starting, export the dummy Twilio token so the `env()` ref in `config.toml` resolves:
   `export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token` (value also in the root `.env`).
-- OAuth (Apple/Google) is left **disabled** locally (needs real client IDs/secrets); enable in
-  `[auth.external.*]` for staging/prod.
+- OAuth (Apple/Google) is **enabled** in `[auth.external.*]`, with the client IDs and secrets read
+  from `SUPABASE_AUTH_EXTERNAL_APPLE_*` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_*` through `env()`. You do
+  not need those credentials to run the stack: an unresolved `env()` ref is not a startup error, so
+  `supabase start` succeeds and GoTrue comes up with both providers advertised as enabled but not
+  usable. Only a real sign-in through Apple or Google needs actual values (staging/prod set them);
+  `.github/workflows/e2e-mobile.yml` exports nothing but the Twilio token and runs the whole suite.
 
 ## Commands (run with explicit `--workdir` to avoid CWD ambiguity)
 

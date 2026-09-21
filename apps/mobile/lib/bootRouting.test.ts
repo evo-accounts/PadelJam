@@ -12,8 +12,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
-const { routerMock } = vi.hoisted(() => ({
+const { routerMock, pathnameRef, sessionRef } = vi.hoisted(() => ({
   routerMock: { replace: vi.fn(), push: vi.fn(), back: vi.fn() },
+  // What expo-router reports as the current route. '/' is app/index.tsx, the
+  // entry route nothing has navigated away from yet.
+  pathnameRef: { current: '/' },
+  sessionRef: { current: { user: { id: 'user-1' } } as { user: { id: string } } | null },
 }));
 
 const passthrough = ({ children }: { children?: unknown }) => children ?? null;
@@ -22,6 +26,7 @@ vi.mock('expo-router', () => {
   const Stack = Object.assign(passthrough, { Screen: () => null });
   return {
     useRouter: () => routerMock,
+    usePathname: () => pathnameRef.current,
     Stack,
     ThemeProvider: passthrough,
     DarkTheme: {},
@@ -76,8 +81,7 @@ vi.mock('@/lib/postAuthRoute', () => ({
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: () =>
-        Promise.resolve({ data: { session: { user: { id: 'user-1' } } } }),
+      getSession: () => Promise.resolve({ data: { session: sessionRef.current } }),
     },
   },
 }));
@@ -89,6 +93,8 @@ beforeEach(() => {
   vi.resetModules();
   vi.useFakeTimers();
   routerMock.replace.mockClear();
+  pathnameRef.current = '/';
+  sessionRef.current = { user: { id: 'user-1' } };
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -169,5 +175,78 @@ describe('splash boot routing runs once per process', () => {
     });
 
     expect(routerMock.replace).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * Boot resolves the route asynchronously, so anything that navigates while it is
+ * still resolving — a deep link, a cold-start push tap — reaches the router
+ * FIRST, and the unconditional `router.replace(target)` then threw it away.
+ * Whichever landed last won, which made it a coin flip that tipped under load.
+ *
+ * Seen as an E2E flake (`12-profile-settings > the password row names the screen
+ * it opens`: the app sat on Home after `relaunch()` + `deepLink`), but the user-
+ * facing half is worse — tapping a push notification with the app closed opened
+ * the notification's screen and then bounced to Home.
+ *
+ * Only the authed-and-onboarded leg defers. The others are redirects away from a
+ * screen the user may not have: those must still fire, deep link or not.
+ */
+describe('splash boot routing does not clobber a route something else chose', () => {
+  it('leaves a deep-linked route alone when the user is authed and onboarded', async () => {
+    const Boot = await importBoot();
+    await act(async () => {
+      root.render(createElement(Boot as never));
+    });
+
+    // The deep link lands mid-boot: expo-router navigates and Boot re-renders
+    // with the new pathname, still inside the 600ms splash minimum.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    pathnameRef.current = '/profile/settings';
+    await act(async () => {
+      root.render(createElement(Boot as never));
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(routerMock.replace).not.toHaveBeenCalled();
+  });
+
+  it('still redirects an unauthenticated user off a deep-linked screen', async () => {
+    sessionRef.current = null;
+    const Boot = await importBoot();
+    await act(async () => {
+      root.render(createElement(Boot as never));
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    pathnameRef.current = '/profile/settings';
+    await act(async () => {
+      root.render(createElement(Boot as never));
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(routerMock.replace).toHaveBeenCalledWith('/(auth)/sign-in');
+  });
+
+  it('routes normally when nothing else navigated during boot', async () => {
+    const Boot = await importBoot();
+    await act(async () => {
+      root.render(createElement(Boot as never));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700);
+    });
+
+    expect(routerMock.replace).toHaveBeenCalledWith('/(tabs)');
   });
 });
