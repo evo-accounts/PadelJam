@@ -205,13 +205,19 @@ jobs:
       - name: Run E2E suites
         run: node scripts/e2e/run.mjs --wait ${{ inputs.suite && format('--suite {0}', inputs.suite) || '' }}
 
+      # env.E2E_ARTIFACTS_DIR is THIS run's directory alone, exported by run.mjs.
+      # The path was the whole artifacts/ tree, which on a self-hosted runner
+      # still holds the previous ten runs — so every failure re-uploaded days of
+      # old dirs (30MB on 09-13, 82MB by 09-16) until the account's artifact
+      # storage was exhausted and uploads started failing outright. A blocked
+      # upload means a hosted-runner failure leaves no evidence to read at all.
       - name: Upload failure artifacts
-        if: failure()
+        if: failure() && env.E2E_ARTIFACTS_DIR != ''
         uses: actions/upload-artifact@v4
         with:
           name: e2e-artifacts
-          path: apps/mobile/e2e/artifacts/
-          retention-days: 7
+          path: ${{ env.E2E_ARTIFACTS_DIR }}
+          retention-days: 2
 
       # No teardown step on purpose. `supabase stop` would take down the stack
       # the developer works against, and each suite already calls resetDb() at

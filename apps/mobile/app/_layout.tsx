@@ -10,9 +10,16 @@ import { createI18n } from '@padel/i18n';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Localization from 'expo-localization';
 import * as SplashScreen from 'expo-splash-screen';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider,
+  usePathname,
+  useRouter,
+} from 'expo-router';
 import type { i18n as I18n } from 'i18next';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { useT } from '@padel/i18n';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
@@ -25,7 +32,6 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { registerMobileCopy } from '@/lib/i18n-mobile';
 import { resolveLocale } from '@/lib/locale';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
-import { registerForPush } from '@/lib/push';
 import { usePushTapRouting } from '@/lib/usePushTapRouting';
 import { initSentry } from '@/lib/sentry';
 import { supabase } from '@/lib/supabase';
@@ -122,7 +128,6 @@ type OnboardingRoute =
   | '/(onboarding)/side'
   | '/(onboarding)/jammer-plus';
 type Target =
-  | '(tabs)'
   | 'welcome'
   | 'sign-in'
   | '/(tabs)'
@@ -148,6 +153,16 @@ let bootCompleted = false;
 export function Boot() {
   const router = useRouter();
   const [ready, setReady] = useState(bootCompleted);
+  // Where the router actually is when the redirect below is finally ready to
+  // fire. Read through a ref because `run` is started once by an effect with no
+  // deps and would otherwise close over the pathname as it was at mount — which
+  // is always the entry route. Assigned after commit rather than during render,
+  // for the reason spelled out in lib/usePushTapRouting.ts.
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  });
 
   usePushTapRouting();
   useAuthCacheReset();
@@ -190,9 +205,23 @@ export function Boot() {
       if (cancelled) return;
       bootCompleted = true;
 
-      if (target === '(tabs)') {
-        void registerForPush(); // authed: idempotent + self-guarding
-        router.replace('/(tabs)');
+      // '/(tabs)' WITH the slash: onboardingRoute() returns '/(tabs)' for an
+      // onboarded profile, so the slashless comparison this used to make never
+      // matched. The leg was dead and the generic replace below was quietly
+      // doing its work — which is also why the guard below has to live here.
+      if (target === '/(tabs)') {
+        // Resolving the route takes a network round trip, so a deep link or a
+        // cold-start push tap can navigate BEFORE this runs — and replacing
+        // then threw their screen away and dropped the user on Home. Whichever
+        // landed last won, so it was a coin flip that tipped whenever the
+        // resolve ran slow. Nothing has navigated iff we are still on the entry
+        // route ('/' = app/index.tsx), which is the only case that still needs
+        // the push to (tabs); a link has already put the user somewhere valid.
+        //
+        // Deliberately only this leg. 'welcome', 'sign-in' and the onboarding
+        // steps are redirects AWAY from screens the user may have no right to,
+        // so they must fire whether or not a link got there first.
+        if (pathnameRef.current === '/') router.replace('/(tabs)');
       } else if (target === 'welcome') router.replace('/(auth)/welcome');
       else if (target === 'sign-in') router.replace('/(auth)/sign-in');
       else {

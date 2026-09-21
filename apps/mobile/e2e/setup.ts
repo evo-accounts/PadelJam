@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, beforeEach } from 'vitest';
-import { captureFailure, setCurrentTestName } from './driver/expect';
+import { captureFailure, hasCapturedThisTest, setCurrentTestName } from './driver/expect';
 
 // Name the file BEFORE any hook runs. Without this, anything failing in a
 // suite's beforeAll — which is where resetDb/freshInstall/loginAs live, i.e. the
@@ -14,8 +14,11 @@ beforeEach((ctx) => {
 });
 
 afterEach(async (ctx) => {
-  if (ctx.task.result?.state === 'fail') {
-    // waitFor/expect* already capture rich artifacts; this catches non-driver assertion failures.
+  // waitFor/expect* already capture rich artifacts; this catches non-driver assertion
+  // failures. Guarded because it used to fire even when the driver had just captured,
+  // so every driver failure wrote two identical screenshots and trees seconds apart —
+  // pure duplication, and it is bytes that the artifact storage quota is counting.
+  if (ctx.task.result?.state === 'fail' && !hasCapturedThisTest()) {
     await captureFailure(`test failed: ${ctx.task.result.errors?.map((e) => e.message).join('\n') ?? 'unknown'}`).catch(() => {});
   }
 });
