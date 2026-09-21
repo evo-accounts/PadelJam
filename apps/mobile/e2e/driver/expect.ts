@@ -7,12 +7,20 @@ import { appLogTail, screenshot } from './sim';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 let currentTestName = 'unknown-test';
+let capturedThisTest = false;
 export function setCurrentTestName(name: string): void {
   currentTestName = name.replace(/[^a-zA-Z0-9-_]+/g, '_').slice(0, 120);
+  capturedThisTest = false;
+}
+
+/** Whether captureFailure already ran for the current test (see setup.ts's afterEach). */
+export function hasCapturedThisTest(): boolean {
+  return capturedThisTest;
 }
 
 /** Dump screenshot + a11y tree + app log tail for the failing step. */
 export async function captureFailure(reason: string): Promise<string> {
+  capturedThisTest = true;
   const dir = join(CONFIG.artifactsDir, currentTestName);
   mkdirSync(dir, { recursive: true });
   const stamp = Date.now();

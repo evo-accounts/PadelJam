@@ -16,7 +16,7 @@
  */
 import { execFileSync, execSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -451,9 +451,10 @@ log('Installing app…');
 sh('xcrun', ['simctl', 'install', udid, APP_PATH]);
 
 // Keep only the most recent runs. Artifact dirs are never cleaned otherwise
-// (157 had piled up here), and on the self-hosted runner actions/checkout uses
-// clean:false, so upload-artifact bundles every past run's failures alongside
-// this one's — dirs from days ago, for tests that passed today.
+// (157 had piled up here), because on the self-hosted runner actions/checkout
+// uses clean:false. These stay LOCAL: the upload step ships E2E_ARTIFACTS_DIR
+// below, so a reader on this machine still gets ten runs while the account's
+// artifact storage pays for one.
 //
 // 10 rather than a tighter number on purpose: these are the only record of what
 // a screen looked like when something failed, and a two-day-old one was what
@@ -461,6 +462,14 @@ sh('xcrun', ['simctl', 'install', udid, APP_PATH]);
 pruneArtifacts(join(MOBILE, 'e2e', 'artifacts'), 10);
 const artifacts = join(MOBILE, 'e2e', 'artifacts', new Date().toISOString().replace(/[:.]/g, '-'));
 mkdirSync(artifacts, { recursive: true });
+
+// Hand THIS run's directory to the workflow (see the prune note above). Uploading
+// all ten is what exhausted the account's artifact storage, and once that is full
+// GitHub refuses new uploads outright — a hosted-runner failure then leaves no
+// evidence to read at all.
+if (process.env.GITHUB_ENV) {
+  appendFileSync(process.env.GITHUB_ENV, `E2E_ARTIFACTS_DIR=${artifacts}\n`);
+}
 
 const suite = opt('--suite');
 const vitestArgs = ['exec', 'vitest', 'run', '-c', 'e2e/vitest.e2e.config.ts'];
