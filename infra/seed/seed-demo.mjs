@@ -142,6 +142,23 @@ const isoIn = (days, hour = 19) => {
   return d.toISOString();
 };
 
+// Offset from the actual instant, not from DEMO_BASE's midnight. Used for the two
+// times that must sit a known distance from `now()` whatever the hour of the run:
+// the join window (see joinableAt below) and E3's "started an hour ago".
+const hoursFromNow = (h) => new Date(Date.now() + h * 3600_000).toISOString();
+
+// Every event is CREATED at this time, even the ones that belong in the past.
+// join_event (0047, redefined in 0093) refuses with `event_closed` once
+// `now() > starts_at - interval '6 hours'`, so a roster can only be assembled while
+// the event is still more than six hours out. Events that are meant to be live or
+// finished are moved to their real time afterwards, with patchEvent below.
+//
+// Eight hours rather than something larger to match seed-e2e.mjs, which has run
+// this same shape for months: far enough outside the cutoff that a slow seed run
+// cannot drift into it, close enough that the temporary date is obviously a
+// scaffold rather than a plausible event time.
+const joinableAt = () => hoursFromNow(8);
+
 // --- cast ------------------------------------------------------------------
 const PW = 'Demo1234#';
 const CAST = [
@@ -157,7 +174,23 @@ const TIME_ENUM = { evening: 'night', morning: 'morning', afternoon: 'afternoon'
 
 const U = {}; // key -> { id, jwt }
 
-// --- match helper ----------------------------------------------------------
+// --- event helpers ---------------------------------------------------------
+// Re-date an event after its roster is built. There is no RPC for this on purpose:
+// moving an event in time is not something an organizer does, so the only writer is
+// the service role — which is what this script runs as.
+//
+// It exists because two demo events are meant to be in the PAST, and the RPCs that
+// put them there cannot be called in that order. join_event closes six hours before
+// `starts_at`, so the roster has to be assembled while the event is still in the
+// future; nothing else in the lifecycle looks at `starts_at` at all — start_event,
+// submit_score, generate_next_round, finish_event and post_event_result gate on
+// `status` and on the caller being the organizer, never on the clock. So: create in
+// the join window, drive the real RPCs, then move the event to where it belongs.
+//
+// Same helper, same reasoning, as seed-e2e.mjs.
+const patchEvent = (id, fields) =>
+  req(`/rest/v1/events?id=eq.${id}`, { method: 'PATCH', body: fields, prefer: 'return=minimal' });
+
 async function scoreRound(jwt, eventId, { all = true, leavePending = 0 } = {}) {
   const rounds = await sel('event_rounds', `event_id=eq.${eventId}&select=id,round_number&order=round_number.desc&limit=1`);
   if (!rounds.length) return;
@@ -169,6 +202,76 @@ async function scoreRound(jwt, eventId, { all = true, leavePending = 0 } = {}) {
     const a = 24, b = 16 + Math.floor(roundId.charCodeAt(0) % 8); // deterministic-ish
     await rpc(jwt, 'submit_score', { p_match_id: m.id, p_side_a: a, p_side_b: b, p_not_played: false });
   }
+}
+
+// --- end-state assertions ---------------------------------------------------
+// Exiting 0 is not the same as having seeded the demo. Every RPC above already
+// throws on an HTTP error, so a run that reaches the end has not hit a 400 — but
+// that says nothing about whether the events arrived in the STATES this file's
+// comments promise. The two are genuinely different: E3 and E4 are built at a
+// throwaway time and moved afterwards, and if a future change dropped a patchEvent
+// the seed would still complete, just with a "live" event scheduled for tomorrow.
+//
+// These checks are the seed's own contract with the demo app, so they live here
+// rather than in the CI job that runs it — a developer seeding by hand gets the
+// same verdict as the workflow, and there is one copy to keep in step.
+async function assertDemoGraph({ e3, e4, g1 }) {
+  const fail = (m) => { throw new Error(`demo graph is wrong: ${m}`); };
+  const now = Date.now();
+
+  const byId = Object.fromEntries(
+    (await sel('events', 'select=id,name,status,starts_at,finished_early,counts_for_ranking'))
+      .map((e) => [e.id, e]),
+  );
+
+  // E3 is LIVE: in_progress (which only start_event sets) and already under way.
+  const live = byId[e3] || fail('E3 is missing');
+  if (live.status !== 'in_progress') fail(`E3 "${live.name}" is ${live.status}, expected in_progress`);
+  if (Date.parse(live.starts_at) >= now) {
+    fail(`E3 "${live.name}" starts at ${live.starts_at}, in the future — it is meant to be under way. `
+       + 'The patchEvent that moves it back is missing or ran before start_event.');
+  }
+
+  // E4 is COMPLETED, last week, counted for the ranking, and played to the end.
+  const done = byId[e4] || fail('E4 is missing');
+  if (done.status !== 'completed') fail(`E4 "${done.name}" is ${done.status}, expected completed`);
+  if (Date.parse(done.starts_at) >= now - 6 * 86400_000) {
+    fail(`E4 "${done.name}" starts at ${done.starts_at}, which is not last week. `
+       + 'The back-dating patchEvent after post_event_result is missing.');
+  }
+  if (done.finished_early) fail('E4 finished early — a round was left unscored, so the standings are partial');
+  if (!done.counts_for_ranking) fail('E4 does not count for the ranking, so it contributes nothing to the group table');
+
+  // Both were actually JOINED. This is the check that the six-hour cutoff defeated:
+  // an event created inside the window takes its organizer and no one else.
+  for (const [eid, label, want] of [[e3, 'E3', 4], [e4, 'E4', 4]]) {
+    const roster = await sel('event_participants', `event_id=eq.${eid}&status=eq.confirmed&select=id`);
+    if (roster.length !== want) {
+      fail(`${label} has ${roster.length} confirmed participants, expected ${want} — `
+         + 'the joins did not land (join_event closes 6h before starts_at).');
+    }
+  }
+
+  // The completed event produced a result post and a group ranking.
+  const post = await sel('community_posts', `result_event_id=eq.${e4}&kind=eq.result&select=id`);
+  if (post.length !== 1) fail(`E4 has ${post.length} result posts, expected 1`);
+
+  const results = await sel('group_event_results', `event_id=eq.${e4}&select=user_id,final_placement,ranking_points`);
+  if (results.length !== 4) fail(`E4 wrote ${results.length} group ranking rows, expected 4`);
+  // Placements are deliberately NOT asserted to be distinct. Four players over two
+  // mexicano rounds routinely tie on points — win one, lose one, and two players end
+  // level — and standings() gives tied players the same rank, correctly. What has to
+  // hold is that somebody came first and everyone scored.
+  if (!results.some((r) => r.final_placement === 1)) fail('E4 ranking has no first place');
+  if (!results.every((r) => r.ranking_points !== null)) fail('an E4 ranking row has null points');
+  if (!results.some((r) => r.ranking_points > 0)) fail('E4 ranking rows carry no points');
+
+  // ...and it lands in the group's open season, which is what the demo's table reads.
+  const season = await sel('group_seasons', `group_id=eq.${g1}&ended_at=is.null&select=id`);
+  if (season.length !== 1) fail(`group ${g1} has ${season.length} open seasons, expected 1`);
+
+  console.log(`  graph OK (E3 live since ${live.starts_at}, E4 completed ${done.starts_at}, `
+    + `${results.length} ranking rows in the open season)`);
 }
 
 async function main() {
@@ -320,21 +423,37 @@ async function main() {
   await rpc(jwt('rita'), 'request_partner', { p_event_id: e2, p_targets: [id('alex')] }); // pending → Alex inbox
   console.log(`  E2 scheduled team = ${e2}`);
 
-  // E3 — in-progress (mexicano: server seeds rounds), organizer Alex, partial scores + timer
+  // E3 — in-progress (mexicano: server seeds rounds), organizer Alex, partial scores + timer.
+  // Created in the join window and moved back once the roster exists — it used to be created
+  // at isoIn(0, 9), today 09:00, which no one can join. 'in_progress' comes from start_event,
+  // never from starts_at: nothing promotes an event when its start time passes (see 0090's
+  // comment on my_events), so the state and the time have to be set separately.
+  //
+  // One hour back, relative to the run, not a fixed hour of the day: the slot is 90 minutes,
+  // so this event is genuinely mid-session — round 1 played, round 2 on court — whenever the
+  // seed is run. (seed-e2e.mjs uses two hours for the same event. It can: its job is to give
+  // a suite something in_progress to assert on, and whether the booked slot has elapsed does
+  // not change that. Here the whole point is that the screen looks right.)
   const e3 = await rpc(jwt('alex'), 'create_event', { p_payload: baseEvent({
-    name: 'Live Mexicano', event_type: 'mexicano', starts_at: isoIn(0, 9),
+    name: 'Live Mexicano', event_type: 'mexicano', starts_at: joinableAt(),
   }) });
   for (const k of ['joao', 'sofia', 'bruno']) await rpc(jwt(k), 'join_event', { p_event_id: e3 }); // +alex = 4 confirmed
   await rpc(jwt('alex'), 'start_event', { p_event_id: e3 });
+  await patchEvent(e3, { starts_at: hoursFromNow(-1) });
   await scoreRound(jwt('alex'), e3); // score round 1
   await rpc(jwt('alex'), 'generate_next_round', { p_event_id: e3 }); // round 2 pending
   await rpc(jwt('alex'), 'set_event_timer', { p_event_id: e3, p_action: 'start' });
   await rpc(jwt('alex'), 'send_event_blast', { p_event_id: e3, p_source_template_id: null, p_title: 'See you on court!', p_description: 'Round 2 starting soon — grab water.', p_image_path: null, p_channels: ['email'] });
   console.log(`  E3 in-progress mexicano = ${e3}`);
 
-  // E4 — completed (mexicano), organizer Alex, scored + finished → group ranking + result post
+  // E4 — completed (mexicano), organizer Alex, scored + finished → group ranking + result post.
+  // Same treatment as E3, and for the same reason: it was created at isoIn(-7, 9), a week in
+  // the past, so its three joins could never have succeeded. Built in the join window, played
+  // through to completion, then back-dated at the END — after finish_event, whose ranking
+  // insert reads standings() and the open season, never the clock, so the group ranking it
+  // writes is unaffected by the move.
   const e4 = await rpc(jwt('alex'), 'create_event', { p_payload: baseEvent({
-    name: 'Last Week Mexicano', event_type: 'mexicano', starts_at: isoIn(-7, 9),
+    name: 'Last Week Mexicano', event_type: 'mexicano', starts_at: joinableAt(),
   }) });
   for (const k of ['maria', 'joao', 'sofia']) await rpc(jwt(k), 'join_event', { p_event_id: e4 });
   await rpc(jwt('alex'), 'start_event', { p_event_id: e4 });
@@ -343,6 +462,7 @@ async function main() {
   await scoreRound(jwt('alex'), e4);
   await rpc(jwt('alex'), 'finish_event', { p_event_id: e4, p_counts_override: true, p_finish_message: 'GG everyone — see you next week!' });
   await rpc(jwt('alex'), 'post_event_result', { p_event_id: e4 });
+  await patchEvent(e4, { starts_at: isoIn(-7, 9) });
   console.log(`  E4 completed mexicano = ${e4}`);
 
   // E5 — recurring scheduled (series), organizer Alex
@@ -353,7 +473,10 @@ async function main() {
   for (const k of ['maria', 'joao']) await rpc(jwt(k), 'join_event', { p_event_id: e5 });
   console.log(`  E5 recurring = ${e5}`);
 
-  // 8) Summary --------------------------------------------------------------
+  // 8) Assert the graph is what the comments above claim ---------------------
+  await assertDemoGraph({ e3, e4, g1 });
+
+  // 9) Summary --------------------------------------------------------------
   const count = async (t) => {
     const r = await fetch(`${URL}/rest/v1/${t}?select=id`, { headers: { ...svc, Prefer: 'count=exact', Range: '0-0' } });
     return (r.headers.get('content-range') || '/?').split('/')[1];

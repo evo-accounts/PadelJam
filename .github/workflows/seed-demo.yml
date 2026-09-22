@@ -1,0 +1,125 @@
+name: Seed (demo)
+
+# Resets a scratch database and runs `pnpm seed:demo` to completion.
+#
+# WHY THIS EXISTS. The demo seed ran in no workflow at all, and it had been broken
+# for months without anyone noticing. Two separate faults, both invisible:
+#
+#   1. Its date helper was a hardcoded `Date.UTC(2026, 6, 1)` commented "no Date.now
+#      drift". A hardcoded date does not drift, it EXPIRES — once real time passed
+#      that day, every "scheduled" event was created in the past.
+#   2. E3 and E4 are meant to be live and completed, so they were dated at or before
+#      now and then JOINED. join_event refuses six hours before `starts_at`
+#      (0047_roster_rpcs.sql), so those joins could never have succeeded — the seed
+#      only ever worked in a narrow window on the day it was written.
+#
+# Neither is the kind of fault a reviewer catches by reading a diff, and neither
+# shows up in lint, typecheck or the unit suites. Both die instantly the first time
+# anything actually runs the script. That is the whole job here.
+#
+# HOSTED, not the self-hosted Mac that runs the E2E suite. This needs Docker and a
+# throwaway database and nothing else — no Xcode, no simulator, no idb — so none of
+# the reasons that pin E2E to a physical machine apply (see the header of
+# e2e-mobile.yml for why a hosted *macOS* runner cannot host the stack; a hosted
+# *Linux* one can, because it has a real container runtime). Keeping it here also
+# keeps it off the shared Mac, which the E2E suite owns exclusively: this job must
+# never be a reason someone's local stack gets reset out from under them.
+on:
+  # DAILY, unlike the weekly E2E cron. The cron is the half of this job that catches
+  # fault (1) — a date that expires does so on a wall-clock date, with no commit to
+  # attach the failure to, so no push-triggered run will ever fire on the day it
+  # breaks. Daily bounds that discovery at 24 hours. It can afford to: a disposable
+  # Linux runner costs nothing shared, unlike the E2E cron, which wipes a developer's
+  # local database and occupies the one Mac for 35 minutes.
+  schedule:
+    - cron: '0 4 * * *'
+  # The push-triggered half catches fault (2) — a migration that adds or tightens a
+  # guard the seed then violates. Scoped to infra/** because that is where both the
+  # seed and the migrations live; a change to a mobile screen cannot break this.
+  pull_request:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/seed-demo.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/seed-demo.yml'
+  workflow_dispatch:
+
+concurrency:
+  # Per-ref and cancellable, like CI next door: each run starts its own throwaway
+  # stack inside its own runner, so two runs cannot interfere, and a superseded push
+  # is simply stale. Unlike E2E, nothing here is serialised on shared hardware.
+  group: seed-demo-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    # `supabase start` pulls and boots the full stack on a cold runner; the seed
+    # itself is seconds. Generous so a slow image pull is not reported as a failure
+    # of the thing under test.
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # The seed has no dependencies of its own — it uses global fetch — but
+      # `pnpm seed:demo` resolves through the workspace root.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start a scratch Supabase stack
+        env:
+          # The ONLY credential set, matching e2e-mobile.yml exactly. config.toml also
+          # has `env()` refs for the Apple and Google providers, which are
+          # `enabled = true`; they resolve to empty on a runner and GoTrue starts
+          # anyway, which is what the E2E job has been demonstrating on every run.
+          # Inventing placeholder OAuth secrets here would be a new, untested
+          # configuration rather than the proven one.
+          SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: local_test_token
+          # PINNED, not @latest, so a run is reproducible and a CLI bump is a commit.
+          # Keep in step with e2e-mobile.yml, infra/supabase/README.md and
+          # apps/mobile/e2e/README.md.
+          SUPABASE_CLI_VERSION: 2.117.0
+        run: |
+          # A fresh runner has no database, so `start` applies every migration from
+          # scratch — which IS the reset this job is built around. There is
+          # deliberately no `db reset` afterwards: it would only repeat the work.
+          #
+          # Nothing is excluded with -x. The seed writes notifications, whose
+          # trigger reaches for the send-push edge function, and the full stack is
+          # what e2e-mobile.yml has been running for months — a trimmed service list
+          # would be a second configuration to keep in step for no real saving.
+          pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" --workdir infra start
+
+          # The seed reads SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from a repo-root
+          # .env, and refuses outright to run against a non-local URL. Same mapping
+          # as e2e-mobile.yml.
+          pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" --workdir infra status -o env \
+            | sed -e 's/^API_URL=/SUPABASE_URL=/' \
+                  -e 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' \
+                  -e 's/^PUBLISHABLE_KEY=/SUPABASE_ANON_KEY=/' > .env
+
+      # Deliberately the whole test. The script drives the real RPCs and throws on
+      # any non-2xx, and its closing assertDemoGraph() checks that the events reached
+      # the STATES the file's comments promise — a live event, a completed one with a
+      # result post, and the group ranking rows behind the standings table. Exiting 0
+      # is therefore a real statement about the demo data, not just about the HTTP
+      # calls, so there is nothing for this workflow to re-check afterwards.
+      - name: Seed the demo graph
+        run: pnpm seed:demo
+
+      # `supabase stop` is pointless on a disposable runner that is about to be
+      # destroyed, and its absence here carries none of the meaning it does in
+      # e2e-mobile.yml, where stopping would take down a developer's own stack.
