@@ -300,5 +300,9 @@ until someone opens them.
 `pgrep -f "node.*e2e/run[.]mjs"` and `/tmp/padeljam-e2e.lock` before any run or DB reset. Each PR
 ends with a simulator walk of the screens it touched, against the audit seed.
 
-**Afterwards**: amend `Requirements/profile.md` for decisions 1, 2, 6 and 10 rather than leaving it
-contradicting what shipped.
+**`Requirements/profile.md` is already amended** (same PR as this file). Section 07 was deliberately
+left unchanged in substance — it is the source of truth other documents cite for plan limits — and
+carries only an MVP note. Sections 3.1, 3.2, 5.1, 6.2, PR-04 and PR-09 carry inline
+**[Amended 2026-09-22]** notes; the profiles and user_settings schemas were corrected outright; the
+Next.js file map and the three Playwright build prompts were removed. Nothing further is owed to that
+document by this plan.
