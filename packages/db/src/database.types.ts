@@ -2622,14 +2622,15 @@ export type Database = {
         }
       }
       my_groups: {
-        Args: Record<PropertyKey, never>
+        Args: { p_user?: string }
         Returns: {
           group_id: string
           name: string
           community_id: string
           community_name: string
           member_count: number
-          is_managing: boolean
+          /** null when reading someone else's profile — withheld, not false (migration 0102). */
+          is_managing: boolean | null
         }[]
       }
       add_group_admins: {
@@ -2657,11 +2658,25 @@ export type Database = {
       }
       list_following: {
         Args: { p_user: string; p_search?: string | null; p_limit?: number; p_offset?: number }
-        Returns: { id: string; full_name: string; avatar_url: string | null }[]
+        Returns: {
+          id: string
+          full_name: string
+          avatar_url: string | null
+          /** Relative to the CALLER, not to p_user — UX-PROF-05's in-list follow control. */
+          is_following: boolean
+          is_followed_by: boolean
+        }[]
       }
       list_followers: {
         Args: { p_user: string; p_search?: string | null; p_limit?: number; p_offset?: number }
-        Returns: { id: string; full_name: string; avatar_url: string | null }[]
+        Returns: {
+          id: string
+          full_name: string
+          avatar_url: string | null
+          /** Relative to the CALLER, not to p_user — UX-PROF-05's in-list follow control. */
+          is_following: boolean
+          is_followed_by: boolean
+        }[]
       }
       log_event_activity: {
         Args: { p_event_id: string; p_action: string; p_detail?: Json }
@@ -2669,6 +2684,25 @@ export type Database = {
       }
       block_user: { Args: { p_target: string }; Returns: undefined }
       unblock_user: { Args: { p_target: string }; Returns: undefined }
+      list_my_blocks: {
+        Args: { p_search?: string | null; p_limit?: number; p_offset?: number }
+        Returns: { id: string; full_name: string; avatar_url: string | null; created_at: string }[]
+      }
+      player_recent_results: {
+        Args: { p_user: string; p_limit?: number }
+        Returns: {
+          match_id: string
+          event_id: string
+          event_name: string
+          played_at: string
+          court_label: string
+          side_a_score: number
+          side_b_score: number
+          player_side: string
+          side_a_names: string[]
+          side_b_names: string[]
+        }[]
+      }
       send_event_blast: {
         Args: {
           p_event_id: string

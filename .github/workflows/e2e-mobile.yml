@@ -48,7 +48,12 @@ on:
   # private repo that is collaborators only — the same people who could label.
   # Revisit this if the repo ever becomes public or gains outside contributors.
   pull_request:
-    types: [opened, synchronize, reopened]
+    # `ready_for_review` is here because the draft skip below is evaluated per EVENT, not per
+    # state. A PR opened as a draft and later marked ready never re-triggers on its own: the run
+    # queued by its last push already decided it was a draft and skipped. The suite then looks
+    # green while never having executed, which is worse than red. Drafts are cheap to open and
+    # this series opens them routinely, so the trigger has to cover the transition.
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'apps/mobile/**'
       - 'packages/**'
