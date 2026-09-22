@@ -2,6 +2,14 @@
 
 *Padel Jam — Version 1.3 • May 2026 • Wireframe-derived requirements*
 
+> **Status, 2026-09-22.** The external UX audit "Profile & Settings" (UX-PROF-01..06, UX-SET-01..13)
+> supersedes this document wherever the two conflict. See `docs/audit/2026-09-22-ux-profile-settings.md`
+> for the items and the decisions taken, and `…-plan.md` for how they ship. Sections amended by that
+> audit carry an inline **[Amended 2026-09-22]** note giving the change and the reason; the original
+> intent is stated alongside it rather than deleted. Section 07 (Subscription) is unchanged in
+> substance — it remains the source of truth other documents cite for plan limits — and carries only
+> a note on what the MVP ships in the meantime.
+
 This document defines the player Profile — the public identity a user presents, the way users follow, block, and report one another — together with Settings, where a user configures their account, preferences, notifications, subscriptions (Jammer+ and Community Plans), support, and more. It also defines the canonical profiles table, the central user record referenced by every other module, and is the source of truth for player and community subscription rules referenced across the app.
 
 **Confirmed design decisions**
@@ -91,7 +99,7 @@ Six tables touched. profiles is defined here; follows was introduced (minimally)
 </tr>
 <tr>
 <th><strong>Groups</strong></th>
-<th>The groups the player belongs to.</th>
+<th>The groups the player belongs to. <strong>[Amended 2026-09-22]</strong> On your OWN profile, all of them. On another player’s, only groups in communities you both belong to, excluding private groups and excluding any admin/managing flag — that flag describes a relationship the viewer has no business reading, and the underlying <code>my_groups</code> function is security definer, so parameterising it by user is a privacy widening rather than a refactor.</th>
 </tr>
 <tr>
 <th><strong>Last results</strong></th>
@@ -117,19 +125,19 @@ Six tables touched. profiles is defined here; follows was introduced (minimally)
 </tr>
 <tr>
 <th><strong>Another player — not followed</strong></th>
-<th>Shows Follow and Message buttons under the header.</th>
+<th>Shows a Follow button under the header. <strong>[Amended 2026-09-22]</strong> No Message button: messaging moved into the kebab sheet and is offered only once you follow the player. Originally both buttons sat under the header.</th>
 </tr>
 <tr>
 <th><strong>Another player — already followed</strong></th>
-<th>The Follow button is replaced by a followed state; Message remains.</th>
+<th>The Follow button is replaced by a followed state. <strong>[Amended 2026-09-22]</strong> Message is in the kebab sheet, not beside the button.</th>
 </tr>
 <tr>
 <th><strong>Message</strong></th>
-<th>Opens a direct chat with that player (Chat — Home doc).</th>
+<th>Opens a direct chat with that player (Chat — Home doc). <strong>[Amended 2026-09-22]</strong> Reachable ONLY from the kebab sheet, and only when you follow the player — the single entry point to messaging from a profile. The build settles this: the New Chat screen lists only people you follow, so a Message button on a stranger’s profile would open a surface that cannot list them.</th>
 </tr>
 <tr>
 <th><strong>Kebab menu</strong></th>
-<th>A “…” menu on another player’s profile: Share, Follow / Unfollow, Block, Report.</th>
+<th>A “…” menu on another player’s profile, opening as a bottom sheet: Share, Follow / Unfollow, <strong>Message (only when followed)</strong>, Block, Report. <strong>[Amended 2026-09-22]</strong> Message added to the sheet.</th>
 </tr>
 </thead>
 <tbody>
@@ -201,7 +209,7 @@ Six tables touched. profiles is defined here; follows was introduced (minimally)
 </tr>
 <tr>
 <th><strong>Unblock</strong></th>
-<th>The no-access page has an Unblock action that restores access.</th>
+<th>The no-access page has an Unblock action that restores access. <strong>[Amended 2026-09-22, addition]</strong> The no-access page stays as specified. A second state is added: opening the profile of someone YOU blocked collapses it to photo, name and Unblock, with all other content removed. That view reads from a <code>list_my_blocks</code> function rather than a widened read policy — row-level security hides the profile in both directions, so the blocker cannot read the row either, and loosening it would widen every membership and roster embed that resolves under it.</th>
 </tr>
 <tr>
 <th><strong>DB</strong></th>
@@ -315,7 +323,7 @@ Reached from the settings icon on the user’s own profile. The Settings hub gro
 </tr>
 <tr>
 <th><strong>App preferences</strong></th>
-<th>Two sections on a single screen. Language selection (a dropdown selector preset to the user’s current language; English is the only locale shipped in the MVP, the structure is ready for more) and App Icon (a 2-row × 3-column grid of the six icon variants the app ships with; single-select; the currently active variant is highlighted). A primary Save button at the bottom commits both values to user_settings. Changing the App Icon writes the chosen identifier and triggers a platform call to swap the active home-screen icon — setAlternateIconName on iOS, an activity-alias toggle on Android. Theme is not in the MVP.</th>
+<th>Two sections on a single screen. Language selection (a dropdown selector preset to the user’s current language; English is the only locale shipped in the MVP, the structure is ready for more) and App Icon (a 2-row × 3-column grid of the six icon variants the app ships with; single-select; the currently active variant is highlighted). <strong>[Amended 2026-09-22]</strong> There is no Save button: both settings take effect on selection. Language persists to <code>profiles.locale</code>, not <code>user_settings</code> — that table has no language column and never did. The language selector is a bottom sheet, not a dropdown, and the shipped locales are pt-PT, pt-BR and en, not English alone. Changing the App Icon writes the chosen identifier and triggers a platform call to swap the active home-screen icon — setAlternateIconName on iOS, an activity-alias toggle on Android. Theme is not in the MVP.</th>
 </tr>
 <tr>
 <th><strong>Legal</strong></th>
@@ -393,6 +401,21 @@ Reached from the settings icon on the user’s own profile. The Settings hub gro
 ## Subscription
 
 Padel Jam has two independent subscription axes: a player-level subscription (Jammer+) and a community-level subscription (Community Plans). The Settings hub exposes both. Section 7.5 and 7.6 are the source of truth for the limits each tier confers; every other doc that gates a feature by plan references those rules from here.
+
+> **MVP note, 2026-09-22 — this section is unchanged and remains the target.** The audit's two
+> subscription screens (UX-SET-09 Jammer+, UX-SET-10 Community Plans) are **deferred until billing
+> exists** (`Structure Files/09-payments.md`: Stripe + Stripe Connect on web, RevenueCat on mobile —
+> none of it built). Plans today are *granted on request* under global rule UX-GLOB-10: the
+> `subscriptions` / `community_subscriptions` rows carry `provider = 'manual'`, there is no billing
+> cadence, no `cancel_at_period_end`, and `current_period_end` is never populated — so the renewal
+> prices and next-billing dates in 7.2 and 7.3 cannot be rendered honestly yet.
+>
+> What ships in the meantime: the Settings hub carries the Subscription group, with Jammer+ opening
+> the existing granted-on-request paywall and Community Plans opening Manage Community's existing
+> Plan section, shown only when the user owns at least one community. The middle community tier keeps
+> the plan_id `basic` used throughout 7.6 and the seed (the audit's "Organizer" is read as shorthand),
+> and making it settable deliberately activates the dormant `jammer_plus_included` bundling this
+> section already specifies. Nothing in 7.5 or 7.6 changes; the documents that cite them are unaffected.
 
 <table>
 <colgroup>
@@ -641,12 +664,12 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed PR (Profile).
 | PR-01 | Every user has a public profile viewable by other users. | **Must** | All accounts public in MVP. |
 | PR-02 | The profile shows stats (Played matches, Best position) and preferences (dominant hand, court side, preferred time). | **Must** |  |
 | PR-03 | The profile shows the user’s groups and a last-results preview. | **Must** |  |
-| PR-04 | Viewing another player’s profile shows Follow and Message actions and a kebab menu (Share, Follow / Unfollow, Block, Report). | **Must** |  |
+| PR-04 | Viewing another player’s profile shows a Follow action and a kebab sheet (Share, Follow / Unfollow, Message when followed, Block, Report). | **Must** | **Amended 2026-09-22** — Message moved from a header button into the sheet. |
 | PR-05 | Following another user is instant — no approval or request. | **Must** |  |
 | PR-06 | Following and Followers are searchable lists. | **Must** |  |
 | PR-07 | A user can block another user with a confirmation modal; a blocked user’s profile becomes inaccessible to the blocker. | **Must** | Block is mutual for visibility. |
 | PR-08 | A user can report another user with a reason and a description. | **Must** |  |
-| PR-09 | Message on a profile opens a direct chat with that player. | Should |  |
+| PR-09 | Message on a profile opens a direct chat with that player, from the kebab sheet and only when you follow them. | Should | **Amended 2026-09-22** — gated on following, to match New Chat, which lists only people you follow. |
 | PR-10 | Settings groups Account, Notifications, Subscription, Support, and Legal, with a destructive Log out action at the bottom. | **Must** |  |
 | PR-11 | Account settings edits avatar, name, description / bio, email, mobile, date of birth, location, gender; the destructive Delete account entry sits at the bottom. | **Must** |  |
 | PR-12 | Changing the email or mobile in Account settings sends an OTP to the new identifier; the change is committed only after OTP verification. | **Must** |  |
@@ -670,68 +693,51 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed PR (Profile).
 
 ## Database schema
 
-profiles.id matches the auth user id (managed by Auth). The profile row is created during onboarding.
+> **[Note, 2026-09-22]** The authoritative schema is `infra/supabase/migrations/` and the generated
+> `packages/db/src/database.types.ts`, not this section. `profiles` and `user_settings` below have
+> been corrected to match what shipped. The `subscriptions` and `community_subscriptions` blocks are
+> left as written because they describe the billing-era target of section 07; the rows that exist
+> today are shaped differently (no `source`, no `billing_cycle`, no `cancel_at_period_end`; instead a
+> `plan_id`, a `provider` enum of stripe/revenuecat/manual, and a `provider_ref`). See the MVP note
+> in section 07.
 
 **profiles (the central user table)**
 
+> **[Corrected 2026-09-22]** The block below now matches the shipped database. The original named
+> `name`, `avatar_path`, `preferred_court_side`, `location`, `mobile` and separate `latitude` /
+> `longitude` columns; none of those exist. Anyone writing code against the original names got
+> column-not-found at runtime.
+
 | **Column** | **Type** | **Nullable** | **Notes** |
 |----|----|----|----|
-| id | UUID | No | PK; references auth.users(id) |
-| name | TEXT | No | Display name |
+| id | UUID | No | PK; references auth.users(id) ON DELETE CASCADE |
+| full_name | TEXT | No | The display name. There is no separate display_name or username |
 | description | TEXT | Yes | Bio |
-| avatar_path | TEXT | Yes | Supabase Storage path |
-| email | TEXT | Yes | OTP-verified on change |
-| mobile | TEXT | Yes | OTP-verified on change |
+| avatar_url | TEXT | Yes | Public `avatars` storage bucket, one folder per user |
+| email | TEXT | Yes | UNIQUE. OTP-verified on change |
+| phone | TEXT | Yes | UNIQUE. OTP-verified on change. A primary sign-in identifier |
 | date_of_birth | DATE | Yes |  |
-| location | TEXT | Yes | Display location |
-| latitude | NUMERIC(9,6) | Yes | For distance sort / suggestions |
-| longitude | NUMERIC(9,6) | Yes |  |
+| location_text | TEXT | Yes | The human-readable label |
+| location_point | GEOGRAPHY(POINT) | Yes | PostGIS, SRID 4326, **(longitude, latitude)** order |
+| locale | TEXT | No | DEFAULT 'pt-PT'; CHECK IN (pt-PT, pt-BR, en). This is where the language setting lives |
 | gender | TEXT | Yes | CHECK IN (male, female) — used by Mixed events |
-| dominant_hand | TEXT | Yes | CHECK IN (right, left) |
-| preferred_court_side | TEXT | Yes | CHECK IN (right, left) |
+| dominant_hand | TEXT | Yes | CHECK IN (left, right) |
+| court_side | TEXT | Yes | CHECK IN (left, right) |
 | preferred_time | TEXT | Yes | CHECK IN (any, morning, afternoon, night) |
-| created_at | TIMESTAMPTZ | No | default now() |
-| updated_at | TIMESTAMPTZ | No | Trigger-updated |
+| terms_accepted_at | TIMESTAMPTZ | Yes | Records implicit consent for social sign-ins |
+| onboarded_at | TIMESTAMPTZ | Yes |  |
+| notifications_prompted_at | TIMESTAMPTZ | Yes | Whether the prompt was PUT to the user, not the OS permission result |
+| created_at | TIMESTAMPTZ | No | DEFAULT now() |
 
-CREATE TABLE profiles (
+Two things that are not columns and are easy to get wrong:
 
-id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-
-name TEXT NOT NULL,
-
-description TEXT,
-
-avatar_path TEXT,
-
-email TEXT,
-
-mobile TEXT,
-
-date_of_birth DATE,
-
-location TEXT,
-
-latitude NUMERIC(9,6),
-
-longitude NUMERIC(9,6),
-
-gender TEXT CHECK (gender IS NULL OR gender IN ('male','female')),
-
-dominant_hand TEXT CHECK (dominant_hand IS NULL OR dominant_hand IN ('right','left')),
-
-preferred_court_side TEXT CHECK (preferred_court_side IS NULL
-
-OR preferred_court_side IN ('right','left')),
-
-preferred_time TEXT CHECK (preferred_time IS NULL
-
-OR preferred_time IN ('any','morning','afternoon','night')),
-
-created_at TIMESTAMPTZ DEFAULT now(),
-
-updated_at TIMESTAMPTZ DEFAULT now()
-
-);
+- **`location_point` has exactly one sanctioned writer**, the `set_my_location(lat, lng, text)`
+  function, which overwrites the point AND `location_text` together. It is not a merge, and neither
+  column can ride along in an ordinary `profiles` UPDATE.
+- **There is no `has_password` column.** It is a computed boolean on the `auth_providers` view,
+  redefined by migration 0101 to mean "a password was actually chosen", backed by an
+  `auth_password_set` table and a trigger. The older inference — a non-empty `encrypted_password` —
+  read true for every OTP user, because GoTrue writes a placeholder hash on signup.
 
 **blocks + reports**
 
@@ -773,6 +779,9 @@ CHECK (reporter_id \<\> reported_user_id)
 
 **user_settings**
 
+> **[Corrected 2026-09-22]** There is no `language` column and there never was — the language setting
+> lives on `profiles.locale`. Section 6.2 previously said App preferences commits it here.
+
 CREATE TABLE user_settings (
 
 user_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
@@ -782,8 +791,6 @@ notifications_push BOOLEAN NOT NULL DEFAULT true,
 notifications_whatsapp BOOLEAN NOT NULL DEFAULT false,
 
 notifications_email BOOLEAN NOT NULL DEFAULT false,
-
-language TEXT NOT NULL DEFAULT 'en-US',
 
 updated_at TIMESTAMPTZ DEFAULT now()
 
@@ -981,128 +988,18 @@ USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 ## Component & file map
 
-Assumes the default Padel Jam stack — Next.js (App Router) + Supabase + shadcn/ui + Tailwind.
-
-src/lib/hooks/useProfile.ts Own / other profile + stats
-
-src/lib/hooks/useFollows.ts Follow / unfollow, following / followers
-
-src/lib/hooks/useBlockReport.ts Block / unblock / report
-
-src/lib/hooks/useSettings.ts user_settings
-
-src/lib/hooks/useSubscription.ts Player Jammer+ state + tier helpers
-
-src/lib/hooks/useCommunitySubscription.ts Per-community tier state
-
-src/lib/validations/profile.schema.ts
-
-src/app/(app)/profile/page.tsx Own profile
-
-src/app/(app)/profile/\[id\]/page.tsx Another player’s profile
-
-src/components/profile/ProfileHeader.tsx
-
-src/components/profile/ProfileStats.tsx Played matches, Best position
-
-src/components/profile/ProfilePreferences.tsx
-
-src/components/profile/FollowListsScreen.tsx Following / Followers
-
-src/components/profile/ProfileKebabMenu.tsx Share / Follow / Block / Report
-
-src/components/profile/BlockUserModal.tsx
-
-src/components/profile/NoAccessProfile.tsx Blocked → unblock
-
-src/components/profile/ReportUserModal.tsx Reason + description
-
-src/app/(app)/settings/page.tsx Settings hub
-
-src/components/settings/AccountSettings.tsx Renamed from PersonalInformation; includes Delete entry
-
-src/components/settings/ContactChangeOtpDialog.tsx OTP flow for email / mobile change
-
-src/components/settings/GamePreferences.tsx
-
-src/components/settings/NotificationsSettings.tsx Push / WhatsApp / Email toggles
-
-src/components/settings/PrivacySettings.tsx Change password + Blocked Users
-
-src/components/settings/ChangePassword.tsx Current + new (≥8 chars) + repeat
-
-src/components/settings/BlockedUsersScreen.tsx
-
-src/components/settings/AppPreferences.tsx Language + App Icon picker; Save commits both
-
-src/components/settings/AppIconPicker.tsx 6-icon grid; calls the platform icon-swap on change
-
-src/components/settings/SupportAndFeedback.tsx
-
-src/components/settings/ContactSupportSheet.tsx Bottom sheet (title + description + send)
-
-src/components/settings/LegalLinks.tsx
-
-src/components/settings/DeleteAccountScreen.tsx
-
-src/app/(app)/settings/subscription/jammer-plus/page.tsx Jammer+ screen (3 states)
-
-src/app/(app)/settings/subscription/community/page.tsx Owned communities list
-
-src/app/(app)/settings/subscription/community/\[id\]/page.tsx Per-community screen (3 states)
-
-src/components/subscription/PlanCard.tsx Reusable plan card
-
-src/components/subscription/PlayerUpgradePicker.tsx Jammer+ Annually / Monthly + trial
-
-src/components/subscription/CommunityUpgradePicker.tsx Starter / Basic / Pro tabs
-
-src/components/subscription/CancelConfirmModal.tsx Includes bundling warning
+> **[Removed 2026-09-22]** This section listed Next.js App Router paths under `src/app/(app)/`
+> with shadcn components. That is not where this feature lives: the mobile app is Expo Router
+> under `apps/mobile/app` with in-house primitives in `apps/mobile/components/ui`, and the web
+> app is at `apps/web/src/app/(app)/app`. A map of files that do not exist is worse than no map —
+> it sent readers to build in the wrong place. The real files, per screen, are named in
+> `docs/audit/2026-09-22-ux-profile-settings-plan.md`.
 
 ## Claude Code prompts
 
-Run the section 10 schema and section 11 RLS as Supabase migrations first. Then run the three prompts in order.
-
-**Prompt 1 — Profile, follow, block, report**
-
-**Build the player profile and social graph for Padel Jam.**
-
-- Create useProfile.ts (own and other-player profile reads, with computed stats — played matches and best position from the player’s event history), useFollows.ts (instant follow / unfollow + searchable Following / Followers lists), and useBlockReport.ts (block / unblock + report). Build the profile screen at /profile and /profile/\[id\] composed of ProfileHeader (avatar, name, Following / Followers counts), ProfileStats, ProfilePreferences, the groups list, and the last-results preview. The own profile shows a settings icon; another player’s shows Follow / Message and a kebab menu (Share / Follow / Unfollow / Block / Report).
-
-- Build BlockUserModal (confirm), NoAccessProfile (the blocked-user no-access page with Unblock), and ReportUserModal (reason dropdown + description). Enforce the profiles RLS so blocked profiles are hidden both ways.
-
-- Write a Playwright spec covering: opening another player’s profile shows Follow / Message buttons and a kebab menu; following flips the button state instantly; blocking opens the confirmation modal and renders the no-access page on the blocked profile thereafter; unblocking restores access.
-
-**Prompt 2 — Settings hub, account, game, notifications, privacy, app preferences**
-
-**Build the Settings surface for Padel Jam (everything but Subscription and Delete account).**
-
-- Build the Settings hub at /settings with the section list (Account, Notifications, Subscription, Support, Legal) and a red Log out action at the bottom. The Subscription section has TWO entries — Jammer+ and Community Plans — each routing to its own screen (built in Prompt 3). The Account section’s first entry is Account settings.
-
-- Build AccountSettings (formerly PersonalInformation) at /settings/account: avatar picker, name, description / bio, email, mobile, date of birth, location, gender. Editing email or mobile triggers ContactChangeOtpDialog — the change is held pending and committed only after a 6-digit OTP sent to the new identifier is verified (10-minute expiry, 30-second resend cooldown). At the bottom of the page render a destructive Delete account entry that routes to /settings/account/delete (built in Prompt 3).
-
-- Build GamePreferences with dominant hand (Left / Right) and court side (Left / Right), and preferred time (Any / Morning / Afternoon / Night). Build NotificationsSettings with three independent toggles — Push (default on), WhatsApp (default off), Email (default off) — writing user_settings.notifications_push / \_whatsapp / \_email. Build PrivacySettings with two entries: Change password (routes to ChangePassword) and Blocked Users (routes to BlockedUsersScreen). Build ChangePassword with current password (show / hide and a Forgot password link launching the Auth-doc recovery flow), new password (≥8 characters, inline hint), and repeat new password. Build BlockedUsersScreen as a searchable list with an Unblock action per row. Build AppPreferences with two sections — Language selector (dropdown) and App Icon (a 2×3 grid of icon tiles, single-select, current selection highlighted). A primary Save button at the bottom commits both values to user_settings. Build AppIconPicker.tsx separately so the same component can be reused if needed; on change, call the platform-specific icon-swap API (setAlternateIconName on iOS, activity-alias toggle on Android).
-
-- Build SupportAndFeedback at /settings/support listing Help center (external), Contact support (opens ContactSupportSheet), Rate the app (store prompt), Share the app (system share sheet). Build ContactSupportSheet as a bottom sheet with a Title input, a Description multiline input, and a Send button; subtitle reads “We’ll get back to you within 5 days.” Send inserts a support_tickets row and shows a confirmation toast. Build LegalLinks at /settings/legal with Terms of use and Privacy Policy (both external).
-
-- Write a Playwright spec covering: editing the name commits immediately on Save; editing the email triggers the OTP dialog and only commits after a valid code; toggling the WhatsApp notification flips user_settings.notifications_whatsapp; submitting the Contact support sheet creates a support_tickets row.
-
-**Prompt 3 — Subscriptions and delete account**
-
-**Build the subscription system and the delete-account screen for Padel Jam.**
-
-- Build useSubscription.ts exposing the current player tier (“free” / “trialing” / “active” / “cancelled”), the source (“direct” / “community_bundle”), and convenience flags (isJammerPlus, isBundled, trialDaysLeft). Build useCommunitySubscription.ts exposing the current tier (“starter” / “basic” / “community_pro”), cycle, and renewal date for a given community.
-
-- Build the Jammer+ screen at /settings/subscription/jammer-plus rendering three states. State A (free): “Free” card + benefit bullets + “Upgrade to Jammer+” CTA opening PlayerUpgradePicker. State B (direct subscription): “Jammer+” card with renewal price + next billing date + Jammer+ benefit bullets + Cancel Subscription link (opens CancelConfirmModal). When status = trialing, prepend a “You’re on a 7-day free trial — N days left” banner with the post-trial conversion details. State C (community bundle): “Jammer+ — Linked to {community name} subscription” card + benefit bullets + “Go to Community Subscription” CTA + helper text explaining bundle cancellation behaviour. Disable Cancel in this state.
-
-- Build the Community subscription routing at /settings/subscription/community: 0 owned communities → empty state with Create community CTA; 1 owned → redirect to /settings/subscription/community/\[id\]; 2+ owned → list with tier label per row, each row navigating to the same per-community screen. Build the per-community screen at /settings/subscription/community/\[id\] rendering three states (Starter, Basic, Community Pro) with the rules in 7.3 — Upgrade CTA opens CommunityUpgradePicker; Cancel opens CancelConfirmModal showing the bundling warning. Pro shows no Upgrade in the MVP.
-
-- Build PlayerUpgradePicker as a modal with Annually (€39/year, “Most popular”) and Monthly (€4.99/month) cards, a “Not sure yet? Continue with free” secondary link, a primary Continue (charges via billing provider), and a “Try 7-day trial” CTA (sets status = trialing for 7 days, then auto-renews unless cancelled). Build CommunityUpgradePicker with three tabs (Starter / Basic / Community Pro), each swapping the description and feature list. Starter shows one card at €0/month with a Continue CTA; Basic and Community Pro show Annually + Monthly cards with a single Continue CTA. There is no trial on Community plans.
-
-- Wire bundle reconciliation: a server-side function runs on every community_subscriptions write — if a community moves to or from a paid tier, update subscriptions for the owner_user_id accordingly (source = community_bundle when bundled in, revert to status = free with source NULL when bundled out at current_period_end unless a direct subscription supersedes). All plan limits in 7.5 and 7.6 are enforced server-side in the relevant write paths (community / event / member / co-organizer mutations) and surface to the client as upgrade prompts.
-
-- Build DeleteAccountScreen at /settings/account/delete with a warning, the erased-data list (profile and personal information; match and activity history; messages and conversations; payment information; other data), and a destructive Delete account CTA that opens a final “Are you sure?” modal. The teardown itself (auth user deletion + cascade) is wired in the Auth module; this screen calls into it.
-
-- Write a Playwright spec covering: a Free user upgrades to Jammer+ Monthly via the picker and the screen flips to State B; cancelling sets cancel_at_period_end and shows the “Active until {date}” state; a user whose only community is Basic sees their Jammer+ screen in State C with the Go to Community CTA; cancelling the community plan triggers the bundling-warning modal.
+> **[Removed 2026-09-22]** Three build prompts written against the same non-existent Next.js
+> structure, ending in Playwright specs for a React Native app whose end-to-end suite is the
+> idb-driven harness in `apps/mobile/e2e`. They also predate every decision the UX audit took.
+> Superseded by the 21 pull requests in `docs/audit/2026-09-22-ux-profile-settings-plan.md`.
 
 *Padel Jam • Profile & Settings • v1.3 • Wireframe-derived requirements*
