@@ -3,12 +3,12 @@ import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../../theme';
-import { Avatar, EmptyState, ListRow, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
+import { Avatar, EmptyState, ListRow, SearchInput, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
 
 export default function FollowersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -20,7 +20,7 @@ export default function FollowersScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('followersCount')} onBack={() => router.back()} />
-      <TextInput style={styles.search} value={search} onChangeText={setSearch} placeholder={t('searchPlaceholder')} />
+      <SearchInput containerStyle={styles.search} value={search} onChangeText={setSearch} placeholder={t('searchPlaceholder')} />
       <FlashList
         data={rows}
         keyExtractor={(it) => it.id}
@@ -70,5 +70,5 @@ export default function FollowersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  search: { margin: 16, marginBottom: 0, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  search: { margin: 16, marginBottom: 0 },
 });

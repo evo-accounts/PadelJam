@@ -4,13 +4,13 @@ import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { streamClient } from '@/lib/streamClient';
 import { colors } from '../../theme';
-import { Avatar, EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
+import { Avatar, EmptyState, SearchInput, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
 
 type Person = { id: string; full_name: string | null; avatar_url: string | null };
 
@@ -41,12 +41,11 @@ export default function NewChatScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('newChat')} onBack={() => router.back()} />
-      <TextInput
-        style={styles.search}
+      <SearchInput
+        containerStyle={styles.search}
         placeholder={t('searchPeople')}
         value={search}
         onChangeText={setSearch}
-        autoCapitalize="none"
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {following.isLoading ? (
@@ -89,7 +88,7 @@ export default function NewChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  search: { backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, margin: 12, fontSize: 15 },
+  search: { margin: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, marginHorizontal: 12, marginBottom: 6, borderRadius: 12, padding: 12 },
   name: { fontSize: 15, fontWeight: '600', color: colors.foreground },
   error: { color: colors.destructive, fontSize: 13, marginHorizontal: 12, marginBottom: 4 },
