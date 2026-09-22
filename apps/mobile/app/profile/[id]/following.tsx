@@ -27,9 +27,19 @@ export default function FollowingScreen() {
         contentContainerStyle={[{ padding: 16 }, listEmptyContent]}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         ListEmptyComponent={
-          // Gated on `query.isLoading` so the empty card doesn't flash before the
-          // first page of following arrives.
-          query.isLoading ? null : (
+          // `query.isLoading` gates this so the empty card doesn't flash before
+          // the first page of following arrives. A FAILED query is not an empty one:
+          // without this the user is told they have no following when the request
+          // actually errored, so the error takes precedence over the empty copy.
+          query.isLoading ? null : query.isError ? (
+            <EmptyState
+              fill
+              tone="error"
+              title={t('loadError')}
+              action={{ label: t('retry', { ns: 'common' }), onPress: () => void query.refetch() }}
+              testID="error-following"
+            />
+          ) : (
             <EmptyState
               fill
               icon={emptyIcon('person.2')}

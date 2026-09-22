@@ -3451,6 +3451,7 @@ const mobileEvents = {
 
 const mobileProfile = {
   'pt-PT': {
+    loadError: 'Não foi possível carregar.',
     tab: 'Perfil',
     title: 'Perfil',
     placeholder: 'O teu perfil estará disponível em breve.',
@@ -3577,6 +3578,7 @@ const mobileProfile = {
     supportFailed: 'Adiciona um assunto e uma mensagem.',
   },
   'pt-BR': {
+    loadError: 'Não foi possível carregar.',
     tab: 'Perfil',
     title: 'Perfil',
     placeholder: 'Seu perfil estará disponível em breve.',
@@ -3703,6 +3705,7 @@ const mobileProfile = {
     supportFailed: 'Adicione um assunto e uma mensagem.',
   },
   en: {
+    loadError: 'Could not load.',
     tab: 'Profile',
     title: 'Profile',
     placeholder: 'Your profile is coming soon.',

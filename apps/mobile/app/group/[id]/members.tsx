@@ -15,7 +15,7 @@ export default function GroupMembersScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data: members, isLoading } = useGroupMembers(id);
+  const { data: members, isLoading, isError, refetch } = useGroupMembers(id);
   const [query, setQuery] = useState('');
 
   const rows = useMemo(() => {
@@ -51,17 +51,29 @@ export default function GroupMembersScreen() {
           renderItem={({ item }) => <GroupMemberRow member={item} />}
           contentContainerStyle={listEmptyContent}
           ListEmptyComponent={
-            <EmptyState
-              fill
-              icon={emptyIcon('person.2')}
-              title={t('groupMembersEmptyTitle')}
-              body={t('groupMembersEmptyBody')}
-              // Ungated: the invite route is open to every group member, not just
-              // an organizer/admin, and is already linked from the group detail
-              // screen — there is no permission check to gate this CTA on.
-              action={{ label: t('groupMembersEmptyCta'), onPress: () => router.push(`/group/${id}/invite` as never) }}
-              testID="empty-group-members"
-            />
+            // A failed load is not an empty group: without this the screen invites
+            // the user to add members to a list that merely failed to arrive.
+            isError ? (
+              <EmptyState
+                fill
+                tone="error"
+                title={t('loadError')}
+                action={{ label: t('retry', { ns: 'common' }), onPress: () => void refetch() }}
+                testID="error-group-members"
+              />
+            ) : (
+              <EmptyState
+                fill
+                icon={emptyIcon('person.2')}
+                title={t('groupMembersEmptyTitle')}
+                body={t('groupMembersEmptyBody')}
+                // Ungated: the invite route is open to every group member, not just
+                // an organizer/admin, and is already linked from the group detail
+                // screen — there is no permission check to gate this CTA on.
+                action={{ label: t('groupMembersEmptyCta'), onPress: () => router.push(`/group/${id}/invite` as never) }}
+                testID="empty-group-members"
+              />
+            )
           }
         />
       )}
