@@ -28,8 +28,18 @@ export default function FollowersScreen() {
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         ListEmptyComponent={
           // `query.isLoading` gates this so the empty card doesn't flash before
-          // the first page of followers arrives.
-          query.isLoading ? null : (
+          // the first page of followers arrives. A FAILED query is not an empty one:
+          // without this the user is told they have no followers when the request
+          // actually errored, so the error takes precedence over the empty copy.
+          query.isLoading ? null : query.isError ? (
+            <EmptyState
+              fill
+              tone="error"
+              title={t('loadError')}
+              action={{ label: t('retry', { ns: 'common' }), onPress: () => void query.refetch() }}
+              testID="error-followers"
+            />
+          ) : (
             <EmptyState
               fill
               icon={emptyIcon('person.2')}
