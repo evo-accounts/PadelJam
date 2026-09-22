@@ -1,14 +1,42 @@
-import { useFollow, useUnfollow, useBlock, useReport, useProfile } from '@padel/api';
+/**
+ * The player profile — UX-PROF-01 (another player) and the body of UX-PROF-06 (your own).
+ *
+ * One component for both, branching on `isSelf`, as before. What changed is the SHAPE: the screen
+ * used to be an avatar, a name, two counts and two stats, with the ••• and the settings gear
+ * floating in the body. It is now an identity block, tappable counts, a primary action, a stats
+ * row and three sections — Preferences, Groups, Last results — every one of which renders its
+ * empty state rather than disappearing. The audit's requirement is that a profile with almost
+ * nothing filled in still reads as a profile, not as a broken screen.
+ *
+ * The header controls (back, •••, gear) belong to the ROUTE's `TopBar`, not here, so this stays a
+ * body component and the two screens keep their own headers.
+ *
+ * `isSelf` still shows the Edit button. UX-PROF-06 removes it — but only once Account Settings
+ * exists to replace it (UX-SET-02), which is a later PR. Deleting the only route to editing your
+ * own name before its replacement ships would be a regression, not progress.
+ */
+import { useFollow, useMyBlocks, useProfile, useUnfollow } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
-import { ReportSheet } from './BlockReportModals';
-import { colors } from '../../theme';
-import { Avatar, Button, IconButton, useActionSheet } from '../../components/ui';
+import { colors, space } from '../../theme';
+import { BlockedProfile, NoAccessProfile } from './BlockedProfile';
+import { ProfileGroups } from './ProfileGroups';
+import { ProfilePreferences } from './ProfilePreferences';
+import { ProfileResults } from './ProfileResults';
+import { Avatar, Button, Loading, Text } from '../ui';
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text variant="sectionTitle">{title}</Text>
+      {children}
+    </View>
+  );
+}
 
 export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolean }) {
   const { t } = useT('profile');
@@ -16,114 +44,128 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
   const query = useProfile(userId);
   const follow = useFollow();
   const unfollow = useUnfollow();
-  const block = useBlock();
-  const report = useReport();
-  const show = useActionSheet();
-  const [reportOpen, setReportOpen] = useState(false);
+  // Only consulted when the profile comes back empty, which is the one case where "who blocked
+  // whom" changes what the screen renders.
+  const blocks = useMyBlocks();
 
-  if (query.isLoading) return <ActivityIndicator color={colors.foreground} style={{ marginTop: 48 }} />;
+  if (query.isLoading) return <Loading testID="profile-loading" />;
+
   const p = query.data;
-  if (!p) return <Text style={styles.unavailable}>{t('unavailable')}</Text>;
+  if (!p) {
+    const blocked = (blocks.data ?? []).find((b) => b.id === userId);
+    if (blocked) return <BlockedProfile blocked={blocked} onUnblocked={() => query.refetch()} />;
+    return <NoAccessProfile />;
+  }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={styles.identity}>
         <Avatar uri={avatarUrl(p.avatar_url)} name={p.full_name} colourKey={userId} size="xl" decorative />
-        <Text style={styles.name}>{p.full_name}</Text>
-        {p.description ? <Text style={styles.bio}>{p.description}</Text> : null}
-        {isSelf && (
-          <View style={styles.selfActions}>
-            <Button
-              label={t('edit')}
-              variant="outline"
-              size="sm"
-              onPress={() => router.push('/profile/edit')}
+        <Text variant="title">{p.full_name}</Text>
+        {p.description ? (
+          <Text variant="body" tone="muted" style={styles.centred}>
+            {p.description}
+          </Text>
+        ) : null}
+        {p.location_text ? (
+          <View style={styles.location}>
+            <SymbolView
+              name={{ ios: 'mappin', android: 'location_on', web: 'location_on' } as never}
+              size={14}
+              tintColor={colors.mutedForeground}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
             />
-            <IconButton
-              icon={<SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.foreground} size={22} />}
-              accessibilityLabel={t('settings')}
-              onPress={() => router.push('/profile/settings')}
-            />
+            <Text variant="caption" tone="muted">
+              {p.location_text}
+            </Text>
           </View>
-        )}
+        ) : null}
+
         <View style={styles.counts}>
-          <Pressable onPress={() => router.push(`/profile/${userId}/followers`)} accessibilityRole="button">
-            <Text style={styles.countNum}>{p.followers_count}</Text>
-            <Text style={styles.countLabel}>{t('followersCount')}</Text>
+          <Pressable
+            onPress={() => router.push(`/profile/${userId}/following`)}
+            accessibilityRole="button"
+            testID="count-following"
+          >
+            <Text variant="heading" style={styles.centred}>
+              {p.following_count}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {t('followingCount')}
+            </Text>
           </Pressable>
-          <Pressable onPress={() => router.push(`/profile/${userId}/following`)} accessibilityRole="button">
-            <Text style={styles.countNum}>{p.following_count}</Text>
-            <Text style={styles.countLabel}>{t('followingCount')}</Text>
+          <Pressable
+            onPress={() => router.push(`/profile/${userId}/followers`)}
+            accessibilityRole="button"
+            testID="count-followers"
+          >
+            <Text variant="heading" style={styles.centred}>
+              {p.followers_count}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {t('followersCount')}
+            </Text>
           </Pressable>
         </View>
-        {!isSelf && (
-          <View style={styles.actions}>
-            <Button
-              label={p.is_following ? t('following') : t('follow')}
-              variant={p.is_following ? 'outline' : 'primary'}
-              onPress={() => (p.is_following ? unfollow.mutate(userId) : follow.mutate(userId))}
-            />
-            <IconButton
-              icon={<SymbolView name={{ ios: 'ellipsis', android: 'more_vert', web: 'more_vert' }} tintColor={colors.foreground} size={22} />}
-              accessibilityLabel={t('more')}
-              onPress={async () => {
-                const key = await show({
-                  actions: [
-                    { key: 'share', label: t('kebabShare') },
-                    {
-                      key: 'block',
-                      label: t('kebabBlock'),
-                      destructive: true,
-                      confirm: { title: t('blockConfirmTitle'), body: t('blockConfirmBody'), confirmLabel: t('blockConfirm') },
-                    },
-                    { key: 'report', label: t('kebabReport') },
-                  ],
-                });
-                if (key === 'share') void Share.share({ message: p.full_name });
-                if (key === 'block') block.mutate(userId, { onSuccess: () => router.back() });
-                // Safe: `show()` resolves only after the host has dismissed its Modal, so ReportSheet never races it.
-                if (key === 'report') setReportOpen(true);
-              }}
-            />
-          </View>
+
+        {isSelf ? (
+          <Button label={t('edit')} variant="outline" size="sm" onPress={() => router.push('/profile/edit')} />
+        ) : (
+          // UX-PROF-01 puts the primary action BELOW the counts, and it is the only relationship
+          // control on the screen — everything else moved into the header sheet (UX-PROF-02).
+          <Button
+            label={p.is_following ? t('following') : t('follow')}
+            variant={p.is_following ? 'outline' : 'primary'}
+            fullWidth
+            loading={follow.isPending || unfollow.isPending}
+            onPress={() => (p.is_following ? unfollow.mutate(userId) : follow.mutate(userId))}
+            testID="follow-action"
+          />
         )}
       </View>
 
       <View style={styles.stats}>
         <View style={styles.stat}>
-          <Text style={styles.statNum}>{p.played_matches}</Text>
-          <Text style={styles.statLabel}>{t('playedMatches')}</Text>
+          <Text variant="title">{p.played_matches}</Text>
+          <Text variant="caption" tone="muted">
+            {t('playedMatches')}
+          </Text>
         </View>
         <View style={styles.stat}>
-          <Text style={styles.statNum}>{p.best_position ?? '—'}</Text>
-          <Text style={styles.statLabel}>{t('bestPosition')}</Text>
+          <Text variant="title">{p.best_position ?? '—'}</Text>
+          <Text variant="caption" tone="muted">
+            {t('bestPosition')}
+          </Text>
         </View>
       </View>
 
-      <ReportSheet
-        visible={reportOpen}
-        onCancel={() => setReportOpen(false)}
-        onSubmit={(reason, description) => { setReportOpen(false); report.mutate({ targetId: userId, reason, description }); }}
-      />
+      <Section title={t('preferences')}>
+        <ProfilePreferences
+          dominantHand={p.dominant_hand}
+          courtSide={p.court_side}
+          preferredTime={p.preferred_time}
+        />
+      </Section>
+
+      <Section title={t('groupsTitle')}>
+        <ProfileGroups userId={userId} />
+      </Section>
+
+      <Section title={t('resultsTitle')}>
+        <ProfileResults userId={userId} />
+      </Section>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  unavailable: { textAlign: 'center', color: colors.mutedForeground, marginTop: 48, paddingHorizontal: 24 },
-  header: { alignItems: 'center', paddingTop: 24, paddingHorizontal: 16, gap: 10 },
-  name: { fontSize: 22, fontWeight: '700', color: colors.foreground },
-  bio: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', paddingHorizontal: 24 },
-  selfActions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  gear: { padding: 8 },
-  counts: { flexDirection: 'row', gap: 32 },
-  countNum: { fontSize: 18, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
-  countLabel: { fontSize: 12, color: colors.mutedForeground, textAlign: 'center' },
-  actions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  kebab: { padding: 8 },
-  stats: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 24, marginTop: 16 },
-  stat: { alignItems: 'center' },
-  statNum: { fontSize: 24, fontWeight: '700', color: colors.foreground },
-  statLabel: { fontSize: 13, color: colors.mutedForeground, marginTop: 4 },
+  container: { flex: 1, backgroundColor: colors.background, paddingBottom: space[8] },
+  identity: { alignItems: 'center', paddingTop: space[4], paddingHorizontal: space[4], gap: space[2] },
+  centred: { textAlign: 'center' },
+  location: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  counts: { flexDirection: 'row', gap: space[8], marginVertical: space[2] },
+  stats: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: space[6] },
+  stat: { alignItems: 'center', gap: space[1] },
+  section: { paddingHorizontal: space[4], paddingBottom: space[6], gap: space[3] },
 });

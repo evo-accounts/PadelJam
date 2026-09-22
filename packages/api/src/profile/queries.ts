@@ -102,3 +102,71 @@ export const useMyProfile = () => {
     },
   });
 };
+
+/**
+ * The Groups section of a profile (UX-PROF-01).
+ *
+ * `my_groups` took no argument until migration 0102 — it is `security definer`, so pointing it at
+ * another user is a privacy widening, and the rule lives in the function rather than here: someone
+ * else's profile shows only groups in communities you both belong to, never private ones, and
+ * `is_managing` comes back NULL rather than false. Passing no argument still means "me".
+ */
+export const usePlayerGroups = (userId: string | undefined) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.profileGroups(userId ?? ''),
+    enabled: !!uid && !!userId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('my_groups', { p_user: userId! });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+/**
+ * The Last results section (UX-PROF-01): recent matches with a recorded score.
+ *
+ * Note this counts something different from the `played_matches` stat beside it, and both are
+ * right. That stat counts rows in `group_event_results` — finished RANKED GROUP events. This counts
+ * matches the engine has a score for. A standalone americano contributes to one and not the other.
+ */
+export const usePlayerResults = (userId: string | undefined, limit = 5) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.profileResults(userId ?? ''),
+    enabled: !!uid && !!userId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('player_recent_results', { p_user: userId!, p_limit: limit });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+/**
+ * Who I blocked — the UX-SET-06 list, and the only way to render UX-PROF-03's collapsed profile.
+ *
+ * `get_player_profile` returns zero rows for a block in EITHER direction, so the blocker cannot
+ * read the row either. Distinguishing "I blocked them" from "they blocked me" is exactly what this
+ * answers, and it is why the collapsed profile can show a name and photo at all.
+ */
+export const useMyBlocks = (search = '') => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.myBlocks(search),
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('list_my_blocks', {
+        p_search: search.trim() || null,
+        p_limit: 100,
+        p_offset: 0,
+      });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
