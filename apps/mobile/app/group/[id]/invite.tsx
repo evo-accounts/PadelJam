@@ -8,7 +8,7 @@ import {
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
@@ -18,6 +18,7 @@ import {
   EmptyState,
   emptyIcon,
   listEmptyContent,
+  SearchInput,
   TopBar,
   useBanner,
   useConfirm,
@@ -92,16 +93,12 @@ export default function GroupInviteScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('inviteTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
-      <View style={styles.searchWrap}>
-        <TextInput
-          style={styles.search}
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('inviteSearchPlaceholder')}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
+      <SearchInput
+        containerStyle={styles.search}
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t('inviteSearchPlaceholder')}
+      />
 
       <FlatList
         data={candidates}
@@ -148,15 +145,7 @@ export default function GroupInviteScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
-  searchWrap: { padding: 16 },
-  search: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
+  search: { margin: 16 },
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -34,6 +34,7 @@ export { PasswordField } from './PasswordField';
 export { PhoneField, type PhoneFieldProps } from './PhoneField';
 export { RadioCardGroup, type RadioCardOption } from './RadioCardGroup';
 export { Rating, type RatingProps, type RatingSize } from './Rating';
+export { SearchInput, type SearchInputProps } from './SearchInput';
 export { Segmented, type SegmentedOption } from './Segmented';
 export { SheetHost, useConfirm, useActionSheet, type ConfirmOptions, type ActionSheetOptions, type SheetAction } from './SheetHost';
 export { SheetRow } from './SheetRow';

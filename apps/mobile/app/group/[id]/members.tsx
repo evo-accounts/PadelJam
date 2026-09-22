@@ -3,12 +3,12 @@ import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GroupMemberRow, type GroupMember } from '@/components/group/GroupMemberRow';
 import { colors } from '../../../theme';
-import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
+import { EmptyState, SearchInput, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
 
 export default function GroupMembersScreen() {
   const { t } = useT('group');
@@ -29,16 +29,12 @@ export default function GroupMembersScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar title={t('membersTitle')} onBack={() => router.back()} backLabel={t('back')} />
 
-      <View style={styles.searchWrap}>
-        <TextInput
-          style={styles.search}
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('membersSearchPlaceholder')}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
+      <SearchInput
+        containerStyle={styles.search}
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t('membersSearchPlaceholder')}
+      />
 
       {isLoading ? (
         <View style={styles.center}>
@@ -83,14 +79,6 @@ export default function GroupMembersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
-  searchWrap: { padding: 16 },
-  search: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
+  search: { margin: 16 },
   center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
 });
