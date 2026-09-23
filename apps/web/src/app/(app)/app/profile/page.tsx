@@ -53,14 +53,11 @@ export default function ProfilePage() {
         followingCount={Number(p.following_count ?? 0)}
         followersCount={Number(p.followers_count ?? 0)}
         actions={
-          <>
-            <Button asChild>
-              <Link href="/app/profile/edit">{t('edit')}</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/app/settings">{ts('title')}</Link>
-            </Button>
-          </>
+          /* UX-PROF-06: the Edit action goes — "there is no second place to edit the same data".
+             Editing lives in Settings now, which this button already reaches. */
+          <Button asChild variant="outline">
+            <Link href="/app/settings">{ts('title')}</Link>
+          </Button>
         }
       />
 
