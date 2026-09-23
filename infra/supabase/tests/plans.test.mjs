@@ -51,12 +51,26 @@ await run('any admin can set the plan, not only the community creator', async ()
   // Refused while they are a plain member...
   await expectError(() => rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' }), 'forbidden');
 
-  // ...and allowed once promoted. Community Pro first, because Starter's co_organizers limit of 0
-  // means "one admin, no co-organizers" and the creator already holds that slot.
+  // ...and allowed once promoted. The target is BASIC, not Starter, and that changed with 0104:
+  // the downgrade guard now checks co_organizers, and Starter's limit is 0 — "one admin, no
+  // co-organizers", with the creator holding that slot. This community has two admins, so a
+  // Starter downgrade is now correctly refused (asserted below). Basic allows 1 co-organizer,
+  // which is exactly what a second admin is, so it still proves the point of this test: a
+  // PROMOTED admin, who did not create the community, can change the plan.
   await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
   await patch('community_members', `community_id=eq.${cid}&user_id=eq.${promoted.id}`, { role: 'admin' });
-  await rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
-  assert((await cplan(promoted.jwt, cid)) === 'starter', 'a promoted admin downgraded the plan');
+  await rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
+  assert((await cplan(promoted.jwt, cid)) === 'basic', 'a promoted admin downgraded the plan');
+
+  // The other half of the same fact: Starter is out of reach while the second admin exists.
+  await expectError(
+    () => rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' }),
+    'plan_downgrade_over_limit',
+  );
+  // Demote, and Starter opens up again — the guard tracks the current shape, not a one-way latch.
+  await patch('community_members', `community_id=eq.${cid}&user_id=eq.${promoted.id}`, { role: 'member' });
+  await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
+  assert((await cplan(creator.jwt, cid)) === 'starter', 'Starter is reachable once the co-organizer goes');
 });
 
 await run('a downgrade is refused while the community exceeds Starter limits', async () => {
@@ -169,4 +183,41 @@ await run('club is still not settable from the app', async () => {
   const owner = await user('clubTry');
   const cid = await ownCommunity(owner, 'Club Try');
   await expectError(() => rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'club' }), 'invalid_plan');
+});
+
+// 0104: the two limits that were unchecked until now.
+await run('a downgrade is refused while the community has more co-organizers than the plan allows', async () => {
+  const creator = await user('coOrgGuard');
+  const second = await user('coOrgGuard2');
+  const cid = await ownCommunity(creator, 'Co-organizer Club');
+  await rpc(second.jwt, 'join_community', { p_community_id: cid, p_ack: true });
+
+  // Community Pro allows 3 co-organizers, so the promotion is legal there.
+  await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
+  await patch('community_members', `community_id=eq.${cid}&user_id=eq.${second.id}`, { role: 'admin' });
+
+  // Basic allows 1 co-organizer and there is exactly 1 (two admins minus the creator), so Basic
+  // is fine — the guard must not be off by one.
+  await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
+  assert((await cplan(creator.jwt, cid)) === 'basic', 'one co-organizer fits Basic');
+
+  // Starter allows 0, so it is refused until the admin is demoted.
+  await expectError(
+    () => rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' }),
+    'plan_downgrade_over_limit',
+  );
+  await patch('community_members', `community_id=eq.${cid}&user_id=eq.${second.id}`, { role: 'member' });
+  await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
+  assert((await cplan(creator.jwt, cid)) === 'starter', 'accepted once the co-organizer is gone');
+});
+
+await run('a sole-admin community is never blocked by the co-organizer guard', async () => {
+  // The creator holds the first admin slot, so co-organizers is admins MINUS ONE. If that minus
+  // one were missing, every community would be one over on Starter and no downgrade would ever
+  // succeed — the failure mode this asserts against.
+  const owner = await user('soleAdmin');
+  const cid = await ownCommunity(owner, 'Sole Admin Club');
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
+  assert((await cplan(owner.jwt, cid)) === 'starter', 'a lone creator downgrades to Starter');
 });
