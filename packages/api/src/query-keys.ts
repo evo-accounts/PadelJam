@@ -62,6 +62,7 @@ export const qk = {
   // Nested under qk.profile(id) so invalidating a profile refreshes its sections too.
   profileGroups: (id: string) => ['profile', id, 'groups'] as const,
   profileResults: (id: string) => ['profile', id, 'results'] as const,
+  profileBadges: (id: string) => ['profile', id, 'badges'] as const,
   myBlocks: (q: string) => ['blocks', 'mine', q] as const,
   mySettings: (id: string) => ['user-settings', id] as const,
   authProviders: (id: string) => ['auth-providers', id] as const,
