@@ -124,3 +124,31 @@ export const useReport = () => {
     },
   });
 };
+
+/**
+ * Write the profile's location — coordinates and label together.
+ *
+ * Deliberately NOT part of `useUpdateProfile`. `profiles.location_point` is a PostGIS geography
+ * column, and `set_my_location(lat, lng, text)` is its only sanctioned writer; it overwrites the
+ * point AND `location_text` as a pair, so neither can ride along in an ordinary `profiles` UPDATE.
+ * Passing null coordinates clears the point.
+ */
+export const useSetMyLocation = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (place: { lat: number; lng: number; text: string | null }) => {
+      const { error } = await db.rpc('set_my_location', {
+        p_lat: place.lat,
+        p_lng: place.lng,
+        p_text: place.text,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      if (!uid) return;
+      qc.invalidateQueries({ queryKey: qk.profile(uid) });
+    },
+  });
+};

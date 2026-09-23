@@ -22,14 +22,23 @@ describe('12 profile & settings', () => {
     await expectVisible({ text: /follower/i });
   });
 
-  it('edit profile persists a new bio', async () => {
-    await tap({ text: /edit/i, type: 'Button' });
-    await expectVisible({ text: 'Edit profile', type: 'Heading' }, { timeout: 15_000 });
-    await typeText({ type: 'TextArea' }, ' Loves tie-breaks.');
-    // Scrolling also dismisses the keyboard so the Save button is tappable.
-    await scrollUntilVisible({ text: /save/i, type: 'Button' }, { maxSwipes: 6 });
-    await tap({ text: /save/i, type: 'Button' });
-    await expectGone({ text: 'Edit profile', type: 'Heading' }, { timeout: 20_000 });
+  /**
+   * Was "edit profile persists a new bio", driven from an Edit button on the profile. UX-PROF-06
+   * deleted both that button and the screen behind it — "there is no second place to edit the same
+   * data" — so this now goes where the data lives, Account Settings (UX-SET-02).
+   *
+   * Deep-linked rather than navigated through Settings on purpose: the Settings hub is rebuilt
+   * later in this plan, and a test that walks its rows would break again for a reason that has
+   * nothing to do with whether the description saves.
+   */
+  it('account settings persists a new bio', async () => {
+    await deepLink('mobile:///profile/account', /account settings/i);
+    await expectVisible({ id: 'account-bio' }, { timeout: 15_000 });
+    await typeText({ id: 'account-bio' }, ' Loves tie-breaks.');
+    // The save button is pinned below the form, so it needs no scrolling — but the keyboard is
+    // over it until something dismisses that.
+    await scrollUntilVisible({ id: 'account-save' }, { maxSwipes: 6 });
+    await tap({ id: 'account-save' });
     await pollUntil(
       () => select('profiles', `email=eq.${PERSONAS.maria.email}&select=description`),
       (rows) => ((rows as { description: string }[])[0]?.description ?? '').includes('Loves tie-breaks'),
