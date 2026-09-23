@@ -73,6 +73,16 @@ type Props = {
    * assistive tech announces it as an error rather than silent caption text.
    */
   subtitleTone?: 'muted' | 'destructive';
+  /**
+   * How many lines the subtitle may occupy before it truncates. Defaults to 1, which is right for
+   * the trailing scraps most rows carry ("3 members", "Last played Tuesday").
+   *
+   * Pass 2 for a row whose subtitle is a SENTENCE describing where it leads. UX-SET-05/12/13 put
+   * descriptions under every row, and at one line they truncated mid-word — "See who you blocked,
+   * and unblock them…" — which turns an explanation into a tease. The accessible name was never
+   * affected: it joins title and subtitle in full, so this is a visual fix only.
+   */
+  subtitleLines?: number;
   /** Draws attention without colour alone — pairs with an accessibilityValue. */
   highlighted?: boolean;
   /**
@@ -99,6 +109,7 @@ export function ListRow({
   variant = 'plain',
   titleTone = 'default',
   subtitleTone = 'muted',
+  subtitleLines = 1,
   highlighted = false,
   selected,
   disabled = false,
@@ -117,7 +128,7 @@ export function ListRow({
           <Text
             variant="caption"
             tone={subtitleTone}
-            numberOfLines={1}
+            numberOfLines={subtitleLines}
             style={styles.subtitle}
             accessibilityRole={subtitleTone === 'destructive' ? 'alert' : undefined}
           >

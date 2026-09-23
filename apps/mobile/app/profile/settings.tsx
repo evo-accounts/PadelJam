@@ -2,7 +2,7 @@ import { useAccountPlan } from '@padel/api';
 import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
-import { Linking, ScrollView, Share, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { unregisterForPush } from '@/lib/push';
@@ -10,9 +10,6 @@ import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
 import { Button, ListRow, Text, TopBar } from '../../components/ui';
 
-const TERMS_URL = 'https://padeljam.app/terms';
-const PRIVACY_URL = 'https://padeljam.app/privacy';
-const HELP_URL = 'https://padeljam.app/help';
 const LANGS = [
   { code: 'en', key: 'languageEnglish' as const },
   { code: 'pt-PT', key: 'languagePtPt' as const },
@@ -97,17 +94,21 @@ export default function SettingsScreen() {
           onPress={() => router.push('/profile/delete-account')}
         />
 
+        {/* Both groups collapse to one row each (UX-SET-12, UX-SET-13). Help center, Rate the app
+            and Share the app now live on the Support hub, and the two legal documents on Legal —
+            they were five loose rows spread across two headings. Provisional, like the rows
+            above; UX-SET-01 regroups the page. */}
         <Text style={styles.section}>{t('support')}</Text>
-        <ListRow title={t('contactSupport')} onPress={() => router.push('/profile/support')} />
-        <ListRow title={t('helpCenter')} onPress={() => void Linking.openURL(HELP_URL)} />
         <ListRow
-          title={t('shareApp')}
-          onPress={() => void Share.share({ message: t('shareMessage') })}
+          title={t('support')}
+          onPress={() => router.push('/profile/support')}
+          testID="settings-support-row"
         />
-
-        <Text style={styles.section}>{t('legal')}</Text>
-        <ListRow title={t('terms')} onPress={() => void Linking.openURL(TERMS_URL)} />
-        <ListRow title={t('privacy')} onPress={() => void Linking.openURL(PRIVACY_URL)} />
+        <ListRow
+          title={t('legal')}
+          onPress={() => router.push('/profile/legal')}
+          testID="settings-legal-row"
+        />
 
         <Button
           label={t('logout')}

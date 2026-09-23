@@ -4,9 +4,9 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Field, Screen, TopBar, useBanner } from '../../components/ui';
+import { Button, Field, Screen, TopBar, useBanner } from '../../../components/ui';
 import { useFieldErrors } from '@/lib/useFieldErrors';
-import { colors } from '../../theme';
+import { colors } from '../../../theme';
 
 type SupportFieldKey = 'title' | 'description';
 
@@ -61,6 +61,7 @@ export default function SupportScreen() {
           onChangeText={(v) => { setTitle(v); clearFieldError('title'); }}
           error={fieldErrors.title ? tc('required') : undefined}
           containerStyle={styles.field}
+          testID="support-title"
         />
         <Field
           label={t('supportDescription')}
@@ -69,8 +70,9 @@ export default function SupportScreen() {
           multiline
           error={fieldErrors.description ? tc('required') : undefined}
           containerStyle={styles.field}
+          testID="support-description"
         />
-        <Button fullWidth label={t('supportSend')} onPress={onSend} loading={busy} />
+        <Button fullWidth label={t('supportSend')} onPress={onSend} loading={busy} testID="support-send" />
       </Screen>
     </SafeAreaView>
   );

@@ -18,25 +18,21 @@
  * component owning both wordings is what stops a third copy appearing with a
  * third set of a11y properties.
  *
- * The URLs live here rather than in a config module because they are the same
- * two constants `profile/settings.tsx` already hardcodes; centralising them is a
- * separate change and would otherwise be the only reason this file imports
- * anything.
+ * The URLs come from `lib/externalUrls` as of UX-SET-13, which added a Legal screen that needed
+ * the same two. This file used to own them, noting that centralising was "the obvious next step";
+ * it is now taken, and `profile/settings.tsx` no longer carries a duplicate pair either.
  */
 import { useT } from '@padel/i18n';
 import { Linking, StyleSheet, type StyleProp, type TextStyle } from 'react-native';
 
+import { PRIVACY_URL, TERMS_URL } from '@/lib/externalUrls';
 import { Text } from '../ui';
 
 /**
- * Still exported, though nothing imports them today: create-account used to,
- * and now renders this component instead. `profile/settings.tsx` keeps its own
- * pair of identical constants, and adopting these is the obvious next step —
- * un-exporting now would only make that step larger. Anything that needs the
- * SENTENCE should render the component, not rebuild it from these.
+ * Anything that needs the SENTENCE should render this component rather than rebuild it from the
+ * URLs — one component owning both wordings is what stops a third copy appearing with a third set
+ * of accessibility properties.
  */
-export const TERMS_URL = 'https://padeljam.app/terms';
-export const PRIVACY_URL = 'https://padeljam.app/privacy';
 
 type Props = {
   /**

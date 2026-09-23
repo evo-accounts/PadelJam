@@ -181,13 +181,26 @@ describe('12 profile & settings', () => {
     await expectVisible({ text: /change password/i }, { timeout: 20_000 });
   });
 
+  /**
+   * The form moved to /profile/support/contact — /profile/support is the four-row hub now
+   * (UX-SET-12).
+   *
+   * The old guard would NOT have caught that. It deep-linked blind and then asserted
+   * `{ text: /support|contact/i }`, which the HUB satisfies twice over: its title is "Support" and
+   * one of its rows is "Contact support". The test would have sailed past the check and failed
+   * three lines later on a missing text field, reporting the wrong thing. The `expect` argument to
+   * `deepLink` exists for exactly this — it retries the open URL until the screen renders — so it
+   * is used here rather than asserting separately afterwards.
+   *
+   * The fields are selected by ID now. They were selected by AX element type only because the
+   * screen carried no testIDs at all; it has them as of this PR.
+   */
   it('support ticket submits', async () => {
     const m = manifest();
-    await deepLink('mobile:///profile/support');
-    await expectVisible({ text: /support|contact/i }, { timeout: 20_000 });
-    await typeText({ type: 'TextField' }, 'E2E ticket');
-    await typeText({ type: 'TextArea' }, 'Automated support ticket from the E2E suite.');
-    await tap({ text: /send|submit/i });
+    await deepLink('mobile:///profile/support/contact', /contact support/i);
+    await typeText({ id: 'support-title' }, 'E2E ticket');
+    await typeText({ id: 'support-description' }, 'Automated support ticket from the E2E suite.');
+    await tap({ id: 'support-send' });
     await pollUntil(
       () => select('support_tickets', `user_id=eq.${m.users.maria}&select=id`),
       (rows) => (rows as unknown[]).length > 0,
