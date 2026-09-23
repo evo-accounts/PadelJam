@@ -1,15 +1,14 @@
-import { useAccountPlan, useUpdateProfile } from '@padel/api';
+import { useAccountPlan } from '@padel/api';
 import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { Linking, ScrollView, Share, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { unregisterForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
-import { Badge, BottomSheet, Button, ListRow, Text, TopBar } from '../../components/ui';
+import { Button, ListRow, Text, TopBar } from '../../components/ui';
 
 const TERMS_URL = 'https://padeljam.app/terms';
 const PRIVACY_URL = 'https://padeljam.app/privacy';
@@ -23,9 +22,7 @@ const LANGS = [
 export default function SettingsScreen() {
   const { t, i18n } = useT('profile');
   const router = useRouter();
-  const update = useUpdateProfile();
   const accountPlan = useAccountPlan();
-  const [langOpen, setLangOpen] = useState(false);
 
   const current = (LANGS.find((l) => l.code === i18n.language) ?? LANGS[0])!;
   // Neutral while the plan query is loading: `data` is undefined then, and defaulting to
@@ -33,12 +30,6 @@ export default function SettingsScreen() {
   const planLabel = accountPlan.isLoading
     ? undefined
     : t(accountPlan.data === 'jammer_plus' ? 'planJammerPlus' : 'planJammer');
-
-  const onSelectLang = (code: string) => {
-    void i18n.changeLanguage(code);
-    update.mutate({ locale: code });
-    setLangOpen(false);
-  };
 
   const onLogout = async () => {
     try {
@@ -55,14 +46,21 @@ export default function SettingsScreen() {
       <TopBar title={t('settings')} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.section}>{t('preferences')}</Text>
+        {/* Language and the app icon moved into App preferences (UX-SET-08) — neither is an
+            account setting, and the language sheet lived in THIS file. Provisional placement,
+            like the account rows below; UX-SET-01 regroups the page. */}
         <ListRow
-          title={t('language')}
+          title={t('appPreferencesTitle')}
           trailing={<Text variant="body" tone="muted">{t(current.key)}</Text>}
           trailingLabel={t(current.key)}
-          onPress={() => setLangOpen(true)}
+          onPress={() => router.push('/profile/app-preferences')}
+          testID="settings-app-preferences-row"
         />
-        <ListRow title={t('appIcon')} onPress={() => router.push('/profile/app-icon')} />
-        <ListRow title={t('notifications')} onPress={() => router.push('/profile/notifications')} />
+        <ListRow
+          title={t('notifications')}
+          onPress={() => router.push('/profile/notifications')}
+          testID="settings-notifications-row"
+        />
 
         <Text style={styles.section}>{t('account')}</Text>
         {/* Provisional placement. UX-SET-01 regroups this whole screen into five cards (a later
@@ -119,19 +117,6 @@ export default function SettingsScreen() {
           onPress={onLogout}
         />
       </ScrollView>
-
-      <BottomSheet visible={langOpen} onClose={() => setLangOpen(false)} title={t('languageSheetTitle')} testID="language-sheet">
-        {LANGS.map((l) => (
-          <ListRow
-            key={l.code}
-            title={t(l.key)}
-            selected={l.code === current.code}
-            trailing={l.code === current.code ? <Badge label="✓" tone="primary" /> : undefined}
-            onPress={() => onSelectLang(l.code)}
-            testID={`language-sheet-${l.code}`}
-          />
-        ))}
-      </BottomSheet>
     </SafeAreaView>
   );
 }
