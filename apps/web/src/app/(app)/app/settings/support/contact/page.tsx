@@ -15,10 +15,15 @@ export default function ContactSupportPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [sent, setSent] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    create.mutate({ title, description }, { onSuccess: () => setSent(true) });
+    setFailed(false);
+    create.mutate(
+      { title, description },
+      { onSuccess: () => setSent(true), onError: () => setFailed(true) },
+    );
   };
 
   const disabled = create.isPending || !title.trim() || !description.trim();
@@ -49,6 +54,16 @@ export default function ContactSupportPage() {
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
+
+              {/* A failed insert used to do nothing at all: the mutation had no onError, so the
+                  button simply re-enabled and the message sat there looking sent. Mobile has always
+                  shown a banner here. `role="alert"` so a screen reader hears it without the
+                  focus moving. */}
+              {failed ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {t('supportFailed')}
+                </p>
+              ) : null}
 
               <Button type="submit" className="w-full" disabled={disabled}>
                 {t('supportSend')}
