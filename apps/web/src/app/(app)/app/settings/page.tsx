@@ -97,36 +97,23 @@ export default function SettingsPage() {
           <CardTitle>{t('support')}</CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-2">
+          {/* Both groups collapse to one row each (UX-SET-12, UX-SET-13). Help center and Share
+              the app now live on the Support hub, and the two legal documents on Legal — they were
+              three rows under a heading that called all of them "Support". Provisional, like the
+              rows above; UX-SET-01 regroups the page. */}
           <Link href="/app/settings/support" className={rowClass}>
-            <span>{t('contactSupport')}</span>
+            <span>{t('support')}</span>
             <span aria-hidden className="text-muted-foreground">
               ›
             </span>
           </Link>
           <Separator />
-          <a
-            href="https://padeljam.app/terms"
-            target="_blank"
-            rel="noreferrer"
-            className={rowClass}
-          >
-            <span>{t('terms')}</span>
+          <Link href="/app/settings/legal" className={rowClass}>
+            <span>{t('legal')}</span>
             <span aria-hidden className="text-muted-foreground">
-              ↗
+              ›
             </span>
-          </a>
-          <Separator />
-          <a
-            href="https://padeljam.app/privacy"
-            target="_blank"
-            rel="noreferrer"
-            className={rowClass}
-          >
-            <span>{t('privacy')}</span>
-            <span aria-hidden className="text-muted-foreground">
-              ↗
-            </span>
-          </a>
+          </Link>
         </CardContent>
       </Card>
 
