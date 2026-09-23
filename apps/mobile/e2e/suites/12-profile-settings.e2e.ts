@@ -125,9 +125,13 @@ describe('12 profile & settings', () => {
      *
      * Waiting for the screen title and then asserting the ROW BY ID makes a navigation failure say
      * so immediately, and keeps the label assertions meaningful.
+     *
+     * The screen is PRIVACY, not Settings: UX-SET-07 moved the password row there, out of the
+     * loose "Conta" group it shared with the email and account deletion. The row kept its testID,
+     * so everything below this is unchanged.
      */
     // 1) WITH a password: unchanged behaviour, and the screen still asks for the current one.
-    await deepLink('mobile:///profile/settings', /^Settings$/);
+    await deepLink('mobile:///profile/privacy', /^Privacy$/);
     await expectVisible({ id: 'settings-password-row' }, { timeout: 20_000 });
     await expectVisible({ text: /change password/i }, { timeout: 20_000 });
     await expectGone({ text: /create password/i }, { timeout: 2_000 });
@@ -138,7 +142,7 @@ describe('12 profile & settings', () => {
     //    Query result that nothing in the app would invalidate for a change made in the database.
     await psql(`update auth.users set encrypted_password = '' where email = '${PERSONAS.maria.email}'`);
     await relaunch();
-    await deepLink('mobile:///profile/settings', /^Settings$/);
+    await deepLink('mobile:///profile/privacy', /^Privacy$/);
     await expectVisible({ id: 'settings-password-row' }, { timeout: 30_000 });
     await expectVisible({ text: /create password/i }, { timeout: 30_000 });
     await expectGone({ text: /^change password$/i }, { timeout: 2_000 });
