@@ -410,6 +410,13 @@ export function registerWebProfileCopy(instance: I18n): void {
  */
 const webSettings = {
   'pt-PT': {
+    deleteListTitle: 'O que é removido',
+    deleteErasedProfile: 'Perfil e informação pessoal',
+    deleteErasedHistory: 'Histórico de jogos e atividade',
+    deleteErasedMessages: 'Mensagens e conversas',
+    deleteErasedPayment: 'Informação de pagamento',
+    deleteErasedOther: 'Outros dados',
+    deleteBlockedSoleAdmin: 'És o único administrador de uma comunidade. Promove outro administrador antes de eliminares a conta.',
     accountSettings: 'Definições da conta',
     gamePreferences: 'Preferências de jogo',
     title: 'Definições',
@@ -458,6 +465,13 @@ const webSettings = {
     back: 'Voltar',
   },
   'pt-BR': {
+    deleteListTitle: 'O que é removido',
+    deleteErasedProfile: 'Perfil e informações pessoais',
+    deleteErasedHistory: 'Histórico de partidas e atividade',
+    deleteErasedMessages: 'Mensagens e conversas',
+    deleteErasedPayment: 'Informações de pagamento',
+    deleteErasedOther: 'Outros dados',
+    deleteBlockedSoleAdmin: 'Você é o único administrador de uma comunidade. Promova outro administrador antes de excluir a conta.',
     accountSettings: 'Configurações da conta',
     gamePreferences: 'Preferências de jogo',
     title: 'Configurações',
@@ -506,6 +520,13 @@ const webSettings = {
     back: 'Voltar',
   },
   en: {
+    deleteListTitle: 'What is removed',
+    deleteErasedProfile: 'Profile and personal information',
+    deleteErasedHistory: 'Match and activity history',
+    deleteErasedMessages: 'Messages and conversations',
+    deleteErasedPayment: 'Payment information',
+    deleteErasedOther: 'Other data',
+    deleteBlockedSoleAdmin: 'You are the only admin of a community. Promote another admin before deleting your account.',
     accountSettings: 'Account settings',
     gamePreferences: 'Game preferences',
     title: 'Settings',
