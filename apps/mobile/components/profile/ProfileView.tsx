@@ -25,6 +25,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { avatarUrl } from '@/lib/community-images';
 import { colors, space } from '../../theme';
 import { BlockedProfile, UnavailableProfile } from './BlockedProfile';
+import { BadgeStat } from './BadgeStat';
 import { ProfileGroups } from './ProfileGroups';
 import { ProfilePreferences } from './ProfilePreferences';
 import { ProfileResults } from './ProfileResults';
@@ -137,6 +138,10 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
             {t('bestPosition')}
           </Text>
         </View>
+        {/* The third card, and the only one that leads anywhere: a count of earned badges is a
+            summary of a catalogue, so it has somewhere to go. `justifyContent: 'space-around'`
+            already distributes three as readily as two, so the row needs no style change. */}
+        <BadgeStat userId={userId} />
       </View>
 
       <Section title={t('preferences')}>

@@ -172,3 +172,26 @@ export const useMyBlocks = (search = '') => {
     },
   });
 };
+
+/**
+ * The raw counters behind the badge catalogue (migration 0105).
+ *
+ * Returns NUMBERS, never verdicts — `evaluateBadges` in `@padel/utils` turns them into unlock
+ * states, so changing a threshold is a code change rather than another hand-pasted migration.
+ *
+ * The RPC is a single row; PostgREST still returns it as an array, so it is unwrapped here and the
+ * consumer never has to think about `[0]`.
+ */
+export const usePlayerBadgeFacts = (userId: string | undefined) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.profileBadges(userId ?? ''),
+    enabled: !!uid && !!userId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('player_badge_facts', { p_user: userId! });
+      if (error) throw error;
+      return (data ?? [])[0] ?? null;
+    },
+  });
+};

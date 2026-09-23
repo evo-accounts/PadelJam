@@ -2688,6 +2688,30 @@ export type Database = {
         Args: { p_search?: string | null; p_limit?: number; p_offset?: number }
         Returns: { id: string; full_name: string; avatar_url: string | null; created_at: string }[]
       }
+      player_badge_facts: {
+        Args: { p_user: string }
+        Returns: {
+          matches_scored: number
+          matches_won: number
+          ranked_events_finished: number
+          best_placement: number
+          event_wins: number
+          longest_win_streak: number
+          longest_week_streak: number
+          distinct_partners: number
+          max_wins_with_partner: number
+          following_count: number
+          followers_count: number
+          events_attended: number
+          events_organised: number
+          communities_joined: number
+          communities_created: number
+          largest_community_created: number
+          groups_joined: number
+          signup_rank: number
+          account_age_days: number
+        }[]
+      }
       player_recent_results: {
         Args: { p_user: string; p_limit?: number }
         Returns: {
