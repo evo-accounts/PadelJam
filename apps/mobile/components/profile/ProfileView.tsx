@@ -23,7 +23,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors, space } from '../../theme';
-import { BlockedProfile, NoAccessProfile } from './BlockedProfile';
+import { BlockedProfile, UnavailableProfile } from './BlockedProfile';
 import { ProfileGroups } from './ProfileGroups';
 import { ProfilePreferences } from './ProfilePreferences';
 import { ProfileResults } from './ProfileResults';
@@ -54,7 +54,7 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
   if (!p) {
     const blocked = (blocks.data ?? []).find((b) => b.id === userId);
     if (blocked) return <BlockedProfile blocked={blocked} onUnblocked={() => query.refetch()} />;
-    return <NoAccessProfile />;
+    return <UnavailableProfile />;
   }
 
   return (

@@ -1,18 +1,20 @@
 /**
- * The two states UX-PROF-03 asks for when a profile cannot be shown, and the difference between
- * them is the whole point.
+ * What to render when `get_player_profile` comes back empty.
  *
- * `get_player_profile` returns ZERO ROWS for a block in either direction, so "no row" on its own
- * cannot tell you which of two very different situations you are in:
+ * It returns ZERO ROWS for a block in either direction, so "no row" alone cannot say which
+ * situation you are in. Cross-referencing `list_my_blocks` splits it in two:
  *
- *   - YOU blocked THEM — the profile collapses to photo, name and Unblock. You get the name and the
- *     photo from `list_my_blocks`, because the read policy hides the row from the blocker too.
- *   - THEY blocked YOU — a "no access" state with no identity at all. Telling someone who blocked
- *     them that they were blocked, and showing them the name, would defeat the point of blocking.
- *
- * The audit's third case — a user who blocked you should be absent from search and listings
- * entirely, so you never arrive here at all — is enforced in the database (migration 0102 closed
- * the `explore_players` hole). This screen is the fallback for a deep link, not the fence.
+ *   - YOU blocked THEM — `BlockedProfile`: photo, name and Unblock, everything else removed. The
+ *     name and photo come from `list_my_blocks`, because the read policy hides the row from the
+ *     blocker too. This is UX-PROF-03's collapsed profile, and it also serves its "opening a
+ *     blocked profile from elsewhere" case — naming who it is and offering the action beats a
+ *     generic page that makes you go and find them.
+ *   - ANYTHING ELSE — `UnavailableProfile`, deliberately neutral. It covers a profile that no
+ *     longer exists as well as someone who blocked YOU, and it must not mention unblocking in
+ *     either case: there is nothing for this viewer to unblock, and saying so to a deleted account
+ *     is simply wrong. (Someone who blocked you should never be reachable at all — migration 0102
+ *     closed the `explore_players` hole that let them be. This is the deep-link fallback, not the
+ *     fence.)
  */
 import { useUnblock } from '@padel/api';
 import { useT } from '@padel/i18n';
@@ -43,15 +45,14 @@ export function BlockedProfile({ blocked, onUnblocked }: { blocked: BlockedBy; o
   );
 }
 
-export function NoAccessProfile() {
+export function UnavailableProfile() {
   const { t } = useT('profile');
   return (
     <EmptyState
       fill
       icon={emptyIcon('exclamationmark.triangle')}
-      title={t('noAccessTitle')}
-      body={t('noAccessBody')}
-      testID="no-access-profile"
+      title={t('unavailable')}
+      testID="unavailable-profile"
     />
   );
 }
