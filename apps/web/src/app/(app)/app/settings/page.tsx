@@ -47,6 +47,23 @@ export default function SettingsPage() {
           <CardTitle>{t('account')}</CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-2">
+          {/* Provisional placement. UX-SET-01 regroups this whole page into five cards in a later
+              PR; these two rows exist NOW because UX-PROF-06 removed the Edit button from the
+              profile, and without them there would be no route to editing your own details. */}
+          <Link href="/app/settings/account" className={rowClass}>
+            <span>{t('accountSettings')}</span>
+            <span aria-hidden className="text-muted-foreground">
+              ›
+            </span>
+          </Link>
+          <Separator />
+          <Link href="/app/settings/game" className={rowClass}>
+            <span>{t('gamePreferences')}</span>
+            <span aria-hidden className="text-muted-foreground">
+              ›
+            </span>
+          </Link>
+          <Separator />
           <Link href="/app/settings/email" className={rowClass}>
             <span>{t('changeEmail')}</span>
             <span aria-hidden className="text-muted-foreground">
