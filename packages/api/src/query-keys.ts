@@ -58,6 +58,10 @@ export const qk = {
   followers: (id: string) => ['profile', id, 'followers'] as const,
   myProfile: (id: string) => ['profile', id, 'edit'] as const,
   profileSearch: (q: string) => ['profile', 'search', q] as const,
+  // Nested under qk.profile(id) so invalidating a profile refreshes its sections too.
+  profileGroups: (id: string) => ['profile', id, 'groups'] as const,
+  profileResults: (id: string) => ['profile', id, 'results'] as const,
+  myBlocks: (q: string) => ['blocks', 'mine', q] as const,
   mySettings: (id: string) => ['user-settings', id] as const,
   authProviders: (id: string) => ['auth-providers', id] as const,
   streamToken: (uid: string) => ['stream-token', uid] as const,

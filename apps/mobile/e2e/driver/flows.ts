@@ -118,10 +118,11 @@ export async function ensureTabs(maxPops = 4): Promise<void> {
 export async function logout(): Promise<void> {
   await tabTo('Profile');
   await sleep(800);
-  await tap({ text: /settings/i, type: 'Button' }).catch(async () => {
-    // Fallback: gear button may expose only an icon label.
-    await tap({ label: 'Settings' });
-  });
+  // By LABEL, not by text: the gear moved from the profile body into the TopBar (UX-PROF-01
+  // rebuilt the body, UX-PROF-06 owns the header), and a TopBar action is an icon button with no
+  // text. The old text-first selector with a label fallback cost a wasted snapshot on every one of
+  // the seven suites that reach this through `switchUser`.
+  await tap({ label: 'Settings' });
   await scrollUntilVisible({ text: /log out/i });
   await tap({ text: /log out/i });
   // Possible confirm alert.
