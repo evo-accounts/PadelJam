@@ -95,7 +95,8 @@
             "prerendered": true
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
