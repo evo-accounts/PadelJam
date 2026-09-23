@@ -28,6 +28,7 @@
 import { qk, useAuthProviders } from '@padel/api';
 import { changePassword, setPassword, useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import { passwordValid } from '@padel/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -35,7 +36,6 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { setAuthTarget, type IdentifierKind } from '@/lib/auth-flow';
-import { passwordValid } from '@/lib/passwordRules';
 import { supabase } from '@/lib/supabase';
 import { useFieldErrors } from '@/lib/useFieldErrors';
 import { Button, Loading, PasswordField, Screen, Text, TopBar, useBanner, useConfirm } from '../../components/ui';

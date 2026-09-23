@@ -9,12 +9,12 @@
  * this in sync instead of silently drifting off-centre.
  */
 import { useT } from '@padel/i18n';
+import { passwordRules, PASSWORD_RULE_KEYS, type PasswordRuleKey } from '@padel/utils';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { StyleSheet, View, type TextInputProps, type ViewStyle } from 'react-native';
 
 import { colors, space, type as typeScale } from '../../theme';
-import { passwordRules, PASSWORD_RULE_KEYS, type PasswordRuleKey } from '@/lib/passwordRules';
 import { Field } from './Field';
 import { IconButton } from './IconButton';
 import { Text } from './Text';

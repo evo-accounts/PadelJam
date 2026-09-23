@@ -52,7 +52,7 @@ import {
   verifyPhoneChange,
 } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { formatDisplayName } from '@padel/utils';
+import { formatDisplayName, passwordValid } from '@padel/utils';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
@@ -62,7 +62,6 @@ import { TermsLine, useTermsConsentLabel } from '@/components/auth/TermsLine';
 import { safeAuthMessage } from '@/lib/authErrors';
 import { getAuthTarget, type IdentifierKind } from '@/lib/auth-flow';
 import { formatE164ForDisplay } from '@/lib/countries';
-import { passwordValid } from '@/lib/passwordRules';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { SUPABASE_URL, supabase } from '@/lib/supabase';
 import { useFieldErrors } from '@/lib/useFieldErrors';

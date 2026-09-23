@@ -3,14 +3,24 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
 import { changePassword, useSession, type TypedClient } from '@padel/auth';
+import { passwordRules, passwordValid, PASSWORD_RULE_KEYS } from '@padel/utils';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+/** The rule keys live in the SHARED common namespace, so mobile and web name them identically. */
+const RULE_LABELS: Record<(typeof PASSWORD_RULE_KEYS)[number], string> = {
+  minLength: 'ruleMinLength',
+  uppercase: 'ruleUppercase',
+  number: 'ruleNumber',
+  symbol: 'ruleSymbol',
+};
+
 export default function ChangePasswordPage() {
   const { t } = useT('settings');
+  const { t: tc } = useT('common');
   const router = useRouter();
   const { session } = useSession();
   const email = session?.user.email;
@@ -21,11 +31,15 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [pending, setPending] = useState(false);
+  const rules = passwordRules(next);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (next.length < 8) {
-      setError(t('passwordTooShort'));
+    // UX-GLOB-07: the SAME four rules mobile enforces and GoTrue's
+    // `lower_upper_letters_digits_symbols` requires. This page checked length alone, so web
+    // accepted passwords the server then rejected — and the rules were never shown at all.
+    if (!passwordValid(next)) {
+      setError(t('passwordWeak'));
       return;
     }
     if (next !== confirm) {
@@ -85,6 +99,26 @@ export default function ChangePasswordPage() {
                   clearError();
                 }}
               />
+              {/* The checklist says how to satisfy the rule the error names, so it stays visible
+                  while the error is showing rather than replacing it. Each row states met/missing
+                  in words too — colour alone would carry it for sighted users only. */}
+              <ul className="space-y-1 pt-1">
+                {PASSWORD_RULE_KEYS.map((k) => {
+                  const met = rules[k];
+                  return (
+                    <li
+                      key={k}
+                      className={`flex items-center gap-2 text-sm ${
+                        met ? 'text-success-strong' : 'text-muted-foreground'
+                      }`}
+                    >
+                      <span aria-hidden>{met ? '●' : '○'}</span>
+                      <span>{tc(RULE_LABELS[k])}</span>
+                      <span className="sr-only">{tc(met ? 'ruleMet' : 'ruleMissing')}</span>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">{t('confirmPassword')}</Label>
