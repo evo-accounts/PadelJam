@@ -45,6 +45,8 @@ export default function SupportScreen() {
       banner.show(t('supportSent'), 'success');
       router.back();
     } catch {
+      // A failed INSERT, not a failed validation: both fields passed a moment ago. The banner says
+      // the send failed and the fields stay filled, so Send is one tap away.
       banner.show(t('supportFailed'));
     } finally {
       setBusy(false);

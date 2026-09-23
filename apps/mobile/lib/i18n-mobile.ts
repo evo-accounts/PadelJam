@@ -3666,7 +3666,7 @@ const mobileProfile = {
     privacyPolicyDescription: 'Como tratamos os teus dados.',
     shareApp: 'Partilhar a app',
     shareMessage: 'Conhece o PadelJam — encontra jogos de padel, grupos e jogadores perto de ti.',
-    supportFailed: 'Adiciona um assunto e uma mensagem.',
+    supportFailed: 'Não foi possível enviar — tenta novamente.',
   },
   'pt-BR': {
     loadError: 'Não foi possível carregar.',
@@ -3884,7 +3884,7 @@ const mobileProfile = {
     privacyPolicyDescription: 'Como tratamos seus dados.',
     shareApp: 'Compartilhar o app',
     shareMessage: 'Conheça o PadelJam — encontre jogos de padel, grupos e jogadores perto de você.',
-    supportFailed: 'Adicione um assunto e uma mensagem.',
+    supportFailed: 'Não foi possível enviar — tente novamente.',
   },
   en: {
     loadError: 'Could not load.',
@@ -4102,7 +4102,7 @@ const mobileProfile = {
     privacyPolicyDescription: 'How we handle your data.',
     shareApp: 'Share the app',
     shareMessage: 'Check out PadelJam — find padel games, groups, and players near you.',
-    supportFailed: 'Please add a subject and a message.',
+    supportFailed: "Couldn't send — try again.",
   },
 } as const;
 

@@ -2,13 +2,17 @@
 
 *Padel Jam — Version 1.3 • May 2026 • Wireframe-derived requirements*
 
-> **Status, 2026-09-22.** The external UX audit "Profile & Settings" (UX-PROF-01..06, UX-SET-01..13)
-> supersedes this document wherever the two conflict. See `docs/audit/2026-09-22-ux-profile-settings.md`
-> for the items and the decisions taken, and `…-plan.md` for how they ship. Sections amended by that
-> audit carry an inline **[Amended 2026-09-22]** note giving the change and the reason; the original
-> intent is stated alongside it rather than deleted. Section 07 (Subscription) is unchanged in
-> substance — it remains the source of truth other documents cite for plan limits — and carries only
-> a note on what the MVP ships in the meantime.
+> **Status, 2026-09-23 — the audit has shipped in full.** The external UX audit "Profile & Settings"
+> (UX-PROF-01..06, UX-SET-01..13) supersedes this document wherever the two conflict. See
+> `docs/audit/2026-09-22-ux-profile-settings.md` for the items and the decisions taken, and
+> `…-plan.md` for how they shipped — 21 pull requests, merged through #185, plus migrations 0102
+> to 0105. Sections amended by that audit carry an inline **[Amended 2026-09-22]** note, and those
+> amended by decisions taken during the build an **[Amended 2026-09-23]** one; each gives the change
+> and the reason, and the original intent is stated alongside rather than deleted. Where the document
+> specifies something that was never built, the section says **[Not implemented]** rather than being
+> quietly rewritten to match the code. Section 07 (Subscription) is unchanged in substance — it
+> remains the source of truth other documents cite for plan limits — and carries only a note on what
+> the MVP ships in the meantime.
 
 This document defines the player Profile — the public identity a user presents, the way users follow, block, and report one another — together with Settings, where a user configures their account, preferences, notifications, subscriptions (Jammer+ and Community Plans), support, and more. It also defines the canonical profiles table, the central user record referenced by every other module, and is the source of truth for player and community subscription rules referenced across the app.
 
@@ -349,11 +353,11 @@ Reached from the settings icon on the user’s own profile. The Settings hub gro
 </tr>
 <tr>
 <th><strong>Contact support</strong></th>
-<th>Opens an in-app bottom sheet (see 6.4).</th>
+<th>Opens the Contact support screen at <code>/profile/support/contact</code> (see 6.4). <strong>[Amended 2026-09-23]</strong> A route, not a bottom sheet. The form already existed as a full screen with field validation and an unsaved-changes guard; rebuilding it inside a sheet would have been churn against working code for no change the user can see. Originally an in-app bottom sheet.</th>
 </tr>
 <tr>
 <th><strong>Rate the app</strong></th>
-<th>Opens the app store rating prompt.</th>
+<th>Opens the app store listing. <strong>[Amended 2026-09-23]</strong> The row is <strong>hidden until there is somewhere to send the user</strong>: PadelJam is not on the store, so <code>STORE_URL</code> in <code>apps/mobile/lib/externalUrls.ts</code> is an empty string and the row renders only once it is filled in — a row that opens nothing is worse than a row that is not there. Filling that constant is the whole of switching the feature on. It opens the store URL rather than the native in-app rating prompt, which would need <code>expo-store-review</code> and therefore a dev-client rebuild for every developer.</th>
 </tr>
 <tr>
 <th><strong>Share the app</strong></th>
@@ -371,7 +375,7 @@ Reached from the settings icon on the user’s own profile. The Settings hub gro
 </colgroup>
 <thead>
 <tr>
-<th colspan="2"><strong>6.4 Contact support sheet</strong></th>
+<th colspan="2"><strong>6.4 Contact support screen</strong> — <em>[Amended 2026-09-23, was “sheet”]</em></th>
 </tr>
 <tr>
 <th><strong>Entry point</strong></th>
@@ -379,19 +383,19 @@ Reached from the settings icon on the user’s own profile. The Settings hub gro
 </tr>
 <tr>
 <th><strong>Layout</strong></th>
-<th>Bottom sheet that slides up from the bottom of the screen. Title “Contact support” at the top with a close icon; subtitle directly underneath: “We’ll get back to you within 5 days.”</th>
+<th><strong>[Amended 2026-09-23]</strong> A full screen at <code>/profile/support/contact</code> with an edit-style top bar: the title “Contact support”, a close icon, and the same unsaved-changes guard every other edit screen uses. The “we’ll get back to you within 5 days” promise is <em>not</em> on this screen — it is the subtitle of the Contact support row on 6.3, where it is read before the user starts typing rather than after, and it is repeated in the confirmation. Originally a bottom sheet sliding up with that line beneath the title.</th>
 </tr>
 <tr>
 <th><strong>Fields</strong></th>
-<th>Title (single-line text input, required, max 80 chars). Description (multi-line text area, required, max 2000 chars).</th>
+<th>Title (single-line text input, required). Description (multi-line text area, required). <strong>[Not implemented, 2026-09-23]</strong> The 80- and 2000-character caps are specified here and enforced nowhere: neither field passes <code>maxLength</code>, and <code>support_tickets.title</code> and <code>.description</code> are unbounded <code>text</code> with no check constraint (<code>0060_support_tickets.sql</code>). Recorded rather than quietly dropped — the caps remain the intent.</th>
 </tr>
 <tr>
 <th><strong>Send</strong></th>
-<th>A primary Send button at the bottom, disabled until both fields are non-empty. Tapping Send inserts a support_tickets row (user_id, title, description, status default open), shows a confirmation toast (“Sent. We’ll be in touch.”), and dismisses the sheet.</th>
+<th>A primary Send button at the bottom. Tapping Send inserts a support_tickets row (user_id, title, description, status default open), shows a success banner (“Thanks — we’ll get back to you within 5 days.”) and returns to 6.3. <strong>[Amended 2026-09-23]</strong> On mobile the button is <strong>never disabled</strong>: tapping it with a field empty turns that field red and shows the banner, per UX-GLOB-06 — a button that is dimmed for a reason it will not state is the pattern that rule exists to remove. Web still disables its submit until both fields are non-empty; that divergence is known and unresolved. Originally: disabled until both fields were non-empty on both platforms.</th>
 </tr>
 <tr>
 <th><strong>Error handling</strong></th>
-<th>A failed insert keeps the sheet open and shows an inline error under Send (“Couldn’t send — try again.”) without clearing the fields.</th>
+<th>A failed insert keeps the screen open and the fields filled, so Send is one tap away. <strong>[Amended 2026-09-23]</strong> Mobile shows it in the banner rather than as an inline line under Send, which is where UX-GLOB-06 puts every failed submit; web shows it inline under the fields with <code>role=“alert”</code>. The wording is the specified “Couldn’t send — try again.”</th>
 </tr>
 </thead>
 <tbody>
