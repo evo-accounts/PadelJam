@@ -62,10 +62,26 @@ export const useBlock = () => {
       const { error } = await db.rpc('block_user', { p_target: targetId });
       if (error) throw error;
     },
-    // block_user deletes follow edges both ways, so invalidate the actor's lists too.
-    onSuccess: (_d, targetId) => invalidateFollow(qc, uid, targetId),
+    onSuccess: (_d, targetId) => {
+      // block_user deletes follow edges both ways, so the actor's lists move too.
+      invalidateFollow(qc, uid, targetId);
+      invalidateBlocks(qc);
+    },
   });
 };
+
+/**
+ * Every `list_my_blocks` query, whatever it was searched with.
+ *
+ * `qk.myBlocks(search)` puts the term IN the key, so blocking or unblocking while a filter is
+ * typed leaves the filtered list stale — which is exactly the state the Blocked users screen is in
+ * when the Unblock button is pressed. A prefix match would not do it either, because the term is
+ * the last segment; this matches the two that identify the query and ignores it.
+ */
+const invalidateBlocks = (qc: QueryClient) =>
+  qc.invalidateQueries({
+    predicate: (q) => q.queryKey[0] === 'blocks' && q.queryKey[1] === 'mine',
+  });
 
 export const useUnblock = () => {
   const db = useDb();
@@ -75,7 +91,13 @@ export const useUnblock = () => {
       const { error } = await db.rpc('unblock_user', { p_target: targetId });
       if (error) throw error;
     },
-    onSuccess: (_d, targetId) => qc.invalidateQueries({ queryKey: qk.profile(targetId) }),
+    onSuccess: (_d, targetId) => {
+      qc.invalidateQueries({ queryKey: qk.profile(targetId) });
+      // Without this the row stays in the Blocked users list after the write lands (UX-SET-06
+      // asks for it to go immediately), and the unblocked profile keeps rendering its collapsed
+      // photo-name-Unblock state, which reads it from the same query.
+      invalidateBlocks(qc);
+    },
   });
 };
 

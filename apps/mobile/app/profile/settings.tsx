@@ -1,4 +1,4 @@
-import { useAccountPlan, useAuthProviders, useUpdateProfile } from '@padel/api';
+import { useAccountPlan, useUpdateProfile } from '@padel/api';
 import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
@@ -25,7 +25,6 @@ export default function SettingsScreen() {
   const router = useRouter();
   const update = useUpdateProfile();
   const accountPlan = useAccountPlan();
-  const authProviders = useAuthProviders();
   const [langOpen, setLangOpen] = useState(false);
 
   const current = (LANGS.find((l) => l.code === i18n.language) ?? LANGS[0])!;
@@ -34,22 +33,6 @@ export default function SettingsScreen() {
   const planLabel = accountPlan.isLoading
     ? undefined
     : t(accountPlan.data === 'jammer_plus' ? 'planJammerPlus' : 'planJammer');
-
-  /**
-   * "Change password" was shown to everyone, and for an account with no password it opened a
-   * screen that asks for the current one and verifies it with signInWithPassword — a call that
-   * cannot succeed when there is nothing to verify against. A Google or Apple sign-up was told
-   * their password was wrong forever, with no way forward and no explanation.
-   *
-   * `auth_providers.has_password` decides which of the two the row is. While the query is IN
-   * FLIGHT the row is withheld rather than guessed at: a title that flips from "Change password"
-   * to "Create password" under the user's finger is the same lie in a shorter form. If the query
-   * FAILS it settles on the existing label, which is the pre-existing behaviour and is also what
-   * a database that has not yet had migration 0097 applied will produce — and the screen it opens
-   * re-derives has_password for itself either way.
-   */
-  const hasPassword = authProviders.data?.has_password;
-  const passwordRowTitle = hasPassword === false ? t('createPassword') : t('changePassword');
 
   const onSelectLang = (code: string) => {
     void i18n.changeLanguage(code);
@@ -101,13 +84,14 @@ export default function SettingsScreen() {
           trailingLabel={planLabel}
           onPress={() => router.push('/profile/plan')}
         />
-        {!authProviders.isLoading && (
-          <ListRow
-            title={passwordRowTitle}
-            onPress={() => router.push('/profile/change-password')}
-            testID="settings-password-row"
-          />
-        )}
+        {/* Provisional, like the two rows above: UX-SET-01 regroups this page later. The password
+            row moved to Privacy (UX-SET-07), so this is the way to it — and to Blocked users,
+            which had no entry point anywhere in the app before. */}
+        <ListRow
+          title={t('privacyTitle')}
+          onPress={() => router.push('/profile/privacy')}
+          testID="settings-privacy-row"
+        />
         <ListRow title={t('changeEmail')} onPress={() => router.push('/profile/change-email')} />
         <ListRow
           title={t('deleteAccount')}

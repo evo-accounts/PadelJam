@@ -31,13 +31,14 @@ import { useT } from '@padel/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { setAuthTarget, type IdentifierKind } from '@/lib/auth-flow';
 import { passwordValid } from '@/lib/passwordRules';
 import { supabase } from '@/lib/supabase';
 import { useFieldErrors } from '@/lib/useFieldErrors';
-import { Button, Loading, PasswordField, Screen, Text, TopBar, useBanner } from '../../components/ui';
+import { Button, Loading, PasswordField, Screen, Text, TopBar, useBanner, useConfirm } from '../../components/ui';
 import { colors, space } from '../../theme';
 
 type FieldKey = 'current' | 'password' | 'confirm';
@@ -48,8 +49,10 @@ export default function ChangePasswordScreen() {
   const router = useRouter();
   const banner = useBanner();
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const session = useSession().session;
   const email = session?.user.email;
+  const phone = session?.user.phone;
   const uid = session?.user.id;
   const authProviders = useAuthProviders();
   const [current, setCurrent] = useState('');
@@ -64,6 +67,45 @@ export default function ChangePasswordScreen() {
   const hasPassword = authProviders.data?.has_password ?? true;
   const dirty = current.length > 0 || next.length > 0 || repeat.length > 0;
   const title = hasPassword ? t('changePassword') : t('createPassword');
+
+  /**
+   * Where the recovery code would be sent. `auth_providers` answers whether the account HAS an
+   * email or a phone, not what they are, so the values come from the session — which is the same
+   * pair GoTrue would accept an OTP on. Email first when both exist, matching the rest of the app.
+   *
+   * `null` hides the link entirely. An account with neither channel cannot be sent a code, and a
+   * link that opens a flow with nothing to send to is the dead end this whole screen exists to
+   * close.
+   */
+  const recoveryTarget: { identifier: string; kind: IdentifierKind } | null = email
+    ? { identifier: email, kind: 'email' }
+    : phone
+      ? { identifier: phone, kind: 'phone' }
+      : null;
+
+  /**
+   * "Forgot password?" is the real recovery flow, not a shortcut around the current-password
+   * check — skipping that check for a signed-in user would let anyone holding an unlocked phone
+   * change the password without knowing the old one, which is the only thing the check is for.
+   *
+   * Two things have to happen before navigating. `recovery.tsx` sends the code to
+   * `getAuthTarget()`, a module singleton only the sign-in flow populates; arriving from here
+   * without seeding it means an empty identifier, and its own guard replaces the screen with
+   * sign-in — the link looks right and silently drops you at the login page. And the flow ENDS at
+   * `new-password.tsx`, which signs the session out on purpose, so the user is told they will have
+   * to sign in again BEFORE the code is sent rather than discovering it three screens later.
+   */
+  const onForgot = async () => {
+    if (!recoveryTarget) return;
+    const ok = await confirm({
+      title: t('forgotPassword'),
+      body: t('forgotPasswordBody', { identifier: recoveryTarget.identifier }),
+      confirmLabel: tc('confirm'),
+    });
+    if (!ok) return;
+    setAuthTarget(recoveryTarget.identifier, recoveryTarget.kind);
+    router.push('/(auth)/recovery');
+  };
 
   const onSave = async () => {
     if (busy) return;
@@ -134,51 +176,82 @@ export default function ChangePasswordScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar variant="edit" title={title} onClose={() => router.back()} dirty={dirty} />
-      <Screen scroll padded={false} style={styles.content}>
-        {/* No testID on the help paragraph: a plain RN Text surfaces as a StaticText with no
-            AXUniqueId, so an id here would be unreachable from the accessibility tree. The E2E
-            matches its copy instead. */}
-        {!hasPassword && (
-          <Text variant="body" tone="muted" style={styles.help}>
-            {t('createPasswordHelp')}
-          </Text>
-        )}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Screen scroll padded={false} style={styles.content}>
+          {/* No testID on the help paragraph: a plain RN Text surfaces as a StaticText with no
+              AXUniqueId, so an id here would be unreachable from the accessibility tree. The E2E
+              matches its copy instead. */}
+          {!hasPassword && (
+            <Text variant="body" tone="muted" style={styles.help}>
+              {t('createPasswordHelp')}
+            </Text>
+          )}
 
-        {hasPassword && (
+          {hasPassword && (
+            <PasswordField
+              label={t('currentPassword')}
+              value={current}
+              onChangeText={(v) => { setCurrent(v); clear('current'); }}
+              error={errors.current ?? null}
+              editable={!busy}
+              testID="current-password-input"
+            />
+          )}
+
+          {/* UX-SET-07: directly below the current-password field, aligned right. It is only
+              meaningful for an account that HAS a password — there is nothing to recover otherwise,
+              and the recovery flow itself is gated on the same flag. */}
+          {hasPassword && recoveryTarget && (
+            <Pressable
+              style={styles.forgot}
+              onPress={onForgot}
+              accessibilityRole="button"
+              testID="forgot-password"
+            >
+              <Text variant="label" tone="primary">
+                {t('forgotPassword')}
+              </Text>
+            </Pressable>
+          )}
+
           <PasswordField
-            label={t('currentPassword')}
-            value={current}
-            onChangeText={(v) => { setCurrent(v); clear('current'); }}
-            error={errors.current ?? null}
+            label={t('newPassword')}
+            value={next}
+            onChangeText={(v) => { setNext(v); clear('password'); clear('confirm'); }}
+            error={errors.password ?? null}
+            showRules
             editable={!busy}
-            testID="current-password-input"
+            testID="new-password-input"
           />
-        )}
+          <PasswordField
+            label={t('repeatPassword')}
+            value={repeat}
+            onChangeText={(v) => { setRepeat(v); clear('confirm'); }}
+            error={errors.confirm ?? null}
+            editable={!busy}
+            testID="repeat-password-input"
+          />
+        </Screen>
 
-        <PasswordField
-          label={t('newPassword')}
-          value={next}
-          onChangeText={(v) => { setNext(v); clear('password'); clear('confirm'); }}
-          error={errors.password ?? null}
-          showRules
-          editable={!busy}
-          testID="new-password-input"
-        />
-        <PasswordField
-          label={t('repeatPassword')}
-          value={repeat}
-          onChangeText={(v) => { setRepeat(v); clear('confirm'); }}
-          error={errors.confirm ?? null}
-          editable={!busy}
-          testID="repeat-password-input"
-        />
-        <Button fullWidth label={title} onPress={onSave} loading={busy} testID="change-password-submit" />
-      </Screen>
+        {/*
+          Fixed at the bottom, per UX-SET-07 — it used to sit at the end of the scroll content and
+          scrolled away with the form. Pinned OUTSIDE the scroller and INSIDE the
+          KeyboardAvoidingView: this screen is three password fields, so the keyboard is up whenever
+          there is anything to submit, and a pinned action the keyboard covers is worse than one
+          that scrolls — it cannot be reached at all.
+        */}
+        <View style={styles.footer}>
+          <Button fullWidth label={title} onPress={onSave} loading={busy} testID="change-password-submit" />
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  forgot: { alignSelf: 'flex-end', paddingVertical: space[1] },
+  footer: { padding: space[4], borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 8 },
   help: { marginBottom: space[2] },
