@@ -46,6 +46,7 @@ export default function LegalScreen() {
           variant="card"
           leading={icon('doc.text', 'description')}
           title={t('terms')}
+          subtitleLines={2}
           subtitle={t('termsDescription')}
           onPress={() => void Linking.openURL(TERMS_URL)}
           testID="legal-terms-row"
@@ -54,6 +55,7 @@ export default function LegalScreen() {
           variant="card"
           leading={icon('lock.shield', 'privacy_tip')}
           title={t('privacy')}
+          subtitleLines={2}
           subtitle={t('privacyPolicyDescription')}
           onPress={() => void Linking.openURL(PRIVACY_URL)}
           testID="legal-privacy-row"

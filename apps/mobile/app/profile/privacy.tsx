@@ -44,6 +44,7 @@ export default function PrivacyScreen() {
             variant="card"
             leading={icon('lock', 'lock')}
             title={hasPassword ? t('changePassword') : t('createPassword')}
+            subtitleLines={2}
             subtitle={t('privacyPasswordDescription')}
             onPress={() => router.push('/profile/change-password')}
             testID="settings-password-row"
@@ -53,6 +54,7 @@ export default function PrivacyScreen() {
           variant="card"
           leading={icon('hand.raised', 'block')}
           title={t('blockedTitle')}
+          subtitleLines={2}
           subtitle={t('blockedDescription')}
           onPress={() => router.push('/profile/blocked')}
           testID="privacy-blocked-row"

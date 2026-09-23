@@ -47,6 +47,7 @@ export default function SupportHubScreen() {
           variant="card"
           leading={icon('questionmark.circle', 'help')}
           title={t('helpCenter')}
+          subtitleLines={2}
           subtitle={t('helpCenterDescription')}
           onPress={() => void Linking.openURL(HELP_URL)}
           testID="support-help-row"
@@ -55,6 +56,7 @@ export default function SupportHubScreen() {
           variant="card"
           leading={icon('envelope', 'mail')}
           title={t('contactSupport')}
+          subtitleLines={2}
           subtitle={t('contactSupportDescription')}
           onPress={() => router.push('/profile/support/contact')}
           testID="support-contact-row"
@@ -64,6 +66,7 @@ export default function SupportHubScreen() {
             variant="card"
             leading={icon('star', 'star')}
             title={t('rateApp')}
+            subtitleLines={2}
             subtitle={t('rateAppDescription')}
             onPress={() => void Linking.openURL(STORE_URL)}
             testID="support-rate-row"
@@ -73,6 +76,7 @@ export default function SupportHubScreen() {
           variant="card"
           leading={icon('square.and.arrow.up', 'share')}
           title={t('shareApp')}
+          subtitleLines={2}
           subtitle={t('shareAppDescription')}
           onPress={() => void Share.share({ message: t('shareMessage') })}
           testID="support-share-row"
