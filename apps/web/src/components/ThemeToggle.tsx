@@ -2,6 +2,7 @@
 
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
+import { useT } from '@padel/i18n';
 
 import { Button } from '@/components/ui/button';
 
@@ -21,15 +22,27 @@ import { Button } from '@/components/ui/button';
 const ORDER = ['system', 'light', 'dark'] as const;
 type Mode = (typeof ORDER)[number];
 
-const LABEL: Record<Mode, string> = {
-  system: 'Theme: system',
-  light: 'Theme: light',
-  dark: 'Theme: dark',
+/**
+ * The labels were hardcoded English — "Theme: system" read untranslated on a Portuguese page,
+ * which is the same defect UX-PROF-04 names for the report reasons. They come from the `settings`
+ * namespace now.
+ */
+const LABEL_KEYS: Record<Mode, string> = {
+  system: 'themeSystem',
+  light: 'themeLight',
+  dark: 'themeDark',
+};
+
+const MODE_KEYS: Record<Mode, string> = {
+  system: 'themeModeSystem',
+  light: 'themeModeLight',
+  dark: 'themeModeDark',
 };
 
 const GLYPH: Record<Mode, string> = { system: '◐', light: '☀', dark: '☾' };
 
 export function ThemeToggle() {
+  const { t } = useT('settings');
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -50,10 +63,10 @@ export function ThemeToggle() {
       // The visible label already says the CURRENT mode, so the accessible name
       // has to say what pressing it DOES — otherwise a screen-reader user hears
       // the state and never learns the action.
-      aria-label={`${LABEL[current]}. Switch to ${next}.`}
+      aria-label={t('themeSwitchTo', { current: t(LABEL_KEYS[current]), next: t(MODE_KEYS[next]) })}
     >
       <span aria-hidden>{GLYPH[current]}</span>
-      {LABEL[current]}
+      {t(LABEL_KEYS[current])}
     </Button>
   );
 }
