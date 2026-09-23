@@ -1,4 +1,4 @@
--- 0104_player_badge_facts.sql
+-- 0105_player_badge_facts.sql
 --
 -- One read that returns every NUMBER the badge catalogue needs. It returns no verdicts.
 --

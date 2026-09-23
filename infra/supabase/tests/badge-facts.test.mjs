@@ -1,6 +1,6 @@
 // infra/supabase/tests/badge-facts.test.mjs
 //
-// Migration 0104 — the counters behind the badge catalogue.
+// Migration 0105 — the counters behind the badge catalogue.
 //
 // Through PostgREST with real user JWTs, never the service key: `player_badge_facts` is
 // `security definer`, so the block rule written INTO its body is the only fence there is, and a
