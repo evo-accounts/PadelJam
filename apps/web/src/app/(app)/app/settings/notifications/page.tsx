@@ -9,10 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 type Key = keyof NotificationSettings;
 
-const ROWS: { key: Key; label: string }[] = [
-  { key: 'notifications_push', label: 'notifPush' },
-  { key: 'notifications_whatsapp', label: 'notifWhatsapp' },
-  { key: 'notifications_email', label: 'notifEmail' },
+// UX-SET-04: each toggle says what it actually turns off. "WhatsApp" alone does not tell you
+// whether switching it off stops match reminders or stops everything.
+const ROWS: { key: Key; label: string; description: string }[] = [
+  { key: 'notifications_push', label: 'notifPush', description: 'notifPushDescription' },
+  { key: 'notifications_whatsapp', label: 'notifWhatsapp', description: 'notifWhatsappDescription' },
+  { key: 'notifications_email', label: 'notifEmail', description: 'notifEmailDescription' },
 ];
 
 export default function NotificationsPage() {
@@ -64,11 +66,15 @@ export default function NotificationsPage() {
           {ROWS.map((row, i) => (
             <div key={row.key}>
               {i > 0 ? <Separator /> : null}
-              <div className="flex items-center justify-between px-6 py-3 text-sm">
-                <span>{t(row.label)}</span>
+              <div className="flex items-center justify-between gap-4 px-6 py-3 text-sm">
+                <span className="min-w-0">
+                  <span className="block">{t(row.label)}</span>
+                  <span className="block text-muted-foreground">{t(row.description)}</span>
+                </span>
                 <Switch
                   checked={value(row.key)}
                   onCheckedChange={(next) => onToggle(row.key, next)}
+                  aria-label={t(row.label)}
                 />
               </div>
             </div>

@@ -1,22 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
 import { useT } from '@padel/i18n';
 import { signOut, type TypedClient } from '@padel/auth';
-import { useUpdateProfile } from '@padel/api';
 import { supabase } from '@/lib/supabase/client';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 const rowClass =
   'flex items-center justify-between px-6 py-3 text-sm hover:bg-accent/50 transition-colors';
@@ -24,13 +14,6 @@ const rowClass =
 export default function SettingsPage() {
   const { t } = useT('settings');
   const router = useRouter();
-  const { i18n } = useTranslation();
-  const update = useUpdateProfile();
-
-  const onLanguageChange = async (value: string) => {
-    await update.mutateAsync({ locale: value });
-    await i18n.changeLanguage(value);
-  };
 
   const onLogout = async () => {
     await signOut(supabase as unknown as TypedClient);
@@ -95,26 +78,16 @@ export default function SettingsPage() {
             </span>
           </Link>
           <Separator />
-          <div className={rowClass}>
-            <span>{t('language')}</span>
-            <Select value={i18n.language} onValueChange={onLanguageChange}>
-              <SelectTrigger className="w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="pt-PT">Português (PT)</SelectItem>
-                <SelectItem value="pt-BR">Português (BR)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Separator />
-          {/* Appearance sits with language: both are how the app presents
-              itself, and neither touches account data. */}
-          <div className={rowClass}>
-            <span>{t('appearance')}</span>
-            <ThemeToggle />
-          </div>
+          {/* Language and Appearance were inline controls here. They moved to App preferences
+              (UX-SET-08), which is where the same pair lives on mobile — neither is an account
+              setting, and a card mixing link rows with live controls read as two kinds of thing
+              at once. Provisional placement, like the Account rows; UX-SET-01 regroups the page. */}
+          <Link href="/app/settings/app-preferences" className={rowClass}>
+            <span>{t('appPreferences')}</span>
+            <span aria-hidden className="text-muted-foreground">
+              ›
+            </span>
+          </Link>
         </CardContent>
       </Card>
 
