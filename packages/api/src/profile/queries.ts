@@ -94,7 +94,9 @@ export const useMyProfile = () => {
     queryFn: async () => {
       const { data, error } = await db
         .from('profiles')
-        .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time, location_text')
+        // email and phone are DISPLAYED by Account Settings (UX-SET-02) but never written here —
+        // both change through their own OTP flows, which go via GoTrue rather than this table.
+        .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time, location_text, email, phone')
         .eq('id', uid!)
         .single();
       if (error) throw error;

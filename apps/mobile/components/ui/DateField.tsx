@@ -10,14 +10,18 @@
  * future, and that is a constraint worth enforcing in the control rather than in a validator the
  * user meets only after tapping Save.
  *
- * iOS renders the picker inline once shown; Android shows its own modal and dismisses itself, so
- * the `set`/`dismissed` event type is what closes it there.
+ * On iOS the picker goes in a BottomSheet rather than inline. Two reasons: UX-GLOB-02 makes every
+ * selector a sheet, and inline it renders INSIDE the scroll view — on Account Settings, whose Save
+ * button is pinned to the bottom, the wheels came up half-hidden behind it. Android keeps its own
+ * platform modal, which dismisses itself, so there the `set`/`dismissed` event is what closes it.
  */
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { colors, radius, space } from '../../theme';
+import { BottomSheet } from './BottomSheet';
+import { Button } from './Button';
 import { Text } from './Text';
 
 export function DateField({
@@ -25,6 +29,7 @@ export function DateField({
   value,
   onChange,
   placeholder,
+  confirmLabel,
   testID,
 }: {
   label: string;
@@ -32,9 +37,12 @@ export function DateField({
   value: string | null;
   onChange: (next: string) => void;
   placeholder: string;
+  /** Copy for the iOS sheet's commit button. */
+  confirmLabel: string;
   testID?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<Date | null>(null);
   // Parsed as UTC noon rather than midnight: a midnight local date one timezone west of UTC is
   // the previous day once serialised back, which silently shifts a birthday by a day.
   const asDate = value ? new Date(`${value}T12:00:00`) : new Date(1990, 0, 1);
@@ -55,34 +63,57 @@ export function DateField({
         </Text>
       </Pressable>
 
-      {open ? (
+      {open && Platform.OS !== 'ios' ? (
         <DateTimePicker
           value={asDate}
           mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display="default"
           maximumDate={new Date()}
           onChange={(event, next) => {
-            if (Platform.OS !== 'ios') setOpen(false);
+            setOpen(false);
             if (event.type === 'dismissed' || !next) return;
-            // Local parts, not toISOString(): the latter converts to UTC first and lands on the
-            // day before for anyone west of Greenwich.
-            const y = next.getFullYear();
-            const m = String(next.getMonth() + 1).padStart(2, '0');
-            const d = String(next.getDate()).padStart(2, '0');
-            onChange(`${y}-${m}-${d}`);
+            onChange(serialise(next));
           }}
         />
       ) : null}
 
-      {open && Platform.OS === 'ios' ? (
-        <Pressable onPress={() => setOpen(false)} accessibilityRole="button" style={styles.done}>
-          <Text variant="label" tone="primary">
-            OK
-          </Text>
-        </Pressable>
+      {Platform.OS === 'ios' ? (
+        <BottomSheet visible={open} onClose={() => setOpen(false)} title={label} testID={`${testID ?? 'date'}-sheet`}>
+          <DateTimePicker
+            value={draft ?? asDate}
+            mode="date"
+            display="spinner"
+            maximumDate={new Date()}
+            // The spinner reports every tick. Committing on each one would fire a write per flick
+            // of the wheel, so it is held here and committed by Done.
+            onChange={(_event, next) => next && setDraft(next)}
+          />
+          <Button
+            fullWidth
+            label={confirmLabel}
+            testID={`${testID ?? 'date'}-confirm`}
+            onPress={() => {
+              onChange(serialise(draft ?? asDate));
+              setDraft(null);
+              setOpen(false);
+            }}
+          />
+        </BottomSheet>
       ) : null}
+
     </View>
   );
+}
+
+/**
+ * Local parts, never `toISOString()`: that converts to UTC first and lands on the day BEFORE for
+ * anyone west of Greenwich, which silently shifts a birthday.
+ */
+function serialise(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 const styles = StyleSheet.create({
@@ -96,5 +127,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[3],
     backgroundColor: colors.card,
   },
-  done: { alignSelf: 'flex-end', paddingVertical: space[2], paddingHorizontal: space[3] },
 });

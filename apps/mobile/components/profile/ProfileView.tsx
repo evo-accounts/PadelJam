@@ -11,9 +11,10 @@
  * The header controls (back, •••, gear) belong to the ROUTE's `TopBar`, not here, so this stays a
  * body component and the two screens keep their own headers.
  *
- * `isSelf` still shows the Edit button. UX-PROF-06 removes it — but only once Account Settings
- * exists to replace it (UX-SET-02), which is a later PR. Deleting the only route to editing your
- * own name before its replacement ships would be a regression, not progress.
+ * `isSelf` shows no relationship actions and no Edit button. UX-PROF-06 removes the latter
+ * outright — "there is no second place to edit the same data" — and that became safe the moment
+ * Account Settings (UX-SET-02) shipped to replace it. Editing is reached from Settings, via the
+ * gear in this screen's header.
  */
 import { useFollow, useMyBlocks, useProfile, useUnfollow } from '@padel/api';
 import { useT } from '@padel/i18n';
@@ -109,9 +110,7 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
           </Pressable>
         </View>
 
-        {isSelf ? (
-          <Button label={t('edit')} variant="outline" size="sm" onPress={() => router.push('/profile/edit')} />
-        ) : (
+        {isSelf ? null : (
           // UX-PROF-01 puts the primary action BELOW the counts, and it is the only relationship
           // control on the screen — everything else moved into the header sheet (UX-PROF-02).
           <Button

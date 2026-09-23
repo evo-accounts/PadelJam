@@ -82,6 +82,19 @@ export default function SettingsScreen() {
         <ListRow title={t('notifications')} onPress={() => router.push('/profile/notifications')} />
 
         <Text style={styles.section}>{t('account')}</Text>
+        {/* Provisional placement. UX-SET-01 regroups this whole screen into five cards (a later
+            PR); these two rows exist NOW because UX-PROF-06 removed the "Editar" button from the
+            profile, and without them there would be no route to editing your own details at all. */}
+        <ListRow
+          title={t('accountTitle')}
+          onPress={() => router.push('/profile/account')}
+          testID="settings-account-row"
+        />
+        <ListRow
+          title={t('gameTitle')}
+          onPress={() => router.push('/profile/game')}
+          testID="settings-game-row"
+        />
         <ListRow
           title={t('planRow')}
           trailing={planLabel ? <Text variant="body" tone="muted">{planLabel}</Text> : undefined}
