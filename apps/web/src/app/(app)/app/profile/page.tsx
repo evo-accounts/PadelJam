@@ -4,6 +4,7 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useProfile, useMyProfile } from '@padel/api';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { BadgeCard } from '@/components/profile/ProfileBadges';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -60,6 +61,10 @@ export default function ProfilePage() {
           </Button>
         }
       />
+
+      {/* This page has no stats grid — header, then Preferences. Badges get their own card rather
+          than a grid built to hold one thing, so your own badges are visible on your own profile. */}
+      <BadgeCard userId={d.id} />
 
       <Card>
         <CardHeader>

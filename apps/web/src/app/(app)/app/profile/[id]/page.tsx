@@ -7,6 +7,7 @@ import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { FollowButton } from '@/components/profile/FollowButton';
 import { ProfileGroups, ProfilePreferences, ProfileResults } from '@/components/profile/ProfileSections';
 import { ProfileActionsMenu } from '@/components/profile/ProfileActionsMenu';
+import { BadgeStatCard } from '@/components/profile/ProfileBadges';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -103,7 +104,8 @@ export default function OtherProfilePage() {
         ) : null}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* Three columns now, not two — the third is badges. */}
+      <div className="grid gap-3 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-2xl font-semibold">{d.played_matches}</p>
@@ -116,6 +118,7 @@ export default function OtherProfilePage() {
             <p className="text-sm text-muted-foreground">{t('bestPosition')}</p>
           </CardContent>
         </Card>
+        <BadgeStatCard userId={id} />
       </div>
 
       <section className="space-y-3">
