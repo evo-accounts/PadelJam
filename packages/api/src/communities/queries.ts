@@ -111,6 +111,42 @@ export const useCommunities = () => {
   });
 };
 
+/**
+ * The communities this user CREATED — `communities.created_by`, not membership or role.
+ *
+ * Nothing in `packages/api` read that column before. It matters because it is the same predicate
+ * `account_plan` uses (migration 0098) to decide who gets the Jammer+ a community plan bundles:
+ * one user per community, the creator, deliberately narrowed there from "every admin" so that a
+ * role change could not widen a paid entitlement.
+ *
+ * UX-SET-01 shows the "Community Plans" row only to someone who has at least one. Note this is
+ * NARROWER than the destination's own gate — `PlanSection` renders for any admin, and
+ * `set_community_plan` accepts any admin since 0098 — so a promoted admin can still change the
+ * plan from Manage Community, they just do not get the shortcut from Settings. That asymmetry is
+ * deliberate: the row sits under "Subscription", and for a non-creator the subscription is not
+ * theirs.
+ *
+ * Archived communities are excluded: a plan on an archived community is not something to route to.
+ */
+export const useOwnedCommunities = () => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.ownedCommunities,
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('communities')
+        .select('id, name')
+        .eq('created_by', uid!)
+        .is('archived_at', null)
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
 export const useDefaultCommunity = () => {
   const db = useDb();
   const uid = useSession().session?.user.id;

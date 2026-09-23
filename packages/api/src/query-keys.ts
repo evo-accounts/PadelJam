@@ -1,5 +1,6 @@
 export const qk = {
   communities: ['communities'] as const,
+  ownedCommunities: ['communities', 'owned'] as const,
   community: (id: string) => ['community', id] as const,
   members: (id: string) => ['community', id, 'members'] as const,
   permissions: (id: string) => ['community', id, 'permissions'] as const,
