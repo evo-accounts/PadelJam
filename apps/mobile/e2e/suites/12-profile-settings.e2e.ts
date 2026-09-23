@@ -64,14 +64,21 @@ describe('12 profile & settings', () => {
     );
   });
 
+  /**
+   * Selected by ID, not by text, and deep-linked rather than walked through Settings.
+   *
+   * Both were near misses. `{ text: /notifications/i }` with no type and no `nth` takes the FIRST
+   * match in tree order, and UX-SET-01 puts a "Notifications" group HEADING above the
+   * "Notifications" row — a heading is StaticText, so tapping it is a silent no-op and the suite
+   * fails fifteen seconds later on `/push/i`, pointing at the wrong thing. And
+   * `{ type: 'CheckBox', nth: 0 }` names a position rather than a control: it survived UX-SET-04
+   * adding a description line under each label only because descriptions are Text, not CheckBox.
+   * Neither selector was wrong yet. Both were one screen change away from it.
+   */
   it('notification preference toggle persists', async () => {
-    await tabTo('Profile');
-    await tap({ text: /settings/i, type: 'Button' }).catch(() => tap({ label: 'Settings' }));
-    await scrollUntilVisible({ text: /notifications/i });
-    await tap({ text: /notifications/i });
-    await expectVisible({ text: /push/i }, { timeout: 15_000 });
-    // The switches surface as CheckBox elements; push is the first one.
-    await toggleSwitch({ type: 'CheckBox', nth: 0 });
+    await deepLink('mobile:///profile/notifications', /^Notifications$/);
+    await expectVisible({ id: 'setting-notifications_push' }, { timeout: 15_000 });
+    await toggleSwitch({ id: 'setting-notifications_push' });
     const m = manifest();
     await pollUntil(
       () => select('user_settings', `user_id=eq.${m.users.maria}&select=notifications_push`),

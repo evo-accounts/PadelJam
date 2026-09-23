@@ -26,10 +26,12 @@ export default function NotificationsScreen() {
   const toggle = (key: keyof NotificationSettings) => (next: boolean) =>
     update.mutate({ [key]: next } as Partial<NotificationSettings>);
 
-  const ROWS: { key: keyof NotificationSettings; label: string }[] = [
-    { key: 'notifications_push', label: t('notifPush') },
-    { key: 'notifications_whatsapp', label: t('notifWhatsapp') },
-    { key: 'notifications_email', label: t('notifEmail') },
+  // UX-SET-04: each toggle says what it actually turns off. "WhatsApp" alone does not tell you
+  // whether switching it off stops match reminders or stops everything.
+  const ROWS: { key: keyof NotificationSettings; label: string; description: string }[] = [
+    { key: 'notifications_push', label: t('notifPush'), description: t('notifPushDescription') },
+    { key: 'notifications_whatsapp', label: t('notifWhatsapp'), description: t('notifWhatsappDescription') },
+    { key: 'notifications_email', label: t('notifEmail'), description: t('notifEmailDescription') },
   ];
 
   return (
@@ -40,6 +42,7 @@ export default function NotificationsScreen() {
           <SwitchRow
             key={r.key}
             label={r.label}
+            description={r.description}
             value={value[r.key]}
             onValueChange={toggle(r.key)}
             style={styles.row}

@@ -188,18 +188,70 @@ with a description, both applying immediately. Fold `app-icon.tsx` in.
 **No app icon row.** Notification descriptions land here too.
 
 **16 — `feat(mobile)`: Support and feedback, and Legal (12, 13).** `app/profile/support.tsx` becomes
-a four-row hub; the ticket form moves to `app/profile/support/contact.tsx`. **"Rate the app" is
-missing entirely today** — add it via `expo-store-review`. Creates `app/profile/legal.tsx`, opening
-in the device browser via `expo-web-browser` (already a dependency) rather than `Linking`.
+a four-row hub; the ticket form moves to `app/profile/support/contact.tsx`. The four rows are
+specified in `Requirements/profile.md` §6.3 and acceptance criterion PR-11: Help center, Contact
+support, Rate the app, Share the app. Three of the four titles already have copy (`helpCenter`,
+`contactSupport`, `shareApp`); the per-row descriptions and a `rateApp` title are new.
+
+[Corrected 2026-09-23] Two things this section originally got wrong.
+
+**"Rate the app" cannot use `expo-store-review`.** That package is not a dependency and is not
+present transitively (zero hits in `pnpm-lock.yaml`). It ships a native module, and `apps/mobile/ios`
+is gitignored — this is a CNG/prebuild project — so adding it forces `expo prebuild` + pod install +
+a new dev-client binary for every developer, and invalidates the cached E2E build because
+`scripts/e2e/run.mjs:286` hashes `apps/mobile/package.json` into the build-freshness stamp. It also
+would not work yet regardless: **the App Store ID does not exist in the repo** (`eas.json` still has
+an empty `submit.production`). Decision taken with the product owner: ship the row via
+`Linking.openURL` against a store-URL constant that is currently empty, and HIDE the row until the
+ID is filled in. No native rebuild, nothing broken ships, one line to switch on later.
+
+**Legal should use `Linking`, not `expo-web-browser`.** UX-SET-13 says the documents open in "the
+device's default browser". `WebBrowser.openBrowserAsync` opens an IN-APP SFSafariViewController /
+Custom Tab, which is a different thing. `settings.tsx` already does the right thing with
+`Linking.openURL`; keep it. (`expo-web-browser` IS a dependency, and `components/ExternalLink.tsx`
+uses it — but that component is dead code, referenced nowhere.)
+
+**While here, centralise the URLs.** `TERMS_URL` / `PRIVACY_URL` are spelled out in three places:
+`app/profile/settings.tsx:14-16` (which also holds `HELP_URL`), `components/auth/TermsLine.tsx:38-39`
+— whose own header comment says adopting a shared pair "is the obvious next step" — and inline in
+`apps/web/.../settings/page.tsx:135,147`. A new `legal.tsx` would make a fourth copy.
 
 **17 — `feat(web)`: support and legal.**
 
-**18 — `feat(db)`: three community tiers. Migration 0104.** `set_community_plan` accepts `'basic'`.
-Two things beyond adding a literal, both in `0098_community_roles_permissions.sql:642+`: the
-downgrade guard hard-codes `community_limit_for_plan('starter', ...)`, but pro→basic is also a
-downgrade and needs checking against **basic's** limits — generalise it to read `p_plan`'s own
-limits; and `starter` *deletes* the row where paid tiers *upsert*, so the if/else becomes three
-cases. Count the hosted communities affected by decision 3 before pasting.
+**18 — `feat(db)`: three community tiers.** `set_community_plan` accepts `'basic'`. The allowed-plan
+gate is a single plpgsql `IF ... NOT IN` at `0098_community_roles_permissions.sql:647` — there is no
+CHECK constraint on `community_subscriptions.plan_id`, and the composite FK to `plans` already admits
+`'basic'`, so that `IN` list is the only thing blocking it.
+
+[Corrected 2026-09-23] Three things this section originally got wrong.
+
+**The number is 0103, not 0104.** The highest migration present is `0102_profile_reads.sql`. See the
+note under "Three migrations" below.
+
+**The downgrade guard is broken in a bigger way than a hard-coded literal.** It does read
+`community_limit_for_plan('starter', ...)` — but it sits INSIDE the `if p_plan = 'starter'` branch,
+so today **no guard runs at all for any non-starter target**. Lifting it out and substituting
+`p_plan` for the literal is the fix; running it unconditionally is safe, because an upgrade to a
+looser limit can never trip it, and that avoids needing a tier-ordering helper (none exists).
+Two limits are not guarded even for starter: `co_organizers` (pro 3 → basic 1) and
+`recurring_events` (pro unlimited → basic 5). The cap triggers are BEFORE INSERT only and will not
+retro-evict, so a pro→basic downgrade can strand a community over both. `groups_per_community` goes
+unlimited → 3, so this guard is not theoretical.
+
+**The if/else stays two cases, not three.** Starter means NO subscription row (`community_plan`
+coalesces a missing row to `'starter'`); every paid tier means ONE row. The change is to replace the
+two hard-coded `'community_pro'` literals with `p_plan` in the VALUES list and the
+`ON CONFLICT DO UPDATE SET`. A three-way CASE would be redundant.
+
+**Jammer+ bundling needs no migration work at all.** `plan_features('community','basic',
+'jammer_plus_included')` has been seeded since 0013, and `account_plan` is plan-agnostic — the moment
+a `basic` row is written, the creator's plan flips on the next read. Note the scope precisely: since
+0098 it reaches `communities.created_by`, **one user per community**, NOT all members. Making basic
+settable also silently grants `custom_broadcasts`, which is seeded for basic and consumed by
+`0072_event_blasts.sql:44`.
+
+Do not base the new migration on the stale owner-gated copy at `0095_manual_plans.sql:47`; 0098 is
+the live body. Count the hosted communities affected by decision 3 before pasting.
 
 **19 — `feat(mobile)`: the Settings hub and the Subscription group (01).** Five groups of rounded
 cards plus the existing full-width Logout. Every destination is live by now, so this moves rows and
@@ -209,6 +261,34 @@ versus several (a picker sheet). Rewrites `lib/planSection.ts`, `components/comm
 and `planSection.test.ts` for three tiers: `planSectionView` is not "two tiers", it is "current plan
 left, Community Pro right", and what it cannot express is *which* tier an upgrade targets.
 `PLAN_TITLE_KEYS` already carries `planBasic`.
+
+[Verified 2026-09-23] Everything above holds — `planSectionView` really does hard-code
+`'community_pro'` at `PlanSection.tsx:57` and `'starter'` at `:73`, with no tier field anywhere in
+the view model, and nothing in `packages/api` selects `created_by`. Four additions.
+
+**A "Plan" row already exists** (`settings.tsx`, → `/profile/plan`, trailing label from
+`useAccountPlan`). The Subscription group's Jammer+ entry is a RENAME AND MOVE of that row, not a new
+one — and if the trailing label is kept, so is its deliberate "neutral while the query loads"
+behaviour.
+
+**Gating Community Plans on `created_by` is narrower than the destination's own gate.**
+`PlanSection` renders for ANY admin, and since 0098 `set_community_plan` accepts any admin. So an
+admin who did not create the community can change the plan from Manage Community but would not see
+the Settings shortcut. Decide this deliberately rather than by accident. (Suite 11 already covers
+exactly this case: it runs as `alex`, an admin who did not create Cascais Social.)
+
+**`logout()` is the real E2E exposure, across seven suites.** `e2e/driver/flows.ts` does
+`tap({ label: 'Settings' })` then `scrollUntilVisible({ text: /log out/i })` then
+`tap({ text: /log out/i })`, and is reached from suites 03, 04, 06, 08, 09, 10 and 98 via
+`switchUser`. Selectors default to `nth: 0` with no type filter, so **naming the fifth card anything
+matching `/log out/i` breaks all seven at once** — a StaticText heading would shadow the Button.
+Web's untitled "account actions" card is the precedent for leaving it unlabelled. Secondary:
+`scrollUntilVisible` defaults to 8 swipes and Log out is last; five carded groups make the screen
+taller, so confirm the budget still reaches it.
+
+**Suite 11 pins the two-card plan layout** with anchored selectors — `/^plan$/i`, `/^basic$/i`,
+`/^community pro$/i`, `/upgrade to community pro/i`. Any change to `planSectionView`'s shape or the
+upgrade button's copy breaks it.
 
 **20 — `feat(web)`: the settings hub.** Four groups; Subscription omitted per decision 11.
 
@@ -221,17 +301,63 @@ hand-pasted migration — the exact cost decision 5 exists to avoid. This way 01
 and the catalogue is a code change. Adds the registry module, the third stat card, and a badges list
 screen with locked and unlocked states. **Blocked on the final catalogue.**
 
+[Verified 2026-09-23] **All eight counters are derivable today. No new table is needed.** Five
+findings that change how the RPC should be written.
+
+**"Matches played" has two legitimate meanings and the codebase already says so**
+(`packages/api/src/profile/queries.ts:133`). The existing `played_matches` stat counts rows in
+`group_event_results` — finished RANKED GROUP events. A count of matches the engine actually has a
+score for is a different number over `event_matches` + `match_players`; a standalone americano
+contributes to one and not the other. **Emit both**, named for what they are
+(`ranked_events_finished`, `matches_scored`). A badge that says "100 matches" almost certainly means
+the second, while the stat card beside it shows the first — collapsing them ships a badge that
+contradicts the number next to it.
+
+**Reuse `get_player_profile`'s expressions verbatim** for best placement and followers, so the badge
+and the stat card can never disagree.
+
+**It must be SECURITY DEFINER, and the privacy rules must then be re-applied by hand.**
+`group_event_results` RLS gates on group-season membership and the `event_*` tables gate on
+`event_is_visible` — all of which are predicates about the VIEWER. Under invoker rights the counters
+would change depending on who is looking, which is not a counter. But definer bypasses the `profiles`
+block policy too, so **copy `get_player_profile`'s `not exists (select 1 from blocks b ...)`
+predicate** or a blocked viewer gets a full badge payload for someone they cannot otherwise see.
+Do NOT apply `event_is_visible` to the counters themselves: `player_recent_results` filters by it
+because it renders individual match content, whereas an aggregate about `p_user` filtered per viewer
+would make a badge appear and disappear. `community_member_count` is the precedent for an unfiltered
+aggregate; say so in the migration comment, because it is the one choice a reviewer will challenge.
+
+**Two counters need a deliberate scope call.** Groups: every community auto-creates a general group,
+so the count inflates by one per community unless `is_general` is excluded. Events attended: a
+standby who never played still has `status='confirmed'`.
+
+**Correction to this plan's own text:** `player_recent_results` does NOT read `event_teams` — it
+reads `match_players`, `event_participants`, `event_matches`, `events`, `courts` and `profiles`.
+
+**Two naming/UI traps.** Both apps already have a `Badge` in `components/ui/` (a static status pill,
+imported widely) — name the achievement component `AchievementBadge` or `PlayerBadge`. And the third
+stat card is THREE edits, not two: mobile's `ProfileView` uses `justifyContent: 'space-around'` so a
+third card drops in free and covers both mobile screens, web's other-profile grid is hard-coded
+`sm:grid-cols-2` and needs `-3`, and **web's OWN-profile page has no stat cards at all** — leave it
+alone and your own badges are invisible on the one surface out of four that matters most.
+
 ---
 
 ---
 
 ## Decided
 
-**Three migrations, not seven.** 0102 (profile reads), 0103 (badge facts), 0104 (three tiers). The
-hosted database is updated by pasting SQL by hand, so fewer files is better — but these three cannot
-collapse further, because 0103 waits on the catalogue and 0104 waits on the hosted count, and holding
-0102 for either would stall every screen PR. `get_player_profile` drops off the candidate list
-entirely; it already returns every field UX-PROF-01 needs.
+**Three migrations, not seven.** 0102 (profile reads, MERGED and applied to hosted), then the badge
+facts and the three tiers. The hosted database is updated by pasting SQL by hand, so fewer files is
+better — but these cannot collapse further, because the badge one waits on the catalogue and the
+tier one waits on the hosted count, and holding 0102 for either would have stalled every screen PR.
+`get_player_profile` drops off the candidate list entirely; it already returns every field
+UX-PROF-01 needs.
+
+[Corrected 2026-09-23] **The numbers in the original plan were off by one.** It assigned 0103 to
+badges and 0104 to tiers, but the highest migration in the tree is `0102_profile_reads.sql` — so the
+next free number is **0103**, and whichever of the two lands first takes it. Do not hard-code either
+number until the PR is written; check `infra/supabase/migrations/` at the time.
 
 **Web parity is not one-for-one, and the gaps are structural.** Web has no bottom sheets, no `TopBar`,
 no app icon, no push, no OTP phone flow and no plan surface whatsoever; it also has a `ThemeToggle`
