@@ -81,6 +81,11 @@ export default function BlockedUsersScreen() {
               action={{ label: t('retry', { ns: 'common' }), onPress: () => void query.refetch() }}
               testID="error-blocked"
             />
+          ) : search.trim().length > 0 ? (
+            // A search that matched nothing is NOT an empty blocked list. Saying "you haven't
+            // blocked anyone" to someone who has, and is looking at the search box they typed
+            // into, tells them something false about their own account.
+            <EmptyState fill icon={emptyIcon('magnifyingglass')} title={t('blockedNoResults')} testID="empty-blocked-search" />
           ) : (
             // No CTA: the audit says none is needed, and there is nothing useful to offer —
             // "go and block someone" is not an action to suggest.

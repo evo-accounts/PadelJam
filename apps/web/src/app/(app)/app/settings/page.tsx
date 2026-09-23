@@ -71,8 +71,10 @@ export default function SettingsPage() {
             </span>
           </Link>
           <Separator />
-          <Link href="/app/settings/password" className={rowClass}>
-            <span>{t('changePassword')}</span>
+          {/* Also provisional. The password row moved under Privacy (UX-SET-07), so this is the
+              way to it — and to Blocked users, which had no entry point on web at all. */}
+          <Link href="/app/settings/privacy" className={rowClass}>
+            <span>{t('privacySettings')}</span>
             <span aria-hidden className="text-muted-foreground">
               ›
             </span>

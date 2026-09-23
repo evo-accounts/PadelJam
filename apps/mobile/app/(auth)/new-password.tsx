@@ -10,13 +10,13 @@
  */
 import { setPassword } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import { passwordValid } from '@padel/utils';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getAuthTarget } from '@/lib/auth-flow';
-import { passwordValid } from '@/lib/passwordRules';
 import { supabase } from '@/lib/supabase';
 import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors, space } from '../../theme';

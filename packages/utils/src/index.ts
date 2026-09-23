@@ -10,3 +10,4 @@ export * from './notification-route';
 export * from './geocode-query';
 export * from './event-wizard';
 export * from './match-view';
+export * from './passwordRules';
