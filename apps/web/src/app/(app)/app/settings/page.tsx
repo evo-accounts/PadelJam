@@ -102,7 +102,9 @@ export default function SettingsPage() {
               three rows under a heading that called all of them "Support". Provisional, like the
               rows above; UX-SET-01 regroups the page. */}
           <Link href="/app/settings/support" className={rowClass}>
-            <span>{t('support')}</span>
+            {/* The screen's own name (UX-SET-12), not the group heading's word — a "Support" row
+                directly under a "Support" heading reads like a mistake. */}
+            <span>{t('supportAndFeedback')}</span>
             <span aria-hidden className="text-muted-foreground">
               ›
             </span>
