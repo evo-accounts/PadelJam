@@ -174,7 +174,7 @@ export const useMyBlocks = (search = '') => {
 };
 
 /**
- * The raw counters behind the badge catalogue (migration 0104).
+ * The raw counters behind the badge catalogue (migration 0105).
  *
  * Returns NUMBERS, never verdicts — `evaluateBadges` in `@padel/utils` turns them into unlock
  * states, so changing a threshold is a code change rather than another hand-pasted migration.

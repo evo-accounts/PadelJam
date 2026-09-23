@@ -1,7 +1,7 @@
 /**
  * The badge catalogue, and the pure function that turns counters into unlock states.
  *
- * The database returns NUMBERS ONLY (`player_badge_facts`, migration 0104). Every threshold lives
+ * The database returns NUMBERS ONLY (`player_badge_facts`, migration 0105). Every threshold lives
  * here, in code, so tuning the catalogue is a pull request rather than another migration pasted by
  * hand into the hosted database. That was the condition for shipping badges without a `badges`
  * table at all.
