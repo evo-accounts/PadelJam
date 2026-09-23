@@ -218,10 +218,20 @@ language sql stable security definer set search_path = public as $$
         and not (select yes from blocked)),
     -- Founding Jammer. Safe to compute on read: `soft_delete_account` bans rather than deletes and
     -- a hard delete is impossible (NOT NULL / RESTRICT foreign keys), so this ordering never shifts.
-    (select (count(*) + 1)::int from profiles other
-      where other.created_at < (select created_at from profiles where id = p_user)
-        and not (select yes from blocked)),
-    (select (now()::date - p.created_at::date)::int from profiles p where p.id = p_user);
+    --
+    -- The block guard is a CASE here, not a WHERE, and that difference is a real bug that the
+    -- test caught. `count(*) + 1` over a WHERE that excludes every row is `0 + 1` = 1 — the
+    -- RAREST rank there is. A blocked viewer would have seen the subject as the very first user
+    -- ever to sign up, which is the one value that unlocks Founding Jammer. Every other counter
+    -- degrades safely to zero under a WHERE; this one degrades to a maximum.
+    (select case when (select yes from blocked) then 0 else (
+       select count(*) + 1 from profiles other
+        where other.created_at < (select created_at from profiles where id = p_user)
+     ) end)::int,
+    -- Same reason it is a CASE: this one had no guard at all, so account age leaked past a block.
+    (select case when (select yes from blocked) then 0 else (
+       select (now()::date - p.created_at::date) from profiles p where p.id = p_user
+     ) end)::int;
 $$;
 
 -- 0030 set `alter default privileges ... grant execute on functions to anon, authenticated`, so a
