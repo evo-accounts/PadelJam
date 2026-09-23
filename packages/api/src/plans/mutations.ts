@@ -18,9 +18,17 @@ export const useSetAccountPlan = () => {
   });
 };
 
-/** Grants/revokes Community Pro for a community on request. Fails with 'forbidden' when the
- * caller isn't the owner, and 'plan_downgrade_over_limit' when a downgrade to Starter would
- * leave the community over its member/group caps. */
+/**
+ * Sets a community's tier on request: Starter, Basic or Community Pro.
+ *
+ * Fails with 'forbidden' when the caller is not an ADMIN of the community (any admin since
+ * migration 0098 — it was the owner only before, and the `owner` role no longer exists), and with
+ * 'plan_downgrade_over_limit' when the community already exceeds the TARGET plan's member or group
+ * caps. Since 0103 that check runs against whichever plan is being set, not always Starter's, so
+ * Community Pro -> Basic is guarded too.
+ *
+ * 'club' is not settable from the app.
+ */
 export const useSetCommunityPlan = () => {
   const db = useDb();
   const qc = useQueryClient();
@@ -30,7 +38,7 @@ export const useSetCommunityPlan = () => {
       plan,
     }: {
       communityId: string;
-      plan: 'starter' | 'community_pro';
+      plan: 'starter' | 'basic' | 'community_pro';
     }) => {
       const { data, error } = await db.rpc('set_community_plan', {
         p_community_id: communityId,

@@ -94,3 +94,79 @@ await run('a downgrade is refused while the community exceeds the Starter member
   await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
   assert((await cplan(owner.jwt, cid)) === 'starter', 'downgraded once back at the 10-member cap');
 });
+
+// ---------------------------------------------------------------------------
+// 0103: the middle tier, and the guard that only ever ran for Starter.
+// ---------------------------------------------------------------------------
+
+await run('a community can be set to Basic, and Basic bundles Jammer+ for its creator', async () => {
+  const owner = await user('basicOwner');
+  const cid = await ownCommunity(owner, 'Basic Club');
+  assert((await plan(owner.jwt)) === 'free', 'creator starts free');
+
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
+  assert((await cplan(owner.jwt, cid)) === 'basic', 'set to basic');
+
+  const rows = await sel('community_subscriptions', `community_id=eq.${cid}&select=plan_id,status,provider`);
+  assert(rows.length === 1 && rows[0].plan_id === 'basic' && rows[0].provider === 'manual', 'one manual basic row');
+
+  // plan_features has carried ('community','basic','jammer_plus_included') since 0013, and
+  // account_plan reads it through communities.created_by. Nothing in 0103 grants this directly.
+  assert((await plan(owner.jwt)) === 'jammer_plus', 'basic bundles Jammer+ for the creator');
+
+  // Idempotent, and reversible.
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
+  assert((await sel('community_subscriptions', `community_id=eq.${cid}&select=id`)).length === 1, 'still one row');
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
+  assert((await cplan(owner.jwt, cid)) === 'starter', 'back to starter');
+  assert((await plan(owner.jwt)) === 'free', 'and the bundled Jammer+ goes with it');
+});
+
+// The reason 0103 had to move the guard out of the `p_plan = 'starter'` branch. Community Pro
+// allows unlimited groups and Basic allows 3, so this downgrade is over a limit — and before 0103
+// no limit check ran for it at all, because the guard was unreachable for any non-Starter target.
+await run('a Community Pro -> Basic downgrade is refused while over Basic group limits', async () => {
+  const owner = await user('proToBasic');
+  const cid = await ownCommunity(owner, 'Groupy Club');
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
+
+  // The general group is created with the community, so three more puts it at four.
+  for (const name of ['G2', 'G3', 'G4']) {
+    await rpc(owner.jwt, 'create_group', {
+      p_community_id: cid, p_name: name, p_description: null, p_is_private: false, p_thumbnail_path: null,
+    });
+  }
+  const groups = await sel('groups', `community_id=eq.${cid}&archived_at=is.null&select=id,is_general`);
+  assert(groups.length === 4, `four live groups, got ${groups.length}`);
+
+  await expectError(
+    () => rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' }),
+    'plan_downgrade_over_limit',
+  );
+
+  await rpc(owner.jwt, 'archive_group', { p_group_id: groups.find((g) => !g.is_general).id });
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
+  assert((await cplan(owner.jwt, cid)) === 'basic', 'accepted once back within Basic limits');
+});
+
+// An UPGRADE runs the same guard now. It must never refuse: the target's limits are looser than
+// whatever the community is already within.
+await run('an upgrade is never refused by the limit guard', async () => {
+  const owner = await user('upgradeGuard');
+  const cid = await ownCommunity(owner, 'Upgrade Club');
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
+  for (const name of ['U2', 'U3']) {
+    await rpc(owner.jwt, 'create_group', {
+      p_community_id: cid, p_name: name, p_description: null, p_is_private: false, p_thumbnail_path: null,
+    });
+  }
+  // At Basic's cap of 3 groups; Community Pro is unlimited.
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
+  assert((await cplan(owner.jwt, cid)) === 'community_pro', 'upgraded while at the lower cap');
+});
+
+await run('club is still not settable from the app', async () => {
+  const owner = await user('clubTry');
+  const cid = await ownCommunity(owner, 'Club Try');
+  await expectError(() => rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'club' }), 'invalid_plan');
+});
