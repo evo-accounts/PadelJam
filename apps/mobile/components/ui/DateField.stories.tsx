@@ -5,7 +5,7 @@ import { DateField } from './DateField';
 const meta = {
   title: 'UI/DateField',
   component: DateField,
-  args: { label: 'Date of birth', value: null, placeholder: 'Choose a date', onChange: () => {} },
+  args: { label: 'Date of birth', value: null, placeholder: 'Choose a date', confirmLabel: 'Confirm', onChange: () => {} },
 } satisfies Meta<typeof DateField>;
 
 export default meta;

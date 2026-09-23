@@ -160,6 +160,13 @@ export default function AccountSettingsScreen() {
         <ListRow
           variant="card"
           title={t('changeEmail')}
+          trailing={
+            my.data?.email ? (
+              <Text variant="body" tone="muted">
+                {my.data.email}
+              </Text>
+            ) : undefined
+          }
           trailingLabel={my.data?.email ?? undefined}
           onPress={() => router.push('/profile/change-email')}
           testID="account-email-row"
@@ -167,6 +174,13 @@ export default function AccountSettingsScreen() {
         <ListRow
           variant="card"
           title={t('changePhone')}
+          trailing={
+            my.data?.phone ? (
+              <Text variant="body" tone="muted">
+                {my.data.phone}
+              </Text>
+            ) : undefined
+          }
           trailingLabel={my.data?.phone ?? undefined}
           onPress={() => router.push('/profile/change-phone')}
           testID="account-phone-row"
@@ -177,12 +191,20 @@ export default function AccountSettingsScreen() {
           value={dob}
           onChange={setDob}
           placeholder={t('dobPlaceholder')}
+          confirmLabel={t('locationConfirm')}
           testID="account-dob"
         />
 
         <ListRow
           variant="card"
           title={t('locationLabel')}
+          trailing={
+            place?.label || locationText ? (
+              <Text variant="body" tone="muted">
+                {place?.label || locationText}
+              </Text>
+            ) : undefined
+          }
           trailingLabel={place?.label || locationText || undefined}
           onPress={() => setLocationOpen(true)}
           testID="account-location-row"
