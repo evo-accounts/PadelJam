@@ -3,16 +3,28 @@ import { useSession } from '@padel/auth';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
 
-// Follow/unfollow/block all change both the target's and the actor's profile counts and
-// follow lists, so invalidate every affected surface (prefix-matches all search variants).
+/**
+ * Follow/unfollow/block change the target's and the actor's profile counts and follow lists — and,
+ * since migration 0102, the follow CONTROL on every follow list in the app.
+ *
+ * That last part is why this cannot just name the two users involved. `list_followers` and
+ * `list_following` now return `is_following` / `is_followed_by` computed against the VIEWER, so
+ * following someone changes their row inside anybody's list. Invalidating only the actor's and the
+ * target's own lists left the row you had just tapped still reading "Follow" while the database
+ * said otherwise — visible on a third party's followers list, which is exactly the case UX-PROF-05
+ * calls out ("including when browsing someone else's followers list").
+ *
+ * So every follow list is invalidated by predicate, and the two profiles by key.
+ */
 const invalidateFollow = (qc: QueryClient, uid: string | undefined, targetId: string) => {
   qc.invalidateQueries({ queryKey: qk.profile(targetId) });
-  qc.invalidateQueries({ queryKey: qk.followers(targetId) });
-  if (uid) {
-    qc.invalidateQueries({ queryKey: qk.profile(uid) });
-    qc.invalidateQueries({ queryKey: qk.following(uid) });
-    qc.invalidateQueries({ queryKey: qk.followers(uid) });
-  }
+  if (uid) qc.invalidateQueries({ queryKey: qk.profile(uid) });
+  qc.invalidateQueries({
+    predicate: (q) => {
+      const k = q.queryKey;
+      return k[0] === 'profile' && (k[2] === 'followers' || k[2] === 'following');
+    },
+  });
 };
 
 export const useFollow = () => {
