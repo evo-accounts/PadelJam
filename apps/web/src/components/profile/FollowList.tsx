@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useT } from '@padel/i18n';
 import { useFollowers, useFollowing } from '@padel/api';
+import { ProfileActionsMenu } from './ProfileActionsMenu';
+import { FollowButton } from './FollowButton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,17 +62,23 @@ export function FollowList({
           {rows.map((row) => {
             const initials = (row.full_name ?? '?').slice(0, 2).toUpperCase();
             return (
-              <li key={row.id}>
-                <Link
-                  href={`/app/profile/${row.id}`}
-                  className="flex items-center gap-3 rounded-md p-2 hover:bg-accent"
-                >
+              <li key={row.id} className="flex items-center gap-2 rounded-md p-2 hover:bg-accent">
+                {/* The row is still a link to the profile, but the controls are NOT inside it —
+                    nesting a button in an anchor makes the whole row navigate on every click. */}
+                <Link href={`/app/profile/${row.id}`} className="flex min-w-0 flex-1 items-center gap-3">
                   <Avatar className="size-10">
                     <AvatarImage src={avatarUrl(row.avatar_url) ?? undefined} />
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
-                  <span className="font-medium">{row.full_name ?? '—'}</span>
+                  <span className="truncate font-medium">{row.full_name ?? '—'}</span>
                 </Link>
+                {/* Reflects the VIEWER's relationship with this person, not the list owner's —
+                    the flags come from 0102 computed against auth.uid(), so browsing someone
+                    else's followers still says "Unfollow" beside the people you already follow. */}
+                <FollowButton targetId={row.id} isFollowing={row.is_following} size="sm" />
+                <ProfileActionsMenu
+                  person={{ id: row.id, full_name: row.full_name, is_following: row.is_following }}
+                />
               </li>
             );
           })}

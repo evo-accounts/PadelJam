@@ -1,29 +1,14 @@
 'use client';
-import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { useProfile, useBlock, useFollow, useMyBlocks, useUnblock, useUnfollow } from '@padel/api';
+import { useProfile, useMyBlocks, useUnblock } from '@padel/api';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { FollowButton } from '@/components/profile/FollowButton';
-import { ReportDialog } from '@/components/profile/ReportDialog';
 import { ProfileGroups, ProfilePreferences, ProfileResults } from '@/components/profile/ProfileSections';
+import { ProfileActionsMenu } from '@/components/profile/ProfileActionsMenu';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function OtherProfilePage() {
@@ -31,12 +16,7 @@ export default function OtherProfilePage() {
   const { id } = useParams<{ id: string }>();
   const uid = useSession().session?.user.id;
   const router = useRouter();
-  const block = useBlock();
   const unblock = useUnblock();
-  const follow = useFollow();
-  const unfollow = useUnfollow();
-  const [reportOpen, setReportOpen] = useState(false);
-  const [blockOpen, setBlockOpen] = useState(false);
 
   const isSelf = !!uid && id === uid;
   const q = useProfile(isSelf ? undefined : id);
@@ -109,35 +89,11 @@ export default function OtherProfilePage() {
           actions={
             <>
               <FollowButton targetId={id} isFollowing={d.is_following} />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label={t('more')}>
-                    …
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {/* Mirrors UX-PROF-02's sheet, including Share, which web never offered. */}
-                  <DropdownMenuItem
-                    onSelect={() => void navigator.clipboard?.writeText(window.location.href)}
-                  >
-                    {t('share')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => (d.is_following ? unfollow : follow).mutate(id)}
-                  >
-                    {d.is_following ? t('unfollow') : t('follow')}
-                  </DropdownMenuItem>
-                  {/* Only once you follow them — the same gate as mobile, for the same reason. */}
-                  {d.is_following ? (
-                    <DropdownMenuItem onSelect={() => router.push('/app/chat')}>
-                      {t('message')}
-                    </DropdownMenuItem>
-                  ) : null}
-                  {/* Was a bare menu item that blocked on click with no confirmation at all. */}
-                  <DropdownMenuItem onSelect={() => setBlockOpen(true)}>{t('block')}</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setReportOpen(true)}>{t('report')}</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* UX-PROF-02's menu, shared with every follow-list row (UX-PROF-05). */}
+              <ProfileActionsMenu
+                person={{ id, full_name: d.full_name, is_following: d.is_following }}
+                onBlocked={() => router.push('/app/profile')}
+              />
             </>
           }
         />
@@ -174,36 +130,6 @@ export default function OtherProfilePage() {
       <ProfileGroups userId={id} />
       <ProfileResults userId={id} />
 
-      {/* UX-PROF-03: a confirmation that states the consequence. */}
-      <Dialog open={blockOpen} onOpenChange={setBlockOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('blockTitle')}</DialogTitle>
-            <DialogDescription>{t('blockBody')}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBlockOpen(false)}>
-              {t('cancel')}
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={block.isPending}
-              onClick={() =>
-                block.mutate(id, {
-                  onSuccess: () => {
-                    setBlockOpen(false);
-                    router.push('/app/profile');
-                  },
-                })
-              }
-            >
-              {t('block')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <ReportDialog targetId={id} open={reportOpen} onOpenChange={setReportOpen} />
     </div>
   );
 }
