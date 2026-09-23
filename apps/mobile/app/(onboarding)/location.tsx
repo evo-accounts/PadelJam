@@ -1,23 +1,15 @@
 import { useT } from '@padel/i18n';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { OnboardingStep } from '@/components/OnboardingStep';
+import { formatAddress, useGeocodeSearch } from '@/lib/useGeocodeSearch';
 import { supabase } from '@/lib/supabase';
 import { colors } from '../../theme';
 
 type Coords = { lat: number; lng: number };
-
-/** Uses no component state, so it lives outside the component — and being a
-  * declaration rather than a const means the debounced effect below can call
-  * it regardless of source order. */
-function formatAddress(p: Location.LocationGeocodedAddress | undefined): string {
-  if (!p) return '';
-  const parts = [p.name, p.city ?? p.subregion, p.region].filter(Boolean) as string[];
-  return [...new Set(parts)].join(', ');
-}
 
 type Mode = 'pick' | 'manual';
 
@@ -26,57 +18,14 @@ export default function LocationStep() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>('pick');
   const [text, setText] = useState('');
-  const [resolved, setResolved] = useState<(Coords & { label: string }) | null>(null);
-  const [searching, setSearching] = useState(false);
+  // Same resolution Account Settings uses (UX-SET-02). It was lifted out of this file unchanged,
+  // so that screen reuses what already works here instead of growing a second geocode path.
+  const { resolved, searching } = useGeocodeSearch(text);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const goNext = () => router.push('/(onboarding)/hand');
-
-  // Resolve what was typed into an actual place, debounced. expo-location's
-  // geocodeAsync returns coordinates only, so the name shown back to the user
-  // comes from reverse-geocoding the hit — that round trip is what makes the
-  // confirmation trustworthy rather than just echoing their typing.
-  //
-  // A true autocomplete would need a places API and a new dependency; this gets
-  // the same guarantee (Continue means a real place) with what is already here.
-  useEffect(() => {
-    const q = text.trim();
-    setResolved(null);
-    if (q.length < 3) {
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    let cancelled = false;
-    const id = setTimeout(async () => {
-      try {
-        const hits = await Location.geocodeAsync(q);
-        const hit = hits[0];
-        if (!hit) return;
-        const places = await Location.reverseGeocodeAsync({
-          latitude: hit.latitude,
-          longitude: hit.longitude,
-        });
-        if (cancelled) return;
-        setResolved({
-          lat: hit.latitude,
-          lng: hit.longitude,
-          label: formatAddress(places[0]) || q,
-        });
-      } catch {
-        /* leave unresolved; Continue stays disabled */
-      } finally {
-        if (!cancelled) setSearching(false);
-      }
-    }, 500);
-    return () => {
-      cancelled = true;
-      clearTimeout(id);
-    };
-  }, [text]);
-
 
   const useCurrentLocation = async () => {
     if (locating) return;

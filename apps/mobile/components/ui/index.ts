@@ -21,6 +21,7 @@ export { Carousel, type CarouselProps } from './Carousel';
 export { pageIndex } from './carouselPage';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export { Chip } from './Chip';
+export { DateField } from './DateField';
 export { CodeField, type CodeFieldProps } from './CodeField';
 export { activeIndex, boxStates, sanitiseCode, type BoxState } from './codeInput';
 export { Dots, type DotsProps } from './Dots';

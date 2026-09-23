@@ -104,8 +104,22 @@ describe('12 profile & settings', () => {
     const hasPasswordSql =
       `select exists (select 1 from auth_password_set s join auth.users u on u.id = s.user_id where u.email = '${PERSONAS.maria.email}')`;
 
+    /**
+     * Both deep links below wait for the SETTINGS screen, not for the row's label.
+     *
+     * `deepLink(url, expect)` verifies arrival by matching TEXT, and "Change password" / "Create
+     * password" appear on two different screens: the settings row, and the password screen the row
+     * opens. When a relaunch restored the app onto that password screen, the match succeeded
+     * instantly and deepLink returned having never navigated — its own re-issue loop defeated by
+     * the ambiguity. The test then sailed past two more text assertions (both equally ambiguous)
+     * and failed fifteen seconds later on `settings-password-row`, pointing at the wrong thing.
+     *
+     * Waiting for the screen title and then asserting the ROW BY ID makes a navigation failure say
+     * so immediately, and keeps the label assertions meaningful.
+     */
     // 1) WITH a password: unchanged behaviour, and the screen still asks for the current one.
-    await deepLink('mobile:///profile/settings', /change password/i);
+    await deepLink('mobile:///profile/settings', /^Settings$/);
+    await expectVisible({ id: 'settings-password-row' }, { timeout: 20_000 });
     await expectVisible({ text: /change password/i }, { timeout: 20_000 });
     await expectGone({ text: /create password/i }, { timeout: 2_000 });
     await tap({ id: 'settings-password-row' });
@@ -115,7 +129,8 @@ describe('12 profile & settings', () => {
     //    Query result that nothing in the app would invalidate for a change made in the database.
     await psql(`update auth.users set encrypted_password = '' where email = '${PERSONAS.maria.email}'`);
     await relaunch();
-    await deepLink('mobile:///profile/settings', /create password/i);
+    await deepLink('mobile:///profile/settings', /^Settings$/);
+    await expectVisible({ id: 'settings-password-row' }, { timeout: 30_000 });
     await expectVisible({ text: /create password/i }, { timeout: 30_000 });
     await expectGone({ text: /^change password$/i }, { timeout: 2_000 });
 
