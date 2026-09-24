@@ -24,6 +24,20 @@ name: Seed (demo)
 # *Linux* one can, because it has a real container runtime). Keeping it here also
 # keeps it off the shared Mac, which the E2E suite owns exclusively: this job must
 # never be a reason someone's local stack gets reset out from under them.
+#
+# THE SECOND JOB, `db-tests`, runs `pnpm test:db` — the twelve files under
+# infra/supabase/tests/ that exercise migrations 0091 onwards over real HTTP. They ran in
+# no workflow either, and are the same shape of problem: correct-looking SQL that only a
+# live database can contradict. (`badge-facts.test.mjs` is the one that caught
+# `signup_rank` leaking the rarest possible value past a block, in #185 — by hand.)
+# They live here, not in ci.yml, because they need exactly the scratch stack this
+# workflow already knows how to build, and ci.yml deliberately has none. And not in
+# e2e-mobile.yml, because every E2E suite truncates the whole public schema and the
+# runner holds a machine-wide lock precisely because concurrent runs corrupt each other.
+#
+# A sibling job rather than a second step, so each gets its OWN runner and its own
+# pristine stack: the demo seed's public events cannot crowd the tests' `explore_events`
+# window, and a failure names which half broke.
 on:
   # DAILY, unlike the weekly E2E cron. The cron is the half of this job that catches
   # fault (1) — a date that expires does so on a wall-clock date, with no commit to
@@ -39,11 +53,13 @@ on:
   pull_request:
     paths:
       - 'infra/**'
+      - 'scripts/run-db-tests.mjs'
       - '.github/workflows/seed-demo.yml'
   push:
     branches: [main]
     paths:
       - 'infra/**'
+      - 'scripts/run-db-tests.mjs'
       - '.github/workflows/seed-demo.yml'
   workflow_dispatch:
 
@@ -56,6 +72,13 @@ concurrency:
 
 permissions:
   contents: read
+
+env:
+  # PINNED, not @latest, so a run is reproducible and a CLI bump is a commit. Hoisted to
+  # the workflow so both jobs read ONE value — the pin lives in four places, not five.
+  # Keep in step with e2e-mobile.yml, infra/supabase/README.md and
+  # apps/mobile/e2e/README.md.
+  SUPABASE_CLI_VERSION: 2.117.0
 
 jobs:
   seed:
@@ -88,10 +111,6 @@ jobs:
           # Inventing placeholder OAuth secrets here would be a new, untested
           # configuration rather than the proven one.
           SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: local_test_token
-          # PINNED, not @latest, so a run is reproducible and a CLI bump is a commit.
-          # Keep in step with e2e-mobile.yml, infra/supabase/README.md and
-          # apps/mobile/e2e/README.md.
-          SUPABASE_CLI_VERSION: 2.117.0
         run: |
           # A fresh runner has no database, so `start` applies every migration from
           # scratch — which IS the reset this job is built around. There is
@@ -123,3 +142,44 @@ jobs:
       # `supabase stop` is pointless on a disposable runner that is about to be
       # destroyed, and its absence here carries none of the meaning it does in
       # e2e-mobile.yml, where stopping would take down a developer's own stack.
+
+  db-tests:
+    runs-on: ubuntu-latest
+    # The same cold-start budget as `seed`. The tests themselves are ~1,900 lines of
+    # HTTP round trips against a local stack: well under a minute.
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Identical to the `seed` job's step, and for the same reasons. Nothing is excluded
+      # with -x here either, and here it is load-bearing: complete-account-consent.test.mjs
+      # calls the complete-account EDGE FUNCTION, so a stack without the edge runtime
+      # would fail it for a reason that has nothing to do with the code under test.
+      - name: Start a scratch Supabase stack
+        env:
+          SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: local_test_token
+        run: |
+          pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" --workdir infra start
+
+          # lib.mjs reads exactly these three from a repo-root .env, and refuses any
+          # non-local URL.
+          pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" --workdir infra status -o env \
+            | sed -e 's/^API_URL=/SUPABASE_URL=/' \
+                  -e 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' \
+                  -e 's/^PUBLISHABLE_KEY=/SUPABASE_ANON_KEY=/' > .env
+
+      # Every file runs and every outcome is reported, even after a failure — see
+      # scripts/run-db-tests.mjs. Do NOT set TEST_RUN here: one value shared by every
+      # file makes two of them create the same user and collide on a duplicate email.
+      - name: Run the database tests
+        run: pnpm test:db

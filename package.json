@@ -16,7 +16,7 @@
     "seed:e2e": "node infra/seed/seed-e2e.mjs",
     "seed:audit": "node infra/seed/audit/run.ts",
     "seed:audit:test": "node --test \"infra/seed/audit/**/*.test.ts\"",
-    "test:db": "for f in infra/supabase/tests/*.test.mjs; do node \"$f\" || exit 1; done",
+    "test:db": "node scripts/run-db-tests.mjs",
     "test:functions": "node --test \"infra/supabase/functions/**/*.test.ts\"",
     "tokens:build": "node scripts/tokens.mjs --write",
     "tokens:check": "node scripts/tokens.mjs",
