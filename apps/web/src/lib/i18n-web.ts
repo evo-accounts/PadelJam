@@ -1204,6 +1204,7 @@ const webGroup = {
     group_not_found: 'Grupo não encontrado.',
     groups_per_community: 'Esta comunidade atingiu o limite de grupos.',
     general_group_only_group: 'O grupo geral não pode ser arquivado enquanto for o único grupo.',
+    name_required: 'Introduza um nome para o grupo.',
     unknown_error: 'Algo correu mal. Tente novamente.',
   },
   'pt-BR': {
@@ -1274,6 +1275,7 @@ const webGroup = {
     group_not_found: 'Grupo não encontrado.',
     groups_per_community: 'Esta comunidade atingiu o limite de grupos.',
     general_group_only_group: 'O grupo geral não pode ser arquivado enquanto for o único grupo.',
+    name_required: 'Digite um nome para o grupo.',
     unknown_error: 'Algo deu errado. Tente novamente.',
   },
   en: {
@@ -1344,6 +1346,7 @@ const webGroup = {
     group_not_found: 'Group not found.',
     groups_per_community: 'This community has reached its group limit.',
     general_group_only_group: 'The general group cannot be archived while it is the only group.',
+    name_required: 'Please enter a group name.',
     unknown_error: 'Something went wrong. Please try again.',
   },
 } as const;
