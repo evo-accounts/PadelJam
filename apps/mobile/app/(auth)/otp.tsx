@@ -36,6 +36,7 @@ import {
   startPhoneOtp,
   verifyEmailOtp,
   verifyPhoneOtp,
+  safeAuthMessage,
 } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
@@ -45,7 +46,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TryAnotherWaySheet } from '@/components/auth/TryAnotherWaySheet';
 import { runAppleSignIn } from '@/lib/appleSignIn';
-import { safeAuthMessage } from '@/lib/authErrors';
 import { clearAuthTarget, getAuthTarget, setAuthMethods } from '@/lib/auth-flow';
 import type { AuthMethod, AuthMethods } from '@/lib/authMethods';
 import { lookupAuthMethods } from '@/lib/authMethodsLookup';

@@ -1,4 +1,5 @@
 export * from './phone';
+export * from './identifier';
 export * from './name';
 export * from './eventDeadlines';
 export * from './event-participation';

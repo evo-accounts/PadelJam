@@ -6,3 +6,4 @@ export * from './community';
 export * from './otp';
 export * from './oauth';
 export * from './password';
+export * from './authErrors';

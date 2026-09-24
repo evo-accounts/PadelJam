@@ -18,7 +18,8 @@
  * pressable with our own label would match the other buttons and be an App
  * Store rejection (Human Interface Guidelines, Sign in with Apple).
  */
-import { startEmailOtp, startPhoneOtp } from '@padel/auth';
+import { safeAuthMessage, startEmailOtp, startPhoneOtp } from '@padel/auth';
+import { isEmailShape } from '@padel/utils';
 import { useT } from '@padel/i18n';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -28,7 +29,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TermsLine } from '@/components/auth/TermsLine';
 import { runAppleSignIn } from '@/lib/appleSignIn';
-import { safeAuthMessage } from '@/lib/authErrors';
 import { setAuthMethods, setAuthTarget, type IdentifierKind } from '@/lib/auth-flow';
 import { lookupAuthMethods } from '@/lib/authMethodsLookup';
 import { runGoogleSignIn } from '@/lib/googleSignIn';
@@ -38,12 +38,6 @@ import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors, radius, space } from '../../theme';
 import { Button, Field, PhoneField, Screen, Text, TopBar, useBanner } from '../../components/ui';
 
-/**
- * Shape only, deliberately. Anything stricter rejects addresses that exist
- * (plus-tags, new TLDs, quoted locals) and the server is the real authority —
- * this is here to catch a typo before we spend a rate-limit slot on it.
- */
-const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignInScreen() {
   const { t } = useT('auth');
@@ -90,7 +84,7 @@ export default function SignInScreen() {
   const onContinue = async () => {
     if (busy) return;
     const value = mode === 'phone' ? phone : email.trim();
-    const invalid = mode === 'phone' ? !phoneValid || !value : !EMAIL_SHAPE.test(value);
+    const invalid = mode === 'phone' ? !phoneValid || !value : !isEmailShape(value);
     if (invalid) {
       // UX-GLOB-06: redden the field AND banner it. The field says which input
       // is wrong; the banner says it out loud, including to a screen reader.

@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useT } from '@padel/i18n';
 import type { useAuthFlow } from '@/lib/useAuthFlow';
+import { AuthError } from './AuthError';
 
 type Flow = ReturnType<typeof useAuthFlow>;
 
-// Error values that are i18n keys (set by the flow hook); anything else is a raw message.
-const ERROR_KEYS = ['email_taken', 'phone_taken', 'sendCodeFailed'];
 
 export function VerifySecondaryStep({ flow }: { flow: Flow }) {
   const { t } = useT('auth');
@@ -23,7 +22,6 @@ export function VerifySecondaryStep({ flow }: { flow: Flow }) {
 
   const cooldownSeconds = Math.ceil(flow.cooldownRemainingMs / 1000);
   const onCooldown = cooldownSeconds > 0;
-  const displayError = flow.error && ERROR_KEYS.includes(flow.error) ? t(flow.error) : flow.error;
 
   return (
     <form
@@ -51,7 +49,7 @@ export function VerifySecondaryStep({ flow }: { flow: Flow }) {
         />
       </label>
       {flow.locked ? <p className="text-sm text-destructive">{t('locked')}</p> : null}
-      {displayError && !flow.locked ? <p className="text-sm text-destructive">{displayError}</p> : null}
+      {!flow.locked ? <AuthError error={flow.error} /> : null}
       <button
         type="submit"
         disabled={flow.busy || flow.locked || code.length < 6}

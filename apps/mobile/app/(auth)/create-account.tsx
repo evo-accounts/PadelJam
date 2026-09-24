@@ -50,16 +50,16 @@ import {
   useSession,
   verifyEmailChange,
   verifyPhoneChange,
+  safeAuthMessage,
 } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { formatDisplayName, passwordValid } from '@padel/utils';
+import { formatDisplayName, isEmailShape, passwordValid } from '@padel/utils';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TermsLine, useTermsConsentLabel } from '@/components/auth/TermsLine';
-import { safeAuthMessage } from '@/lib/authErrors';
 import { getAuthTarget, type IdentifierKind } from '@/lib/auth-flow';
 import { formatE164ForDisplay } from '@/lib/countries';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
@@ -81,13 +81,6 @@ import {
   useBanner,
 } from '../../components/ui';
 
-/**
- * Shape only — the same call sign-in.tsx makes and for the same reason:
- * anything stricter rejects addresses that exist (plus-tags, new TLDs, quoted
- * locals), and the server is the real authority. This is here to catch a typo
- * before a rate-limit slot is spent on it.
- */
-const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const CODE_LENGTH = 6;
 
@@ -210,7 +203,7 @@ export default function CreateAccountScreen() {
         if (secondaryValue) return prev;
         return { ...prev, secondary: phoneDigits ? t('invalid_phone') : tc('missingInformation') };
       }
-      if (EMAIL_SHAPE.test(secondaryValue)) return prev;
+      if (isEmailShape(secondaryValue)) return prev;
       return { ...prev, secondary: tc('missingInformation') };
     });
   };
@@ -227,7 +220,7 @@ export default function CreateAccountScreen() {
       banner.show(t('password_weak'));
       return;
     }
-    if (secondaryKind === 'email' && !EMAIL_SHAPE.test(secondaryValue)) {
+    if (secondaryKind === 'email' && !isEmailShape(secondaryValue)) {
       setErrors({ secondary: tc('missingInformation') });
       banner.show(tc('missingInformation'));
       return;

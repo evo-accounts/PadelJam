@@ -31,7 +31,7 @@
  * '/(auth)/sign-in' over the top of the navigation just issued, losing the
  * `mode` param — i.e. the whole point of the pick.
  */
-import { signInWithPassword } from '@padel/auth';
+import { safeAuthMessage, signInWithPassword } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -40,7 +40,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TryAnotherWaySheet } from '@/components/auth/TryAnotherWaySheet';
 import { runAppleSignIn } from '@/lib/appleSignIn';
-import { safeAuthMessage } from '@/lib/authErrors';
 import { clearAuthTarget, getAuthTarget, setAuthMethods } from '@/lib/auth-flow';
 import type { AuthMethod, AuthMethods } from '@/lib/authMethods';
 import { lookupAuthMethods } from '@/lib/authMethodsLookup';
