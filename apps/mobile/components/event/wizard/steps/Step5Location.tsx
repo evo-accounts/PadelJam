@@ -66,6 +66,10 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
         locationLng: pos.coords.longitude,
         hasLocation: true,
       });
+    } catch {
+      // GPS or reverse-geocode failure. There was no catch here, so this escaped the press
+      // handler as an unhandled rejection. The step stays as it was and the organiser can pick a
+      // venue or type a name instead — `denied` is not set, because permission was not the problem.
     } finally {
       setLocating(false);
     }

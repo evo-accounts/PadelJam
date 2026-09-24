@@ -9,8 +9,10 @@
  * sanctioned writer is `set_my_location(lat, lng, text)`, so free text cannot feed it.
  *
  * So this is the onboarding behaviour in a sheet, sharing its resolution through
- * `useGeocodeSearch` rather than growing a second geocode path. Confirm stays disabled until a
- * real place resolves, which is the same guarantee onboarding's Continue gives.
+ * `useGeocodeSearch` rather than growing a second geocode path. Confirm stays disabled until the
+ * lookup finishes — the same gate onboarding's Continue uses. It always finishes: when it cannot
+ * place the text, it hands back the text with null coordinates and says so, rather than leaving
+ * Confirm dead with nothing on screen to explain it.
  */
 import { useT } from '@padel/i18n';
 import * as Location from 'expo-location';
@@ -33,7 +35,7 @@ export function LocationSheet({
   const { t } = useT('profile');
   const [text, setText] = useState('');
   const [locating, setLocating] = useState(false);
-  const { resolved, searching } = useGeocodeSearch(text);
+  const { resolved, searching, approximate } = useGeocodeSearch(text);
 
   const pick = (place: ResolvedPlace) => {
     setText('');
@@ -82,6 +84,11 @@ export function LocationSheet({
       {resolved ? (
         <Text variant="bodyStrong" testID="location-resolved">
           {resolved.label}
+        </Text>
+      ) : null}
+      {approximate ? (
+        <Text variant="hint" tone="muted" testID="location-approximate">
+          {t('locationApproximate')}
         </Text>
       ) : null}
       <View style={styles.actions}>
