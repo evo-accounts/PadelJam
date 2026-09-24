@@ -20,16 +20,14 @@ export default function LocationStep() {
   const [text, setText] = useState('');
   // Same resolution Account Settings uses (UX-SET-02). It was lifted out of this file unchanged,
   // so that screen reuses what already works here instead of growing a second geocode path.
-  const { resolved, searching } = useGeocodeSearch(text);
+  const { resolved, searching, approximate } = useGeocodeSearch(text);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const goNext = () => router.push('/(onboarding)/hand');
 
   const useCurrentLocation = async () => {
     if (locating) return;
-    setNotice(null);
     setLocating(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -60,8 +58,9 @@ export default function LocationStep() {
     if (saving) return;
     setSaving(true);
     try {
-      // `resolved` is non-null whenever this runs — Continue is disabled
-      // otherwise — so there is no second geocode and no failure path here.
+      // `resolved` is non-null whenever this runs — Continue is disabled otherwise — and it is
+      // either a real place or the typed text with null coordinates, which `set_my_location`
+      // stores as text alone. Either way the lookup has already finished; nothing is retried here.
       if (resolved) {
         await supabase.rpc('set_my_location', {
           p_lat: resolved.lat,
@@ -116,9 +115,11 @@ export default function LocationStep() {
       title={t('locationManualTitle')}
       body={t('locationBody')}
       primaryLabel={t('continue')}
-      // Gated on a RESOLVED place, not on the field being non-empty. Typing
+      // Gated on a FINISHED lookup, not on the field being non-empty. Typing
       // three characters used to enable Continue, which made it behave exactly
       // like Skip — the same defect UX-AUTH-02 flags on the hand/side steps.
+      // The lookup always finishes now (see `useGeocodeSearch`), so this gate
+      // can no longer strand anyone.
       primaryDisabled={!resolved || saving}
       onPrimary={onContinue}
       onBack={() => setMode('pick')}
@@ -135,7 +136,7 @@ export default function LocationStep() {
       />
       {searching ? <Text style={styles.notice}>{t('locationSearching')}</Text> : null}
       {resolved ? <Text style={styles.resolved}>{resolved.label}</Text> : null}
-      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+      {approximate ? <Text style={styles.notice}>{t('locationGeocodeFailed')}</Text> : null}
     </OnboardingStep>
   );
 }

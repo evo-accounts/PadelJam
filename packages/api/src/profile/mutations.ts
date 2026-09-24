@@ -160,7 +160,7 @@ export const useSetMyLocation = () => {
   const qc = useQueryClient();
   const uid = useSession().session?.user.id;
   return useMutation({
-    mutationFn: async (place: { lat: number; lng: number; text: string | null }) => {
+    mutationFn: async (place: { lat: number | null; lng: number | null; text: string | null }) => {
       const { error } = await db.rpc('set_my_location', {
         p_lat: place.lat,
         p_lng: place.lng,
