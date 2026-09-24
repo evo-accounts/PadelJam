@@ -387,7 +387,7 @@ Reached from the settings icon on the user’s own profile. The Settings hub gro
 </tr>
 <tr>
 <th><strong>Fields</strong></th>
-<th>Title (single-line text input, required). Description (multi-line text area, required). <strong>[Not implemented, 2026-09-23]</strong> The 80- and 2000-character caps are specified here and enforced nowhere: neither field passes <code>maxLength</code>, and <code>support_tickets.title</code> and <code>.description</code> are unbounded <code>text</code> with no check constraint (<code>0060_support_tickets.sql</code>). Recorded rather than quietly dropped — the caps remain the intent.</th>
+<th>Title (single-line text input, required, max 80 chars). Description (multi-line text area, required, max 2000 chars). <strong>[Implemented 2026-09-24]</strong> Both apps cap input with <code>maxLength</code> from <code>SUPPORT_TITLE_MAX</code> / <code>SUPPORT_DESCRIPTION_MAX</code> in <code>packages/config</code>, and the database enforces the same limits as check constraints (<code>0106_support_ticket_length_limits.sql</code>), counted in characters rather than bytes so accented text is not cut short. Until then the caps were specified here and enforced nowhere.</th>
 </tr>
 <tr>
 <th><strong>Send</strong></th>

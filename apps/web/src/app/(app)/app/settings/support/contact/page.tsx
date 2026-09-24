@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react';
 import { useT } from '@padel/i18n';
 import { useCreateSupportTicket } from '@padel/api';
+import { SUPPORT_DESCRIPTION_MAX, SUPPORT_TITLE_MAX } from '@padel/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -73,6 +74,7 @@ export default function ContactSupportPage() {
                   id="title"
                   ref={titleRef}
                   value={title}
+                  maxLength={SUPPORT_TITLE_MAX}
                   onChange={(e) => {
                     setTitle(e.target.value);
                     clear('title');
@@ -92,6 +94,7 @@ export default function ContactSupportPage() {
                   id="description"
                   ref={descriptionRef}
                   value={description}
+                  maxLength={SUPPORT_DESCRIPTION_MAX}
                   onChange={(e) => {
                     setDescription(e.target.value);
                     clear('description');

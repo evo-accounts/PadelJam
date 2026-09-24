@@ -1,4 +1,5 @@
 import { useCreateSupportTicket } from '@padel/api';
+import { SUPPORT_DESCRIPTION_MAX, SUPPORT_TITLE_MAX } from '@padel/config';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -61,6 +62,7 @@ export default function SupportScreen() {
           label={t('supportTitle')}
           value={title}
           onChangeText={(v) => { setTitle(v); clearFieldError('title'); }}
+          maxLength={SUPPORT_TITLE_MAX}
           error={fieldErrors.title ? tc('required') : undefined}
           containerStyle={styles.field}
           testID="support-title"
@@ -70,6 +72,7 @@ export default function SupportScreen() {
           value={description}
           onChangeText={(v) => { setDescription(v); clearFieldError('description'); }}
           multiline
+          maxLength={SUPPORT_DESCRIPTION_MAX}
           error={fieldErrors.description ? tc('required') : undefined}
           containerStyle={styles.field}
           testID="support-description"
