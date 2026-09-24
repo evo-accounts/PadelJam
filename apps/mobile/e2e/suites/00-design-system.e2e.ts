@@ -2,13 +2,76 @@ import { join } from 'node:path';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { query, queryAll, snapshot } from '../driver/a11y';
-import { scrollUntilVisible, tap } from '../driver/actions';
+import { describeSelector, query, queryAll, snapshot, type AxElement, type Selector } from '../driver/a11y';
+import { scrollUntilVisible, swipe, tap } from '../driver/actions';
 import { freshInstall } from '../driver/app';
 import { CONFIG } from '../driver/config';
-import { expectVisible } from '../driver/expect';
+import { captureFailure, expectVisible } from '../driver/expect';
 import { deepLink } from '../driver/flows';
 import { overrideStatusBar, screenshot } from '../driver/sim';
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Where the gallery's viewport really ends. Storybook's on-device UI docks its
+ * own bar under the story — a 40pt nav, a 1pt border and the 34pt home-indicator
+ * inset — so the story is clipped at y=799, not at the bottom of the screen.
+ * Measured twice on PR #191's artifact: the bar's menu button reports
+ * y=812..829, and the fullscreen toggle Storybook floats 16pt above the bar
+ * ends at y=783.
+ */
+const STORYBOOK_BAR_TOP = 799;
+
+/**
+ * `scrollUntilVisible`, then make sure the WHOLE control sits above Storybook's
+ * bar before anything taps it.
+ *
+ * The shared stop rule judges an element by its top edge (y < 800). That is
+ * right on every real screen and must stay that way: tightening it once broke
+ * 12 tests across 7 suites. Only the Storybook build puts something the tree
+ * cannot see across the bottom band. On PR #191's run "Show banner" came to rest
+ * at y=799..843. The stop rule accepted it, the gallery clipped it out of sight,
+ * and the tap at its centre (y≈821) hit the bar's menu button. That slid
+ * Storybook's story navigator up over the gallery, and the banner assertion
+ * timed out against a perfectly healthy tree. Whether it happens depends on
+ * where the scroll decelerates, which is why the same gallery passes on other
+ * runs.
+ *
+ * One ordinary swipe is the right size of nudge. It only happens when the
+ * target's top is already past y≈755, and a swipe carries the gallery about
+ * 600pt. Measured with each button parked on the bar: "Open confirm" went from
+ * y=793 to y=192, and "Show banner" from y=792 to y=199. An overshoot past the
+ * top would get a swipe back down on the next pass. The second read after a
+ * pause is the same settle guard `scrollUntilVisible` uses: the content is
+ * still decelerating when swipe() returns.
+ */
+async function scrollAboveStorybookBar(
+  sel: Selector,
+  opts?: Parameters<typeof scrollUntilVisible>[1],
+): Promise<void> {
+  await scrollUntilVisible(sel, opts);
+  // The top limit is the one scrollUntilVisible stops on.
+  const clear = (el: AxElement | undefined) =>
+    !!el && el.frame.y > 60 && el.frame.y + el.frame.height <= STORYBOOK_BAR_TOP;
+  for (let i = 0; i < 3; i++) {
+    const el = query(await snapshot(), sel);
+    if (clear(el)) {
+      await sleep(700);
+      if (clear(query(await snapshot(), sel))) return;
+      continue;
+    }
+    await swipe(el && el.frame.y <= 60 ? 'down' : 'up');
+  }
+  const el = query(await snapshot(), sel);
+  const where = el
+    ? `at y=${Math.round(el.frame.y)}..${Math.round(el.frame.y + el.frame.height)}`
+    : 'gone from the tree';
+  const reason =
+    `could not bring ${describeSelector(sel)} clear of Storybook's bar `
+    + `(the gallery shows y=60..${STORYBOOK_BAR_TOP}): ${where}`;
+  const dir = await captureFailure(reason);
+  throw new Error(`${reason}\nartifacts: ${dir}`);
+}
 
 /**
  * 00 design system — the acceptance gate for the token migration.
@@ -204,7 +267,13 @@ describe('00 design system', () => {
     // between BottomSheet and the end (#130): the target then came to rest at
     // y=-166, a swipe and a half short, and the failure read as if the sheet
     // demo had vanished.
-    await scrollUntilVisible({ text: /open confirm/i }, { direction: 'down', maxSwipes: 20 });
+    //
+    // All three demo buttons go through scrollAboveStorybookBar, not only the
+    // one that failed. Each can come to rest with its top above y=800 and its
+    // centre on Storybook's bar. That includes "Open action sheet", which used
+    // to get no scroll of its own: it sits 52pt below "Open confirm" and
+    // inherited whatever position the first scroll left.
+    await scrollAboveStorybookBar({ text: /open confirm/i, type: 'Button' }, { direction: 'down', maxSwipes: 20 });
     await tap({ text: /open confirm/i, type: 'Button' });
     let tree = await snapshot();
     expect(query(tree, { text: /delete this\?/i }), 'confirm sheet title').toBeDefined();
@@ -214,6 +283,7 @@ describe('00 design system', () => {
     // the page behind it is absent from the tree, so poll instead of snapshotting.
     await expectVisible({ text: /last result: confirmed/i }, { timeout: 10_000 });
 
+    await scrollAboveStorybookBar({ text: /open action sheet/i, type: 'Button' });
     await tap({ text: /open action sheet/i, type: 'Button' });
     await expectVisible({ text: /^remove$/i, type: 'Button' }, { timeout: 10_000 });
     await tap({ text: /^remove$/i, type: 'Button' }); // destructive → the host asks to confirm
@@ -223,7 +293,7 @@ describe('00 design system', () => {
     await tap({ text: /^cancel$/i, type: 'Button' });
     await expectVisible({ text: /last result: dismissed/i }, { timeout: 10_000 });
 
-    await scrollUntilVisible({ text: /show banner/i });
+    await scrollAboveStorybookBar({ text: /show banner/i, type: 'Button' });
     await tap({ text: /show banner/i, type: 'Button' });
     await expectVisible({ text: /missing information/i }, { timeout: 5_000 });
   }, 180_000);
