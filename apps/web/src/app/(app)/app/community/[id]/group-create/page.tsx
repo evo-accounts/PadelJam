@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
 import { useCanCreateGroup, useCreateGroup, useDb } from '@padel/api';
@@ -11,6 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
+
+/** Server codes with their own message — the same set mobile's group-create maps. */
+const KNOWN_ERROR_KEYS = new Set(['forbidden', 'name_required', 'groups_per_community']);
 
 export default function GroupCreatePage() {
   const { id } = useParams<{ id: string }>();
@@ -26,7 +29,9 @@ export default function GroupCreatePage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [nameMissing, setNameMissing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
 
   // Redirect if the entitlement check resolves to "not allowed".
   useEffect(() => {
@@ -49,9 +54,18 @@ export default function GroupCreatePage() {
     setFile(f);
   };
 
+  // Create is never disabled for an empty name. It used to be, and it also returned silently if
+  // reached — a dimmed button that never says what it wants. Mobile's twin (GroupComposer) marks the
+  // field and says so, per UX-GLOB-06; this does the same, the way Contact support does on web:
+  // `aria-invalid` turns the input red, the message is tied to it with `aria-describedby`, and focus
+  // moves to it so a screen reader announces both.
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setNameMissing(true);
+      nameRef.current?.focus();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -71,8 +85,11 @@ export default function GroupCreatePage() {
         }
       }
       router.replace(`/app/group/${newId}`);
-    } catch {
-      setError(t('unknown_error'));
+    } catch (err) {
+      // useCreateGroup throws the mapped code as the message. The ones with their own copy say what
+      // happened — a plan limit reads very differently from a generic failure — as they do on mobile.
+      const code = err instanceof Error ? err.message : 'unknown_error';
+      setError(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
       setBusy(false);
     }
   };
@@ -90,11 +107,22 @@ export default function GroupCreatePage() {
               <Label htmlFor="name">{t('groupName')}</Label>
               <Input
                 id="name"
+                ref={nameRef}
                 value={name}
                 placeholder={t('groupNamePlaceholder')}
                 maxLength={80}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (nameMissing) setNameMissing(false);
+                }}
+                aria-invalid={nameMissing || undefined}
+                aria-describedby={nameMissing ? 'name-error' : undefined}
               />
+              {nameMissing ? (
+                <p id="name-error" className="text-sm text-destructive">
+                  {t('name_required')}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">{t('descriptionLabel')}</Label>
@@ -125,8 +153,12 @@ export default function GroupCreatePage() {
                 <img src={preview} alt="" className="h-24 w-24 rounded object-cover" />
               ) : null}
             </div>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button type="submit" className="w-full" disabled={busy || !name.trim()}>
+            {error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+            <Button type="submit" className="w-full" disabled={busy}>
               {busy ? t('saving') : t('createCta')}
             </Button>
           </form>
