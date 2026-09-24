@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useT } from '@padel/i18n';
 import type { useAuthFlow } from '@/lib/useAuthFlow';
+import { AuthError } from './AuthError';
 
 type Flow = ReturnType<typeof useAuthFlow>;
 
@@ -45,7 +46,7 @@ export function OtpStep({ flow }: { flow: Flow }) {
         />
       </label>
       {flow.locked ? <p className="text-sm text-destructive">{t('locked')}</p> : null}
-      {flow.error && !flow.locked ? <p className="text-sm text-destructive">{flow.error}</p> : null}
+      {!flow.locked ? <AuthError error={flow.error} /> : null}
       <button
         type="submit"
         disabled={flow.busy || flow.locked || code.length < 6}

@@ -12,14 +12,13 @@
  * unlabelled 16pt input styled unlike the OTP screen's, and a differently
  * styled resend link — stop being possible once the primitive owns both.
  */
-import { startEmailOtp, startPhoneOtp, verifyEmailOtp, verifyPhoneOtp } from '@padel/auth';
+import { safeAuthMessage, startEmailOtp, startPhoneOtp, verifyEmailOtp, verifyPhoneOtp } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { safeAuthMessage } from '@/lib/authErrors';
 import { getAuthTarget } from '@/lib/auth-flow';
 import { supabase } from '@/lib/supabase';
 import { useOtpCountdown } from '@/lib/useOtpCountdown';

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isE164, formatDisplayName } from '@padel/utils';
+import { formatDisplayName } from '@padel/utils';
 import {
   startEmailOtp,
   startPhoneOtp,
@@ -16,12 +16,15 @@ import {
   initialOtpState,
   MAX_ATTEMPTS,
   signInWithPassword,
+  safeAuthMessage,
+  type SafeMessage,
 } from '@padel/auth';
 import type { TypedClient } from '@padel/db';
 import { supabase } from '@/lib/supabase/client';
+import { classifyIdentifier, invalidIdentifierMessage, type IdentifierKind } from '@/lib/identifier';
 
+export type { IdentifierKind };
 export type AuthStep = 'identifier' | 'otp' | 'createAccount' | 'verifySecondary' | 'done';
-export type IdentifierKind = 'email' | 'phone';
 
 export interface CompleteAccountInput {
   fullName: string;
@@ -31,14 +34,22 @@ export interface CompleteAccountInput {
 
 const client = supabase as unknown as TypedClient;
 
-const detectKind = (value: string): IdentifierKind => (isE164(value.trim()) ? 'phone' : 'email');
+/**
+ * Every error this flow shows is one of these — an i18n key, never a raw string.
+ *
+ * It used to be a bare string that was sometimes a key and sometimes whatever came back: GoTrue's
+ * English messages, and internal markers like `no-session`, `complete-account-failed:500` and
+ * `session-refresh-failed`, all rendered to the user verbatim in every locale. Failures from GoTrue
+ * now go through `safeAuthMessage` — the same mapper mobile uses, which may name a code or network
+ * problem but never whether an account exists — and anything the user cannot act on is
+ * `common.somethingWrong`.
+ */
+const SOMETHING_WRONG: SafeMessage = { ns: 'common', key: 'somethingWrong' };
+const authKey = (key: string): SafeMessage => ({ ns: 'auth', key });
 
-// flow.error values that are i18n keys in the web `auth` namespace (registered in
-// i18n-web.ts): the codes the complete-account Edge Function returns, plus the
-// client-side `networkError` set when the request never reaches the server.
-// Exported so the step components use the same list when deciding whether
-// flow.error is a key to translate.
-export const COMPLETE_ACCOUNT_ERROR_CODES = new Set([
+// The complete-account Edge Function's codes that have their own message in the web `auth`
+// namespace. Mobile shows the same ones specifically (create-account.tsx), so web does too.
+const COMPLETE_ACCOUNT_ERROR_CODES = new Set([
   'email_taken',
   'phone_taken',
   'identifier_check_failed',
@@ -57,7 +68,11 @@ export function useAuthFlow() {
   const [kind, setKind] = useState<IdentifierKind>('email');
   const [secondary, setSecondary] = useState('');
   const [secondaryKind, setSecondaryKind] = useState<IdentifierKind>('phone');
-  const [error, setError] = useState<string | null>(null);
+  // The identifier as SENT — normalised, so a phone typed with spaces is the E.164 GoTrue expects.
+  // `identifier` stays what the user typed (the OTP step shows it back to them); every call after
+  // the first send reuses this, so a resend or the post-create sign-in cannot drift from it.
+  const [target, setTarget] = useState('');
+  const [error, setError] = useState<SafeMessage | null>(null);
   const [busy, setBusy] = useState(false);
   const [otpState, dispatch] = useReducer(otpReducer, undefined, initialOtpState);
 
@@ -73,17 +88,22 @@ export function useAuthFlow() {
   const cooldownRemainingMs = Math.max(0, otpState.cooldownUntil - now);
 
   const sendOtp = useCallback(async () => {
-    const value = identifier.trim();
-    if (!value) return;
-    const k = detectKind(value);
+    // IdentifierStep validates before calling; this guard is for any other caller.
+    const c = classifyIdentifier(identifier);
+    if (!c.ok) {
+      setError(invalidIdentifierMessage(c.reason));
+      return;
+    }
+    const { kind: k, value } = c;
     setKind(k);
+    setTarget(value);
     setBusy(true);
     setError(null);
     try {
       const { error: otpError } =
         k === 'phone' ? await startPhoneOtp(client, value) : await startEmailOtp(client, value);
       if (otpError) {
-        setError(otpError.message);
+        setError(safeAuthMessage(otpError));
         return;
       }
       dispatch({ type: 'sent', at: Date.now() });
@@ -95,37 +115,35 @@ export function useAuthFlow() {
 
   const resendOtp = useCallback(async () => {
     if (otpState.cooldownUntil - Date.now() > 0) return;
-    const value = identifier.trim();
     setBusy(true);
     setError(null);
     try {
       const { error: otpError } =
-        kind === 'phone' ? await startPhoneOtp(client, value) : await startEmailOtp(client, value);
+        kind === 'phone' ? await startPhoneOtp(client, target) : await startEmailOtp(client, target);
       if (otpError) {
-        setError(otpError.message);
+        setError(safeAuthMessage(otpError));
         return;
       }
       dispatch({ type: 'sent', at: Date.now() });
     } finally {
       setBusy(false);
     }
-  }, [identifier, kind, otpState.cooldownUntil]);
+  }, [target, kind, otpState.cooldownUntil]);
 
   const verify = useCallback(
     async (code: string) => {
       if (otpState.locked) return;
-      const value = identifier.trim();
       setBusy(true);
       setError(null);
       try {
         const { data, error: verifyError } =
           kind === 'phone'
-            ? await verifyPhoneOtp(client, value, code)
-            : await verifyEmailOtp(client, value, code);
+            ? await verifyPhoneOtp(client, target, code)
+            : await verifyEmailOtp(client, target, code);
 
         if (verifyError || !data.user) {
           dispatch({ type: 'fail' });
-          setError(verifyError?.message ?? 'invalid');
+          setError(verifyError ? safeAuthMessage(verifyError) : authKey('invalidCode'));
           return;
         }
 
@@ -145,7 +163,7 @@ export function useAuthFlow() {
         setBusy(false);
       }
     },
-    [identifier, kind, otpState.locked, router],
+    [target, kind, otpState.locked, router],
   );
 
   // GoTrue rejects a change to an identifier already registered on auth.users (the profiles
@@ -164,7 +182,7 @@ export function useAuthFlow() {
         // Clear any attempts/cooldown carried over from the primary OTP step so the failed send
         // doesn't start the verify step locked or on cooldown.
         dispatch({ type: 'reset' });
-        setError(startChangeErrorKey(changeErr));
+        setError(authKey(startChangeErrorKey(changeErr)));
         return 'failed';
       }
       // If the server has confirmations disabled, GoTrue applies the change immediately (the
@@ -190,12 +208,18 @@ export function useAuthFlow() {
           data: { session },
         } = await client.auth.getSession();
         if (!session) {
-          setError('no-session');
+          setError(SOMETHING_WRONG);
           return;
         }
 
-        const secondaryValue = secondaryIdentifier.trim();
-        const secKind = detectKind(secondaryValue);
+        // CreateAccountStep validates the secondary before calling; this guard is for any other
+        // caller. Classified the same way as the primary, so a phone typed with spaces works here too.
+        const sec = classifyIdentifier(secondaryIdentifier);
+        if (!sec.ok) {
+          setError(invalidIdentifierMessage(sec.reason));
+          return;
+        }
+        const { kind: secKind, value: secondaryValue } = sec;
         const secondaryBody =
           secKind === 'phone' ? { phone: secondaryValue } : { email: secondaryValue };
 
@@ -220,20 +244,15 @@ export function useAuthFlow() {
           } catch {
             // Non-JSON error body — fall through to the generic failure code below.
           }
-          // Store the i18n KEY; the step components translate at render (their convention).
-          if (code && COMPLETE_ACCOUNT_ERROR_CODES.has(code)) {
-            setError(code);
-          } else {
-            setError(`complete-account-failed:${resp.status}${code ? `:${code}` : ''}`);
-          }
+          setError(code && COMPLETE_ACCOUNT_ERROR_CODES.has(code) ? authKey(code) : SOMETHING_WRONG);
           return;
         }
 
         // complete-account sets a password via the admin API, which rotates the OTP-issued refresh
         // token; re-establish a fresh session with the password we just set before entering the app.
-        const { error: signInErr } = await signInWithPassword(client, identifier.trim(), kind, password);
+        const { error: signInErr } = await signInWithPassword(client, target, kind, password);
         if (signInErr) {
-          setError('session-refresh-failed');
+          setError(SOMETHING_WRONG);
           setStep('identifier');
           return;
         }
@@ -253,12 +272,12 @@ export function useAuthFlow() {
         // The raw fetch above rejects (TypeError: Failed to fetch) on any network-level failure —
         // offline, dropped connection, CORS, server unreachable. Surface a retry-able error instead
         // of letting it escape as an unhandled promise rejection (Sentry PJAM-DESKTOP-1).
-        setError('networkError');
+        setError(authKey('networkError'));
       } finally {
         setBusy(false);
       }
     },
-    [identifier, kind, startSecondaryChange],
+    [target, kind, startSecondaryChange],
   );
 
   const verifySecondary = useCallback(
@@ -273,7 +292,7 @@ export function useAuthFlow() {
             : await verifyEmailChange(client, secondary, code);
         if (verifyError) {
           dispatch({ type: 'fail' });
-          setError(verifyError.message);
+          setError(safeAuthMessage(verifyError));
           return;
         }
         setStep('done');

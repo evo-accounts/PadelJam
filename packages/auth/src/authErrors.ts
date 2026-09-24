@@ -1,3 +1,10 @@
+/**
+ * What an auth screen may say when something fails — shared by mobile and web.
+ *
+ * It lived in apps/mobile/lib until web needed it: web's sign-in rendered GoTrue's raw English
+ * messages (and internal strings like `no-session`) straight to the user, in every locale. One
+ * definition means both apps draw the same line on what an error is allowed to reveal.
+ */
 export type SafeMessage = { ns: 'auth' | 'common'; key: string };
 const SAFE: Array<[RegExp, SafeMessage]> = [
   [/invalid_code|expired_code|token has expired|otp_expired|invalid otp|invalid token/i, { ns: 'auth', key: 'invalidCode' }],

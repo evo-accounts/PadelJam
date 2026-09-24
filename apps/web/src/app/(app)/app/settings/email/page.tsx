@@ -3,13 +3,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
 import { startEmailChange, verifyEmailChange, type TypedClient } from '@padel/auth';
+import { isEmailShape } from '@padel/utils';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ChangeEmailPage() {
   const { t } = useT('settings');
@@ -28,7 +28,7 @@ export default function ChangeEmailPage() {
 
   const onSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!EMAIL_RE.test(newEmail)) {
+    if (!isEmailShape(newEmail)) {
       setError(t('emailInvalid'));
       return;
     }
