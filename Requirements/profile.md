@@ -391,7 +391,7 @@ Reached from the settings icon on the user’s own profile. The Settings hub gro
 </tr>
 <tr>
 <th><strong>Send</strong></th>
-<th>A primary Send button at the bottom. Tapping Send inserts a support_tickets row (user_id, title, description, status default open), shows a success banner (“Thanks — we’ll get back to you within 5 days.”) and returns to 6.3. <strong>[Amended 2026-09-23]</strong> On mobile the button is <strong>never disabled</strong>: tapping it with a field empty turns that field red and shows the banner, per UX-GLOB-06 — a button that is dimmed for a reason it will not state is the pattern that rule exists to remove. Web still disables its submit until both fields are non-empty; that divergence is known and unresolved. Originally: disabled until both fields were non-empty on both platforms.</th>
+<th>A primary Send button at the bottom. Tapping Send inserts a support_tickets row (user_id, title, description, status default open), shows a success banner (“Thanks — we’ll get back to you within 5 days.”) and returns to 6.3. <strong>[Amended 2026-09-23]</strong> On mobile the button is <strong>never disabled</strong>: tapping it with a field empty turns that field red and shows the banner, per UX-GLOB-06 — a button that is dimmed for a reason it will not state is the pattern that rule exists to remove. Web matches it: the submit is enabled on an empty form, a tap marks each empty field invalid (red, with “Required” tied to it through <code>aria-describedby</code>) and moves focus to the first, and both platforms store the trimmed text. Originally: disabled until both fields were non-empty on both platforms.</th>
 </tr>
 <tr>
 <th><strong>Error handling</strong></th>
