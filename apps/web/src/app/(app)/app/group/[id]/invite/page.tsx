@@ -145,7 +145,7 @@ export default function GroupInvitePage() {
       const how = await shareGroup(id, group?.name ?? '');
       if (how === 'copied') toast(t('linkCopied'));
     } catch {
-      toast(t('unknown_error'), 'error');
+      toast(t('copyFailed'), 'error');
     }
   };
   const onCopy = async () => {
@@ -153,7 +153,7 @@ export default function GroupInvitePage() {
       await copyGroupLink(id);
       toast(t('linkCopied'));
     } catch {
-      toast(t('unknown_error'), 'error');
+      toast(t('copyFailed'), 'error');
     }
   };
 

@@ -12,7 +12,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCreatableCommunities, useCreateGroup, useDb, useMayCreateGroup } from '@padel/api';
+import { useCommunities, useCreatableCommunities, useCreateGroup, useDb, useMayCreateGroup } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -37,7 +37,10 @@ export function GroupCreateForm({ communityId: fixedCommunityId }: { communityId
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const checking = fixedCommunityId ? fixedAllowed.isLoading : loadingCreatable;
+  // useCommunities waits for the session and reports "not loading" until then, so "no data yet"
+  // counts as checking too — otherwise a hard load of this page bounced straight back.
+  const { data: memberships } = useCommunities();
+  const checking = fixedCommunityId ? fixedAllowed.isLoading : loadingCreatable || memberships === undefined;
   const allowed = fixedCommunityId ? fixedAllowed.data === true : creatable.length > 0;
   const back = fixedCommunityId ? `/app/community/${fixedCommunityId}` : '/app/groups';
   useEffect(() => {

@@ -1309,6 +1309,7 @@ const webGroup = {
     rankingCopied: 'Classificação copiada.',
     periodLabel: 'Período',
     memberActionsA11y: 'Ações de {{name}}',
+    copyFailed: "Não foi possível copiar. Tenta novamente.",
     rules_acknowledgement_required: 'Aceita primeiro as regras da comunidade.',
   },
   'pt-BR': {
@@ -1468,6 +1469,7 @@ const webGroup = {
     rankingCopied: 'Ranking copiado.',
     periodLabel: 'Período',
     memberActionsA11y: 'Ações de {{name}}',
+    copyFailed: "Não foi possível copiar. Tente novamente.",
     rules_acknowledgement_required: 'Aceite primeiro as regras da comunidade.',
   },
   en: {
@@ -1627,6 +1629,7 @@ const webGroup = {
     rankingCopied: 'Ranking copied.',
     periodLabel: 'Period',
     memberActionsA11y: 'Actions for {{name}}',
+    copyFailed: "Couldn't copy. Please try again.",
     rules_acknowledgement_required: 'Accept the community rules first.',
   },
 } as const;

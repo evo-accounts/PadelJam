@@ -274,7 +274,8 @@ export default function GroupPage() {
               testId="empty-group-events"
             />
           ) : (
-            <div className="flex gap-3 overflow-x-auto pb-1">
+            // w-0 + min-w-full: the rail scrolls inside the page instead of widening it to fit every card.
+            <div className="flex w-0 min-w-full gap-3 overflow-x-auto pb-1">
               {upcoming.map((e) => (
                 <div key={e.id} className="w-72 shrink-0">
                   <EventCard event={e as unknown as EventCardEvent} />

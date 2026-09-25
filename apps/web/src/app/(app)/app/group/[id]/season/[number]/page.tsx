@@ -49,7 +49,7 @@ export default function GroupSeasonPage() {
       const how = await shareText(title, [title, ...lines].join('\n'), groupUrl(id));
       if (how === 'copied') toast(t('rankingCopied'));
     } catch {
-      toast(t('unknown_error'), 'error');
+      toast(t('copyFailed'), 'error');
     }
   };
 

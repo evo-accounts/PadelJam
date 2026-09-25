@@ -28,7 +28,7 @@ export default function GroupSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const checking = group.isLoading || communityMembers.isLoading || people.isLoading;
+  const checking = !uid || group.isLoading || communityMembers.isLoading || people.isLoading;
   const isMember = (people.data ?? []).some((p) => p.user_id === uid && p.is_member);
   const isCommunityAdmin = (communityMembers.data ?? []).some((m) => m.user_id === uid && m.role === 'admin');
   const isAdmin = isCommunityAdmin && (!group.data?.is_private || isMember);

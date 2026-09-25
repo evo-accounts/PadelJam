@@ -111,16 +111,17 @@ export function GroupMenu({
     try {
       const how = await shareGroup(id, name);
       if (how === 'copied') toast(t('linkCopied'));
-    } catch (e) {
-      fail(e);
+    } catch {
+      toast(t('copyFailed'), 'error');
     }
   };
   const onCopy = async () => {
     try {
       await copyGroupLink(id);
       toast(t('linkCopied'));
-    } catch (e) {
-      fail(e);
+    } catch {
+      // The browser refused the clipboard (no permission, page not focused).
+      toast(t('copyFailed'), 'error');
     }
   };
   const onChat = async () => {
