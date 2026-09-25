@@ -1427,6 +1427,10 @@ const mobileGroup = {
     rankingEventsPlayed_one: '{{count}} evento',
     rankingEventsPlayed_other: '{{count}} eventos',
     // --- Groups audit (UX-GRP): group page, sheets, seasons ---
+    removeMemberConfirmBody: 'Sai deste grupo, mas continua na comunidade. Os registos de jogos mantêm-se.',
+    removedToast: '{{name}} foi removido do grupo.',
+    inviteMemberRow: 'Convidar membro',
+    membersNoMatch: 'Ninguém com esse nome.',
     playersCount_one: '{{count}} jogador',
     playersCount_other: '{{count}} jogadores',
     privateGroupLabel: 'Grupo privado',
@@ -1586,6 +1590,10 @@ const mobileGroup = {
     rankingEventsPlayed_one: '{{count}} evento',
     rankingEventsPlayed_other: '{{count}} eventos',
     // --- Groups audit (UX-GRP): group page, sheets, seasons ---
+    removeMemberConfirmBody: 'A pessoa sai deste grupo, mas continua na comunidade. Os registros de partidas são mantidos.',
+    removedToast: '{{name}} foi removido do grupo.',
+    inviteMemberRow: 'Convidar membro',
+    membersNoMatch: 'Ninguém com esse nome.',
     playersCount_one: '{{count}} jogador',
     playersCount_other: '{{count}} jogadores',
     privateGroupLabel: 'Grupo privado',
@@ -1745,6 +1753,10 @@ const mobileGroup = {
     rankingEventsPlayed_one: '{{count}} event',
     rankingEventsPlayed_other: '{{count}} events',
     // --- Groups audit (UX-GRP): group page, sheets, seasons ---
+    removeMemberConfirmBody: 'They leave this group but stay in the community. Their match records are kept.',
+    removedToast: '{{name}} was removed from the group.',
+    inviteMemberRow: 'Invite member',
+    membersNoMatch: 'Nobody by that name.',
     playersCount_one: '{{count}} player',
     playersCount_other: '{{count}} players',
     privateGroupLabel: 'Private Group',

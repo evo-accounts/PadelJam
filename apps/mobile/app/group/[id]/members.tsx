@@ -1,84 +1,9 @@
-import { useGroupMembers } from '@padel/api';
-import { useT } from '@padel/i18n';
-import { FlashList } from '@shopify/flash-list';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 
-import { GroupMemberRow, type GroupMember } from '@/components/group/GroupMemberRow';
-import { colors } from '../../../theme';
-import { EmptyState, SearchInput, emptyIcon, listEmptyContent, TopBar } from '../../../components/ui';
+import { GroupMembersList } from '@/components/group/GroupMembersList';
 
+/** Members (UX-GRP-07) — the same component as Manage members (UX-GRP-12). */
 export default function GroupMembersScreen() {
-  const { t } = useT('group');
-  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-
-  const { data: members, isLoading, isError, refetch } = useGroupMembers(id);
-  const [query, setQuery] = useState('');
-
-  const rows = useMemo(() => {
-    const list = (members ?? []) as GroupMember[];
-    const q = query.trim().toLowerCase();
-    if (q.length === 0) return list;
-    return list.filter((m) => (m.profiles?.full_name ?? '').toLowerCase().includes(q));
-  }, [members, query]);
-
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar title={t('membersTitle')} onBack={() => router.back()} backLabel={t('back')} />
-
-      <SearchInput
-        containerStyle={styles.search}
-        value={query}
-        onChangeText={setQuery}
-        placeholder={t('membersSearchPlaceholder')}
-      />
-
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.foreground} />
-        </View>
-      ) : (
-        <FlashList
-          data={rows}
-          keyExtractor={(m) => m.user_id}
-          renderItem={({ item }) => <GroupMemberRow member={item} />}
-          contentContainerStyle={listEmptyContent}
-          ListEmptyComponent={
-            // A failed load is not an empty group: without this the screen invites
-            // the user to add members to a list that merely failed to arrive.
-            isError ? (
-              <EmptyState
-                fill
-                tone="error"
-                title={t('loadError')}
-                action={{ label: t('retry', { ns: 'common' }), onPress: () => void refetch() }}
-                testID="error-group-members"
-              />
-            ) : (
-              <EmptyState
-                fill
-                icon={emptyIcon('person.2')}
-                title={t('groupMembersEmptyTitle')}
-                body={t('groupMembersEmptyBody')}
-                // Ungated: the invite route is open to every group member, not just
-                // an organizer/admin, and is already linked from the group detail
-                // screen — there is no permission check to gate this CTA on.
-                action={{ label: t('groupMembersEmptyCta'), onPress: () => router.push(`/group/${id}/invite` as never) }}
-                testID="empty-group-members"
-              />
-            )
-          }
-        />
-      )}
-    </SafeAreaView>
-  );
+  return <GroupMembersList groupId={id} />;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.card },
-  search: { margin: 16 },
-  center: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-});
