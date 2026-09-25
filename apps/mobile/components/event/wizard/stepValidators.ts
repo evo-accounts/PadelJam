@@ -1,5 +1,5 @@
 import type { EventDraft } from './draft';
-import { CUSTOM_POINTS_MAX, CUSTOM_POINTS_MIN, MINUTES_MAX, MINUTES_MIN } from './scoring';
+import { CUSTOM_POINTS_MAX, CUSTOM_POINTS_MIN, MINUTES_MAX, MINUTES_MIN } from '@padel/utils';
 
 /**
  * Pure per-step validators (UX-GLOB-06). Each returns the failing field keys for

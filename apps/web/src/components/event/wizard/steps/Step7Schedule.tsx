@@ -28,7 +28,6 @@ export function Step7Schedule({ draft, patch }: StepProps) {
   const series = draft.series;
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{t('step7Title')}</h2>
       <div className="space-y-2">
         <Label>{t('startsAtLabel')}</Label>
         <Input

@@ -21,7 +21,6 @@ export function Step8Preferences({ draft, patch }: StepProps) {
   const standalone = draft.groupId === null;
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{t('step8Title')}</h2>
 
       <div className="flex items-center justify-between">
         <Label>{t('standbyToggle')}</Label>

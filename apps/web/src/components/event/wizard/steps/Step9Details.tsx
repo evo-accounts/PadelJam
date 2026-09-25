@@ -27,7 +27,6 @@ export function Step9Details({ draft, patch, onThumbnail, thumbFile }: Step9Prop
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{t('step9Title')}</h2>
       <div className="space-y-2">
         <Label>{t('nameLabel')}</Label>
         <Input

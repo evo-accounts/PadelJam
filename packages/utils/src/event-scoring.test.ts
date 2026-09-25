@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isPreset, minutesAt, parseCustomPoints, POINTS_PRESETS, scoringDefault } from './scoring';
+import { isPreset, minutesAt, parseCustomPoints, POINTS_PRESETS, scoringDefault } from './event-scoring';
 
 describe('scoring defaults (B16, decision 9)', () => {
   it('starts Points at 32 and Time at 10 minutes', () => {

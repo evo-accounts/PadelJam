@@ -12,7 +12,7 @@ import {
   parseCustomPoints,
   POINTS_PRESETS,
   scoringDefault,
-} from '../scoring';
+} from '@padel/utils';
 import { Slider } from '../Slider';
 import { colors, palette, radius, space, type } from '../../../../theme';
 import { BottomSheet, Button, Chip, Text } from '../../../ui';

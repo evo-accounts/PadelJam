@@ -2,8 +2,10 @@
 import { useState } from 'react';
 import { useT } from '@padel/i18n';
 import { useSearchVenues } from '@padel/api';
+import { isManualVenue } from '@padel/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CourtCounter } from '../CourtCounter';
 import { SelectableCard } from '../SelectableCard';
 import type { StepProps } from '../types';
 
@@ -13,7 +15,6 @@ export function Step5Location({ draft, patch }: StepProps) {
   const venues = useSearchVenues(query);
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{t('step5Title')}</h2>
       <div className="space-y-2">
         <Label>{t('venueSearchLabel')}</Label>
         <Input value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -58,6 +59,14 @@ export function Step5Location({ draft, patch }: StepProps) {
           onChange={(e) => patch({ manualLocationAddress: e.target.value })}
         />
       </div>
+      {/*
+        A place that is not in the venue registry has no courts to pick, so the Courts step is
+        skipped for it (UX-CEVT-01) and the count is set here instead. M2/W2 replace this with the
+        manual venue form's courts and court names.
+      */}
+      {isManualVenue(draft) ? (
+        <CourtCounter value={draft.numCourts} onChange={(n) => patch({ numCourts: n })} />
+      ) : null}
     </div>
   );
 }

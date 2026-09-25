@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { defaultDraft, type EventDraft } from './draft';
+import { defaultWizardDraft as defaultDraft, type WizardDraft as EventDraft } from './event-wizard';
 import {
   isManualVenue,
   neighbourStep,
   STEP_KEYS,
   stepProgress,
   visibleStepKeys,
-} from './visibleSteps';
+} from './event-wizard-steps';
 
 const standalone: EventDraft = { ...defaultDraft, groupId: null, isPrivate: true };
 const publicGroup: EventDraft = { ...defaultDraft, groupId: 'g1', isPrivate: false };

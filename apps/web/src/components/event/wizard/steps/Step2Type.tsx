@@ -6,21 +6,20 @@ import type { StepProps } from '../types';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export function Step2Type({ draft, patch }: StepProps) {
+/** Format (UX-CEVT-03): three cards with their descriptions; the tap sets the format and advances. */
+export function Step2Type({ advance }: StepProps) {
   const { t } = useT('event');
   return (
-    <div className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">{t('step2Title')}</h2>
-      <div className="flex flex-col gap-2">
-        {EVENT_TYPES.map((v) => (
-          <SelectableCard
-            key={v}
-            title={t(`type${cap(v)}Label`)}
-            selected={draft.eventType === v}
-            onClick={() => patch({ eventType: v })}
-          />
-        ))}
-      </div>
+    <div className="flex flex-col gap-2">
+      {EVENT_TYPES.map((v) => (
+        <SelectableCard
+          key={v}
+          title={t(`type${cap(v)}Label`)}
+          subtitle={t(`type${cap(v)}Desc`)}
+          onClick={() => advance?.({ eventType: v })}
+          testId={`event-wizard-format-${v}`}
+        />
+      ))}
     </div>
   );
 }

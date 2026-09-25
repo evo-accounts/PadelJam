@@ -9,7 +9,7 @@ import { geocodeAddress } from '@/lib/geocode';
 
 import { CourtCounter } from '../CourtCounter';
 import type { WizardStepProps } from '../draft';
-import { isManualVenue } from '../visibleSteps';
+import { isManualVenue } from '@padel/utils';
 import { colors, palette, space, type } from '../../../../theme';
 import { Button, EmptyState, emptyIcon } from '../../../../components/ui';
 

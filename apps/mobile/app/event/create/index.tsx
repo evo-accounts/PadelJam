@@ -1,7 +1,7 @@
 import { type CreateEventInput, useCommunityMembers, useCreateEvent } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { geocodeQuery } from '@padel/utils';
+import { geocodeQuery, skipsInvite } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import {
@@ -15,7 +15,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
-import { skipsInvite } from '@/components/event/wizard/visibleSteps';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
