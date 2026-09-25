@@ -1,99 +1,145 @@
+/**
+ * The group page (UX-GRP-04), and for a community member who has not joined, its public preview
+ * (UX-GRP-02: all content visible, "Join Group" fixed at the bottom). An archived group opens
+ * read-only, with "Unarchive group" fixed at the bottom for its admins (UX-GRP-03).
+ *
+ * The header carries the identity (small thumbnail, name, description) and the viewer's menu:
+ * "⋯" for members, a settings icon opening Manage Group for admins (useGroupMenu). Below it, one
+ * line of overlapping avatars and the player count, with "+ Invite members" at its end.
+ */
 import {
   useAddGroupAdmins,
+  useCanCreateEvent,
+  useCanInviteToGroup,
   useCommunity,
   useCommunityMembers,
   useGroup,
   useGroupEvents,
-  useGroupMembers,
+  useGroupMemberList,
   useGroupRanking,
   useGroupSeasons,
+  useJoinGroup,
   useLeaveGroup,
-  useEnsureChannel,
+  useUnarchiveGroup,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventCard } from '@/components/event/EventCard';
-import { GroupHeader } from '@/components/group/GroupHeader';
-import { RankingList } from '@/components/group/RankingList';
-import { avatarUrl } from '@/lib/community-images';
+import { GroupIdentity } from '@/components/group/GroupIdentity';
+import { RankingList, sortRanking, type RankingSort } from '@/components/group/RankingList';
+import { avatarUrl, thumbnailUrl } from '@/lib/community-images';
+import { lastSeenSeason, markSeasonSeen, seasonToAnnounce } from '@/lib/seasonNotice';
 import { useGoBack } from '@/lib/useGoBack';
-import { colors, palette } from '../../../theme';
-import { Avatar, Badge, BottomSheet, Button, Chip, EmptyState, emptyIcon, ListRow, SheetRow, Text, TopBar, useActionSheet, useBanner } from '../../../components/ui';
+import { useGroupMenu } from '@/lib/useGroupMenu';
+import { colors, radius, space } from '../../../theme';
+import {
+  AvatarStack,
+  Avatar,
+  Badge,
+  BottomSheet,
+  Button,
+  EmptyState,
+  emptyIcon,
+  SheetRow,
+  Text,
+  TopBar,
+  useActionSheet,
+  useBanner,
+} from '../../../components/ui';
 
-const KNOWN_ERROR_KEYS = new Set([
-  'forbidden',
-  'not_a_member',
-  'sole_admin_must_add_another',
-  'group_not_found',
-]);
+const PREVIEW_ROWS = 10;
 
 export default function GroupHomeScreen() {
-  const { t } = useT('group');
+  const { t, i18n } = useT('group');
   const router = useRouter();
   const goBack = useGoBack();
+  const banner = useBanner();
+  const show = useActionSheet();
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = useSession().session?.user.id;
 
   const { data: group, isLoading } = useGroup(id);
-  const { data: members } = useGroupMembers(id);
-  const { data: seasons } = useGroupSeasons(id);
-  const { data: events } = useGroupEvents(id);
-  // Undefined until useGroup resolves; the hooks stay disabled until then.
   const communityId = group?.community_id;
   const { data: community } = useCommunity(communityId);
   const { data: communityMembers } = useCommunityMembers(communityId);
+  const { data: people } = useGroupMemberList(id);
+  const { data: seasons } = useGroupSeasons(id);
+  const { data: events } = useGroupEvents(id);
+  const { data: canCreateEvent } = useCanCreateEvent(id);
+  const { data: canInvite } = useCanInviteToGroup(id);
 
-  const [period, setPeriod] = useState<'all' | '3m' | '6m' | '12m'>('all');
-  const monthsAgoIso = (n: number) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - n);
-    return d.toISOString();
-  };
-  const since =
-    period === '3m'
-      ? monthsAgoIso(3)
-      : period === '6m'
-        ? monthsAgoIso(6)
-        : period === '12m'
-          ? monthsAgoIso(12)
-          : undefined;
+  const currentSeason = (seasons ?? []).find((s) => s.ended_at == null);
+  const pastSeasons = (seasons ?? []).filter((s) => s.ended_at != null);
+  const { data: ranking } = useGroupRanking(currentSeason?.id ?? '');
+  const [sort, setSort] = useState<RankingSort>('points');
+  // Fixed at mount: "upcoming" is relative to when the page opened (React Compiler purity).
+  const [now] = useState(() => Date.now());
 
-  const currentSeasonId = (seasons ?? []).find((s) => s.ended_at == null)?.id ?? '';
-  const { data: ranking } = useGroupRanking(currentSeasonId, since);
+  const members = (people ?? []).filter((p) => p.is_member);
+  const isMember = members.some((p) => p.user_id === uid);
+  const isCommunityAdmin = (communityMembers ?? []).some((m) => m.user_id === uid && m.role === 'admin');
+  // is_group_admin, read client-side: community admin, and for a private group also a member.
+  const isAdmin = isCommunityAdmin && (!group?.is_private || isMember);
+  const isArchived = !!group?.archived_at;
 
+  // "Add another admin" — the way out of the sole-admin leave (UX-GRP-15, decision 1).
   const [addAdminOpen, setAddAdminOpen] = useState(false);
   const [selectedAdmins, setSelectedAdmins] = useState<string[]>([]);
   const addAdmins = useAddGroupAdmins(id);
-  const groupMemberIds = new Set((members ?? []).map((m) => m.user_id));
-  const eligibleAdmins = (communityMembers ?? []).filter(
-    (m) => m.role === 'admin' && !groupMemberIds.has(m.user_id),
+  const leave = useLeaveGroup();
+  const memberIds = new Set(members.map((m) => m.user_id));
+  const eligibleAdmins = (communityMembers ?? []).filter((m) => m.role === 'admin' && !memberIds.has(m.user_id));
+
+  const menu = useGroupMenu(
+    group
+      ? {
+          id,
+          name: group.name,
+          communityId: group.community_id,
+          archivedAt: group.archived_at,
+          currentSeasonNumber: currentSeason?.season_number ?? null,
+          isMember,
+        }
+      : null,
+    isAdmin,
+    () => {
+      setSelectedAdmins([]);
+      setAddAdminOpen(true);
+    },
   );
 
-  const leave = useLeaveGroup();
-  const ensureChannel = useEnsureChannel();
-  const show = useActionSheet();
-  const banner = useBanner();
-  const openGroupChat = async () => {
-    if (ensureChannel.isPending) return;
-    try {
-      const { cid } = await ensureChannel.mutateAsync({ kind: 'group', id });
-      router.push(('/chat/' + cid) as never);
-    } catch {
-      /* surfaced via ensureChannel.isError below */
-    }
+  // UX-GRP-14: a member who was away when the season closed hears about it once, here.
+  const [endedNotice, setEndedNotice] = useState<number | null>(null);
+  const latestClosed = pastSeasons.reduce<number | null>((n, s) => Math.max(n ?? 0, s.season_number), null);
+  useEffect(() => {
+    if (!isMember || latestClosed == null) return;
+    let live = true;
+    void lastSeenSeason(id).then((seen) => {
+      if (!live) return;
+      const announce = seasonToAnnounce(latestClosed, seen);
+      if (announce != null) setEndedNotice(announce);
+      else void markSeasonSeen(id, latestClosed);
+    });
+    return () => {
+      live = false;
+    };
+  }, [id, isMember, latestClosed]);
+  const closeNotice = () => {
+    if (endedNotice != null) void markSeasonSeen(id, endedNotice);
+    setEndedNotice(null);
   };
+  const { data: endedRanking } = useGroupRanking(
+    endedNotice != null ? (pastSeasons.find((s) => s.season_number === endedNotice)?.id ?? '') : '',
+  );
+
+  const join = useJoinGroup();
+  const unarchive = useUnarchiveGroup();
 
   if (isLoading) {
     return (
@@ -106,207 +152,263 @@ export default function GroupHomeScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <Text variant="sectionTitle">{t('noAccessTitle')}</Text>
-        <Text variant="body" tone="muted">{t('noAccessBody')}</Text>
+        <Text variant="body" tone="muted">
+          {t('noAccessBody')}
+        </Text>
         <Button label={t('back')} variant="outline" onPress={() => router.back()} />
       </SafeAreaView>
     );
   }
 
-  const memberRows = members ?? [];
-  const currentSeason = (seasons ?? []).find((s) => s.ended_at == null);
-  const previousSeasons = (seasons ?? []).filter((s) => s.ended_at != null);
-  const previewMembers = memberRows.slice(0, 6);
-  const eventRows = events ?? [];
-
-  const myCommunityRole = (communityMembers ?? []).find((m) => m.user_id === uid)?.role;
-  const canManage = myCommunityRole === 'admin';
-
   const err = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';
-    banner.show(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+    banner.show(t(code, { defaultValue: t('unknown_error') }));
   };
 
-  const onShare = () => {
-    void Share.share({ message: t('shareCta') + ': ' + group.name });
+  const upcoming = (events ?? []).filter(
+    (e) => e.status === 'scheduled' && new Date(e.starts_at).getTime() >= now,
+  );
+  const createEvent = () =>
+    router.push(`/event/create?groupId=${id}&communityId=${communityId ?? ''}` as Href);
+  const mayCreateEvent = !!canCreateEvent && !isArchived;
+  const rankingRows = sortRanking(ranking ?? [], sort).slice(0, PREVIEW_ROWS);
+  const lastUpdated = ranking?.[0]?.lastUpdated;
+  const fmtDate = (iso: string, opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }) =>
+    new Date(iso).toLocaleDateString(i18n.language, opts);
+
+  const onSort = async () => {
+    const key = await show({
+      title: t('sortBy'),
+      actions: [
+        { key: 'points', label: t('sortPoints') },
+        { key: 'wins', label: t('sortWins') },
+      ],
+    });
+    if (key === 'points' || key === 'wins') setSort(key);
   };
 
-  // The action sheet auto-confirms the destructive 'leave' row before
-  // returning its key (see useActionSheet), so this runs the mutation
-  // directly rather than asking again.
-  const doLeave = async () => {
+  const onJoin = async () => {
     if (!communityId) return;
     try {
-      await leave.mutateAsync({ groupId: id, communityId });
-      router.back();
+      await join.mutateAsync({ groupId: id, communityId });
+      banner.show(t('joinedToast', { name: group.name }), 'success');
     } catch (e) {
-      if (e instanceof Error && e.message === 'sole_admin_must_add_another') {
-        // Safe to open this BottomSheet here: `show()` (called by `onMore`,
-        // above) only resolves once the host has actually dismissed its own
-        // Modal (see sheetApi.ts), so there is no Modal still animating out.
-        setSelectedAdmins([]);
-        setAddAdminOpen(true);
-      } else {
-        err(e);
+      // Joining a public group is also entering its community; one with rules asks for them on
+      // its own join screen, which records the acceptance.
+      if (e instanceof Error && e.message === 'rules_acknowledgement_required') {
+        router.push(`/community/${communityId}/join` as Href);
+        return;
       }
+      err(e);
     }
   };
 
-  const onMore = async () => {
-    const key = await show({
-      title: t('moreCta'),
-      actions: [
-        { key: 'share', label: t('shareCta') },
-        ...(canManage ? [{ key: 'manage', label: t('manageCta') }] : []),
-        { key: 'leave', label: t('leaveGroupCta'), destructive: true, confirm: { title: t('leaveGroupConfirm'), confirmLabel: t('leaveGroupCta') } },
-      ],
-    });
-    if (key === 'share') onShare();
-    else if (key === 'manage') router.push(`/group/${id}/manage` as Href);
-    else if (key === 'leave') await doLeave();
+  const onUnarchive = async () => {
+    if (!communityId) return;
+    try {
+      await unarchive.mutateAsync({ groupId: id, communityId });
+      banner.show(t('unarchivedToast'), 'success');
+    } catch (e) {
+      err(e);
+    }
   };
 
+  const footer = isArchived ? (
+    isAdmin ? (
+      <Button label={t('unarchiveCta')} fullWidth loading={unarchive.isPending} onPress={onUnarchive} testID="group-unarchive" />
+    ) : null
+  ) : !isMember && !group.is_private ? (
+    <Button label={t('joinCta')} fullWidth loading={join.isPending} onPress={onJoin} testID="group-join" />
+  ) : null;
+
+  const communityThumb = thumbnailUrl(community?.thumbnail_path);
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <TopBar
         onBack={goBack}
         backLabel={t('back')}
-        actions={[{ icon: '•••', label: t('more'), onPress: onMore }]}
+        centre={<GroupIdentity name={group.name} description={group.description} thumbnailPath={group.thumbnail_path} />}
+        actions={menu ? [menu] : []}
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <GroupHeader
-          name={group.name}
-          description={group.description}
-          thumbnailPath={group.thumbnail_path}
-          memberCount={memberRows.length}
-          seasonNumber={currentSeason?.season_number ?? null}
-          isPrivate={group.is_private}
-        />
-
-        {/* Members preview */}
-        <Pressable
-          style={styles.section}
-          accessibilityRole="button"
-          onPress={() => router.push(`/group/${id}/members` as Href)}
-        >
-          <View style={styles.sectionHeader}>
-            <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('membersTitle')}</Text>
-            <Text variant="hint" tone="muted">{t('membersPill', { count: memberRows.length })}</Text>
-          </View>
-          <View style={styles.avatars}>
-            {previewMembers.map((m) => (
-              <Avatar
-                key={m.user_id}
-                uri={avatarUrl(m.profiles?.avatar_url)}
-                name={m.profiles?.full_name}
-                colourKey={m.user_id}
-                size="md"
-                style={styles.avatarStack}
-              />
-            ))}
-          </View>
-        </Pressable>
-
-        <ListRow
-          title={t('inviteMembersCta')}
-          onPress={() => router.push(`/group/${id}/invite` as Href)}
-        />
-
-        {/* Chat */}
-        <View style={styles.section}>
-          <Button
-            label={t('openChat', { ns: 'chat' })}
-            fullWidth
-            loading={ensureChannel.isPending}
-            onPress={openGroupChat}
+        <View style={styles.membersLine}>
+          <AvatarStack
+            people={members.map((m) => ({ id: m.user_id, name: m.full_name, uri: avatarUrl(m.avatar_url) }))}
+            countLabel={t('playersCount', { count: members.length })}
+            onPress={() => router.push(`/group/${id}/members` as Href)}
+            testID="group-members-line"
           />
-          {ensureChannel.isError ? (
-            <Text variant="hint" tone="destructive" style={styles.chatError}>
-              {t('chatUnavailable', { ns: 'chat' })}
-            </Text>
+          {canInvite && !isArchived ? (
+            <Pressable
+              onPress={() => router.push(`/group/${id}/invite` as Href)}
+              accessibilityRole="button"
+              hitSlop={8}
+            >
+              <Text variant="label" tone="primary">
+                {t('inviteMembersCta')}
+              </Text>
+            </Pressable>
           ) : null}
         </View>
+        {group.is_private || isArchived ? (
+          <View style={styles.tags}>
+            {group.is_private ? <Badge label={t('privateGroupLabel')} /> : null}
+            {isArchived ? <Badge label={t('archivedTag')} tone="warning" /> : null}
+          </View>
+        ) : null}
 
-        {/* Events */}
+        {/* Events: a rail with "See all"; no permanent "Create event" row (UX-GRP-04). */}
         <View style={styles.section}>
-          <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('eventsTitle')}</Text>
-          <ListRow
-            title={t('event:createTitle')}
-            onPress={() =>
-              router.push(
-                `/event/create?groupId=${id}&communityId=${communityId ?? ''}` as Href,
-              )
-            }
+          <SectionTitle
+            title={t('eventsTitle')}
+            onSeeAll={upcoming.length > 0 ? () => router.push(`/group/${id}/events` as Href) : undefined}
+            seeAllLabel={t('seeAll')}
+            testID="group-events-see-all"
           />
-          {eventRows.length === 0 ? (
+          {upcoming.length === 0 ? (
             <EmptyState
               icon={emptyIcon('calendar')}
               title={t('groupEventsEmptyTitle')}
               body={t('groupEventsEmptyBody')}
-              action={{
-                label: t('groupEventsEmptyCta'),
-                onPress: () =>
-                  router.push(`/event/create?groupId=${id}&communityId=${communityId ?? ''}` as Href),
-              }}
+              action={mayCreateEvent ? { label: t('groupEventsEmptyCta'), onPress: createEvent } : undefined}
               testID="empty-group-events"
             />
           ) : (
-            <View style={styles.eventList}>
-              {eventRows.map((e) => (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
+              {upcoming.map((e) => (
                 <EventCard
                   key={e.id}
                   event={e}
+                  orientation="vertical"
                   onPress={() => router.push(`/event/${e.id}` as Href)}
                 />
               ))}
-            </View>
+            </ScrollView>
           )}
         </View>
 
-        {/* Ranking */}
+        {/* Ranking: top 10, W/L, sortable; the period filter lives on the full screen. */}
         <View style={styles.section}>
-          <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('rankingTitle')}</Text>
-          <View style={styles.periodRow}>
-            {(['all', '3m', '6m', '12m'] as const).map((p) => (
-              <Chip
-                key={p}
-                label={t(
-                  p === 'all'
-                    ? 'periodAll'
-                    : p === '3m'
-                      ? 'period3m'
-                      : p === '6m'
-                        ? 'period6m'
-                        : 'period12m',
+          <SectionTitle
+            title={t('rankingTitle')}
+            onSeeAll={rankingRows.length > 0 ? () => router.push(`/group/${id}/ranking` as Href) : undefined}
+            seeAllLabel={t('seeAll')}
+            testID="group-ranking-see-all"
+          />
+          {rankingRows.length === 0 ? (
+            <EmptyState
+              icon={emptyIcon('trophy')}
+              title={t('rankingEmptyTitle')}
+              body={t('rankingPlaceholder')}
+              action={mayCreateEvent ? { label: t('groupEventsEmptyCta'), onPress: createEvent } : undefined}
+              testID="empty-group-ranking"
+            />
+          ) : (
+            <>
+              <View style={styles.rankingMeta}>
+                {lastUpdated ? (
+                  <Text variant="hint" tone="muted">
+                    {t('lastUpdate', { date: fmtDate(lastUpdated) })}
+                  </Text>
+                ) : (
+                  <View />
                 )}
-                selected={period === p}
-                onPress={() => setPeriod(p)}
+                <Pressable onPress={onSort} accessibilityRole="button" hitSlop={8}>
+                  <Text variant="hint" tone="primary">
+                    {t('sortedBy', { by: sort === 'wins' ? t('sortWins') : t('sortPoints') })}
+                  </Text>
+                </Pressable>
+              </View>
+              <RankingList
+                rows={rankingRows}
+                variant="preview"
+                onPressRow={(userId) => router.push(`/profile/${userId}` as Href)}
               />
-            ))}
-          </View>
-          <RankingList rows={ranking ?? []} />
+            </>
+          )}
         </View>
 
-        {/* Previous seasons */}
-        {previousSeasons.length > 0 ? (
+        {/* Past seasons, hidden until there is one (UX-GRP-14). */}
+        {pastSeasons.length > 0 ? (
           <View style={styles.section}>
-            <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('previousSeasonsTitle')}</Text>
-            <View style={styles.card}>
-              {previousSeasons.map((s) => (
-                <ListRow
+            <SectionTitle title={t('previousSeasonsTitle')} />
+            <View style={styles.seasonCards}>
+              {pastSeasons.map((s) => (
+                <Pressable
                   key={s.id}
-                  title={t('seasonTag', { number: s.season_number })}
-                  trailing={<Text variant="body" tone="subtle">›</Text>}
-                  // TODO(events): navigate to a season detail screen once it exists.
-                  onPress={() => {}}
-                />
+                  style={styles.seasonCard}
+                  accessibilityRole="button"
+                  onPress={() => router.push(`/group/${id}/season/${s.season_number}` as Href)}
+                  testID={`group-season-${s.season_number}`}
+                >
+                  <Text variant="label">{t('seasonTag', { number: s.season_number })}</Text>
+                  <Text variant="hint" tone="muted">
+                    {t('seasonPeriod', {
+                      from: fmtDate(s.started_at, { month: 'short', year: 'numeric' }),
+                      to: fmtDate(s.ended_at!, { month: 'short', year: 'numeric' }),
+                    })}
+                  </Text>
+                </Pressable>
               ))}
             </View>
           </View>
         ) : null}
 
-        {community ? <View style={styles.spacer} /> : null}
+        {/* General info */}
+        <View style={styles.section}>
+          <SectionTitle title={t('generalInfoTitle')} />
+          {community ? (
+            <Pressable
+              style={styles.communityCard}
+              accessibilityRole="button"
+              onPress={() => router.push(`/community/${community.id}` as Href)}
+            >
+              {communityThumb ? (
+                <Image source={{ uri: communityThumb }} style={styles.communityThumb} contentFit="cover" />
+              ) : (
+                <Avatar name={community.name} colourKey={community.id} size="md" decorative />
+              )}
+              <Text variant="label" style={styles.communityName} numberOfLines={1}>
+                {community.name}
+              </Text>
+              <Text variant="body" tone="subtle">
+                ›
+              </Text>
+            </Pressable>
+          ) : null}
+          <Text variant="caption" tone="muted" style={styles.created}>
+            {t('createdOn', { date: fmtDate(group.created_at, { day: 'numeric', month: 'long', year: 'numeric' }) })}
+          </Text>
+        </View>
       </ScrollView>
+
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
+
+      <BottomSheet
+        visible={endedNotice != null}
+        onClose={closeNotice}
+        title={t('seasonEndedTitle', { number: endedNotice ?? 0 })}
+        testID="season-ended-notice"
+      >
+        <Text variant="body" tone="muted" style={styles.sheetBody}>
+          {t('seasonEndedBody')}
+        </Text>
+        {(endedRanking ?? []).length > 0 ? (
+          <RankingList rows={(endedRanking ?? []).slice(0, 3)} variant="full" />
+        ) : null}
+        <Button
+          label={t('seeFinalStandings')}
+          fullWidth
+          style={styles.sheetCta}
+          onPress={() => {
+            const n = endedNotice;
+            closeNotice();
+            if (n != null) router.push(`/group/${id}/season/${n}` as Href);
+          }}
+        />
+      </BottomSheet>
 
       <BottomSheet
         visible={addAdminOpen}
@@ -314,9 +416,13 @@ export default function GroupHomeScreen() {
         title={t('addAdminTitle')}
         testID="add-admin-sheet"
       >
-        <Text variant="body" tone="muted" style={styles.addAdminBody}>{t('addAdminBody')}</Text>
+        <Text variant="body" tone="muted" style={styles.sheetBody}>
+          {t('addAdminBody')}
+        </Text>
         {eligibleAdmins.length === 0 ? (
-          <Text variant="caption" tone="muted" style={styles.addAdminBody}>{t('noEligibleAdmins')}</Text>
+          <Text variant="caption" tone="muted" style={styles.sheetBody}>
+            {t('noEligibleAdmins')}
+          </Text>
         ) : (
           eligibleAdmins.map((m) => {
             const name = m.profiles?.full_name ?? '—';
@@ -329,9 +435,7 @@ export default function GroupHomeScreen() {
                 selected={selected}
                 trailing={selected ? <Badge label="✓" /> : undefined}
                 onPress={() =>
-                  setSelectedAdmins((s) =>
-                    s.includes(m.user_id) ? s.filter((x) => x !== m.user_id) : [...s, m.user_id],
-                  )
+                  setSelectedAdmins((s) => (s.includes(m.user_id) ? s.filter((x) => x !== m.user_id) : [...s, m.user_id]))
                 }
                 testID={`add-admin-row-${m.user_id}`}
               />
@@ -341,14 +445,15 @@ export default function GroupHomeScreen() {
         <Button
           label={t('addAdminCta')}
           fullWidth
-          style={styles.addAdminCta}
-          loading={addAdmins.isPending}
+          style={styles.sheetCta}
+          loading={addAdmins.isPending || leave.isPending}
           disabled={selectedAdmins.length === 0}
           onPress={async () => {
             try {
               await addAdmins.mutateAsync(selectedAdmins);
               setAddAdminOpen(false);
               if (communityId) await leave.mutateAsync({ groupId: id, communityId });
+              banner.show(t('leftToast', { name: group.name }), 'success');
               router.back();
             } catch (e2) {
               err(e2);
@@ -360,21 +465,71 @@ export default function GroupHomeScreen() {
   );
 }
 
+/** A section title with "See all" on the same line (UX-GRP-04). */
+function SectionTitle({
+  title,
+  onSeeAll,
+  seeAllLabel,
+  testID,
+}: {
+  title: string;
+  onSeeAll?: () => void;
+  seeAllLabel?: string;
+  testID?: string;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text variant="sectionTitle" accessibilityRole="header">
+        {title}
+      </Text>
+      {onSeeAll ? (
+        <Pressable onPress={onSeeAll} accessibilityRole="button" hitSlop={8} testID={testID}>
+          <Text variant="label" tone="primary">
+            {seeAllLabel}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  chatError: { marginTop: 6 },
   container: { flex: 1, backgroundColor: colors.background },
-  center: { alignItems: 'center', justifyContent: 'center' },
-  back: { fontSize: 32, color: colors.foreground, lineHeight: 32 },
-  content: { paddingBottom: 32 },
-  section: { paddingHorizontal: 16, paddingTop: 20 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: palette.slate[400], textTransform: 'uppercase' },
-  avatars: { flexDirection: 'row', marginTop: 12 },
-  avatarStack: { marginRight: -8, borderWidth: 2, borderColor: colors.border },
-  eventList: { marginTop: 12, gap: 8 },
-  card: { backgroundColor: colors.card, borderRadius: 12, marginTop: 12, overflow: 'hidden' },
-  spacer: { height: 8 },
-  periodRow: { flexDirection: 'row', gap: 8, marginBottom: 8, marginTop: 12, flexWrap: 'wrap' },
-  addAdminBody: { paddingHorizontal: 8, marginBottom: 12 },
-  addAdminCta: { marginTop: 12, marginHorizontal: 8 },
+  center: { alignItems: 'center', justifyContent: 'center', gap: space[3] },
+  content: { paddingBottom: space[8] },
+  membersLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space[4],
+    paddingTop: space[3],
+  },
+  tags: { flexDirection: 'row', gap: space[2], paddingHorizontal: space[4], paddingTop: space[2] },
+  section: { paddingHorizontal: space[4], paddingTop: space[6] },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space[3] },
+  rail: { gap: space[3] },
+  rankingMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space[2] },
+  seasonCards: { gap: space[2] },
+  seasonCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: space[4], gap: space[1] },
+  communityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space[3],
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: space[3],
+  },
+  communityThumb: { width: 40, height: 40, borderRadius: radius.full },
+  communityName: { flex: 1 },
+  created: { marginTop: space[3] },
+  footer: {
+    paddingHorizontal: space[4],
+    paddingTop: space[3],
+    paddingBottom: space[2],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  sheetBody: { paddingHorizontal: space[2], marginBottom: space[3] },
+  sheetCta: { marginTop: space[3], marginHorizontal: space[2] },
 });

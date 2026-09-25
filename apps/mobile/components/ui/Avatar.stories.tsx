@@ -17,3 +17,5 @@ export const SingleName: Story = { args: { name: 'Ana' } };
 export const Unknown: Story = { args: { name: null } };
 export const ExtraSmall: Story = { args: { size: 'xs' } };
 export const ExtraLarge: Story = { args: { size: 'xl' } };
+/** Someone who has left a group: desaturated, still recognisable (UX-GRP-06/07/15). */
+export const Greyscale: Story = { args: { greyscale: true } };

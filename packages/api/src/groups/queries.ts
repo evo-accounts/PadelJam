@@ -279,3 +279,20 @@ export const useGroupInvitations = (id: string) => {
     },
   });
 };
+
+// The server's own answer to "may I invite into this group" (0107's may_invite_to_group): its
+// admins, and its members when the community's invite_members toggle is on. Gates every
+// "+ Invite members" (UX-GRP-02/04/07) so nobody is offered an action that answers `forbidden`.
+export const useCanInviteToGroup = (groupId: string | null | undefined) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.canInviteToGroup(groupId ?? ''),
+    enabled: !!groupId && !!uid,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('may_invite_to_group', { g: groupId!, u: uid! });
+      if (error) throw error;
+      return data ?? false;
+    },
+  });
+};

@@ -27,6 +27,7 @@ import { colors } from '../../theme';
 
 const ICONS = {
   calendar: { sf: 'calendar', android: 'calendar_month' },
+  trophy: { sf: 'trophy', android: 'emoji_events' },
   magnifyingglass: { sf: 'magnifyingglass', android: 'search' },
   'bubble.left.and.bubble.right': { sf: 'bubble.left.and.bubble.right', android: 'forum' },
   'person.2': { sf: 'person.2', android: 'group' },

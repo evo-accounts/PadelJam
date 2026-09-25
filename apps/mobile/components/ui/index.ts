@@ -12,6 +12,7 @@
  * raw hex here exactly as it would in a screen.
  */
 export { Avatar, initialsOf, type AvatarSize } from './Avatar';
+export { AvatarStack, type AvatarStackPerson } from './AvatarStack';
 export { Badge, type BadgeTone } from './Badge';
 export { BannerProvider, useBanner } from './Banner';
 export { BottomSheet } from './BottomSheet';

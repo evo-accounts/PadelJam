@@ -8,7 +8,7 @@
  */
 import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { radius } from '../../theme';
+import { palette, radius } from '../../theme';
 import { avatarColour } from './avatarColour';
 import { Text, type TextVariant } from './Text';
 
@@ -34,6 +34,12 @@ type Props = {
    * accessible label.
    */
   decorative?: boolean;
+  /**
+   * Renders the avatar desaturated — someone who has left a group but stays in its history
+   * (UX-GRP-06/07/15). Done with a grey overlay in `saturation` blend mode because RN's
+   * `filter: grayscale()` only takes effect on Android; mix-blend-mode works on both.
+   */
+  greyscale?: boolean;
 };
 
 const diameters: Record<AvatarSize, number> = {
@@ -68,7 +74,7 @@ export function initialsOf(name: string | null | undefined): string {
   return (first + last).toUpperCase();
 }
 
-export function Avatar({ uri, name, colourKey, size = 'md', style, testID, decorative }: Props) {
+export function Avatar({ uri, name, colourKey, size = 'md', style, testID, decorative, greyscale }: Props) {
   const d = diameters[size];
   const shape = { width: d, height: d, borderRadius: radius.full };
 
@@ -87,6 +93,7 @@ export function Avatar({ uri, name, colourKey, size = 'md', style, testID, decor
           {initialsOf(name)}
         </Text>
       )}
+      {greyscale ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.greyscale]} /> : null}
     </View>
   );
 }
@@ -97,4 +104,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  // Any achromatic colour in `saturation` mode strips the hue from whatever is underneath and
+  // keeps its luminosity; white is simply the palette's achromatic token.
+  greyscale: { backgroundColor: palette.white, mixBlendMode: 'saturation' },
 });
