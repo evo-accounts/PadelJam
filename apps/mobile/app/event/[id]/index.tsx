@@ -1,6 +1,6 @@
 /**
  * The event page (UX-JEVT-02..07). One body for every viewer; only the top banner and the fixed
- * bottom area change with the viewer's state (see `lib/eventViewerState.ts` for the table).
+ * bottom area change with the viewer's state (see `@padel/utils` eventViewerState for the table).
  *
  *   header      back · ⋯ (Share, Add to calendar, Leave event)
  *   banner      You are going / stand-by / waiting list
@@ -30,7 +30,16 @@ import {
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { formatCountdown, participationState, showJoinCountdown } from '@padel/utils';
+import {
+  bannerState,
+  bottomState,
+  canLeave,
+  eventPlace,
+  formatCountdown,
+  mapsQuery,
+  participationState,
+  showJoinCountdown,
+} from '@padel/utils';
 import { SymbolView } from 'expo-symbols';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
@@ -44,10 +53,9 @@ import { pendingActions } from '@/lib/pendingActions';
 import { mixedBalance } from '@/lib/mixedBalance';
 import { avatarUrl } from '@/lib/community-images';
 import { addToCalendar } from '@/lib/eventCalendar';
-import { eventPlace, mapsQuery, openInMaps } from '@/lib/eventLocation';
+import { openInMaps } from '@/lib/eventLocation';
 import { eventSubtitle, eventWhen } from '@/lib/eventFormat';
 import { shareEvent } from '@/lib/eventShare';
-import { bannerState, bottomState, canLeave } from '@/lib/eventViewerState';
 import { PendingActionsSheet } from '../../../components/event/PendingActionsSheet';
 import { EventThumb } from '../../../components/event/EventThumb';
 import {

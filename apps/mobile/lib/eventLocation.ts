@@ -1,31 +1,9 @@
 /**
- * Where an event happens, and opening it in the native maps app (UX-JEVT-02).
- *
- * A registry venue wins over the manual location fields; an event with `has_location = false` has
- * no location at all and the Location card is hidden.
+ * Opening an event's place in the native maps app (UX-JEVT-02). The place itself (`eventPlace`,
+ * `mapsQuery`) is pure and shared with web from `@padel/utils`.
  */
+import { mapsQuery, type EventPlace } from '@padel/utils';
 import { Linking, Platform } from 'react-native';
-
-export type EventPlace = { name: string; address: string | null };
-
-export function eventPlace(e: {
-  has_location: boolean;
-  venue: { name: string; address: string | null } | null;
-  manual_location_name: string | null;
-  manual_location_address: string | null;
-  location_text?: string | null;
-}): EventPlace | null {
-  if (e.venue) return { name: e.venue.name, address: e.venue.address };
-  if (!e.has_location) return null;
-  const name = e.manual_location_name ?? e.location_text ?? e.manual_location_address;
-  if (!name) return null;
-  return { name, address: e.manual_location_address && e.manual_location_address !== name ? e.manual_location_address : null };
-}
-
-/** The search string handed to the maps app: name and address together find a club best. */
-export function mapsQuery(place: EventPlace): string {
-  return [place.name, place.address].filter(Boolean).join(', ');
-}
 
 export function mapsUrl(place: EventPlace, os: string = Platform.OS): string {
   const q = encodeURIComponent(mapsQuery(place));

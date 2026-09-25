@@ -1,219 +1,340 @@
 'use client';
+/**
+ * The event page (UX-JEVT-02..07), web's twin of mobile's `app/event/[id]/index.tsx`. One body for
+ * every viewer; only the top banner and the bottom area change with the viewer's state — decided
+ * by `bottomState` / `bannerState` / `canLeave` in `@padel/utils`, the table mobile reads too.
+ *
+ *   header   back · ⋯ (Share, Add to calendar, Leave event)
+ *   banner   You are going / stand-by / waiting list
+ *   body     image, name + date · time · place, Players card, type + group badges, description,
+ *            Courts / Scoring / Fee, Organizer card, Location card
+ *   bottom   invited · join (+ countdown) · full · waiting list · closed · organizer actions
+ */
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
-import { participationState } from '@padel/utils';
+import {
+  bannerState,
+  bottomState,
+  canLeave,
+  eventPlace,
+  participationState,
+  showJoinCountdown,
+} from '@padel/utils';
 import {
   eventStatusKey,
-  useEvent,
-  useEventParticipants,
-  useEventTeams,
-  useEventResultSummary,
-  useEventRealtime,
-  useEventInvitations,
-  useJoinEvent,
-  useLeaveEvent,
-  useLeaveWaitingList,
   useAcceptEventInvitation,
   useDeclineEventInvitation,
   useEnsureChannel,
+  useEvent,
+  useEventInvitations,
+  useEventParticipants,
+  useEventRealtime,
+  useEventResultSummary,
+  useJoinEvent,
+  useLeaveEvent,
+  useLeaveWaitingList,
 } from '@padel/api';
 import { EventCTA } from '@/components/event/EventCTA';
 import {
-  EventParticipantsList,
-  type EventParticipant,
-  type EventTeam,
-} from '@/components/event/EventParticipantsList';
+  EventNoAccess,
+  eventSubtitle,
+  InfoWidgets,
+  JoinedDialog,
+  LocationCard,
+  PersonCard,
+  PlayersCard,
+  StateBanner,
+} from '@/components/event/EventDetailParts';
+import { EventMenu, type EventMenuDialog } from '@/components/event/EventMenu';
 import { EventResultTable, type EventResultRow } from '@/components/event/EventResultTable';
+import { EventThumb } from '@/components/event/EventThumb';
+import { BackButton } from '@/components/group/GroupHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
+import { toast } from '@/components/ui/toaster';
+import { downloadEventIcs, shareEvent } from '@/lib/eventLinks';
+import { streamClient } from '@/lib/streamClient';
+import { useNow } from '@/lib/useNow';
 
-const cap = (s: string | null | undefined) =>
-  s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useT('event');
   const { t: tc } = useT('chat');
+  const router = useRouter();
+  const uid = useSession().session?.user.id;
   useEventRealtime(id);
+
   const event = useEvent(id);
   const participants = useEventParticipants(id);
-  const teams = useEventTeams(id);
-  const result = useEventResultSummary(id);
-  const uid = useSession().session?.user.id;
   const invitations = useEventInvitations(id);
+  const result = useEventResultSummary(id);
+
   const joinEvent = useJoinEvent();
   const leaveEvent = useLeaveEvent();
   const leaveWaitlist = useLeaveWaitingList(id);
   const acceptInvite = useAcceptEventInvitation();
   const declineInvite = useDeclineEventInvitation(id);
-  const [nowMs] = useState(() => Date.now());
+  const ensureChannel = useEnsureChannel();
+
+  // A ticking clock: the countdown and the deadline-gated actions stay live (B18 — it used to be
+  // read once at mount and freeze).
+  const nowMs = useNow();
   const [busy, setBusy] = useState(false);
   const [ctaError, setCtaError] = useState<string | null>(null);
-  const ensureChannel = useEnsureChannel();
-  const router = useRouter();
-  const [chatBusy, setChatBusy] = useState(false);
-  const openChat = () => {
-    setChatBusy(true);
-    ensureChannel
-      .mutateAsync({ kind: 'event', id })
-      .then((r) => router.push(`/app/chat/${encodeURIComponent(r.cid)}`))
-      .catch(() => setChatBusy(false));
-  };
+  const [dialog, setDialog] = useState<EventMenuDialog>(null);
+  const [joinedOpen, setJoinedOpen] = useState(false);
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
-  if (!event.data) return <div className="p-6">{t('notAvailable')}</div>;
+  if (!event.data) return <EventNoAccess />;
 
   const e = event.data;
-  const parts: EventParticipant[] = participants.data ?? [];
-  const teamRows: EventTeam[] = teams.data ?? [];
+  const parts = participants.data ?? [];
+  const ps = participationState(e, parts, invitations.data ?? [], uid, nowMs);
+  const { me, myInvite, isOrganizer, joinClosed, leaveLocked, joinCutoffMs } = ps;
+  const status = e.status;
+  const lang = i18n.language;
+  const place = eventPlace(e);
+  const organizer = e.organizer;
 
-  const state = participationState(
-    e,
-    (participants.data ?? []) as {
-      user_id: string | null;
-      status: string;
-      is_standby: boolean;
-      waiting_list_position: number | null;
-    }[],
-    (invitations.data ?? []) as { invitee_id: string | null; invited_by: string }[],
-    uid,
-    nowMs,
-  );
-  const inviterName =
-    state.myInvite != null
-      ? parts.find((p) => p.user_id === state.myInvite!.invited_by)?.profiles?.full_name ?? null
-      : null;
-  const groupId = e.group_id;
-  const runCta = (fn: () => Promise<unknown>) => {
-    setBusy(true);
-    setCtaError(null);
-    fn()
-      .catch((err) => setCtaError(t(err instanceof Error ? err.message : 'unknown_error')))
-      .finally(() => setBusy(false));
-  };
+  const bottom = bottomState({
+    status,
+    specification: e.specification,
+    isOrganizer,
+    me,
+    hasInvite: myInvite != null,
+    joinClosed,
+    full: ps.totalIn >= ps.totalCapacity,
+    countdown: showJoinCountdown(joinCutoffMs, nowMs),
+  });
+  const bannerKind = bannerState(status, me);
+  const leaveOffered = canLeave(status, me, isOrganizer, leaveLocked);
 
-  const when = e.starts_at
-    ? new Date(e.starts_at).toLocaleString(i18n.language, {
-        dateStyle: 'full',
-        timeStyle: 'short',
-      })
-    : null;
-  const where =
-    e.venue?.name ??
-    (e.has_location ? e.manual_location_name : null) ??
-    e.location_text ??
-    t('locationTbd');
-  const venueAddress = e.venue?.address ?? (e.has_location ? e.manual_location_address : null);
-  const organizerName =
-    parts.find((p) => p.user_id === e.organizer_id)?.profiles?.full_name ?? null;
-
-  const formatText = e.event_type ? t(`type${cap(e.event_type)}Label`) : null;
-  const scoringText = e.scoring_mode
-    ? e.scoring_mode === 'classic' || e.scoring_value == null
-      ? t(`scoring${cap(e.scoring_mode)}Label`)
-      : `${t(`scoring${cap(e.scoring_mode)}Label`)} · ${e.scoring_value}`
-    : null;
+  // --- Body values ---
+  const scoringLabel = t(`scoring${cap(e.scoring_mode)}Label`);
+  const scoringText = e.scoring_mode === 'classic' ? scoringLabel : `${scoringLabel} · ${e.scoring_value}`;
   const feeText = e.entrance_fee_enabled
     ? e.entrance_fee_method != null
       ? `${e.entrance_fee_amount ?? 0} · ${t(`fee${cap(e.entrance_fee_method)}Label`)}`
       : `${e.entrance_fee_amount ?? 0}`
     : t('feeFree');
+  const badges = [
+    `${t(`type${cap(e.event_type)}Label`)} · ${t(`spec${cap(e.specification)}Label`)}`,
+    e.group?.name ?? (e.group_id == null ? t('groupBadgeNone') : null),
+  ].filter((b): b is string => b != null);
+  // Confirmed regulars first, then stand-by: the three photos are the people surely playing.
+  const confirmedPeople = parts
+    .filter((p) => p.status === 'confirmed')
+    .sort((a, b) => Number(a.is_standby) - Number(b.is_standby))
+    .map((p) => ({
+      id: p.profiles?.id ?? p.id,
+      name: p.profiles?.full_name ?? p.guest_name ?? null,
+      avatarPath: p.profiles?.avatar_url ?? null,
+    }));
+  // Only non-scheduled statuses get a badge: "Scheduled" said nothing (UX-JEVT-01).
+  const statusBadge = eventStatusKey(status, e.starts_at);
+  const subtitle = eventSubtitle(e.starts_at, place?.name, lang);
 
-  const details: { label: string; value: string }[] = [];
-  if (formatText) details.push({ label: t('formatLabel'), value: formatText });
-  if (scoringText) details.push({ label: t('scoringLabel'), value: scoringText });
-  details.push({ label: t('feeLabel'), value: feeText });
-  if (organizerName) details.push({ label: t('organizerLabel'), value: organizerName });
+  // --- Actions ---
+  const run = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    setCtaError(null);
+    try {
+      await fn();
+    } catch (err) {
+      setCtaError(t(err instanceof Error ? err.message : 'unknown_error', { defaultValue: t('unknown_error') }));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const groupId = e.group_id;
+  const onJoin = () =>
+    run(async () => {
+      const r = await joinEvent.mutateAsync({ eventId: id, groupId });
+      if (r === 'confirmed') setJoinedOpen(true);
+    });
+  const onAccept = () =>
+    run(async () => {
+      const r = await acceptInvite.mutateAsync({ eventId: id, groupId });
+      if (r === 'confirmed') setJoinedOpen(true);
+    });
+  const onDecline = () => run(() => declineInvite.mutateAsync());
+  const onLeaveWaitlist = () => run(() => leaveWaitlist.mutateAsync());
+  const onLeave = async () => {
+    setBusy(true);
+    try {
+      await leaveEvent.mutateAsync({ eventId: id, groupId });
+      setDialog(null);
+      toast(t('leftToast'));
+    } catch (err) {
+      toast(t(err instanceof Error ? err.message : 'unknown_error', { defaultValue: t('unknown_error') }), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const onShare = async () => {
+    try {
+      if ((await shareEvent(id, e.name)) === 'copied') toast(t('linkCopied'));
+    } catch {
+      toast(t('copyFailed'), 'error');
+    }
+  };
+  const onCalendar = () => {
+    try {
+      downloadEventIcs({
+        id,
+        name: e.name,
+        starts_at: e.starts_at,
+        duration_minutes: e.duration_minutes,
+        description: e.description,
+        place,
+      });
+    } catch {
+      toast(t('calendarError'), 'error');
+    }
+  };
+  // A 1:1 conversation with the organizer, created on demand (as the web "New message" page does).
+  const onChatOrganizer = async () => {
+    if (!uid || !organizer) return;
+    setBusy(true);
+    try {
+      const ch = streamClient.channel('messaging', { members: [uid, organizer.id] });
+      await ch.watch();
+      setDialog(null);
+      router.push(`/app/chat/${encodeURIComponent(ch.cid)}`);
+    } catch {
+      toast(tc('chatUnavailable'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const openEventChat = async () => {
+    try {
+      const { cid } = await ensureChannel.mutateAsync({ kind: 'event', id });
+      router.push(`/app/chat/${encodeURIComponent(cid)}`);
+    } catch {
+      toast(tc('chatUnavailable'), 'error');
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold">{e.name}</h1>
-          <Badge variant="secondary">{t(eventStatusKey(e.status, e.starts_at))}</Badge>
-          {e.series_id ? <Badge variant="outline">{t('recurrentTag')}</Badge> : null}
-          {state.isOrganizer && e.status === 'scheduled' ? (
-            <Button asChild variant="outline" size="sm" className="ml-auto">
-              <Link href={`/app/event/${id}/edit`}>{t('editTitle')}</Link>
-            </Button>
-          ) : null}
-          {state.me != null || state.isOrganizer ? (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={chatBusy}
-              onClick={openChat}
-              className={state.isOrganizer && e.status === 'scheduled' ? undefined : 'ml-auto'}
-            >
-              {tc('openChat')}
-            </Button>
-          ) : null}
-        </div>
-        {when ? <p className="text-sm text-muted-foreground">{when}</p> : null}
-        <div className="text-sm text-muted-foreground">
-          <p>{where}</p>
-          {venueAddress ? <p>{venueAddress}</p> : null}
-        </div>
-        {e.description ? <p className="pt-2 text-sm">{e.description}</p> : null}
+    <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-3xl flex-col gap-4 px-4 pt-3 sm:px-6">
+      <div className="flex items-center justify-between gap-2">
+        <BackButton fallbackHref="/app/events" label={t('back')} />
+        <EventMenu
+          canLeave={leaveOffered}
+          leaveLocked={leaveLocked}
+          organizer={organizer}
+          busy={busy}
+          dialog={dialog}
+          setDialog={setDialog}
+          onShare={() => void onShare()}
+          onCalendar={onCalendar}
+          onLeave={onLeave}
+          onChatOrganizer={() => void onChatOrganizer()}
+        />
       </div>
 
-      <EventCTA
-        event={e}
-        state={state}
-        nowMs={nowMs}
-        inviterName={inviterName}
-        busy={busy}
-        error={ctaError}
-        onJoin={() => runCta(() => joinEvent.mutateAsync({ eventId: id, groupId }))}
-        onLeave={() => runCta(() => leaveEvent.mutateAsync({ eventId: id, groupId }))}
-        onLeaveWaitlist={() => runCta(() => leaveWaitlist.mutateAsync())}
-        onAccept={() => runCta(() => acceptInvite.mutateAsync({ eventId: id, groupId }))}
-        onDecline={() => runCta(() => declineInvite.mutateAsync())}
+      {bannerKind ? <StateBanner state={bannerKind} /> : null}
+
+      <EventThumb path={e.thumbnail_path} shape="hero" />
+
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold">{e.name}</h1>
+        <p className="text-muted-foreground">{subtitle}</p>
+        {statusBadge !== 'statusScheduled' || e.series_id ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {statusBadge !== 'statusScheduled' ? <Badge variant="secondary">{t(statusBadge)}</Badge> : null}
+            {e.series_id ? <Badge variant="outline">{t('recurrentTag')}</Badge> : null}
+          </div>
+        ) : null}
+      </div>
+
+      <PlayersCard
+        people={confirmedPeople}
+        confirmed={ps.totalIn}
+        capacity={ps.totalCapacity}
+        href={`/app/event/${id}/players`}
       />
 
-      <Separator />
+      <div className="flex flex-wrap gap-2" data-testid="event-badges">
+        {badges.map((b) => (
+          <Badge key={b} variant="secondary">
+            {b}
+          </Badge>
+        ))}
+      </div>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">{t('detailsTitle')}</h2>
-        <dl className="flex flex-col gap-2">
-          {details.map((d) => (
-            <div key={d.label} className="flex justify-between gap-4 text-sm">
-              <dt className="text-muted-foreground">{d.label}</dt>
-              <dd className="text-right font-medium">{d.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+      {e.description ? <p className="whitespace-pre-line text-sm">{e.description}</p> : null}
 
-      <Separator />
+      <InfoWidgets
+        items={[
+          { label: t('widgetCourts'), value: String(e.num_courts) },
+          { label: t('widgetScoring'), value: scoringText },
+          { label: t('widgetFee'), value: feeText },
+        ]}
+      />
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">{t('playersTitle')}</h2>
-        {participants.isLoading ? (
-          <Skeleton className="h-24 w-full" />
-        ) : (
-          <EventParticipantsList participants={parts} teams={teamRows} />
-        )}
-      </section>
-
-      {e.status === 'completed' ? (
-        <>
-          <Separator />
-          <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">{t('resultTitle')}</h2>
-            {result.isLoading ? (
-              <Skeleton className="h-24 w-full" />
-            ) : (
-              <EventResultTable rows={(result.data ?? []) as EventResultRow[]} />
-            )}
-          </section>
-        </>
+      {organizer ? (
+        <PersonCard
+          person={organizer}
+          caption={t('organizerLabel')}
+          href={`/app/profile/${organizer.id}`}
+          testId="event-organizer-card"
+        />
       ) : null}
+
+      {place ? <LocationCard place={place} /> : null}
+
+      {me != null || isOrganizer ? (
+        <Button variant="outline" disabled={ensureChannel.isPending} onClick={() => void openEventChat()}>
+          {tc('openChat')}
+        </Button>
+      ) : null}
+
+      {status === 'completed' ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">{t('resultTitle')}</h2>
+          {result.isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : (
+            <EventResultTable rows={(result.data ?? []) as EventResultRow[]} />
+          )}
+        </section>
+      ) : null}
+
+      <div className="pb-4" />
+
+      <EventCTA
+        bottom={bottom}
+        eventId={id}
+        isTeam={e.specification === 'team'}
+        organizerPlaying={me != null && me.status !== 'waiting_list'}
+        organizerWaiting={status === 'scheduled' && me?.status === 'waiting_list'}
+        canJoinAsPlayer={status === 'scheduled' && me == null && !joinClosed}
+        scheduled={status === 'scheduled'}
+        countdownMs={joinCutoffMs - nowMs}
+        inviter={myInvite?.inviter ?? null}
+        busy={busy}
+        error={ctaError}
+        onJoin={() => void onJoin()}
+        onLeaveWaitlist={() => void onLeaveWaitlist()}
+        onAccept={() => void onAccept()}
+        onDecline={() => void onDecline()}
+      />
+
+      <JoinedDialog
+        open={joinedOpen}
+        onClose={() => setJoinedOpen(false)}
+        thumbnailPath={e.thumbnail_path}
+        name={e.name}
+        subtitle={subtitle}
+        onCalendar={onCalendar}
+      />
     </div>
   );
 }

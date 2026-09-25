@@ -8,8 +8,7 @@ import { SymbolView } from 'expo-symbols';
 import { StyleSheet, View } from 'react-native';
 
 import { avatarUrl } from '@/lib/community-images';
-import type { EventPlace } from '@/lib/eventLocation';
-import type { BannerState } from '@/lib/eventViewerState';
+import type { BannerState, EventPlace } from '@padel/utils';
 
 import { colors, palette, radius, space } from '../../theme';
 import { Avatar, BottomSheet, Button, ListRow, Text } from '../ui';

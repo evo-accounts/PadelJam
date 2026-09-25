@@ -1,5 +1,6 @@
 /**
  * What the event screen's fixed bottom area and top banner show for the viewer (UX-JEVT-02..05).
+ * Shared by the mobile and web event pages, so both apps answer the same state table.
  *
  * Pure, so the whole state table is unit-tested rather than discovered on a simulator. The screen
  * reads `bottom` for the bottom area and `banner` for the strip under the header; everything else
