@@ -103,6 +103,8 @@ export default function EventDetailScreen() {
 
   const [busy, setBusy] = useState(false);
   const [lockedSheetOpen, setLockedSheetOpen] = useState(false);
+  // One native calendar editor at a time: a second tap while it is opening would be rejected.
+  const [calendarBusy, setCalendarBusy] = useState(false);
 
   // Ticking clock so the join countdown + deadline-gated CTAs stay live.
   const nowMs = useNow();
@@ -276,13 +278,15 @@ export default function EventDetailScreen() {
   };
 
   const onAddToCalendar = async () => {
+    if (calendarBusy) return;
+    setCalendarBusy(true);
     const result = await addToCalendar({
       title: event.name,
       startsAt: event.starts_at,
       durationMinutes: event.duration_minutes,
       location: place ? mapsQuery(place) : null,
       notes: event.description,
-    });
+    }).finally(() => setCalendarBusy(false));
     if (result === 'denied') banner.show(t('calendarDenied'));
     else if (result === 'error') banner.show(t('calendarError'));
   };
@@ -378,6 +382,16 @@ export default function EventDetailScreen() {
                       ? () => router.push(`/event/${id}/partner-requests` as Href)
                       : onJoin
                   }
+                />
+              ) : null}
+              {/* An organizer who tried to play on a full event is waiting like anyone else. */}
+              {me?.status === 'waiting_list' ? (
+                <Button
+                  label={t('leaveWaitlistCta')}
+                  variant="outline"
+                  fullWidth
+                  loading={busy}
+                  onPress={onLeaveWaitlist}
                 />
               ) : null}
             </>

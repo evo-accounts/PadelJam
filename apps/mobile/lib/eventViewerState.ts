@@ -27,7 +27,7 @@ export type BottomState =
   | { kind: 'going' }
   /** Team event, not in yet: the existing partner flow entry (M5 redesigns it). */
   | { kind: 'team_entry' }
-  /** Team event, accepted and looking for a partner (M5 redesigns it). */
+  /** Team event, accepted and looking for a partner, or left `invited` by a partner leaving (M5 redesigns it). */
   | { kind: 'interested' }
   /** Past the join cut-off, or cancelled: a static "Event closed" line. */
   | { kind: 'closed' };
@@ -55,8 +55,11 @@ export function bottomState(v: ViewerInput): BottomState {
   if (v.status !== 'scheduled') return { kind: 'closed' };
   if (v.me) {
     if (v.me.status === 'waiting_list') return { kind: 'waiting_list' };
-    if (v.me.status === 'interested') return { kind: 'interested' };
-    return { kind: 'going' };
+    // 'invited' is a lone team occupant whose partner left or who was placed by the organizer
+    // (decision 1): they hold no spot and re-enter through the team flow, like 'interested'.
+    if (v.me.status === 'interested' || v.me.status === 'invited') return { kind: 'interested' };
+    // Explicit, so a status this table does not know never strips the viewer of every action.
+    if (v.me.status === 'confirmed') return { kind: 'going' };
   }
   if (v.joinClosed) return { kind: 'closed' };
   if (v.hasInvite) return { kind: 'invited' };
@@ -85,6 +88,6 @@ export function canLeave(
   leaveLocked: boolean,
 ): boolean {
   if (status !== 'scheduled' || me == null) return false;
-  if (me.status !== 'confirmed' && me.status !== 'interested') return false;
+  if (me.status !== 'confirmed' && me.status !== 'interested' && me.status !== 'invited') return false;
   return !(isOrganizer && leaveLocked);
 }

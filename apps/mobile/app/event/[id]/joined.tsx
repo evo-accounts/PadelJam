@@ -6,6 +6,7 @@
 import { useEvent } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,19 +23,21 @@ export default function EventJoinedScreen() {
   const banner = useBanner();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: event } = useEvent(id);
+  const [calendarBusy, setCalendarBusy] = useState(false);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace(`/event/${id}` as never));
   const place = event ? eventPlace(event) : null;
 
   const onCalendar = async () => {
-    if (!event) return;
+    if (!event || calendarBusy) return;
+    setCalendarBusy(true);
     const result = await addToCalendar({
       title: event.name,
       startsAt: event.starts_at,
       durationMinutes: event.duration_minutes,
       location: place ? mapsQuery(place) : null,
       notes: event.description,
-    });
+    }).finally(() => setCalendarBusy(false));
     if (result === 'denied') banner.show(t('calendarDenied'));
     else if (result === 'error') banner.show(t('calendarError'));
   };
@@ -58,7 +61,7 @@ export default function EventJoinedScreen() {
         ) : null}
       </View>
       <View style={styles.actions}>
-        <Button label={t('addToCalendarAction')} fullWidth onPress={() => void onCalendar()} testID="event-joined-calendar" />
+        <Button label={t('addToCalendarAction')} fullWidth loading={calendarBusy} onPress={() => void onCalendar()} testID="event-joined-calendar" />
         <Button label={t('closeCta')} variant="outline" fullWidth onPress={close} testID="event-joined-close" />
       </View>
     </SafeAreaView>

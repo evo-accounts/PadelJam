@@ -52,6 +52,22 @@ describe('bottomState', () => {
     });
   });
 
+  it('routes a lone team occupant (status invited) back into the team flow', () => {
+    expect(bottomState({ ...base, specification: 'team', me: { status: 'invited', is_standby: false } })).toEqual({
+      kind: 'interested',
+    });
+    expect(bottomState({ ...base, specification: 'team', me: { status: 'interested', is_standby: false } })).toEqual({
+      kind: 'interested',
+    });
+  });
+
+  it('does not treat an unknown participant status as going', () => {
+    expect(bottomState({ ...base, me: { status: 'something_new', is_standby: false } })).toEqual({
+      kind: 'open',
+      countdown: false,
+    });
+  });
+
   it('offers Leave waiting list to a waiting player', () => {
     expect(bottomState({ ...base, me: { status: 'waiting_list', is_standby: false } })).toEqual({
       kind: 'waiting_list',
@@ -95,6 +111,7 @@ describe('canLeave', () => {
   it('is offered to a confirmed or interested player on a scheduled event', () => {
     expect(canLeave('scheduled', { status: 'confirmed' }, false, false)).toBe(true);
     expect(canLeave('scheduled', { status: 'interested' }, false, false)).toBe(true);
+    expect(canLeave('scheduled', { status: 'invited' }, false, false)).toBe(true);
   });
 
   it('stays offered to a player past the deadline — it opens the contact-the-organizer sheet', () => {
@@ -104,6 +121,7 @@ describe('canLeave', () => {
   it('is not offered to a waiting player, an outsider, or once the event runs', () => {
     expect(canLeave('scheduled', { status: 'waiting_list' }, false, false)).toBe(false);
     expect(canLeave('scheduled', null, false, false)).toBe(false);
+    expect(canLeave('scheduled', { status: 'something_new' }, false, false)).toBe(false);
     expect(canLeave('in_progress', { status: 'confirmed' }, false, false)).toBe(false);
   });
 
