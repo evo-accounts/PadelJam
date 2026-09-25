@@ -35,6 +35,8 @@ const KNOWN = [
   // mapPgError, but the code is listed here too so a future Postgres-side password check (or a
   // caller that does route through mapPgError) resolves to the same i18n key.
   'password_weak',
+  // venue registry (0114): save_venue / the court-in-use guard
+  'court_in_use', 'court_name_required', 'venue_not_found', 'invalid_courts',
 ] as const;
 
 /** Map a Supabase/Postgres error to a stable code the UI translates via i18n. */

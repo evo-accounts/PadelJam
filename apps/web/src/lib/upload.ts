@@ -1,3 +1,4 @@
+import { VENUE_IMAGES_BUCKET, venueImagePath } from '@padel/api';
 import { supabase } from '@/lib/supabase/client';
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -42,4 +43,31 @@ export async function uploadPostImage(file: File, communityId: string): Promise<
   const { error } = await supabase.storage.from('community-post-images').upload(path, file, { upsert: true, contentType: file.type });
   if (error) throw error;
   return path;
+}
+
+/** Upload a registry venue image to the public `venue-images` bucket (super admins only, RLS in
+ *  migration 0114). Returns the object path to store as venues.image_path. */
+export async function uploadVenueImage(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('image_invalid_type');
+  if (file.size > 5 * 1024 * 1024) throw new Error('image_too_large');
+  const path = venueImagePath(file.name, crypto.randomUUID());
+  const { error } = await supabase.storage.from(VENUE_IMAGES_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  return path;
+}
+
+/** Best-effort removal of a replaced/removed venue image; an orphan object is harmless. */
+export async function removeVenueImage(path: string | null | undefined): Promise<void> {
+  if (!path) return;
+  try {
+    await supabase.storage.from(VENUE_IMAGES_BUCKET).remove([path]);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Public URL for a stored venue image path (or null). */
+export function venueImageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  return supabase.storage.from(VENUE_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl;
 }

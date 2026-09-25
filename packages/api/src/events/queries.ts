@@ -361,15 +361,35 @@ export const useMyEvents = (filter: MyEventsFilter) => {
   });
 };
 
-export const useSearchVenues = (query: string) => {
+/** One registry row as `search_venues` (0114) returns it. */
+export type VenueSearchRow = {
+  id: string;
+  name: string;
+  address: string | null;
+  image_path: string | null;
+  court_count: number;
+  rating: number | null;
+};
+
+/**
+ * Search the curated venue registry. By default an empty query fetches nothing (the create-wizard
+ * search box and the community location picker only search once something is typed); pass
+ * `{ listAll: true }` to list the registry alphabetically when the query is empty (UX-CEVT-06).
+ */
+export const useSearchVenues = (query: string, opts: { listAll?: boolean; limit?: number } = {}) => {
   const db = useDb();
+  const term = query.trim();
+  const listAll = !!opts.listAll;
   return useQuery({
-    queryKey: qk.searchVenues(query),
-    enabled: query.trim().length > 0,
-    queryFn: async () => {
-      const { data, error } = await db.rpc('search_venues', { p_query: query.trim() });
+    queryKey: qk.searchVenues(term, listAll),
+    enabled: listAll || term.length > 0,
+    queryFn: async (): Promise<VenueSearchRow[]> => {
+      const { data, error } = await db.rpc('search_venues', {
+        p_query: term,
+        p_limit: opts.limit ?? 50,
+      });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as VenueSearchRow[];
     },
   });
 };
