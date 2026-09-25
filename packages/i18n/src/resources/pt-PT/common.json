@@ -19,5 +19,6 @@
   "ruleNumber": "Pelo menos um número",
   "ruleSymbol": "Pelo menos um símbolo",
   "ruleMet": "cumprido",
-  "ruleMissing": "por cumprir"
+  "ruleMissing": "por cumprir",
+  "progress": "Progresso"
 }

@@ -166,6 +166,62 @@ export const useMyGroups = ({ includeArchived = false }: { includeArchived?: boo
   });
 };
 
+/**
+ * `groups` narrowed to the communities in `allowed` and, when given, to one community. Pure, so
+ * the filtering rule is tested apart from the RPCs that feed it.
+ */
+export function pickEventCreatableGroups(
+  groups: MyGroup[],
+  allowed: ReadonlySet<string>,
+  communityId?: string | null,
+): MyGroup[] {
+  return groups.filter(
+    (g) => allowed.has(g.community_id) && (!communityId || g.community_id === communityId),
+  );
+}
+
+/**
+ * The groups the caller may create an event in, across every community (UX-CEVT-02, B14): the
+ * create-event wizard's Group step. Before this, the step read `useCommunityGroups`, so from
+ * Home (no community) it listed nothing, and from a community it listed every group whether or
+ * not you could create an event there.
+ *
+ * Built from `my_groups` (thumbnail, community, member count) and `can_create_event`, which is
+ * per COMMUNITY underneath (`may_create_event`: admin, or member with the create-events
+ * permission) — so it is asked once per community, through any one of its groups, not once per
+ * group. No new RPC: both already exist and are granted to `authenticated`.
+ *
+ * Only groups you are a MEMBER of: a community admin who is not in a group does not see it
+ * here, although `create_event` would accept it.
+ */
+export const useEventCreatableGroups = (communityId?: string | null) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.eventCreatableGroups(communityId ?? ''),
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('my_groups', { p_include_archived: false });
+      if (error) throw error;
+      const groups = ((data ?? []) as MyGroup[]).filter(
+        (g) => !communityId || g.community_id === communityId,
+      );
+      // One representative group per community.
+      const probe = new Map<string, string>();
+      for (const g of groups) if (!probe.has(g.community_id)) probe.set(g.community_id, g.group_id);
+      const checks = await Promise.all(
+        [...probe].map(async ([cid, gid]) => {
+          const res = await db.rpc('can_create_event', { p_group_id: gid });
+          if (res.error) throw res.error;
+          return [cid, res.data === true] as const;
+        }),
+      );
+      const allowed = new Set(checks.filter(([, ok]) => ok).map(([cid]) => cid));
+      return pickEventCreatableGroups(groups, allowed, communityId);
+    },
+  });
+};
+
 export type GroupMemberListRow = {
   user_id: string;
   full_name: string | null;

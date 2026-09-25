@@ -21,7 +21,6 @@ export function Step9Details({ draft, patch, errors, clearError }: WizardStepPro
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('step9Title')}</Text>
 
       <Field
         label={t('nameLabel')}
@@ -56,7 +55,6 @@ export function Step9Details({ draft, patch, errors, clearError }: WizardStepPro
 
 const styles = StyleSheet.create({
   container: { gap: 16 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   field: { gap: 8 },
   label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
 });

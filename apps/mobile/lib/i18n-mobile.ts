@@ -1933,7 +1933,6 @@ const mobileEvent = {
     not_cancellable: 'Este evento já não pode ser cancelado.',
     invalid_scope: 'Algo correu mal. Tenta novamente.',
 
-    stepProgress: 'Passo {{current}} de {{total}}',
     discardTitle: 'Descartar evento?',
     discardBody: 'Todas as tuas escolhas serão perdidas e voltarás ao ecrã anterior.',
     discardConfirm: 'Descartar',
@@ -1941,13 +1940,17 @@ const mobileEvent = {
     required: 'Obrigatório',
 
     // --- Step 1: group ---
-    step1Title: 'Onde?',
-    step1Subtitle: 'Escolhe um grupo para associar a este evento, ou cria-o de forma independente.',
+    step1Title: 'Grupo',
+    step1Subtitle: 'Escolhe o grupo a que este evento pertence.',
     groupPickerLabel: 'Grupo',
     noGroupOption: 'Continuar sem grupo',
-    noGroupHint: 'Os eventos independentes são privados e não contam para nenhum ranking de grupo.',
-    noGroupsYet: 'Ainda não geres nenhum grupo. Cria primeiro um grupo, ou cria um evento independente.',
-    step1GroupEmptyBody: 'Junta-te a um grupo ou cria um primeiro.',
+    noGroupHint: 'Não conta para nenhum ranking.',
+    noGroupsYet: 'Nenhum grupo onde possas criar eventos',
+    step1GroupEmptyBody: 'Continua sem grupo, ou pede a um administrador da comunidade para criar eventos.',
+    noGroupSheetTitle: 'Evento sem grupo',
+    noGroupSheetBody: 'Este evento não conta para nenhum ranking. Terá apenas a sua própria classificação.',
+    noGroupSheetConfirm: 'Continuar',
+    noGroupSheetCancel: 'Cancelar',
 
     // --- Step 2: type ---
     step2Title: 'Formato',
@@ -1977,6 +1980,13 @@ const mobileEvent = {
     scoringClassicDesc: 'Os jogos são disputados como sets normais de padel.',
     pointsValueLabel: 'Pontos por jogo',
     timeValueLabel: 'Minutos por jogo',
+    scoringCustom: 'Personalizado',
+    scoringCustomValue: 'Personalizado · {{value}}',
+    customPointsTitle: 'Pontos personalizados',
+    customPointsHint: 'Entre 1 e 99 pontos por jogo.',
+    customPointsError: 'Escolhe um número entre 1 e 99.',
+    customPointsSave: 'Guardar',
+    minutesValue: '{{count}} min',
 
     // --- Step 5: location ---
     step5Title: 'Localização',
@@ -2003,7 +2013,7 @@ const mobileEvent = {
     capacityWithStandbyHint: 'Capacidade: {{count}} jogadores (+{{standby}} suplentes)',
 
     // --- Step 7: date / time ---
-    step7Title: 'Quando?',
+    step7Title: 'Data',
     dateLabel: 'Data',
     timeLabel: 'Hora de início',
     hourDecreaseLabel: 'Diminuir hora',
@@ -2401,7 +2411,6 @@ const mobileEvent = {
     not_cancellable: 'Este evento não pode mais ser cancelado.',
     invalid_scope: 'Algo deu errado. Tente novamente.',
 
-    stepProgress: 'Etapa {{current}} de {{total}}',
     discardTitle: 'Descartar evento?',
     discardBody: 'Todas as suas escolhas serão perdidas e você voltará à tela anterior.',
     discardConfirm: 'Descartar',
@@ -2409,13 +2418,17 @@ const mobileEvent = {
     required: 'Obrigatório',
 
     // --- Step 1: group ---
-    step1Title: 'Onde?',
-    step1Subtitle: 'Escolha um grupo para associar a este evento, ou crie-o de forma independente.',
+    step1Title: 'Grupo',
+    step1Subtitle: 'Escolha o grupo ao qual este evento pertence.',
     groupPickerLabel: 'Grupo',
     noGroupOption: 'Continuar sem grupo',
-    noGroupHint: 'Os eventos independentes são privados e não contam para nenhum ranking de grupo.',
-    noGroupsYet: 'Você ainda não gerencia nenhum grupo. Crie primeiro um grupo, ou crie um evento independente.',
-    step1GroupEmptyBody: 'Entre em um grupo ou crie um primeiro.',
+    noGroupHint: 'Não conta para nenhum ranking.',
+    noGroupsYet: 'Nenhum grupo onde você possa criar eventos',
+    step1GroupEmptyBody: 'Continue sem grupo, ou peça a um administrador da comunidade para criar eventos.',
+    noGroupSheetTitle: 'Evento sem grupo',
+    noGroupSheetBody: 'Este evento não conta para nenhum ranking. Terá apenas a sua própria classificação.',
+    noGroupSheetConfirm: 'Continuar',
+    noGroupSheetCancel: 'Cancelar',
 
     // --- Step 2: type ---
     step2Title: 'Formato',
@@ -2445,6 +2458,13 @@ const mobileEvent = {
     scoringClassicDesc: 'As partidas são disputadas como sets normais de padel.',
     pointsValueLabel: 'Pontos por partida',
     timeValueLabel: 'Minutos por partida',
+    scoringCustom: 'Personalizado',
+    scoringCustomValue: 'Personalizado · {{value}}',
+    customPointsTitle: 'Pontos personalizados',
+    customPointsHint: 'Entre 1 e 99 pontos por partida.',
+    customPointsError: 'Escolha um número entre 1 e 99.',
+    customPointsSave: 'Salvar',
+    minutesValue: '{{count}} min',
 
     // --- Step 5: location ---
     step5Title: 'Localização',
@@ -2471,7 +2491,7 @@ const mobileEvent = {
     capacityWithStandbyHint: 'Capacidade: {{count}} jogadores (+{{standby}} reserva)',
 
     // --- Step 7: date / time ---
-    step7Title: 'Quando?',
+    step7Title: 'Data',
     dateLabel: 'Data',
     timeLabel: 'Horário de início',
     hourDecreaseLabel: 'Diminuir hora',
@@ -2869,7 +2889,6 @@ const mobileEvent = {
     not_cancellable: 'This event can no longer be cancelled.',
     invalid_scope: 'Something went wrong. Please try again.',
 
-    stepProgress: 'Step {{current}} of {{total}}',
     discardTitle: 'Discard event?',
     discardBody: 'All your choices will be lost and you\'ll return to the previous screen.',
     discardConfirm: 'Discard',
@@ -2877,13 +2896,17 @@ const mobileEvent = {
     required: 'Required',
 
     // --- Step 1: group ---
-    step1Title: 'Where?',
-    step1Subtitle: 'Choose a group to associate this event with, or run it standalone.',
+    step1Title: 'Group',
+    step1Subtitle: 'Choose the group this event belongs to.',
     groupPickerLabel: 'Group',
-    noGroupOption: 'Continue without a group',
-    noGroupHint: 'Standalone events are private and won\'t feed any group ranking.',
-    noGroupsYet: 'You don\'t manage any groups yet. Create a group first, or run a standalone event.',
-    step1GroupEmptyBody: 'Join or create a group first.',
+    noGroupOption: 'Continue without group',
+    noGroupHint: 'Won\'t count toward any ranking.',
+    noGroupsYet: 'No groups where you can create events',
+    step1GroupEmptyBody: 'Continue without a group, or ask a community admin to let you create events.',
+    noGroupSheetTitle: 'Event without group',
+    noGroupSheetBody: 'This event won\'t count toward any ranking. It will only have its own leaderboard.',
+    noGroupSheetConfirm: 'Continue',
+    noGroupSheetCancel: 'Cancel',
 
     // --- Step 2: type ---
     step2Title: 'Format',
@@ -2913,6 +2936,13 @@ const mobileEvent = {
     scoringClassicDesc: 'Matches are played as regular padel sets.',
     pointsValueLabel: 'Points per match',
     timeValueLabel: 'Minutes per match',
+    scoringCustom: 'Custom',
+    scoringCustomValue: 'Custom · {{value}}',
+    customPointsTitle: 'Custom points',
+    customPointsHint: 'Between 1 and 99 points per match.',
+    customPointsError: 'Choose a number between 1 and 99.',
+    customPointsSave: 'Save',
+    minutesValue: '{{count}} min',
 
     // --- Step 5: location ---
     step5Title: 'Location',
@@ -2939,7 +2969,7 @@ const mobileEvent = {
     capacityWithStandbyHint: 'Capacity: {{count}} players (+{{standby}} standby)',
 
     // --- Step 7: date / time ---
-    step7Title: 'When?',
+    step7Title: 'Date',
     dateLabel: 'Date',
     timeLabel: 'Start time',
     hourDecreaseLabel: 'Decrease hour',

@@ -41,6 +41,18 @@ describe('wizard step validators', () => {
     expect(validateStep4({ ...defaultDraft, scoringMode: 'points', scoringValue: 24 })).toEqual([]);
   });
 
+  it('step4 holds points to 1–99 and minutes to 1–90 (decision 9)', () => {
+    const points = (v: number) => validateStep4({ ...defaultDraft, scoringMode: 'points', scoringValue: v });
+    const time = (v: number) => validateStep4({ ...defaultDraft, scoringMode: 'time', scoringValue: v });
+    expect(points(0)).toEqual(['scoringValue']);
+    expect(points(1)).toEqual([]);
+    expect(points(99)).toEqual([]);
+    expect(points(100)).toEqual(['scoringValue']);
+    expect(time(0)).toEqual(['scoringValue']);
+    expect(time(90)).toEqual([]);
+    expect(time(91)).toEqual(['scoringValue']);
+  });
+
   it('step6 requires at least one court', () => {
     expect(validateStep6({ ...defaultDraft, numCourts: 0 })).toEqual(['numCourts']);
     expect(validateStep6({ ...defaultDraft, numCourts: 1 })).toEqual([]);

@@ -32,7 +32,6 @@ export function Step8Preferences({ draft, patch, errors, clearError }: WizardSte
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('step8Title')}</Text>
 
       {/* Standby */}
       <View style={styles.section}>
@@ -161,7 +160,6 @@ export function Step8Preferences({ draft, patch, errors, clearError }: WizardSte
 
 const styles = StyleSheet.create({
   container: { gap: 20 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   section: { gap: 12 },
   field: { gap: 8 },
   list: { gap: 10 },

@@ -1,7 +1,7 @@
 /**
- * Dots — the page indicator under a carousel, and the step indicator in the
- * event wizard. Two hand-rolled copies existed (welcome.tsx, StepIndicator.tsx),
- * differing in dot size, gap and inactive colour.
+ * Dots — the page indicator under a carousel. Two hand-rolled copies existed
+ * (welcome.tsx, and the event wizard's old StepIndicator, since replaced by
+ * ProgressBar — UX-CEVT-01), differing in dot size, gap and inactive colour.
  *
  * The accessibility shape is the point of having one: a row of coloured circles
  * is meaningless to a screen reader, and six or eight of them are six or eight

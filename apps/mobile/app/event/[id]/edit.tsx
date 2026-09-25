@@ -201,8 +201,11 @@ export default function EditEventScreen() {
           step={15}
         />
 
-        {/* Scoring + Preferences (reused wizard steps) */}
+        {/* Scoring + Preferences (reused wizard steps). The wizard titles its steps
+            itself now (UX-CEVT-01), so the steps carry no heading of their own. */}
+        <Text variant="label" tone="muted" style={styles.section}>{t('scoringLabel')}</Text>
         <Step4Scoring draft={d} patch={patch} />
+        <Text variant="label" tone="muted" style={styles.section}>{t('step8Title')}</Text>
         <Step8Preferences draft={d} patch={patch} />
 
         {/* Location */}

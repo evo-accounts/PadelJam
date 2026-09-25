@@ -19,5 +19,6 @@
   "ruleNumber": "At least one number",
   "ruleSymbol": "At least one symbol",
   "ruleMet": "met",
-  "ruleMissing": "missing"
+  "ruleMissing": "missing",
+  "progress": "Progress"
 }

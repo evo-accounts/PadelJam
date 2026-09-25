@@ -149,6 +149,7 @@ describe('00 design system', () => {
       // as sub-labels inside the section, and `scrollUntilVisible` takes the
       // FIRST match anywhere in the tree.
       { file: '11c-sign-in-primitives.png', heading: /^sign-in primitives$/i },
+      { file: '11d-progressbar.png', heading: /^progressbar$/i },
       { file: '12-empty-loading.png', heading: /^loading$/i },
     ];
 
@@ -213,6 +214,14 @@ describe('00 design system', () => {
     }
     // The wizard bar carries both: the heading text sits between a Back and a Close.
     expect(query(tree, { text: /create event/i }), 'wizard bar title').toBeDefined();
+
+    // 4. ProgressBar is ONE element: named "Progress", valued with the percentage
+    //    (UX-CEVT-01). A bar whose name is a bare "40%" — or whose track and
+    //    number are two elements — would read as noise.
+    const bar = query(tree, { id: 'gallery-progress-40' });
+    expect(bar, 'the 40% ProgressBar story should be in the tree').toBeDefined();
+    expect(bar?.AXLabel ?? '', 'ProgressBar is named').toMatch(/progress/i);
+    expect(`${bar?.AXLabel ?? ''} ${bar?.AXValue ?? ''}`, 'ProgressBar announces its percentage').toMatch(/40/);
 
     // 2. No control may announce a bare glyph, or a blank name.
     //

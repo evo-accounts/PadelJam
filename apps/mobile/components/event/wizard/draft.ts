@@ -9,6 +9,8 @@ import type React from 'react';
 
 import type { PickedImage } from '@/lib/storage';
 
+import type { StepKey } from './visibleSteps';
+
 export type EventInvitee = {
   invitee_id?: string;
   name?: string;
@@ -73,6 +75,15 @@ export const defaultDraft: EventDraft = {
 export type WizardStepProps = {
   draft: EventDraft;
   patch: (partial: Partial<EventDraft>) => void;
+  /**
+   * Applies `partial` (if any) and moves to the next VISIBLE step in one go. A tap-to-advance
+   * step (UX-CEVT-01) calls this from the card itself — the tap is the answer, so there is no
+   * Next button and no selected state left behind.
+   *
+   * Absent when a step is reused OUTSIDE the wizard — `event/[id]/edit.tsx` renders Scoring,
+   * Location, Courts and Preferences as sections of one form.
+   */
+  advance?: (partial?: Partial<EventDraft>) => void;
   /** Failing field keys for this step, from its `validate()`, once a Next tap has flagged them. */
   errors?: string[];
   /** Drops one key from `errors` as the user corrects that field, so it turns back to normal without waiting for the next Next tap (UX-GLOB-06). */
@@ -80,9 +91,16 @@ export type WizardStepProps = {
 };
 
 export type WizardStep = {
-  key: string;
+  key: StepKey;
   titleKey: string;
   Component: React.ComponentType<WizardStepProps>;
+  /**
+   * `tap`: a single choice from a list; the card advances and the step has no primary button.
+   * `button`: more than one value to set; a primary button is fixed at the bottom.
+   */
+  advanceBy: 'tap' | 'button';
+  /** Replaces the fixed bottom area on a tap step that still needs one (Group's "Continue without group"). */
+  Footer?: React.ComponentType<WizardStepProps>;
   /** Pure: the failing field keys for this step, or [] when the step is complete. */
   validate: (d: EventDraft) => string[];
   isValid: (d: EventDraft) => boolean;

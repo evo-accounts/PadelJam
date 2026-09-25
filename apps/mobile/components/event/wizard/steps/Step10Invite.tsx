@@ -10,7 +10,6 @@ export function Step10Invite({ draft, patch }: WizardStepProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('step10Title')}</Text>
       <Text style={styles.subtitle}>{t('inviteSubtitle')}</Text>
 
       {draft.specification === 'team' ? (
@@ -32,7 +31,6 @@ export function Step10Invite({ draft, patch }: WizardStepProps) {
 
 const styles = StyleSheet.create({
   container: { gap: 16 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   subtitle: { fontSize: 15, color: colors.mutedForeground },
   note: {
     gap: 6,
