@@ -118,7 +118,8 @@ function lockHolder() {
   if (!info?.pid) return null;
   try { process.kill(info.pid, 0); } catch { return null; } // dead pid → stale
   const cmd = spawnSync('ps', ['-p', String(info.pid), '-o', 'command='], { encoding: 'utf8' }).stdout ?? '';
-  return /run\.mjs/.test(cmd) ? info : null;
+  // hold.mjs (pnpm e2e:hold) takes the same lock for manual work against the stack.
+  return /(run|hold)\.mjs/.test(cmd) ? info : null;
 }
 
 function describeHolder(h) {
@@ -164,11 +165,65 @@ function releaseLock() {
   } catch { /* already gone */ }
 }
 
-acquireLock();
-process.on('exit', releaseLock);
-for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-  process.on(sig, () => { releaseLock(); process.exit(130); });
+// --- 0b. Orphans -------------------------------------------------------------
+// INCIDENT 2026-09-25: cancelling a CI job SIGINTs this script, and the runner
+// SIGKILLs it seconds later. The vitest child it had started survived both — it
+// was never in the signal's path — and kept driving the simulator. The next
+// queued job found a dead holder, took the "stale" lock at once, and for four
+// minutes two copies of suite 01 typed into the same app (a field read
+// "emo@1p2adeljam.test": alex's email from the orphan, interleaved with this
+// run's "12"). Two defences, because either alone leaves a gap:
+//   - the child runs in its OWN process group, and every exit path of this
+//     script kills that group and waits for it before the lock is released;
+//   - once the lock is ours, anything still running the e2e vitest config is
+//     by definition an orphan (a live run would hold the lock), so it is killed
+//     before a single suite starts. This covers the SIGKILL case, which no
+//     handler can.
+const E2E_VITEST = /vitest(\.mjs)?\b.*\brun\b.*e2e\/vitest\.e2e\.config/;
+
+function e2eVitestPids() {
+  const out = spawnSync('ps', ['-axo', 'pid=,command='], { encoding: 'utf8' }).stdout ?? '';
+  return out
+    .split('\n')
+    .map((l) => l.trim().match(/^(\d+)\s+(.*)$/))
+    .filter((m) => m && Number(m[1]) !== process.pid && E2E_VITEST.test(m[2]))
+    .map((m) => Number(m[1]));
 }
+
+function sweepOrphans() {
+  const pids = e2eVitestPids();
+  if (pids.length === 0) return;
+  log(`Killing ${pids.length} orphaned e2e process(es) from an earlier run: ${pids.join(', ')}`);
+  for (const pid of pids) { try { process.kill(pid, 'SIGTERM'); } catch { /* already gone */ } }
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline && e2eVitestPids().length > 0) execFileSync('sleep', ['0.5']);
+  for (const pid of e2eVitestPids()) { try { process.kill(pid, 'SIGKILL'); } catch { /* gone */ } }
+}
+
+/** The running suites, if any — a process-group leader (see the spawn below). */
+let suitesChild = null;
+
+function killSuites() {
+  const child = suitesChild;
+  if (!child || child.exitCode !== null) return;
+  // Negative pid: the whole group — pnpm, vitest and its workers.
+  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already gone */ }
+  const deadline = Date.now() + 8_000;
+  while (Date.now() < deadline) {
+    try { process.kill(-child.pid, 0); } catch { return; } // group gone
+    execFileSync('sleep', ['0.25']);
+  }
+  try { process.kill(-child.pid, 'SIGKILL'); } catch { /* gone */ }
+}
+
+acquireLock();
+// Order matters on every exit: stop the suites FIRST, then release the lock —
+// releasing first is exactly how the next run got in while the old one typed.
+process.on('exit', () => { killSuites(); releaseLock(); });
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(sig, () => { killSuites(); releaseLock(); process.exit(130); });
+}
+sweepOrphans();
 
 // --- 1. Resolve simulator ---------------------------------------------------
 function resolveUdid() {
@@ -476,9 +531,15 @@ const vitestArgs = ['exec', 'vitest', 'run', '-c', 'e2e/vitest.e2e.config.ts'];
 if (suite) vitestArgs.push(`suites/${suite}`);
 
 log(`Running suites${suite ? ` (filter: ${suite})` : ''}…`);
-const res = spawnSync('pnpm', vitestArgs, {
+// spawn, not spawnSync: a synchronous child blocks the event loop, so the
+// signal handlers above could not run until the suites had finished — which is
+// how a cancelled run's suites outlived it. `detached` makes the child the
+// leader of its own process group, so killSuites() can take down pnpm, vitest
+// and every worker in one signal.
+suitesChild = spawn('pnpm', vitestArgs, {
   cwd: MOBILE,
   stdio: 'inherit',
+  detached: true,
   env: {
     ...ENV,
     E2E_UDID: udid,
@@ -486,6 +547,10 @@ const res = spawnSync('pnpm', vitestArgs, {
     E2E_ARTIFACTS_DIR: artifacts,
   },
 });
+const status = await new Promise((resolveExit) => {
+  suitesChild.on('exit', (code) => resolveExit(code ?? 1));
+  suitesChild.on('error', () => resolveExit(1));
+});
 
 log(`Artifacts: ${artifacts}`);
-process.exit(res.status ?? 1);
+process.exit(status);

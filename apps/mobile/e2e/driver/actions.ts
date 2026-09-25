@@ -310,8 +310,16 @@ export async function typeText(field: Selector, text: string, opts?: WaitOpts): 
   }
   const finalState = await settled();
   if (finalState !== true) {
-    const dir = await captureFailure(`typeText could not settle "${text}" into ${JSON.stringify(field)} (got "${finalState}")`);
-    throw new Error(`typeText failed for ${JSON.stringify(field)}: field shows "${finalState}"\nartifacts: ${dir}`);
+    // A field holding MORE than was typed, after three clear-and-retypes, means
+    // something else is typing too — twice on 2026-09-25 that was an orphaned
+    // run on the same simulator. Say so, instead of leaving it to be decoded
+    // from a value like "emo@1p2adeljam.test".
+    const overlap =
+      String(finalState).length > text.length
+        ? ' — the field holds text this run never typed: is another run driving the simulator? (pgrep -fl vitest)'
+        : '';
+    const dir = await captureFailure(`typeText could not settle "${text}" into ${JSON.stringify(field)} (got "${finalState}")${overlap}`);
+    throw new Error(`typeText failed for ${JSON.stringify(field)}: field shows "${finalState}"${overlap}\nartifacts: ${dir}`);
   }
 }
 
