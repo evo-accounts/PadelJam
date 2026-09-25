@@ -86,6 +86,23 @@ export const useLeaveGroup = () => {
       qc.invalidateQueries({ queryKey: qk.groupMembers(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.members(input.communityId) });
+      // The group leaves Your Groups too; without this it lingered there until a refetch.
+      qc.invalidateQueries({ queryKey: qk.myGroups });
+    },
+  });
+};
+
+// 'ok' | 'sole_admin' | 'not_a_member' — leave_group's own checks, asked BEFORE the confirm sheet
+// so the sole-admin case is a sheet that resolves it, never an error after confirming (UX-GRP-15).
+export type LeaveGroupPreflight = 'ok' | 'sole_admin' | 'not_a_member';
+
+export const useLeaveGroupPreflight = () => {
+  const db = useDb();
+  return useMutation({
+    mutationFn: async (groupId: string): Promise<LeaveGroupPreflight> => {
+      const { data, error } = await db.rpc('leave_group_preflight', { p_group_id: groupId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as LeaveGroupPreflight;
     },
   });
 };
@@ -123,6 +140,21 @@ export const useAcceptGroupInvitation = () => {
       qc.invalidateQueries({ queryKey: qk.groupMembers(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.members(input.communityId) });
+    },
+  });
+};
+
+export const useDeclineGroupInvitation = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (groupId: string) => {
+      const { error } = await db.rpc('decline_group_invitation', { p_group_id: groupId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: (_data, groupId) => {
+      qc.invalidateQueries({ queryKey: qk.group(groupId) });
+      qc.invalidateQueries({ queryKey: qk.notifications });
     },
   });
 };
@@ -201,20 +233,15 @@ export const useAddGroupAdmins = (groupId: string) => {
   });
 };
 
-// ---------------------------------------------------------------------------
-// Direct (RLS-gated) writes
-// ---------------------------------------------------------------------------
-
+// Was a direct DELETE on group_members; 0107 removed that policy (it also let members delete
+// their own row past leave_group's guard), so removal goes through its RPC. Group only — the
+// person stays in the community (UX-GRP-13).
 export const useRemoveGroupMember = (id: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await db
-        .from('group_members')
-        .delete()
-        .eq('group_id', id)
-        .eq('user_id', userId);
+      const { error } = await db.rpc('remove_group_member', { p_group_id: id, p_user_id: userId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
     onSuccess: () => {

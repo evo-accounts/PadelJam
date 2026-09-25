@@ -2326,6 +2326,10 @@ export type Database = {
         Args: { p_invitation_id: string }
         Returns: undefined
       }
+      decline_group_invitation: {
+        Args: { p_group_id: string }
+        Returns: undefined
+      }
       record_community_entry: {
         Args: { p_ack?: boolean; p_community: string; p_user: string }
         Returns: undefined
@@ -2506,6 +2510,7 @@ export type Database = {
       may_approve_requests: { Args: { c: string }; Returns: boolean }
       may_create_event: { Args: { c: string }; Returns: boolean }
       may_create_group: { Args: { c: string }; Returns: boolean }
+      may_invite_to_group: { Args: { g: string; u: string }; Returns: boolean }
       set_event_timer: {
         Args: { p_event_id: string; p_action: string }
         Returns: undefined
@@ -2904,6 +2909,7 @@ export type Database = {
       leave_community: { Args: { p_community_id: string }; Returns: undefined }
       leave_event: { Args: { p_event_id: string }; Returns: undefined }
       leave_group: { Args: { p_group_id: string }; Returns: undefined }
+      leave_group_preflight: { Args: { p_group_id: string }; Returns: string }
       leave_waiting_list: { Args: { p_event_id: string }; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
       mark_all_paid: { Args: { p_event_id: string }; Returns: undefined }
@@ -2984,6 +2990,10 @@ export type Database = {
       postgis_wagyu_version: { Args: never; Returns: string }
       remove_member: {
         Args: { p_community_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      remove_group_member: {
+        Args: { p_group_id: string; p_user_id: string }
         Returns: undefined
       }
       register_push_token: {
