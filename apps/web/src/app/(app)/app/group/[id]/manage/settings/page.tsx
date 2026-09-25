@@ -1,139 +1,80 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+/**
+ * Group settings (UX-GRP-11): the Create group form, with no community selector — a group never
+ * moves between communities. Saving returns to the group page with a toast (UX-GLOB-06). Only for
+ * the group's admins; anyone else is sent to the group page.
+ */
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useCommunityMembers, useGroup, useGroupMemberList, useUpdateGroup } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { useMyGroups, useGroup, useUpdateGroup } from '@padel/api';
-import { uploadCommunityImage } from '@/lib/upload';
-import { communityImageUrl } from '@/lib/community-images';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { GroupComposer, type GroupComposerValues } from '@/components/group/GroupComposer';
+import { GroupPageTitle } from '@/components/group/GroupHeader';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/components/ui/toaster';
+import { communityImageUrl } from '@/lib/community-images';
+import { uploadCommunityImage } from '@/lib/upload';
 
-export default function GroupManageSettingsPage() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
+export default function GroupSettingsPage() {
   const { t } = useT('group');
-  const mine = useMyGroups();
+  const router = useRouter();
+  const uid = useSession().session?.user.id;
+  const { id } = useParams<{ id: string }>();
   const group = useGroup(id);
+  const communityMembers = useCommunityMembers(group.data?.community_id);
+  const people = useGroupMemberList(id);
   const update = useUpdateGroup(id, group.data?.community_id ?? '');
-
-  const myRow = (mine.data ?? []).find((r) => r.group_id === id);
-  const isManaging = !!myRow?.is_managing;
-  useEffect(() => {
-    if (!mine.isLoading && mine.data && !isManaging) router.replace(`/app/group/${id}`);
-  }, [mine.isLoading, mine.data, isManaging, id, router]);
-
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const seeded = useRef(false);
+  const checking = group.isLoading || communityMembers.isLoading || people.isLoading;
+  const isMember = (people.data ?? []).some((p) => p.user_id === uid && p.is_member);
+  const isCommunityAdmin = (communityMembers.data ?? []).some((m) => m.user_id === uid && m.role === 'admin');
+  const isAdmin = isCommunityAdmin && (!group.data?.is_private || isMember);
   useEffect(() => {
-    if (seeded.current || !group.data) return;
-    seeded.current = true;
-    setName(group.data.name ?? '');
-    setDescription(group.data.description ?? '');
-    setIsPrivate(group.data.is_private ?? false);
-  }, [group.data]);
+    if (!checking && !isAdmin) router.replace(`/app/group/${id}`);
+  }, [checking, isAdmin, id, router]);
 
-  useEffect(() => {
-    return () => {
-      if (preview) URL.revokeObjectURL(preview);
-    };
-  }, [preview]);
+  if (checking || !isAdmin || !group.data) return <Skeleton className="m-6 h-40" />;
+  const g = group.data;
 
-  const onFileChange = (f: File | null) => {
-    setPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return f ? URL.createObjectURL(f) : null;
-    });
-    setFile(f);
-  };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
+  const onSubmit = async (values: GroupComposerValues) => {
     setError(null);
-    let thumbnail_path: string | undefined;
+    setSaving(true);
     try {
-      if (file) thumbnail_path = await uploadCommunityImage(file, id, 'community-thumbnails');
-    } catch {
-      // image upload failed; still save the text fields
-    }
-    try {
+      let thumbnailPath = values.removeThumbnail ? null : (g.thumbnail_path ?? null);
+      if (values.file) thumbnailPath = await uploadCommunityImage(values.file, id, 'community-thumbnails');
       await update.mutateAsync({
-        name: name.trim(),
-        description: description.trim() || null,
-        is_private: isPrivate,
-        ...(thumbnail_path ? { thumbnail_path } : {}),
+        name: values.name,
+        description: values.description ?? null,
+        is_private: values.isPrivate,
+        thumbnail_path: thumbnailPath,
       });
+      toast(t('savedToast'));
       router.push(`/app/group/${id}`);
-    } catch {
-      setError(t('saveError'));
-      setBusy(false);
+    } catch (e) {
+      const code = e instanceof Error ? e.message : 'unknown_error';
+      setError(t(code, { defaultValue: t('unknown_error') }));
+      setSaving(false);
     }
   };
-
-  if (mine.isLoading || group.isLoading) return <Skeleton className="m-6 h-40" />;
-  if (!isManaging || !group.data) return null;
-
-  const currentThumb = communityImageUrl(group.data.thumbnail_path, 'community-thumbnails');
 
   return (
-    <div className="p-6 max-w-xl space-y-6">
-      <h1 className="text-2xl font-semibold">{t('settingsRow')}</h1>
-      <Card>
-        <CardContent>
-          <form onSubmit={onSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t('groupName')}</Label>
-              <Input id="name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">{t('descriptionLabel')}</Label>
-              <Textarea
-                id="description"
-                value={description}
-                maxLength={2000}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="private">{t('privateLabel')}</Label>
-              <Switch id="private" checked={isPrivate} onCheckedChange={setIsPrivate} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="thumbnail">{t('thumbnailLabel')}</Label>
-              <input
-                id="thumbnail"
-                type="file"
-                accept="image/*"
-                onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
-              />
-              {preview ?? currentThumb ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={preview ?? currentThumb ?? undefined}
-                  alt=""
-                  className="h-24 w-24 rounded object-cover"
-                />
-              ) : null}
-            </div>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button type="submit" className="w-full" disabled={busy}>
-              {busy ? t('saving') : t('save')}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-6 p-4">
+      <GroupPageTitle title={t('editTitle')} fallbackHref={`/app/group/${id}`} subtitle={g.name} />
+      <GroupComposer
+        initial={{
+          name: g.name,
+          description: g.description,
+          isPrivate: g.is_private,
+          thumbnailUrl: communityImageUrl(g.thumbnail_path, 'community-thumbnails'),
+        }}
+        submitting={saving}
+        submitLabel={t('saveCta')}
+        onSubmit={(v) => void onSubmit(v)}
+        error={error}
+      />
     </div>
   );
 }
