@@ -224,6 +224,17 @@ jobs:
           path: ${{ env.E2E_ARTIFACTS_DIR }}
           retention-days: 2
 
+      # Runs on success, failure AND cancellation. A cancelled job's suites used to
+      # outlive it (run.mjs is SIGINTed then SIGKILLed; its vitest child was in
+      # neither signal's path) and kept driving the simulator while the next job
+      # started — see the 2026-09-25 note in scripts/e2e/run.mjs. run.mjs now
+      # kills its own process group and sweeps orphans on start, so this is the
+      # belt to those braces. Scoped to THIS workspace's vitest, so a job that was
+      # only queued behind the lock can never kill another run's suites.
+      - name: Stop this run's suites
+        if: always()
+        run: pkill -f "${GITHUB_WORKSPACE}/.*vitest.*e2e/vitest.e2e.config" || true
+
       # No teardown step on purpose. `supabase stop` would take down the stack
       # the developer works against, and each suite already calls resetDb() at
       # the start, so leaving it running costs nothing and surprises no one.
