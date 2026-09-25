@@ -1,0 +1,179 @@
+# UX Audit — Create & Join Events: implementation plan
+
+## Context
+
+`UX-Audit-Create-Join-Events.docx.pdf` (section 11 of the external audit) — 25 items, **UX-CEVT-01..11** and
+**UX-JEVT-01..14**, plus a fixed "Event rules" block. Fifth in the series after Global, Community, Profile &
+Settings and Groups. Main is at `5c98ed9`. Cross-references to UX-MEVT-* and UX-LIVE-* point at a later
+section (manage / live event) that is not in hand; only the behaviour they are cited for is honoured here.
+
+As before, **the Problems predate earlier merges; trust the Suggestions.** Already false today:
+
+- The wizard already has a ‹ back icon (absent on step 1) and a ✕ close icon (UX-GLOB-01). There is no
+  "Fechar" and no "Voltar" button.
+- The roster schema already has the pair model (`event_teams`), the `interested` state, `partner_requests`,
+  `choose_partner` (confirms both, no acceptance — JM-10) and per-player capacity (a pair claims two spots
+  under a lock; interested players hold none). The UI just never calls `choose_partner`.
+- The 6 h confirm cut-off, 12 h leave cut-off, organizer override and the unlimited waiting list are enforced.
+- `players_submit_results` (UX-LIVE-08) and immutable format/modality (UX-LIVE-20) exist.
+
+`Requirements/create-event.md` and `Requirements/join-manage-event.md` disagree with the audit in places.
+The audit wins; both docs are amended in the last PR.
+
+## Decisions (product owner, 2026-09-25 — do not re-litigate)
+
+1. **A partner who stays loses the spot.** When a confirmed player leaves a team event, the partner goes back
+   to Invited holding no spot (JM-16, and the audit's own rule that only confirmed pairs hold spots), and
+   receives a new `partner_left` notification. The event screen shows the team entry state with Join.
+   The audit's "keeping their spot" phrase is overridden.
+2. **Chat only; phones stop leaking.** No "Call" action after the leave deadline (UX-JEVT-05) — the sheet
+   shows the organizer card with "Chat". Separately, `profiles.phone` stops being readable by every signed-in
+   user (today the whole profile row is selectable).
+3. **Venues get a super-admin tool.** The curated venue registry (UX-CEVT-06) is managed from a new web
+   super-admin area: venues, their courts and images. The `super_admin` role exists only as an enum value in
+   0002; it gets a real check (`is_super_admin()`), write policies and an image bucket.
+4. **Waiting list first.** Broadcast (audit): when a spot frees, every waiter is notified at once and the
+   first to claim it wins; nobody is auto-confirmed. While anyone is waiting, a newcomer's Join puts them at
+   the end of the list rather than into the freed spot.
+
+Defaults taken (object at plan review):
+
+5. **Public group events send no invitations** (audit; amends EV-20). Members get an `event_created`
+   notification and see **Join**. Invitations exist only for private events. Existing pending invitations on
+   public events are deleted by the migration (their holders see Join instead of Accept/Decline).
+6. **Interested players stay interested when the event fills** (audit; amends JM-17). Once they pair up and
+   the event is full, the pair goes onto the waiting list together and claims two spots.
+7. **Guest players** (no account): name, plus gender on mixed events, confirmed for that event only, no
+   history, no ranking, not reusable. Added by the organizer in the wizard (UX-CEVT-11, amends Step 10's
+   name+email+phone invitation) and **by a player as their partner** (UX-JEVT-10, extends JM-28).
+8. **Mixed capacity is split per gender** and enforced server-side: a mixed event with 16 spots takes
+   8 men and 8 women; the join/claim/pair RPCs refuse `gender_full`. Profiles with no gender are asked for it
+   before joining a mixed event (they cannot be balanced otherwise — `start_event` already refuses them).
+9. **Wizard values follow the audit**: progress bar with %, dynamic step count, tap-to-advance on single-choice
+   steps; Points 8/11/16/21/24/32/40 + Custom (1–99), default 32; Time slider 1–90, default 10; duration
+   60/90/120 + Custom (15–480), default 60. Where the audit is silent, Requirements win: courts 1–20,
+   stand-by spots 1–20 default 4.
+10. **Recurrence runs on its own.** `invite_lead_days` is stored but nothing uses it; a `pg_cron` job
+    materialises the next occurrence `invite_lead_days` before it (the hosted project needs the `pg_cron`
+    extension enabled — one dashboard toggle). Recurrence stays group-only and plan-capped.
+11. **Add to calendar** uses `expo-calendar`'s native event editor (new native dependency → needs a new build;
+    E2E runs a Release build, so no extra cost). Web downloads an `.ics`.
+12. **Share** uses the native share sheet with an `expo-linking` URL (the `groupShare` pattern), not the
+    custom sheet in Requirements §3.10.
+13. **No-access** (UX-JEVT-07) closes with ✕ to Home (amends JM-22's "Try again"). A deleted event and a private
+    one are indistinguishable to RLS, so both land here.
+14. **Player list's Invited tab** is visible to anyone who can see the event, through a read-only RPC
+    (the `event_invitations` read policy stays organizer + invitee).
+15. **Preset thumbnails** stay blocked on artwork, as in Groups: CEVT-10 ships the shared picker with
+    change/remove, upload only.
+16. Full web parity, mobile PR then web PR per area.
+
+## Bugs found while mapping (fixed regardless)
+
+| # | Bug | Where | PR |
+|---|-----|-------|----|
+| B1 | `choose_partner` never checks the partner: any uuid, a non-invitee of a private event, a blocked user, or someone already paired can be confirmed; duplicate teams possible | 0047:103 | 1 |
+| B2 | No 6 h / `scheduled` check on `accept_event_invitation`, `choose_partner`, `request_partner`, `accept_partner_request` | 0081:136, 0047, 0051 | 1 |
+| B3 | `accept_partner_request` declines the *requester's* other requests, not the accepter's incoming ones; doesn't check the requester is still interested/unpaired | 0047:180 | 1 |
+| B4 | `leave_event` leaves the leaver's sent partner requests pending → a later accept re-confirms someone who left (JM-15) | 0093:61 | 1 |
+| B5 | Target can PATCH `partner_requests.status` directly, skipping the RPC side effects; requester cannot withdraw | 0044:106 | 1 |
+| B6 | Partner-request candidates are unfiltered group members — blocked users appear as "—" and can be requested | mobile `partner-requests.tsx` | 1, M5 |
+| B7 | A group member who joined after a public team event was created cannot enter it at all (`use_team_join` / `forbidden`) | 0047, 0051 | 2 |
+| B8 | `join_event` gives a freed spot to a newcomer while people are waiting | 0047:26 | 2 |
+| B9 | "Aderir com um parceiro" appears only after join+leave; accepting a team invite silently makes you `interested` and the UI shows "Going" | mobile/web detail CTA | M5, W3 |
+| B10 | Leaving leaves your own invitation `accepted`, so the Invited state never comes back | 0093:61 | 2 |
+| B11 | Every signed-in user can read every user's phone | profiles policy 0055:49 + table grant 0030 | 5 |
+| B12 | A manual invitee with a name only violates `ei_user_or_contact` → `create_event` fails | 0041:32, `InvitePicker` | 4 |
+| B13 | `events.thumbnail_path` is uploaded but rendered nowhere | mobile/web `EventCard`, detail | M4, W2 |
+| B14 | Wizard from Home/FAB (no `communityId`) lists no groups at all; from a community it lists every group, not those you may create in | `Step1Group.tsx:19` | M1 |
+| B15 | `invite_lead_days` stored, never used — recurring events never materialise on their own | 0079/0086 | 7 |
+| B16 | Scoring defaults 24 pts / 15 min break EV-04 (32 / 10) | `Step4Scoring.tsx:28` | M1 |
+| B17 | Organizer who only organizes is invisible on the event page (organizer is read from participants) | detail:193 | M4 |
+| B18 | Web join countdown is frozen at mount | web `page.tsx:54` | W2 |
+
+## PR sequence
+
+Migrations are 0111–0117. Every PR touching `apps/mobile/**`, `packages/**` or `infra/**` queues the ~37-min
+self-hosted E2E and they serialise; web-only PRs skip E2E. Mobile PRs open as drafts until green locally. Each
+PR: `check` (all eight) green + `test:db` for migrations + E2E green → squash-merge → next. Hosted migrations
+are pasted by the product owner (the account cannot push) — handed over as one batch at the end.
+
+**0 — docs.** This plan + the audit transcription.
+
+**1 — migration 0111 "roster integrity"** (+ `packages/api`, SQL tests): B1–B6.
+- `choose_partner`: partner must be eligible (invitee, or member of the public group), not blocked either way,
+  not already confirmed/paired/waiting as a pair; 6 h + `scheduled`.
+- `_assert_can_confirm(event)` helper (6 h + scheduled) used by every self-join path.
+- `accept_partner_request` declines the accepter's other incoming requests for the event (silently) and
+  checks the requester is still interested.
+- `leave_event` cancels the leaver's sent requests; drop the UPDATE policy on `partner_requests`; new
+  `withdraw_partner_request`.
+- Partner-candidate RPC `event_partner_candidates(event)` filtered for blocks.
+
+**2 — migration 0112 "join rules"** (+ api): decisions 4, 5, 6, 8; B7, B8, B10.
+- `notify_waitlist_spot` notifies every waiter; `claim_waitlist_spot` stays first-come; newcomers queue while
+  anyone waits; pairs claim two spots from the list.
+- No invitations for public group events (`create_event`, `materialize_occurrence`) + delete existing
+  pending ones; `event_created` notification to group members.
+- Public team events: any group member may enter the team flow without an invitation.
+- Mixed per-gender capacity in join/claim/pair RPCs (`gender_full`, `gender_required`).
+- `partner_left` notification from `leave_event`; leaving resets your invitation to pending on private events.
+- `my_events(p_filter 'all'|'organizing'|'going'|'pending', p_include_past)`; Going includes waiting/interested.
+- `event_invited_players(event)` read-only RPC.
+
+**3 — migration 0113 "guests"** (+ api): decision 7.
+- `create_event` accepts `guests: [{name, gender}]` → confirmed guest participants.
+- `choose_guest_partner(event, name, gender)`.
+
+**4 — migration 0114 "venues"** (+ api): CEVT-06/07, B12.
+- `venues.image_path`; `search_venues(q)` returns image, address, court count, empty query lists all
+  (paged, alphabetical).
+- `events.manual_court_names text[]`; `create_event` stores it; drop the manual-invitee email/phone path.
+
+**5 — migration 0115 "phone privacy"** (+ api, mobile/web reads): decision 2, B11.
+- Column-level grants on `profiles` exclude `phone`; own phone read from the auth user. Every
+  `profiles select('*')` in `packages/api` is replaced by an explicit column list first (a revoked column makes
+  `*` fail).
+
+**6 — migration 0116 "super-admin"**: decision 3.
+- `is_super_admin()` from a `platform_admins` table (seeded by SQL); insert/update/delete policies on
+  `venues`/`courts`; `venue-images` bucket.
+
+**7 — migration 0117 "recurrence scheduler"**: decision 10, B15. `pg_cron` hourly job calling a
+`materialize_due_occurrences()` that reuses `materialize_occurrence`.
+
+**M1 — mobile wizard shell + steps 1–4** (UX-CEVT-01..05, B14, B16). `ProgressBar` primitive (Storybook +
+suite 00); dynamic `steps` in `CreateEventContext` (Courts skipped for manual venue, Invite skipped for public
+group events); tap-to-advance cards; Group step from `my_groups` filtered by `may_create_event` +
+"Event without group" sheet; format chip; expanding scoring cards + Custom sheet + slider. Suite 05 updated.
+
+**M2 — mobile steps 5–8** (UX-CEVT-06..08): venue registry list + manual venue form (courts, court names,
+"this event only" banner) + "No location"; courts by venue with checkboxes; date scroller with month labels,
+period tabs, duration presets, recurrence card, fixed summary.
+
+**M3 — mobile steps 9–10** (UX-CEVT-09..11): preference cards; thumbnail picker with remove; invite step with
+platform search, "+ Add manually" guest sheet, "I will invite later".
+
+**M4 — mobile events list + detail** (UX-JEVT-01..08, B13, B17): Pending tab + past toggle, placeholder
+thumbnails, no "Em breve", no search; detail rebuilt (image, identity, players card, badges, Courts/Scoring/Fee
+widgets, organizer card, maps location); ⋯ sheet (Share, Add to calendar, Leave) + `expo-calendar`;
+invited bottom area with inviter; "You are in" screen; countdown only within 24 h of the cut-off; full /
+waiting list / claim / closed states; leave confirmation + after-deadline organizer sheet (Chat); no-access
+screen; read-only Player list with tabs and guest tag.
+
+**M5 — mobile team events** (UX-JEVT-09..14, B6, B9): Team Event sheet; I have a partner (+ guest); I need a
+partner (invite many / let others invite me); Partner requests grouped by event with accept sheet;
+interested banner + Edit response sheet; partner-left state.
+
+**W1–W3 — web parity** for M1–M3, M4, M5 (web wizard gets the same chrome and dynamic steps).
+**W4 — web super-admin venues** (list, create/edit venue with courts and image).
+
+**8 — docs.** Amend `Requirements/create-event.md` and `join-manage-event.md` to the decisions above
+(EV-04, EV-20, EV-26, Steps 4/6/8/10, JM-01, JM-03, JM-08, JM-17, JM-22, JM-28, §3.10), and hand over the
+hosted paste list 0111–0117 + `pg_cron` toggle.
+
+## Out of scope / follow-ups
+
+- Preset thumbnail artwork (product owner).
+- UX-MEVT / UX-LIVE sections themselves (organizer manage + live screens) — next audit document.
+- Organizer "mark interested confirmed" should require a pair (§4.4b) — belongs to UX-MEVT.
