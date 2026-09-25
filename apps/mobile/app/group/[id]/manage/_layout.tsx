@@ -9,7 +9,8 @@ import { Stack } from 'expo-router';
 export default function GroupManageLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="settings" />
+      {/* UX-GRP-11: Group Settings is presented as a sheet. */}
+      <Stack.Screen name="settings" options={{ presentation: 'formSheet', sheetAllowedDetents: [1] }} />
       <Stack.Screen name="members" />
     </Stack>
   );

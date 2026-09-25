@@ -14,7 +14,7 @@
 import {
   useArchiveGroup,
   useArchivedCommunityGroups,
-  useCanCreateGroup,
+  useMayCreateGroup,
   useCommunityGroups,
   useUnarchiveGroup,
 } from '@padel/api';
@@ -52,7 +52,8 @@ export default function ManageGroupsScreen() {
 
   const { data: live, isLoading, isError, refetch } = useCommunityGroups(id);
   const { data: archived } = useArchivedCommunityGroups(id);
-  const { data: canCreate } = useCanCreateGroup(id);
+  // Permission only: at the plan's group limit the create answers with the upgrade prompt (decision 6).
+  const { data: canCreate } = useMayCreateGroup(id);
   const archive = useArchiveGroup();
   const unarchive = useUnarchiveGroup();
   const show = useActionSheet();
@@ -147,7 +148,7 @@ export default function ManageGroupsScreen() {
           canCreate ? (
             <View style={styles.header}>
               <Button
-                label={tg('newGroupCta')}
+                label={tg('createCta')}
                 fullWidth
                 onPress={() => router.push(`/community/${id}/group-create` as Href)}
                 testID="manage-create-group"

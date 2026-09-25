@@ -3,7 +3,7 @@ import { query, snapshot } from '../driver/a11y';
 import { scrollUntilVisible, tap } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
-import { loginAs, switchUser, tabTo } from '../driver/flows';
+import { deepLink, loginAs, switchUser, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
@@ -96,6 +96,22 @@ describe('10 groups', () => {
     );
     // The admin who closed it lands on the completion screen with the final standings.
     await expectVisible({ text: /season \d+ is closed/i }, { timeout: 20_000 });
+  });
+
+  it('an invitee previews a private group and accepts (UX-GRP-02)', async () => {
+    // g3 is private and maria holds a pending invitation. She cannot read the group itself until
+    // she accepts — the invitation screen shows it through group_invitation_preview (0110).
+    const m = manifest();
+    await switchUser('maria');
+    await deepLink(`mobile:///group/${m.groups.g3}/join`, /secret squad/i);
+    await expectVisible({ text: /invited you/i }, { timeout: 15_000 });
+    await tap({ id: 'group-invite-accept' });
+    await pollUntil(
+      () => select('group_members', `group_id=eq.${m.groups.g3}&user_id=eq.${m.users.maria}&select=user_id`),
+      (rows) => (rows as unknown[]).length === 1,
+      { label: 'maria joined g3', timeoutMs: 20_000 },
+    );
+    await expectVisible({ id: 'group-members-line' }, { timeout: 20_000 });
   });
 
   it('a private group is not reachable by a non-invited member', async () => {

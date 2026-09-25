@@ -42,6 +42,8 @@ export const qk = {
   partnerRequests: (id: string) => ['event', id, 'partner-requests'] as const,
   canCreateEvent: (groupId: string) => ['group', groupId, 'can-create-event'] as const,
   canInviteToGroup: (groupId: string) => ['group', groupId, 'can-invite'] as const,
+  groupInvitationPreview: (groupId: string) => ['group', groupId, 'invitation-preview'] as const,
+  mayCreateGroup: (cid: string) => ['community', cid, 'may-create-group'] as const,
   eventRanking: (groupId: string, seasonId: string) =>
     ['group', groupId, 'ranking', seasonId] as const,
   groupRanking: (seasonId: string) => ['group-ranking', seasonId] as const,

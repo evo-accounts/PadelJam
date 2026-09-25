@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
 import { useDb } from '../client';
+import { useCommunities } from '../communities/queries';
 import { qk } from '../query-keys';
 
 export const useCanCreateGroup = (communityId: string) => {
@@ -295,4 +296,82 @@ export const useCanInviteToGroup = (groupId: string | null | undefined) => {
       return data ?? false;
     },
   });
+};
+
+export type GroupInvitationPreview = {
+  group_id: string;
+  name: string;
+  description: string | null;
+  thumbnail_path: string | null;
+  is_private: boolean;
+  created_at: string;
+  member_count: number;
+  members: { id: string; full_name: string | null; avatar_url: string | null }[];
+  community_id: string;
+  community_name: string;
+  community_thumb: string | null;
+  inviter_id: string | null;
+  inviter_name: string | null;
+  inviter_avatar: string | null;
+};
+
+// What a PENDING invitation shows of its group (migration 0110, UX-GRP-02): identity and context,
+// never content. null when there is no pending invitation — accepted, declined, or never sent.
+export const useGroupInvitationPreview = (groupId: string | null | undefined) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.groupInvitationPreview(groupId ?? ''),
+    enabled: !!groupId,
+    queryFn: async (): Promise<GroupInvitationPreview | null> => {
+      const { data, error } = await db.rpc('group_invitation_preview', { p_group_id: groupId! });
+      if (error) throw error;
+      const row = data?.[0];
+      return row ? ({ ...row, members: (row.members ?? []) as GroupInvitationPreview['members'] } as GroupInvitationPreview) : null;
+    },
+  });
+};
+
+// Permission only — admin, or a member the community lets create groups (0098's may_create_group).
+// Create actions show on this, not on can_create_group: a community at its plan's group limit
+// still offers "Create group", and the create answers with the upgrade prompt instead of the
+// button silently not being there (decision 6).
+export const useMayCreateGroup = (communityId: string | null | undefined) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.mayCreateGroup(communityId ?? ''),
+    enabled: !!communityId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('may_create_group', { c: communityId! });
+      if (error) throw error;
+      return data ?? false;
+    },
+  });
+};
+
+/**
+ * The communities where the user may create a group (UX-GRP-01): the targets of Your Groups'
+ * "Create group" and of its community selector. Admin rows qualify outright; member rows ask
+ * may_create_group, since the community's create_groups toggle decides. Archived communities
+ * never qualify. `isLoading` stays true until every answer is in, so the create action does not
+ * flicker in and out.
+ */
+export const useCreatableCommunities = () => {
+  const db = useDb();
+  const { data: memberships, isLoading: loadingMemberships } = useCommunities();
+  const active = (memberships ?? []).filter((m) => !m.community.archived_at);
+  const answers = useQueries({
+    queries: active.map((m) => ({
+      queryKey: qk.mayCreateGroup(m.community.id),
+      queryFn: async () => {
+        if (m.role === 'admin') return true;
+        const { data, error } = await db.rpc('may_create_group', { c: m.community.id });
+        if (error) throw error;
+        return data ?? false;
+      },
+    })),
+  });
+  return {
+    communities: active.filter((_, i) => answers[i]?.data === true).map((m) => m.community),
+    isLoading: loadingMemberships || answers.some((a) => a.isLoading),
+  };
 };

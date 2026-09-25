@@ -13,6 +13,10 @@ describe('notificationRoute', () => {
   it('returns null for a follow without an actor', () => {
     expect(notificationRoute({ type: 'follow' })).toBeNull();
   });
+  it('opens a group invitation on its invitation screen', () => {
+    expect(notificationRoute({ type: 'group_invite', group_id: 'g1' })).toBe('/group/g1/join');
+  });
+
   it('prefers event over group over community', () => {
     expect(notificationRoute({ event_id: 'e1', group_id: 'g1', community_id: 'c1' })).toBe('/event/e1');
   });

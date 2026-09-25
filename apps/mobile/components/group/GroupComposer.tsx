@@ -1,21 +1,14 @@
 import { createGroupSchema, updateGroupSchema } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { useEffect, useState, type MutableRefObject } from 'react';
+import { StyleSheet, Switch, View } from 'react-native';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
 import { isDirty } from '@/lib/useDirty';
 import { useFieldErrors } from '@/lib/useFieldErrors';
-import { colors } from '../../theme';
-import { Field, useBanner } from '../ui';
+import { colors, radius, space } from '../../theme';
+import { Field, Text, useBanner } from '../ui';
 import { validateGroupComposer, type GroupComposerFieldKey } from './groupComposerValidate';
 
 export type GroupComposerValues = {
@@ -24,6 +17,8 @@ export type GroupComposerValues = {
   isPrivate: boolean;
   /** Newly picked image to upload, or null when unchanged / unset. */
   thumbnail: PickedImage | null;
+  /** The existing thumbnail was removed (edit mode): store none. */
+  removeThumbnail: boolean;
 };
 
 export type GroupComposerInitial = {
@@ -37,7 +32,12 @@ export type GroupComposerInitial = {
 };
 
 /**
- * Create/edit form body for a group, shared by the create modal and the settings
+ * Create/edit form body for a group, shared by Create Group and Group Settings (UX-GRP-01/11 — the
+ * same form). The primary button is NOT here: both screens fix it to the bottom, outside the
+ * scroll, and trigger `submitRef.current()`. It stays enabled and validates on tap, saying what is
+ * missing (UX-GLOB-06; the product owner kept this over UX-GRP-01's "disabled until filled").
+ *
+ * Originally: create/edit form body for a group, shared by the create modal and the settings
  * screen. Manages name / description / privacy / thumbnail locally and validates
  * with the relevant @padel/api schema before calling `onSubmit`. The actual
  * thumbnail upload + RPC are left to the caller: `onSubmit` receives the picked
@@ -50,6 +50,7 @@ export function GroupComposer({
   submitting,
   onSubmit,
   onDirtyChange,
+  submitRef,
 }: {
   mode: 'create' | 'edit';
   initial?: GroupComposerInitial;
@@ -57,6 +58,8 @@ export function GroupComposer({
   onSubmit: (values: GroupComposerValues) => void;
   /** Reports whether the form differs from `initial`, so the caller's TopBar can confirm before closing. */
   onDirtyChange?: (dirty: boolean) => void;
+  /** Filled with this form's submit, for the screen's fixed footer button to call. */
+  submitRef: MutableRefObject<(() => void) | null>;
 }) {
   const { t } = useT('group');
   const { t: tc } = useT('common');
@@ -66,25 +69,30 @@ export function GroupComposer({
   const [description, setDescription] = useState(initial?.description ?? '');
   const [isPrivate, setIsPrivate] = useState(initial?.isPrivate ?? false);
   const [thumbnail, setThumbnail] = useState<PickedImage | null>(null);
+  const [removed, setRemoved] = useState(false);
   const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<GroupComposerFieldKey>();
 
-  const previewUri = thumbnail?.uri ?? initial?.thumbnailUrl ?? null;
+  const previewUri = thumbnail?.uri ?? (removed ? null : (initial?.thumbnailUrl ?? null));
 
   useEffect(() => {
     const dirty =
       thumbnail != null ||
+      removed ||
       isDirty(
         { name, description, isPrivate },
         { name: initial?.name ?? '', description: initial?.description ?? '', isPrivate: initial?.isPrivate ?? false },
       );
     onDirtyChange?.(dirty);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, description, isPrivate, thumbnail]);
+  }, [name, description, isPrivate, thumbnail, removed]);
 
   const pickThumbnail = async () => {
     try {
       const picked = await pickAndValidateImage();
-      if (picked) setThumbnail(picked);
+      if (picked) {
+        setThumbnail(picked);
+        setRemoved(false);
+      }
     } catch (e) {
       banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     }
@@ -124,8 +132,13 @@ export function GroupComposer({
       description: trimmedDescription,
       isPrivate,
       thumbnail,
+      removeThumbnail: removed && thumbnail == null,
     });
   };
+  // The fixed footer lives in the screen; it calls whatever submit this render produced.
+  useEffect(() => {
+    submitRef.current = submit;
+  });
 
   return (
     <View style={styles.container}>
@@ -154,58 +167,49 @@ export function GroupComposer({
         variant="square"
         uri={previewUri}
         onPress={pickThumbnail}
+        onRemove={
+          previewUri
+            ? () => {
+                setThumbnail(null);
+                setRemoved(true);
+              }
+            : undefined
+        }
         disabled={submitting}
       />
 
-      <Text style={styles.label}>{t('privacyLabel')}</Text>
-      <View style={styles.privacyRow}>
+      {/* UX-GRP-01: the privacy toggle inside a card, its description saying what it means. */}
+      <View style={styles.privacyCard}>
         <View style={styles.privacyText}>
-          <Text style={styles.privacyTitle}>
-            {isPrivate ? t('privatePrivateLabel') : t('privatePublicLabel')}
+          <Text variant="label">{t('privateToggleLabel')}</Text>
+          <Text variant="caption" tone="muted">
+            {t('privateHelp')}
           </Text>
-          <Text style={styles.privacyHelp}>{t('privateHelp')}</Text>
         </View>
-        <Switch value={isPrivate} onValueChange={setIsPrivate} disabled={submitting} />
+        <Switch
+          value={isPrivate}
+          onValueChange={setIsPrivate}
+          disabled={submitting}
+          accessibilityLabel={t('privateToggleLabel')}
+          testID="group-private-toggle"
+        />
       </View>
-
-      <Pressable
-        style={[styles.button, submitting && styles.buttonDisabled]}
-        onPress={submit}
-        disabled={submitting}
-        accessibilityRole="button"
-      >
-        {submitting ? (
-          <ActivityIndicator color={colors.card} />
-        ) : (
-          <Text style={styles.buttonText}>{mode === 'create' ? t('createCta') : t('saveCta')}</Text>
-        )}
-      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { gap: 0 },
-  label: { fontSize: 14, color: colors.mutedForeground, marginBottom: 8 },
-  field: { marginBottom: 16 },
-  privacyRow: {
+  field: { marginBottom: space[4] },
+  privacyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    gap: space[3],
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    borderRadius: radius.lg,
+    padding: space[4],
+    marginTop: space[4],
   },
-  privacyText: { flex: 1, paddingRight: 12 },
-  privacyTitle: { fontSize: 15, fontWeight: '600', color: colors.foreground },
-  privacyHelp: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.card, fontSize: 16, fontWeight: '600' },
+  privacyText: { flex: 1, gap: space[1] },
 });
