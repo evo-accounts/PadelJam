@@ -905,6 +905,7 @@ export type Database = {
           is_standby: boolean
           joined_at: string
           paid_at: string | null
+          pair_participant_id: string | null
           status: string
           user_id: string | null
           waiting_list_position: number | null
@@ -920,6 +921,7 @@ export type Database = {
           is_standby?: boolean
           joined_at?: string
           paid_at?: string | null
+          pair_participant_id?: string | null
           status?: string
           user_id?: string | null
           waiting_list_position?: number | null
@@ -935,6 +937,7 @@ export type Database = {
           is_standby?: boolean
           joined_at?: string
           paid_at?: string | null
+          pair_participant_id?: string | null
           status?: string
           user_id?: string | null
           waiting_list_position?: number | null
@@ -952,6 +955,13 @@ export type Database = {
             columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_pair_participant_id_fkey"
+            columns: ["pair_participant_id"]
+            isOneToOne: false
+            referencedRelation: "event_participants"
             referencedColumns: ["id"]
           },
           {
@@ -1585,6 +1595,7 @@ export type Database = {
       }
       partner_requests: {
         Row: {
+          closed_by_system: boolean
           created_at: string
           event_id: string
           id: string
@@ -1594,6 +1605,7 @@ export type Database = {
           target_id: string
         }
         Insert: {
+          closed_by_system?: boolean
           created_at?: string
           event_id: string
           id?: string
@@ -1603,6 +1615,7 @@ export type Database = {
           target_id: string
         }
         Update: {
+          closed_by_system?: boolean
           created_at?: string
           event_id?: string
           id?: string
@@ -2352,7 +2365,8 @@ export type Database = {
       }
       accept_partner_request: {
         Args: { p_request_id: string }
-        Returns: undefined
+        /** 'confirmed', or 'waiting_list' when the pair queues together (migration 0112). */
+        Returns: string
       }
       account_has_feature: {
         Args: { key: string; u: string }
@@ -2457,7 +2471,8 @@ export type Database = {
       }
       choose_partner: {
         Args: { p_event_id: string; p_partner_user: string }
-        Returns: undefined
+        /** 'confirmed', or 'waiting_list' when the pair queues together (migration 0112). */
+        Returns: string
       }
       claim_waitlist_spot: { Args: { p_event_id: string }; Returns: string }
       community_has_feature: {
@@ -2549,6 +2564,17 @@ export type Database = {
       event_capacity: { Args: { e: string }; Returns: number }
       event_group_community: { Args: { e: string }; Returns: string }
       event_is_visible: { Args: { e: string; u: string }; Returns: boolean }
+      event_invited_players: {
+        Args: { p_event_id: string }
+        Returns: {
+          invitation_id: string
+          user_id: string | null
+          full_name: string | null
+          avatar_url: string | null
+          invitee_name: string | null
+          invited_at: string
+        }[]
+      }
       event_partner_candidates: {
         Args: { p_event_id: string }
         Returns: {
@@ -2638,7 +2664,7 @@ export type Database = {
         }[]
       }
       my_events: {
-        Args: { p_filter?: string; p_limit?: number; p_offset?: number }
+        Args: { p_filter?: string; p_limit?: number; p_offset?: number; p_include_past?: boolean }
         Returns: {
           allow_standby: boolean
           counts_for_ranking: boolean

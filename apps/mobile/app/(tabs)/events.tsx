@@ -12,7 +12,8 @@ import { EventCard } from '@/components/event/EventCard';
 import { colors } from '../../theme';
 import { EmptyState, emptyIcon, listEmptyContent, TopBar } from '../../components/ui';
 
-const FILTERS: MyEventsFilter[] = ['all', 'organizing', 'going'];
+// The Pending tab and the past toggle (UX-JEVT-01) arrive with the M4 list rebuild.
+const FILTERS = ['all', 'organizing', 'going'] as const satisfies readonly MyEventsFilter[];
 
 export default function EventsScreen() {
   const { t } = useT('events');

@@ -43,9 +43,9 @@ async function logActivity(
  * left an already-visited Events tab showing a list without it.
  */
 function invalidateMyEvents(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: qk.myEvents('all') });
-  qc.invalidateQueries({ queryKey: qk.myEvents('organizing') });
-  qc.invalidateQueries({ queryKey: qk.myEvents('going') });
+  // One prefix covers every tab ('all' | 'organizing' | 'going' | 'pending') with or without
+  // past events (migration 0112).
+  qc.invalidateQueries({ queryKey: qk.myEventsAll });
 }
 
 // ---------------------------------------------------------------------------
@@ -199,38 +199,86 @@ export const useRequestPartner = (eventId: string) => {
   });
 };
 
+/** Everything a pairing (or a waiting pair's claim) can change on one event. */
+function invalidatePairing(qc: ReturnType<typeof useQueryClient>, eventId: string) {
+  qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+  qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
+  qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
+  qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
+  qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+  qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+  qc.invalidateQueries({ queryKey: qk.event(eventId) });
+  invalidateMyEvents(qc);
+}
+
+/**
+ * A request that vanished under the caller (withdrawn, or closed by a pair forming) answers
+ * `request_not_found`. Realtime cannot be relied on to have told us — filtered Postgres Changes
+ * do not deliver DELETEs — so refetch the request lists before surfacing the error.
+ */
+function refetchRequestsOnStale(qc: ReturnType<typeof useQueryClient>, eventId: string, e: unknown) {
+  const code = e instanceof Error ? e.message : '';
+  if (code === 'request_not_found' || code === 'request_stale') {
+    qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+    qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
+    qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
+  }
+}
+
+/** Resolves to 'confirmed', or 'waiting_list' when the event has no room for the pair (or people
+ *  are already waiting) and the pair queues together (migration 0112). */
 export const useChoosePartner = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (partnerUser: string) => {
-      const { error } = await db.rpc('choose_partner', {
+      const { data, error } = await db.rpc('choose_partner', {
         p_event_id: eventId,
         p_partner_user: partnerUser,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as 'confirmed' | 'waiting_list';
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
-      qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
-      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
-      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
-    },
+    onSuccess: () => invalidatePairing(qc, eventId),
   });
 };
 
+/** Resolves to 'confirmed' or 'waiting_list', as useChoosePartner. */
 export const useAcceptPartnerRequest = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (requestId: string) => {
-      const { error } = await db.rpc('accept_partner_request', { p_request_id: requestId });
+      const { data, error } = await db.rpc('accept_partner_request', { p_request_id: requestId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as 'confirmed' | 'waiting_list';
+    },
+    onSuccess: () => invalidatePairing(qc, eventId),
+    onError: (e) => refetchRequestsOnStale(qc, eventId, e),
+  });
+};
+
+/**
+ * Claim a freed spot from the waiting list — first come, first served (migration 0112). On a team
+ * event the caller must be half of a waiting pair, and the pair takes two spots at once. Errors:
+ * spot_taken, gender_full / gender_required (mixed), use_team_join (a lone waiter on a team event).
+ */
+export const useClaimWaitlistSpot = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await db.rpc('claim_waitlist_spot', { p_event_id: eventId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
-      qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
-      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+      invalidatePairing(qc, eventId);
+      qc.invalidateQueries({ queryKey: qk.notifications });
+      qc.invalidateQueries({ queryKey: qk.notificationsUnread });
+    },
+    onError: () => {
+      // spot_taken & co: the roster moved under us.
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
     },
   });
@@ -246,7 +294,10 @@ export const useDeclinePartnerRequest = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+      qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
+      qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
     },
+    onError: (e) => refetchRequestsOnStale(qc, eventId, e),
   });
 };
 
@@ -264,6 +315,7 @@ export const useWithdrawPartnerRequest = (eventId: string) => {
       qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
       qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
     },
+    onError: (e) => refetchRequestsOnStale(qc, eventId, e),
   });
 };
 

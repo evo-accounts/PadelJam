@@ -95,15 +95,16 @@ begin
   end if;
 
   select count(*) into n_inv from event_invitations where event_id = new1;
-  select status into inv_status from event_invitations where event_id = new1 limit 1;
   select count(*) into n_part from event_participants where event_id = new1;
-  if n_inv <> 1 or inv_status <> 'pending' then
-    raise exception using errcode='PT001', message='expected 1 cloned pending invitation, got '||n_inv||'/'||coalesce(inv_status,'<null>');
+  -- 0112 (decision 5): the series is a PUBLIC group one, so the occurrence copies no invitation
+  -- and the group is told with event_created instead (i1 is not a group member, so nobody here).
+  if n_inv <> 0 then
+    raise exception using errcode='PT001', message='public occurrence must not copy invitations, got '||n_inv;
   end if;
   if n_part <> 0 then
     raise exception using errcode='PT001', message='new occurrence should have zero participants, got '||n_part;
   end if;
-  raise notice 'OK materialize: +7d, config + invitation copied, roster empty';
+  raise notice 'OK materialize: +7d, config copied, no invitations (public), roster empty';
 
   -- (2) idempotent
   perform set_config('role','authenticated',true);

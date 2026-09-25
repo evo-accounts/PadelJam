@@ -147,7 +147,13 @@ export default function NotificationsScreen() {
           renderItem={({ item }) => (
             <ListRow
               variant="card"
-              title={t(item.type, { actor: item.actor_name ?? '', entity: item.entity_name ?? '' })}
+              // An unknown type (a newer server than this build) falls back to the entity or actor
+              // name instead of rendering the raw type key; the row still routes via event_id.
+              title={t(item.type, {
+                actor: item.actor_name ?? '',
+                entity: item.entity_name ?? '',
+                defaultValue: item.entity_name ?? item.actor_name ?? '',
+              })}
               subtitle={ctaError?.id === item.id ? ctaErrorMessage(ctaError.code) : undefined}
               subtitleTone={ctaError?.id === item.id ? 'destructive' : 'muted'}
               highlighted={!item.read_at}

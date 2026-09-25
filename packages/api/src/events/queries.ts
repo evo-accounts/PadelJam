@@ -337,14 +337,23 @@ export const useEventPartnerCandidates = (eventId: string) => {
   });
 };
 
-export type MyEventsFilter = 'all' | 'organizing' | 'going';
+/**
+ * My Events tabs (migration 0112, UX-JEVT-01):
+ *   organizing — events I organize;
+ *   going      — I hold a roster row: confirmed, waiting list or interested;
+ *   pending    — an invitation I can still answer (scheduled, before the 6 h cut-off);
+ *   all        — the union.
+ * `includePast` adds completed and older scheduled events (never cancelled ones), listed after the
+ * current ones, most recent first.
+ */
+export type MyEventsFilter = 'all' | 'organizing' | 'going' | 'pending';
 const MY_EVENTS_PAGE_SIZE = 20;
 
-export const useMyEvents = (filter: MyEventsFilter) => {
+export const useMyEvents = (filter: MyEventsFilter, includePast = false) => {
   const db = useDb();
   const uid = useSession().session?.user.id;
   return useInfiniteQuery({
-    queryKey: qk.myEvents(filter),
+    queryKey: qk.myEvents(filter, includePast),
     enabled: !!uid,
     initialPageParam: 0,
     queryFn: async ({ pageParam: offset }) => {
@@ -352,12 +361,39 @@ export const useMyEvents = (filter: MyEventsFilter) => {
         p_filter: filter,
         p_limit: MY_EVENTS_PAGE_SIZE,
         p_offset: offset as number,
+        p_include_past: includePast,
       });
       if (error) throw error;
       return data ?? [];
     },
     getNextPageParam: (lastPage: unknown[], allPages: unknown[][]) =>
       lastPage.length < MY_EVENTS_PAGE_SIZE ? undefined : allPages.length * MY_EVENTS_PAGE_SIZE,
+  });
+};
+
+/** A pending invitee on the event's Invited tab (migration 0112, UX-JEVT-08). A manual invitee
+ *  (no account) has `user_id` null and only `invitee_name`. */
+export type EventInvitedPlayer = {
+  invitation_id: string;
+  user_id: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  invitee_name: string | null;
+  invited_at: string;
+};
+
+/** Read-only: anyone who can see the event may list who is invited and has not answered. */
+export const useEventInvitedPlayers = (eventId: string) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.eventInvitedPlayers(eventId),
+    enabled: !!uid && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('event_invited_players', { p_event_id: eventId });
+      if (error) throw error;
+      return (data ?? []) as EventInvitedPlayer[];
+    },
   });
 };
 
