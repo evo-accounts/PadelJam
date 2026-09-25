@@ -58,9 +58,11 @@ export default function ManageGroupsScreen() {
   const show = useActionSheet();
   const banner = useBanner();
 
+  // Archive/unarchive codes (last_active_group, groups_per_community) are group copy; anything
+  // else falls back to the community namespace, then to the generic message.
   const err = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';
-    banner.show(t(code, { defaultValue: t('unknown_error') }));
+    banner.show(tg(code, { defaultValue: t(code, { defaultValue: t('unknown_error') }) }));
   };
 
   const onArchive = async (group: Group) => {

@@ -11,7 +11,9 @@ import { manifest, resetDb } from '../fixtures/seed';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Group detail, members, ranking and the season/manage flows. Groups live under
+ * Group detail, members, ranking and the season/manage flows — rebuilt for the Groups audit
+ * (UX-GRP-04/06/10/14): the members line reads "N players", the period filter lives on the full
+ * Ranking screen, and a new season is Manage group → Reset ranking → a confirmation sheet. Groups live under
  * a plain Stack (unlike the community top-tabs), so the route param resolves
  * normally here — these list assertions double as a check on that.
  *
@@ -36,7 +38,7 @@ describe('10 groups', () => {
 
   it('group detail shows members, events and ranking sections', async () => {
     await openGroup(/tuesday night league/i);
-    await expectVisible({ text: /members/i }, { timeout: 15_000 });
+    await expectVisible({ id: 'group-members-line' }, { timeout: 15_000 });
     await scrollUntilVisible({ text: /ranking/i }, { maxSwipes: 8 });
   });
 
@@ -48,8 +50,7 @@ describe('10 groups', () => {
     // tap coordinates back into the viewport and happened to land on something
     // that navigated. Every sibling test here already opens the group first.
     await openGroup(/tuesday night league/i);
-    await scrollUntilVisible({ text: /members/i }, { maxSwipes: 8 });
-    await tap({ text: /^members$/i }).catch(() => tap({ text: /members/i }));
+    await tap({ id: 'group-members-line' });
     await expectVisible({ text: /maria santos|joão pereira|sofia costa/i }, { timeout: 20_000 });
   });
 
@@ -59,15 +60,18 @@ describe('10 groups', () => {
     const tree = await snapshot();
     // Either a populated table (player + points headers) or the documented
     // "ranking starts once events are played" placeholder — never nothing.
-    const populated = query(tree, { text: /player|points/i });
+    const populated = query(tree, { text: /^(player|points)$/i });
     const placeholder = query(tree, { text: /ranking starts once/i });
     if (!populated && !placeholder) {
       throw new Error('ranking section rendered neither a table nor its placeholder');
     }
   });
 
-  it('ranking period filters are offered', async () => {
-    await scrollUntilVisible({ text: /all time|3 months/i }, { maxSwipes: 8 });
+  it('the full ranking offers the period filters', async () => {
+    await openGroup(/tuesday night league/i);
+    await scrollUntilVisible({ id: 'group-ranking-see-all' }, { maxSwipes: 8 });
+    await tap({ id: 'group-ranking-see-all' });
+    await expectVisible({ text: /all time/i }, { timeout: 15_000 });
     await tap({ text: /3 months/i });
     await sleep(1500);
     await expectVisible({ text: /ranking/i });
@@ -77,26 +81,21 @@ describe('10 groups', () => {
     const m = manifest();
     const before = ((await select('group_seasons', `group_id=eq.${m.groups.g1}&select=id`)) as unknown[]).length;
     await openGroup(/tuesday night league/i);
-    // Was `label: '•••'` — the control had NO accessibilityLabel, so the label
-    // fell back to the glyph itself and this test was encoding that bug. It is
-    // an IconButton inside TopBar now, which makes the label required, so it
-    // announces the action instead of the character.
-    await tap({ label: 'More' });
+    // An admin's header action is the settings icon opening Manage Group (UX-GRP-10).
+    await tap({ id: 'group-manage' });
     await sleep(1000);
-    await tap({ text: /manage group/i });
-    await expectVisible({ text: /manage group/i }, { timeout: 20_000 });
-    await tap({ text: /seasons/i });
-    await expectVisible({ text: /start new season/i }, { timeout: 20_000 });
-    await tap({ text: /start new season/i });
-    // Confirmation dialog.
-    await sleep(1200);
-    const confirm = query(await snapshot(), { text: /^(confirm|ok|start new season)$/i, type: 'Button' });
-    if (confirm) await tap({ label: confirm.AXLabel! });
+    await tap({ text: /reset ranking/i });
+    // Reset ranking opens its confirmation directly (UX-GRP-14).
+    // The sheet container's testID is not an a11y element; its confirm button is.
+    await expectVisible({ id: 'confirm-sheet-confirm' }, { timeout: 10_000 });
+    await tap({ id: 'confirm-sheet-confirm' });
     await pollUntil(
       () => select('group_seasons', `group_id=eq.${m.groups.g1}&select=id`),
       (rows) => (rows as unknown[]).length > before,
       { label: 'new season row', timeoutMs: 25_000 },
     );
+    // The admin who closed it lands on the completion screen with the final standings.
+    await expectVisible({ text: /season \d+ is closed/i }, { timeout: 20_000 });
   });
 
   it('a private group is not reachable by a non-invited member', async () => {
