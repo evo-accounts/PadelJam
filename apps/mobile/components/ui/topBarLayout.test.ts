@@ -38,6 +38,16 @@ describe('topBarLayout', () => {
       sideWidth: 'single',
     });
   });
+  it('sheet: title left, close right, nothing on the left (UX-GRP-11)', () => {
+    expect(topBarLayout('sheet', { actionCount: 0 })).toEqual({
+      left: 'none',
+      titleAlign: 'left',
+      titleVariant: 'bodyStrong',
+      right: 'close',
+      divider: true,
+      sideWidth: 'single',
+    });
+  });
 
   it('sideWidth is single for 0 or 1 actions, double for 2 and triple for 3, so both side slots match', () => {
     expect(topBarLayout('nav', { actionCount: 0 }).sideWidth).toBe('single');

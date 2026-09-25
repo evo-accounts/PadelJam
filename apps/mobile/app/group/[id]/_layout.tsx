@@ -4,8 +4,8 @@ import { useGroupRealtime } from '@padel/api';
 
 /**
  * Per-group Stack (mirrors `community/[id]`): `index` is the group home; `members`, `invite`,
- * `events`, `ranking` and `season/[number]` are pushed siblings; `join` is a modal so non-members
- * can join / accept without losing context; `manage` holds the admin screens the Manage Group
+ * `events`, `ranking`, `season/[number]` and `join` (a group invitation, UX-GRP-02) are pushed
+ * siblings; `manage` holds the admin screens the Manage Group
  * sheet opens (there is no manage hub screen since UX-GRP-10).
  */
 export default function GroupIdLayout() {
@@ -20,7 +20,7 @@ export default function GroupIdLayout() {
       <Stack.Screen name="events" />
       <Stack.Screen name="ranking" />
       <Stack.Screen name="season/[number]" />
-      <Stack.Screen name="join" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="join" />
       <Stack.Screen name="manage" />
     </Stack>
   );

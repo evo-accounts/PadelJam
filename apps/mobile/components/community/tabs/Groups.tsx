@@ -1,4 +1,4 @@
-import { useCanCreateGroup, useCommunityGroups } from '@padel/api';
+import { useCommunityGroups, useMayCreateGroup } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { type Href, useRouter } from 'expo-router';
@@ -14,7 +14,8 @@ export default function CommunityGroupsScreen() {
   const router = useRouter();
   const id = useCommunityId();
   const { data: groups, isLoading, isError, refetch } = useCommunityGroups(id);
-  const { data: canCreate } = useCanCreateGroup(id);
+  // Permission only: at the plan's group limit the create answers with the upgrade prompt (decision 6).
+  const { data: canCreate } = useMayCreateGroup(id);
 
   const createGroup = () => router.push(`/community/${id}/group-create` as Href);
 
@@ -22,7 +23,7 @@ export default function CommunityGroupsScreen() {
   // Pressable with its own radius and type; `Button fullWidth` is the same shape
   // in the primitive that owns it, and takes three literal sizes off the budget.
   const newGroupButton = canCreate ? (
-    <Button label={t('newGroupCta')} fullWidth onPress={createGroup} testID="community-create-group" />
+    <Button label={t('createCta')} fullWidth onPress={createGroup} testID="community-create-group" />
   ) : null;
 
   if (isLoading) {

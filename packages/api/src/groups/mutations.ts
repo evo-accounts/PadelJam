@@ -143,6 +143,8 @@ export const useAcceptGroupInvitation = () => {
       qc.invalidateQueries({ queryKey: qk.groupMemberList(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.members(input.communityId) });
+      qc.invalidateQueries({ queryKey: qk.groupInvitationPreview(input.groupId) });
+      qc.invalidateQueries({ queryKey: qk.myGroups });
     },
   });
 };
@@ -157,6 +159,7 @@ export const useDeclineGroupInvitation = () => {
     },
     onSuccess: (_data, groupId) => {
       qc.invalidateQueries({ queryKey: qk.group(groupId) });
+      qc.invalidateQueries({ queryKey: qk.groupInvitationPreview(groupId) });
       qc.invalidateQueries({ queryKey: qk.notifications });
     },
   });

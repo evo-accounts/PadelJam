@@ -1,19 +1,29 @@
 import { useGroup, useUpdateGroup } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GroupComposer, type GroupComposerValues } from '@/components/group/GroupComposer';
 import { thumbnailUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { uploadCommunityImage } from '@/lib/storage';
-import { colors } from '../../../../theme';
-import { TopBar, useBanner } from '../../../../components/ui';
+import { colors, space } from '../../../../theme';
+import { Button, TopBar, useBanner } from '../../../../components/ui';
 
-const KNOWN_ERROR_KEYS = new Set(['forbidden', 'name_required', 'group_not_found']);
-
+/**
+ * Group Settings (UX-GRP-11): the Create Group form, presented as a sheet (✕ top-right) with the
+ * save button fixed at the bottom. No community selector — a group never moves between
+ * communities. Saving closes the sheet with a banner (UX-GLOB-06).
+ */
 export default function GroupManageSettingsScreen() {
   const { t } = useT('group');
   const banner = useBanner();
@@ -25,6 +35,7 @@ export default function GroupManageSettingsScreen() {
   const update = useUpdateGroup(id, group?.community_id ?? '');
 
   const [dirty, setDirty] = useState(false);
+  const submitRef = useRef<(() => void) | null>(null);
 
   if (!group) {
     return (
@@ -37,7 +48,7 @@ export default function GroupManageSettingsScreen() {
   const onSubmit = (values: GroupComposerValues) => {
     void (async () => {
       try {
-        let thumbnailPath = group.thumbnail_path ?? null;
+        let thumbnailPath = values.removeThumbnail ? null : (group.thumbnail_path ?? null);
         if (values.thumbnail) {
           thumbnailPath = await uploadCommunityImage(
             supabase,
@@ -54,34 +65,52 @@ export default function GroupManageSettingsScreen() {
           thumbnail_path: thumbnailPath,
         });
         router.back();
+        banner.show(t('savedToast'), 'success');
       } catch (e) {
         const code = e instanceof Error ? e.message : 'unknown_error';
-        banner.show(t(KNOWN_ERROR_KEYS.has(code) ? code : 'unknown_error'));
+        banner.show(t(code, { defaultValue: t('unknown_error') }));
       }
     })();
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar variant="edit" title={t('editTitle')} onClose={() => router.back()} dirty={dirty} />
-      <ScrollView
-        contentContainerStyle={[styles.inner, { paddingBottom: insets.bottom + 24 }]}
-        keyboardShouldPersistTaps="handled"
+      <TopBar variant="sheet" title={t('editTitle')} onClose={() => router.back()} dirty={dirty} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <GroupComposer
-          mode="edit"
-          submitting={update.isPending}
-          initial={{
-            name: group.name,
-            description: group.description,
-            isPrivate: group.is_private,
-            thumbnailPath: group.thumbnail_path,
-            thumbnailUrl: thumbnailUrl(group.thumbnail_path),
-          }}
-          onSubmit={onSubmit}
-          onDirtyChange={setDirty}
-        />
-      </ScrollView>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.inner}
+          keyboardShouldPersistTaps="handled"
+        >
+          <GroupComposer
+            mode="edit"
+            submitting={update.isPending}
+            initial={{
+              name: group.name,
+              description: group.description,
+              isPrivate: group.is_private,
+              thumbnailPath: group.thumbnail_path,
+              thumbnailUrl: thumbnailUrl(group.thumbnail_path),
+            }}
+            onSubmit={onSubmit}
+            onDirtyChange={setDirty}
+            submitRef={submitRef}
+          />
+        </ScrollView>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + space[2] }]}>
+          <Button
+            label={t('saveCta')}
+            size="lg"
+            fullWidth
+            loading={update.isPending}
+            onPress={() => submitRef.current?.()}
+            testID="group-settings-save"
+          />
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -89,5 +118,13 @@ export default function GroupManageSettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   center: { alignItems: 'center', justifyContent: 'center' },
-  inner: { paddingHorizontal: 24, paddingTop: 16 },
+  flex: { flex: 1 },
+  inner: { paddingHorizontal: space[6], paddingTop: space[4], paddingBottom: space[6] },
+  footer: {
+    paddingHorizontal: space[4],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
+  },
 });

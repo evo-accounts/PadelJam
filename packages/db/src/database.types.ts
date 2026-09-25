@@ -2682,6 +2682,25 @@ export type Database = {
           last_updated: string | null
         }[]
       }
+      group_invitation_preview: {
+        Args: { p_group_id: string }
+        Returns: {
+          group_id: string
+          name: string
+          description: string | null
+          thumbnail_path: string | null
+          is_private: boolean
+          created_at: string
+          member_count: number
+          members: Json
+          community_id: string
+          community_name: string
+          community_thumb: string | null
+          inviter_id: string | null
+          inviter_name: string | null
+          inviter_avatar: string | null
+        }[]
+      }
       group_member_list: {
         Args: { p_group_id: string }
         Returns: {

@@ -9,10 +9,17 @@
  * rewritten in plan PR 11.
  */
 import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import { Share } from 'react-native';
 
+/**
+ * Built by expo-linking rather than spelled out: the app registers the `mobile` scheme
+ * (app.json), not `padeljam`, so the hard-coded `padeljam://…` this used to return opened nothing
+ * — not from a shared message, not from the community QR code. createURL always uses the scheme
+ * the running build actually answers to.
+ */
 export function communityDeepLink(id: string): string {
-  return `padeljam://community/${id}`;
+  return Linking.createURL(`/community/${id}`);
 }
 
 /** Opens the OS share sheet. Resolves whether the user shared or dismissed it. */
