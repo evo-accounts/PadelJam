@@ -85,6 +85,13 @@ export const useSearchProfiles = (search: string) => {
   });
 };
 
+/**
+ * GoTrue stores a phone WITHOUT the leading '+' and returns '' when there is none; profiles.phone
+ * held the E.164 spelling. Keep the shape the Account screens have always rendered.
+ */
+export const ownPhone = (authPhone: string | null | undefined): string | null =>
+  authPhone ? `+${authPhone.replace(/^\+/, '')}` : null;
+
 export const useMyProfile = () => {
   const db = useDb();
   const uid = useSession().session?.user.id;
@@ -92,15 +99,23 @@ export const useMyProfile = () => {
     queryKey: qk.myProfile(uid ?? ''),
     enabled: !!uid,
     queryFn: async () => {
-      const { data, error } = await db
-        .from('profiles')
-        // email and phone are DISPLAYED by Account Settings (UX-SET-02) but never written here —
-        // both change through their own OTP flows, which go via GoTrue rather than this table.
-        .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time, location_text, email, phone')
-        .eq('id', uid!)
-        .single();
+      // email and phone are DISPLAYED by Account Settings (UX-SET-02) but never written here —
+      // both change through their own OTP flows, which go via GoTrue rather than this table.
+      //
+      // phone is NOT selected: migration 0115 revokes SELECT on profiles.phone from every client
+      // role, so no user can read anyone's number, their own included. Your own comes from the auth
+      // user instead — profiles.phone was only ever a server-side copy of it. getSession() reads the
+      // stored session (no network), which the phone-change OTP flow refreshes.
+      const [{ data, error }, { data: auth }] = await Promise.all([
+        db
+          .from('profiles')
+          .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time, location_text, email')
+          .eq('id', uid!)
+          .single(),
+        db.auth.getSession(),
+      ]);
       if (error) throw error;
-      return data;
+      return { ...data, phone: ownPhone(auth.session?.user.phone) };
     },
   });
 };
