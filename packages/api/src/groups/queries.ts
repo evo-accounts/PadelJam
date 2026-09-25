@@ -206,57 +206,46 @@ export const useGroupSeasons = (id: string) => {
   });
 };
 
+export type GroupRankingRow = {
+  rank: number;
+  userId: string;
+  name: string | null;
+  avatarUrl: string | null;
+  points: number;
+  /** Matches won / lost across the season's events (migration 0109). */
+  wins: number;
+  losses: number;
+  eventsPlayed: number;
+  /** false = left the group; shown greyscale, still ranked (decision 2). */
+  isMember: boolean;
+  /** When the season's results last changed — "Last update {DATE}" (UX-GRP-04/06). */
+  lastUpdated: string | null;
+};
+
+// Aggregated server-side by group_ranking (migration 0109); `since` filters by event start.
 export const useGroupRanking = (seasonId: string, since?: string) => {
   const db = useDb();
   return useQuery({
     queryKey: [...qk.groupRanking(seasonId), since ?? 'all'],
     enabled: !!seasonId,
-    queryFn: async () => {
-      // profiles is reachable via user_id but generated types key it to auth tables, so cast the embed.
-      const { data, error } = await db
-        .from('group_event_results')
-        .select('user_id, ranking_points, event_id, events(starts_at), profiles(id, full_name, avatar_url)')
-        .eq('group_season_id', seasonId)
-        .returns<
-          {
-            user_id: string;
-            ranking_points: number;
-            event_id: string;
-            events: { starts_at: string } | null;
-            profiles: { id: string; full_name: string | null; avatar_url: string | null } | null;
-          }[]
-        >();
+    queryFn: async (): Promise<GroupRankingRow[]> => {
+      const { data, error } = await db.rpc('group_ranking', {
+        p_season_id: seasonId,
+        ...(since ? { p_since: since } : {}),
+      });
       if (error) throw error;
-      const all = data ?? [];
-      const rows = since
-        ? all.filter((r) => r.events?.starts_at != null && r.events.starts_at >= since)
-        : all;
-      // Aggregate per user: sum points, count distinct events.
-      const byUser = new Map<
-        string,
-        { name: string | null; avatarUrl: string | null; points: number; events: Set<string> }
-      >();
-      for (const r of rows) {
-        const cur = byUser.get(r.user_id) ?? {
-          name: r.profiles?.full_name ?? null,
-          avatarUrl: r.profiles?.avatar_url ?? null,
-          points: 0,
-          events: new Set<string>(),
-        };
-        cur.points += r.ranking_points;
-        cur.events.add(r.event_id);
-        byUser.set(r.user_id, cur);
-      }
-      return [...byUser.entries()]
-        .map(([userId, v]) => ({
-          userId,
-          name: v.name,
-          avatarUrl: v.avatarUrl,
-          points: v.points,
-          eventsPlayed: v.events.size,
-        }))
-        .sort((a, b) => b.points - a.points)
-        .map((row, i) => ({ ...row, rank: i + 1 }));
+      return (data ?? []).map((r) => ({
+        rank: r.rank,
+        userId: r.user_id,
+        name: r.full_name,
+        avatarUrl: r.avatar_url,
+        points: r.points,
+        wins: r.wins,
+        losses: r.losses,
+        eventsPlayed: r.events_played,
+        isMember: r.is_member,
+        lastUpdated: r.last_updated,
+      }));
     },
   });
 };

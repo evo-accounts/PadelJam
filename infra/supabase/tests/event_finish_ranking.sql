@@ -150,6 +150,30 @@ begin
 end $$;
 reset role;
 
+-- (3b) 0109: wins/losses recorded per result (matches: A 2-0, B 1-1, C 1-1, D 0-2), and
+-- group_ranking aggregates them for a group member, with the departed flag and last update.
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"f6000003-0000-0000-0000-000000000003","role":"authenticated"}';
+do $$
+declare ev uuid := current_setting('test.ev')::uuid; gid uuid := current_setting('test.gid')::uuid;
+        v_season uuid; r record;
+begin
+  if (select array_agg(wins || '-' || losses order by final_placement) from group_event_results where event_id=ev)
+       is distinct from array['2-0','1-1','1-1','0-2'] then
+    raise exception using errcode='PT001', message='wins/losses per result should be 2-0, 1-1, 1-1, 0-2'; end if;
+  select id into v_season from group_seasons where group_id=gid and ended_at is null;
+  select * into r from group_ranking(v_season) where rank = 1;
+  if r.user_id <> 'f6000002-0000-0000-0000-000000000002' or r.points <> 100 or r.wins <> 2 or r.losses <> 0
+     or r.events_played <> 1 or not r.is_member or r.last_updated is null then
+    raise exception using errcode='PT001', message='group_ranking rank 1 should be A: 100 pts, 2-0, 1 event, member'; end if;
+  if (select count(*) from group_ranking(v_season)) <> 4 then
+    raise exception using errcode='PT001', message='group_ranking should list 4 players'; end if;
+  if (select count(*) from group_ranking(v_season, now() + interval '30 days')) <> 0 then
+    raise exception using errcode='PT001', message='a since after the event should filter it out'; end if;
+  raise notice 'OK 0109 wins/losses + group_ranking';
+end $$;
+reset role;
+
 -- (4) PRIVATE group event finished -> NO group_event_results rows.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"f6000001-0000-0000-0000-000000000001","role":"authenticated"}';

@@ -1297,6 +1297,8 @@ export type Database = {
           id: string
           ranking_points: number
           user_id: string
+          wins: number
+          losses: number
         }
         Insert: {
           created_at?: string
@@ -1306,6 +1308,8 @@ export type Database = {
           id?: string
           ranking_points: number
           user_id: string
+          wins?: number
+          losses?: number
         }
         Update: {
           created_at?: string
@@ -1315,6 +1319,8 @@ export type Database = {
           id?: string
           ranking_points?: number
           user_id?: string
+          wins?: number
+          losses?: number
         }
         Relationships: [
           {
@@ -2659,6 +2665,21 @@ export type Database = {
           is_private: boolean
           /** Non-null only with p_include_archived, for groups you administer (migration 0108). */
           archived_at: string | null
+        }[]
+      }
+      group_ranking: {
+        Args: { p_season_id: string; p_since?: string }
+        Returns: {
+          rank: number
+          user_id: string
+          full_name: string | null
+          avatar_url: string | null
+          points: number
+          wins: number
+          losses: number
+          events_played: number
+          is_member: boolean
+          last_updated: string | null
         }[]
       }
       group_member_list: {
