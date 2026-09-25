@@ -1,4 +1,4 @@
--- Create RPC contract: general group "[name] group", the five permission toggles at UX-COMM-17's
+-- Create RPC contract: general group "[name] Group", the five permission toggles at UX-COMM-17's
 -- defaults, the creator as ADMIN, Starter implicit (community_plan='starter'), and NO owned-community
 -- cap — UX-COMM-09 lifts it, so a second create must now succeed (migration 0098).
 begin;
@@ -14,8 +14,11 @@ begin
   perform set_config('request.jwt.claims','{"sub":"c0000001-0000-0000-0000-000000000001","role":"authenticated"}',true);
   cid := create_community_with_personal_tenant('Createy','club','PT','public','desc','Lisbon',null,null,false,null);
 
-  if (select name from groups where community_id=cid and is_general) <> 'Createy group' then
-    raise exception using errcode='PT001', message='general group name should be "Createy group"'; end if;
+  if (select name from groups where community_id=cid and is_general) <> 'Createy Group' then
+    raise exception using errcode='PT001', message='general group name should be "Createy Group"'; end if;
+  if not exists (select 1 from group_seasons s join groups g on g.id = s.group_id
+                 where g.community_id=cid and g.is_general and s.season_number=1 and s.ended_at is null) then
+    raise exception using errcode='PT001', message='general group should open season 1 (0107)'; end if;
   -- UX-COMM-17: posts, events and invites on; groups and approvals off.
   if not exists (select 1 from community_permissions
                  where community_id=cid and create_posts and create_events and invite_members
@@ -29,7 +32,7 @@ begin
   perform set_config('role','authenticated',true);
   if (select role from community_members where community_id=cid and user_id='c0000001-0000-0000-0000-000000000001') <> 'admin' then
     raise exception using errcode='PT001', message='creator should be an admin'; end if;
-  raise notice 'OK create: general="Createy group", permission matrix, starter implicit, creator=admin';
+  raise notice 'OK create: general="Createy Group", permission matrix, starter implicit, creator=admin';
 
   -- The cap is gone (UX-COMM-09: "New community" is always available; plan limits do not apply
   -- during the MVP). The zero-argument signature is kept, so the client query still compiles.

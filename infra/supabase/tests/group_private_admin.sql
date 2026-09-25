@@ -33,13 +33,8 @@ select create_group(:'cid','PrivAdminGroup',null,true) as gp \gset
 reset role;
 select set_config('test.gp', :'gp', false);
 
--- Owner (a group member + community admin = is_group_admin) adds memberC to the private group.
-set local role authenticated;
-set local request.jwt.claims = '{"sub":"e1500001-0000-0000-0000-000000000001","role":"authenticated"}';
-do $$ declare gp uuid := current_setting('test.gp')::uuid; begin
-  insert into group_members (group_id, user_id) values (gp,'e1500003-0000-0000-0000-000000000003') on conflict do nothing;
-end $$;
-reset role;
+-- memberC is in the private group (fixture, as postgres: direct membership writes are gone since 0107).
+insert into group_members (group_id, user_id) values (:'gp','e1500003-0000-0000-0000-000000000003') on conflict do nothing;
 
 -- (1) Non-member community admin CANNOT update the private group (RLS filters to 0 rows).
 set local role authenticated;
@@ -61,10 +56,11 @@ set local request.jwt.claims = '{"sub":"e1500002-0000-0000-0000-000000000002","r
 do $$
 declare gp uuid := current_setting('test.gp')::uuid;
 begin
-  delete from group_members where group_id=gp and user_id='e1500003-0000-0000-0000-000000000003';
-  if not exists (select 1 from group_members where group_id=gp and user_id='e1500003-0000-0000-0000-000000000003') then
+  begin
+    perform remove_group_member(gp, 'e1500003-0000-0000-0000-000000000003');
     raise exception using errcode='PT001', message='non-member admin must not remove a private group member';
-  end if;
+  exception when sqlstate 'P0001' then null;
+  end;
   raise notice 'OK GR-35: non-member admin blocked from removing private group member';
 end $$;
 reset role;
@@ -78,7 +74,7 @@ begin
   update groups set name='Renamed' where id=gp;
   if not exists (select 1 from groups where id=gp and name='Renamed') then
     raise exception using errcode='PT001', message='member-admin should be able to edit the group'; end if;
-  delete from group_members where group_id=gp and user_id='e1500003-0000-0000-0000-000000000003';
+  perform remove_group_member(gp, 'e1500003-0000-0000-0000-000000000003');
   if exists (select 1 from group_members where group_id=gp and user_id='e1500003-0000-0000-0000-000000000003') then
     raise exception using errcode='PT001', message='member-admin should be able to remove a member'; end if;
   raise notice 'OK member-admin can edit + remove';

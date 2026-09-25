@@ -1,5 +1,6 @@
--- leave_group: the sole community-admin among a group's members -> sole_admin_must_add_another
--- (GR-36/40), then succeeds after a 2nd admin joins; plain member leaves OK.
+-- leave_group: the sole community-admin among a PRIVATE group's members -> sole_admin_must_add_another
+-- (GR-36/40, narrowed to private groups by 0107), then succeeds after a 2nd admin joins; plain member
+-- leaves OK. Direct membership writes are gone since 0107, so the fixtures insert as postgres.
 -- GR-24 (sole_owner_must_transfer) is gone with the owner role: migration 0098 dropped the branch
 -- rather than re-pointing it at 'admin', which would have made two checks of the same condition
 -- raise two different codes. The creator is now an admin, so scenario (1) below — which used to
@@ -36,7 +37,7 @@ insert into community_members (community_id, user_id, role) values
 -- Group G1 used for the leave scenarios. Created by the community creator, who becomes its member.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"e1300001-0000-0000-0000-000000000001","role":"authenticated"}';
-select create_group(:'cid','LeaveGroup',null,false) as g1 \gset
+select create_group(:'cid','LeaveGroup',null,true) as g1 \gset
 reset role;
 select set_config('test.g1', :'g1', false);
 
@@ -61,7 +62,7 @@ reset role;
 -- (2) Sole admin group-member. Build group G2 whose only owner/admin member is the admin (not the owner).
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"e1300002-0000-0000-0000-000000000002","role":"authenticated"}';
-select create_group(:'cid','AdminLeaveGroup',null,false) as g2 \gset
+select create_group(:'cid','AdminLeaveGroup',null,true) as g2 \gset
 reset role;
 select set_config('test.g2', :'g2', false);
 -- G2 currently has only the admin (gmadmin) as a group member (its creator). The owner is NOT in G2.
@@ -79,12 +80,7 @@ end $$;
 reset role;
 -- Promote gmadmin2 to community admin and add to G2, then the first admin can leave.
 update community_members set role='admin' where community_id=:'cid' and user_id='e1300003-0000-0000-0000-000000000003';
-set local role authenticated;
-set local request.jwt.claims = '{"sub":"e1300003-0000-0000-0000-000000000003","role":"authenticated"}';
-do $$ declare g2 uuid := current_setting('test.g2')::uuid; begin
-  insert into group_members (group_id, user_id) values (g2, auth.uid()) on conflict do nothing;
-end $$;
-reset role;
+insert into group_members (group_id, user_id) values (:'g2','e1300003-0000-0000-0000-000000000003') on conflict do nothing;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"e1300002-0000-0000-0000-000000000002","role":"authenticated"}';
 do $$
@@ -97,15 +93,15 @@ begin
 end $$;
 reset role;
 
--- (3) Plain member leaves a public group -> succeeds, group_members row removed.
+-- (3) Plain member leaves a group -> succeeds, group_members row removed.
+insert into group_members (group_id, user_id) values (:'g1','e1300004-0000-0000-0000-000000000004') on conflict do nothing;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"e1300004-0000-0000-0000-000000000004","role":"authenticated"}';
 do $$ declare g1 uuid := current_setting('test.g1')::uuid; begin
-  insert into group_members (group_id, user_id) values (g1, auth.uid()) on conflict do nothing;
   perform leave_group(g1);
   if exists (select 1 from group_members where group_id=g1 and user_id=auth.uid()) then
     raise exception using errcode='PT001', message='plain member leave should remove group_members row'; end if;
-  raise notice 'OK plain member leaves public group';
+  raise notice 'OK plain member leaves a group';
 end $$;
 reset role;
 
