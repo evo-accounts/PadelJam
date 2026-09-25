@@ -13,7 +13,7 @@ const KNOWN = [
   'last_admin_must_promote_first',
   // groups: RPC/validation codes the group screens translate directly
   'name_required', 'group_not_found', 'group_private_join_forbidden',
-  'sole_admin_must_add_another', 'groups_per_community', 'general_group_only_group',
+  'sole_admin_must_add_another', 'groups_per_community', 'last_active_group',
   // events: RPC/validation codes the event screens translate directly
   'invalid_event_config', 'series_requires_group', 'event_not_found', 'event_closed',
   'event_full', 'leave_deadline_passed', 'already_joined', 'not_invited', 'not_participant',

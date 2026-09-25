@@ -18,7 +18,7 @@ async function clubFor(tag) {
 await run('general group cannot be archived while it is the only group', async () => {
   const { owner, generalId } = await clubFor('owner');
 
-  await expectError(() => rpc(owner.jwt, 'archive_group', { p_group_id: generalId }), 'general_group_only_group');
+  await expectError(() => rpc(owner.jwt, 'archive_group', { p_group_id: generalId }), 'last_active_group');
 
   const stillActive = await sel('groups', `id=eq.${generalId}&select=archived_at`);
   assert(stillActive[0].archived_at === null, 'general group is still active');
@@ -40,5 +40,5 @@ await run('an archived sibling does not count as another group', async () => {
     p_community_id: communityId, p_name: 'Second', p_description: null, p_is_private: false, p_thumbnail_path: null,
   });
   await rpc(owner.jwt, 'archive_group', { p_group_id: second });
-  await expectError(() => rpc(owner.jwt, 'archive_group', { p_group_id: generalId }), 'general_group_only_group');
+  await expectError(() => rpc(owner.jwt, 'archive_group', { p_group_id: generalId }), 'last_active_group');
 });

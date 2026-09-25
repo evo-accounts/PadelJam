@@ -1340,6 +1340,24 @@ export type Database = {
           },
         ]
       }
+      group_departures: {
+        Row: {
+          group_id: string
+          left_at: string
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          left_at?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          left_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_invitations: {
         Row: {
           created_at: string
@@ -2627,7 +2645,7 @@ export type Database = {
         }
       }
       my_groups: {
-        Args: { p_user?: string }
+        Args: { p_user?: string; p_include_archived?: boolean }
         Returns: {
           group_id: string
           name: string
@@ -2636,6 +2654,22 @@ export type Database = {
           member_count: number
           /** null when reading someone else's profile — withheld, not false (migration 0102). */
           is_managing: boolean | null
+          description: string | null
+          thumbnail_path: string | null
+          is_private: boolean
+          /** Non-null only with p_include_archived, for groups you administer (migration 0108). */
+          archived_at: string | null
+        }[]
+      }
+      group_member_list: {
+        Args: { p_group_id: string }
+        Returns: {
+          user_id: string
+          full_name: string | null
+          avatar_url: string | null
+          is_member: boolean
+          joined_at: string | null
+          left_at: string | null
         }[]
       }
       add_group_admins: {

@@ -18,7 +18,7 @@ import { colors, palette } from '../../../../theme';
 import { TopBar, useBanner, useConfirm } from '../../../../components/ui';
 
 const START_ERROR_KEYS = new Set(['forbidden', 'not_a_member', 'group_not_found']);
-const ARCHIVE_ERROR_KEYS = new Set(['forbidden', 'groups_per_community', 'group_not_found', 'general_group_only_group']);
+const ARCHIVE_ERROR_KEYS = new Set(['forbidden', 'groups_per_community', 'group_not_found', 'last_active_group']);
 
 export default function GroupManageSeasonsScreen() {
   const { t } = useT('group');
