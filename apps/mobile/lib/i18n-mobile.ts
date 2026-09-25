@@ -1438,7 +1438,7 @@ const mobileGroup = {
     forbidden: 'Não tens permissão para realizar esta ação.',
     groups_per_community:
       'Atingiste o limite de grupos do teu plano. Arquiva um grupo ou faz upgrade para adicionar mais.',
-    general_group_only_group: 'O grupo geral não pode ser arquivado enquanto for o único grupo da comunidade.',
+    last_active_group: 'Não podes arquivar o último grupo ativo da comunidade — uma comunidade tem sempre pelo menos um grupo.',
     sole_admin_must_add_another: 'Adiciona outro administrador a este grupo antes de saíres.',
     group_private_join_forbidden:
       'Este é um grupo privado. Precisas de um convite para te juntares.',
@@ -1554,7 +1554,7 @@ const mobileGroup = {
     forbidden: 'Você não tem permissão para realizar esta ação.',
     groups_per_community:
       'Você atingiu o limite de grupos do seu plano. Arquive um grupo ou faça upgrade para adicionar mais.',
-    general_group_only_group: 'O grupo geral não pode ser arquivado enquanto for o único grupo da comunidade.',
+    last_active_group: 'Não é possível arquivar o último grupo ativo da comunidade — uma comunidade sempre tem pelo menos um grupo.',
     sole_admin_must_add_another: 'Adicione outro administrador a este grupo antes de sair.',
     group_private_join_forbidden:
       'Este é um grupo privado. Você precisa de um convite para entrar.',
@@ -1670,7 +1670,7 @@ const mobileGroup = {
     forbidden: 'You do not have permission to perform this action.',
     groups_per_community:
       "You've reached your plan's group limit. Archive a group or upgrade to add more.",
-    general_group_only_group: 'The general group cannot be archived while it is the only group in the community.',
+    last_active_group: "You can't archive the community's last active group — a community always has at least one.",
     sole_admin_must_add_another: 'Add another admin to this group before you leave.',
     group_private_join_forbidden:
       'This is a private group. You need an invitation to join.',

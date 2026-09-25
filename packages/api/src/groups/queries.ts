@@ -142,18 +142,50 @@ export type MyGroup = {
   community_name: string;
   member_count: number;
   is_managing: boolean;
+  description: string | null;
+  thumbnail_path: string | null;
+  is_private: boolean;
+  archived_at: string | null;
 };
 
-export const useMyGroups = () => {
+// `includeArchived` adds the archived groups the caller administers (UX-GRP-03: admins keep them
+// in Your Groups with an "Archived" tag; members never see them). Both lists share the my-groups
+// prefix, so invalidating qk.myGroups refreshes either.
+export const useMyGroups = ({ includeArchived = false }: { includeArchived?: boolean } = {}) => {
   const db = useDb();
   const uid = useSession().session?.user.id;
   return useQuery({
-    queryKey: qk.myGroups,
+    queryKey: includeArchived ? qk.myGroupsWithArchived : qk.myGroups,
     enabled: !!uid,
     queryFn: async () => {
-      const { data, error } = await db.rpc('my_groups');
+      const { data, error } = await db.rpc('my_groups', { p_include_archived: includeArchived });
       if (error) throw error;
       return (data ?? []) as MyGroup[];
+    },
+  });
+};
+
+export type GroupMemberListRow = {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  /** false = left the group; shown greyscale with a "No longer in group" tag (UX-GRP-07/15). */
+  is_member: boolean;
+  joined_at: string | null;
+  left_at: string | null;
+};
+
+// Current members first, then departed ones (migration 0108). Readable by group members, its
+// admins, and community members of a public group — the preview's avatars (UX-GRP-02).
+export const useGroupMemberList = (id: string | null | undefined) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.groupMemberList(id ?? ''),
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('group_member_list', { p_group_id: id! });
+      if (error) throw error;
+      return (data ?? []) as GroupMemberListRow[];
     },
   });
 };

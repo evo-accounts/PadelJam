@@ -67,6 +67,7 @@ export const useJoinGroup = () => {
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.group(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.groupMembers(input.groupId) });
+      qc.invalidateQueries({ queryKey: qk.groupMemberList(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.members(input.communityId) });
     },
@@ -84,6 +85,7 @@ export const useLeaveGroup = () => {
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.group(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.groupMembers(input.groupId) });
+      qc.invalidateQueries({ queryKey: qk.groupMemberList(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.members(input.communityId) });
       // The group leaves Your Groups too; without this it lingered there until a refetch.
@@ -138,6 +140,7 @@ export const useAcceptGroupInvitation = () => {
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.group(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.groupMembers(input.groupId) });
+      qc.invalidateQueries({ queryKey: qk.groupMemberList(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.members(input.communityId) });
     },
@@ -191,6 +194,8 @@ export const useArchiveGroup = () => {
       // the other until the screen is left and re-entered.
       qc.invalidateQueries({ queryKey: qk.archivedGroups(input.communityId) });
       qc.invalidateQueries({ queryKey: qk.canCreateGroup(input.communityId) });
+      // Your Groups keeps archived groups for admins (UX-GRP-03), so it moves them too.
+      qc.invalidateQueries({ queryKey: qk.myGroups });
     },
   });
 };
@@ -211,6 +216,8 @@ export const useUnarchiveGroup = () => {
       // the other until the screen is left and re-entered.
       qc.invalidateQueries({ queryKey: qk.archivedGroups(input.communityId) });
       qc.invalidateQueries({ queryKey: qk.canCreateGroup(input.communityId) });
+      // Your Groups keeps archived groups for admins (UX-GRP-03), so it moves them too.
+      qc.invalidateQueries({ queryKey: qk.myGroups });
     },
   });
 };
@@ -246,6 +253,7 @@ export const useRemoveGroupMember = (id: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.groupMembers(id) });
+      qc.invalidateQueries({ queryKey: qk.groupMemberList(id) });
     },
   });
 };
