@@ -8,7 +8,7 @@ This document defines the Communities module of Padel Jam — the top of the pro
 
 - A community is the top of the hierarchy (Community → Group → Event). Any authenticated user may create one, subject to the community-tier rules in the Profile & Settings doc (section 7.6).
 
-- Every community is created with an auto-generated “general group”, named after the community. Every community member belongs to it. It is public and cannot be archived while it is the community’s only group.
+- Every community is created with an auto-generated “general group”, named “[Community] Group”. It starts public, with every member in it, and afterwards behaves like any other group — it can be renamed, made private and left *(amended 2026-09-25, UX-GRP-01; supersedes CM-07's “every member belongs to it”)*. A community can never be left without an active group: whichever group is the last active one cannot be archived.
 
 - Community privacy has three levels: Public (join instantly), Request to join (admin approval required), Private (invite only). Groups have only two — there is no request-to-join at the group level.
 
@@ -761,8 +761,8 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed CM (Communities).
 | CM-04 | Community privacy is one of Public / Request to join / Private. | **Must** |  |
 | CM-05 | Creating a community auto-creates a general group named after the community. | **Must** |  |
 | CM-06 | After creation the user gets Share / Copy Link / QR Code, Create Event, and Manage Community. | **Must** |  |
-| CM-07 | Every community member belongs to the general group. | **Must** |  |
-| CM-08 | The general group is public and cannot be archived while it is the only group. | **Must** |  |
+| CM-07 | *(amended 2026-09-25)* Every new member is added to the general group; they may leave it like any other group. | **Must** | UX-GRP-01 |
+| CM-08 | *(amended 2026-09-25)* A community always keeps at least one active group: whichever group is the last active one cannot be archived. The general group starts public. | **Must** | UX-GRP-01, migration 0108 |
 | CM-09 | The community page has Posts / Events / Groups / Members / About tabs and a hero block with cover image + thumbnail. | **Must** |  |
 | CM-10 | A community switcher lets the user move between their communities (Managing / Participating + Active / Archived toggle + a “+ New community” entry). | **Must** |  |
 | CM-11 | A user can mark one community as default — preselected in the switcher. | Should |  |

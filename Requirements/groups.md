@@ -4,6 +4,31 @@
 
 This document defines the Groups module of Padel Jam: creating a group, joining one, viewing it as a member, and managing it as an admin. A group is the competitive layer of the product — it owns a ranking and is where events live. Groups sit inside communities; the Communities module is specified in a separate, following document.
 
+> **Amended 2026-09-25 by the Groups UX audit** (`docs/audit/2026-09-25-ux-groups.md`, decisions in
+> `docs/audit/2026-09-25-ux-groups-plan.md`). Where this document and the audit disagreed, the product owner
+> decided; the rows below marked *(amended)* carry the outcome. In short:
+>
+> - **Leaving keeps you in the history.** A player who leaves stays in the member list, the ranking and past
+>   events, greyscale with a "No longer in group" tag. Rejoining in the SAME season restores their points;
+>   rejoining in a new season starts at zero. Match records are never lost (GR-15, GR-16, §5.3).
+> - **Private groups stay private from community admins** unless they are members — GR-17/GR-35 are kept,
+>   against the audit's "admins administer every group". The sole-admin leave guard applies to private
+>   groups only, and is checked before the confirmation, never after (GR-36/40).
+> - **"Reset ranking"** is the admin-facing name of "Start new season" — the same action: it closes the
+>   season and starts the next, nothing is destroyed (GR-20/31). The admin sees a completion screen with
+>   the final standings; other members get a one-time "season ended" notice.
+> - **The ranking shows Win / Lost** (matches won and lost) on the group page's top-10 preview, and
+>   Points / Events played on the full ranking (§5.2, §7).
+> - **Your Groups has no tabs**: one section per community (GR-12).
+> - **The general group** is named "[Community] Group" and can be renamed, made private and left like any
+>   other; whichever group is the community's LAST active one cannot be archived (§6.4). Archiving cancels
+>   the group's upcoming events.
+> - **Create Group** shows wherever the user may create a group (community admin, or the community's
+>   "create groups" permission); the plan's group limit is explained on submit, not by hiding the action
+>   (GR-02, GR-38). Its button stays enabled and says what is missing (UX-GLOB-06).
+> - **Inviting** reaches anyone — community members, the people you follow, anyone found by name; someone
+>   outside the community joins both on accepting. Invitations can be declined.
+
 **Confirmed design decisions**
 
 - A group always lives inside a community — there is no standalone group.
@@ -161,7 +186,7 @@ How a player joins depends on the group’s privacy. Either way, joining a group
 |  |  |
 |----|----|
 | **Action** | More menu → Leave Group, with a confirmation modal. |
-| **Confirmation copy** | "You will lose all the matches records and this action cannot be undone. Are you sure you want to leave?" |
+| **Confirmation copy** | *(amended)* "You'll lose access to the group's information. Your match records are kept." |
 | **Effect — current season** | The player is removed from group_members; their entry disappears from the current-season ranking. The underlying game data is NOT deleted — events and match records stay intact, so other players’ stats and rankings remain unaffected. |
 | **Effect — previous seasons** | The player’s results in PREVIOUS seasons are preserved as historical record. They continue to appear in those seasons’ rankings even after leaving the group. |
 | **Rejoining** | A player may rejoin later, but starts from zero in the current season. Their previous-season results remain attributed to them. |
@@ -305,19 +330,19 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed GR (Groups).
 | GR-09 | Joining a group also adds the user to the group’s community. | **Must** |  |
 | GR-10 | Inviting someone to a group brings them into the community too, shown via a confirmation. | **Must** |  |
 | GR-11 | A private-group link opened by a non-invited user shows a no-access page. | **Should** |  |
-| GR-12 | Your Groups lists groups under All / Managing / Participating tabs. | **Must** |  |
+| GR-12 | *(amended)* Your Groups lists every group the user belongs to, sectioned by community — no tabs. Admins keep archived groups there with an "Archived" tag. | **Must** | UX-GRP-03 |
 | GR-13 | The group page shows header, members, an Events section, and a Ranking section. | **Must** |  |
 | GR-14 | The "+ Invite members" action depends on the community’s member-invite permission. | **Must** | Permission defined in the Communities doc. |
-| GR-15 | Leaving a group removes the player from the current-season ranking; underlying game data is never deleted (other players’ stats are unaffected); previous-season records are preserved. | **Must** |  |
-| GR-16 | A player who rejoins a group starts from zero in the current season. | **Must** |  |
+| GR-15 | *(amended)* Leaving a group keeps the player in the group's history — member list, ranking and past events — greyscale with a "No longer in group" tag. Game data is never deleted. | **Must** | UX-GRP-15, decision 2 |
+| GR-16 | *(amended)* A player who rejoins in the same season gets back the points they had; rejoining in a new season starts at zero. | **Must** | UX-GRP-15 |
 | GR-17 | Group management is available to community owners / admins — for private groups, only when they are members of the group. | **Must** | No group-specific role. |
 | GR-18 | Group Settings edits name, description, thumbnail, and privacy. | **Must** |  |
 | GR-19 | Manage Members allows viewing a profile and removing a member (tap or swipe), with confirmation. | **Must** |  |
-| GR-20 | "Start new season" closes the current season and begins the next; the closed season is archived under Previous Seasons. | **Must** | No data is destroyed. |
+| GR-20 | *(amended)* "Reset ranking" (= start new season) closes the current season and begins the next; the closed season is archived under Previous Seasons. | **Must** | No data is destroyed. UX-GRP-14 |
 | GR-21 | Start new season, Archive, and Unarchive each require a confirmation. | **Must** |  |
 | GR-22 | A group is never deleted — only archived; an archived group accepts no new events. | **Must** |  |
 | GR-23 | An archived group shows in Managing with an "archived" tag and can be unarchived. | **Should** |  |
-| GR-24 | The sole community owner cannot leave a group without transferring community ownership first. | **Must** |  |
+| GR-24 | *(obsolete)* There is no owner role since migration 0098; GR-36 covers the case. | — |  |
 | GR-25 | The group ranking counts every non-private event in the group, scoped to the season the event was created in. | **Must** |  |
 | GR-26 | Event ranking points are awarded by final placement (100 / 75 / 60 / 50 / 42 / 36 / 30 / 25 / 20 / 16 / 12 / 8); players outside the top 12 receive 5 points. | **Must** | Preliminary model. |
 | GR-27 | The season ranking is the simple sum of all placement points each player earned that season — no best-N system. | **Must** |  |
@@ -329,9 +354,9 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed GR (Groups).
 | GR-33 | A "Previous Seasons" section appears at the bottom of the group page; a season opens to a "Season N" detail with Event history and Ranking tabs. | **Should** |  |
 | GR-34 | The ranking screen offers a period filter: last 3 / 6 / 12 months — relative to today for the current season, relative to the season end for closed seasons. | **Should** |  |
 | GR-35 | Private groups are not visible to community admins unless the admin is a member of the group. | **Must** |  |
-| GR-36 | An admin cannot leave a group while they are its only admin; another community admin must be added to the group first. | **Must** |  |
+| GR-36 | *(amended)* The last community admin inside a PRIVATE group cannot leave it until another community admin is added; this is checked before the confirmation. Public groups never block — community admins manage them without being members. | **Must** | Decision 1 |
 | GR-37 | The thumbnail picker offers a library of pre-defined images plus an Upload option. | **Should** |  |
-| GR-38 | The number of groups a user may create is gated by their subscription tier (defined in the Subscription section of the Profile & Settings doc). | **Must** | Per-tier limits TBD. |
+| GR-38 | *(amended)* The number of groups a community may hold is gated by its plan; the create action still shows, and the limit is explained with the upgrade prompt on submit. | **Must** | Decision 6 |
 | GR-39 | The event scoring mode (points / classic / time) does NOT affect group-ranking points; only the final placement matters. | **Must** |  |
 | GR-40 | When a sole group admin tries to leave, the "Add admin" action opens the community’s admin list for multi-select to add to the group first. | **Should** |  |
 
