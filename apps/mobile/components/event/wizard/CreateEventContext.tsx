@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import { type EventDraft, defaultDraft, type WizardStep } from './draft';
+import { applyPatch } from './draftPatch';
 import { stepByKey } from './steps';
 import {
   neighbourStep,
@@ -48,13 +49,6 @@ type Action =
   | { type: 'next'; partial?: Partial<EventDraft> }
   | { type: 'back' };
 
-// Standalone events (no group) must be private — enforced by the schema.
-function applyPatch(d: EventDraft, partial: Partial<EventDraft>): EventDraft {
-  const forced: Partial<EventDraft> =
-    partial.groupId === null ? { isPrivate: true, series: undefined } : {};
-  return { ...d, ...partial, ...forced };
-}
-
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'patch':
@@ -81,6 +75,7 @@ export function CreateEventProvider({
     draft: {
       ...defaultDraft,
       groupId: initialGroupId ?? null,
+      groupCommunityId: initialGroupId ? communityId || undefined : undefined,
       isPrivate: initialGroupId ? false : true,
     },
     key: 'group',

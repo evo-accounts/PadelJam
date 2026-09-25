@@ -104,21 +104,13 @@ export function Step4Scoring({ draft, patch, errors, clearError }: WizardStepPro
 
             {selected && mode === 'time' ? (
               <View style={styles.body}>
-                <View style={styles.sliderHead}>
-                  <Text variant="label" tone="default">
-                    {t('timeValueLabel')}
-                  </Text>
-                  <Text variant="bodyStrong" tone="default">
-                    {t('minutesValue', { count: draft.scoringValue ?? MINUTES_MIN })}
-                  </Text>
-                </View>
                 <Slider
+                  label={t('timeValueLabel')}
                   value={draft.scoringValue ?? MINUTES_MIN}
                   min={MINUTES_MIN}
                   max={MINUTES_MAX}
                   onChange={setValue}
-                  accessibilityLabel={t('timeValueLabel')}
-                  valueText={t('minutesValue', { count: draft.scoringValue ?? MINUTES_MIN })}
+                  formatValue={(n) => t('minutesValue', { count: n })}
                   testID="scoring-time-slider"
                 />
               </View>
@@ -240,7 +232,6 @@ const styles = StyleSheet.create({
   radioDot: { width: RADIO / 2, height: RADIO / 2, borderRadius: radius.full, backgroundColor: colors.primary },
   body: { gap: space[3], paddingHorizontal: space[4], paddingBottom: space[4] },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
-  sliderHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sheetBody: { gap: space[3], paddingHorizontal: space[3], paddingBottom: space[2] },
   numberInput: {
     ...type.display,

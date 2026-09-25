@@ -3,7 +3,6 @@ import { useT } from '@padel/i18n';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { GroupCard } from '../../../group/GroupCard';
-import { useEventWizard } from '../CreateEventContext';
 import type { WizardStepProps } from '../draft';
 import { colors, radius, space } from '../../../../theme';
 import { Button, EmptyState, emptyIcon, Text, useConfirm } from '../../../ui';
@@ -13,12 +12,12 @@ import { Button, EmptyState, emptyIcon, Text, useConfirm } from '../../../ui';
  * or only the one the wizard was opened from. A tap on a card IS the answer: it sets the group
  * and advances, leaving no selected state behind (UX-CEVT-01).
  *
- * A group event starts public, as it does when the wizard is opened from a group page; Preferences
- * can still make it private.
+ * A newly picked group starts the event public (see `applyPatch`); Preferences can still make it
+ * private.
  */
-export function Step1Group({ advance }: WizardStepProps) {
+export function Step1Group({ advance, communityId }: WizardStepProps) {
   const { t } = useT('event');
-  const { communityId } = useEventWizard();
+  const { t: tc } = useT('common');
   const groups = useEventCreatableGroups(communityId);
 
   if (groups.isLoading) {
@@ -26,6 +25,18 @@ export function Step1Group({ advance }: WizardStepProps) {
       <View style={styles.loading}>
         <ActivityIndicator />
       </View>
+    );
+  }
+
+  // A failed load is not "you have no groups" — say so, and offer a retry.
+  if (groups.isError) {
+    return (
+      <EmptyState
+        tone="error"
+        title={tc('loadError')}
+        action={{ label: tc('retry'), onPress: () => void groups.refetch() }}
+        testID="error-step1-groups"
+      />
     );
   }
 
@@ -60,7 +71,9 @@ export function Step1Group({ advance }: WizardStepProps) {
                 community_name: showCommunity ? group.community_name : null,
               }}
               memberCount={group.member_count}
-              onPress={() => advance?.({ groupId: group.group_id, isPrivate: false })}
+              onPress={() =>
+                advance?.({ groupId: group.group_id, groupCommunityId: group.community_id })
+              }
             />
           </View>
         ))

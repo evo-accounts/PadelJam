@@ -1,9 +1,9 @@
-import { type CreateEventInput, useCreateEvent } from '@padel/api';
+import { type CreateEventInput, useCommunityMembers, useCreateEvent } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { geocodeQuery } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -15,11 +15,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
+import { skipsInvite } from '@/components/event/wizard/visibleSteps';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { Button, ProgressBar, Text, TopBar, useBanner, useConfirm } from '../../../components/ui';
 import { colors, space } from '../../../theme';
+
+const ADVANCE_GUARD_MS = 300;
 
 export default function CreateEventScreen() {
   const { groupId, communityId } = useLocalSearchParams<{
@@ -54,10 +57,22 @@ function CreateEventWizard() {
     setStepErrors([]);
     goBack();
   };
+  // A tap-to-advance card sits where the NEXT step's card will be, so a double tap would answer
+  // two steps at once. Presses within ADVANCE_GUARD_MS of the last advance are ignored.
+  const lastAdvanceAt = useRef(0);
   const advance = (partial?: Parameters<typeof goNext>[0]) => {
+    const now = Date.now();
+    if (now - lastAdvanceAt.current < ADVANCE_GUARD_MS) return;
+    lastAdvanceAt.current = now;
     setStepErrors([]);
     goNext(partial);
   };
+
+  // The recurring-events cap names a community: the route's, or — opened from Home — the one the
+  // picked group belongs to.
+  const planCommunityId = communityId || draft.groupCommunityId;
+  const { data: communityMembers } = useCommunityMembers(planCommunityId);
+  const canManagePlan = communityMembers?.find((m) => m.user_id === uid)?.role === 'admin';
 
   // Drops one flagged field as the user corrects it, so it turns back to
   // normal without waiting for the next Next tap (UX-GLOB-06).
@@ -130,7 +145,9 @@ function CreateEventWizard() {
       description: draft.description,
       thumbnailPath,
       series: draft.series,
-      invitees: draft.invitees,
+      // A path without Invite players sends none — even ones picked before the path changed
+      // (e.g. the event was made public afterwards). Public group events invite nobody (decision 5).
+      invitees: skipsInvite(draft) ? undefined : draft.invitees,
       courtIds: draft.courtIds,
     };
 
@@ -145,10 +162,11 @@ function CreateEventWizard() {
       }
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';
-      if (code === 'recurring_events' && communityId) {
-        // create_event already requires is_community_admin for a group event, so
-        // whoever reaches this wizard can act on the community's plan — see
-        // UpgradePrompt.
+      if (code === 'recurring_events' && planCommunityId) {
+        // Since 0098 create_event gates a group event on may_create_event — an admin,
+        // OR a member with the create-events permission — so the creator is not
+        // necessarily someone who can change the plan. UpgradePrompt gets canManage
+        // and offers "OK" instead of "See plans" to a non-admin.
         setShowUpgrade(true);
         setSubmitting(false);
         return;
@@ -180,6 +198,7 @@ function CreateEventWizard() {
     draft,
     patch,
     advance,
+    communityId,
     errors: stepErrors,
     clearError: clearStepError,
   };
@@ -237,11 +256,12 @@ function CreateEventWizard() {
       ) : (
         <View style={{ height: insets.bottom }} />
       )}
-      {communityId ? (
+      {planCommunityId ? (
         <UpgradePrompt
           visible={showUpgrade}
           onClose={() => setShowUpgrade(false)}
-          communityId={communityId}
+          communityId={planCommunityId}
+          canManage={canManagePlan}
           message={t('upgradeRecurringCap', { ns: 'community' })}
         />
       ) : null}

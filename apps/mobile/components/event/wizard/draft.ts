@@ -20,6 +20,12 @@ export type EventInvitee = {
 
 export type EventDraft = {
   groupId: string | null;
+  /**
+   * The picked group's community — or the route's, when the wizard was opened from a group.
+   * Wizard-only (never sent): it is what the recurring-events cap UpgradePrompt points at, which
+   * the route alone cannot give when the wizard was opened from Home.
+   */
+  groupCommunityId?: string;
   eventType?: EventType;
   specification?: Specification;
   scoringMode?: ScoringMode;
@@ -84,6 +90,8 @@ export type WizardStepProps = {
    * Location, Courts and Preferences as sections of one form.
    */
   advance?: (partial?: Partial<EventDraft>) => void;
+  /** The community the wizard was opened from, if any — the Group step lists only its groups. */
+  communityId?: string;
   /** Failing field keys for this step, from its `validate()`, once a Next tap has flagged them. */
   errors?: string[];
   /** Drops one key from `errors` as the user corrects that field, so it turns back to normal without waiting for the next Next tap (UX-GLOB-06). */

@@ -209,14 +209,23 @@ export const useEventCreatableGroups = (communityId?: string | null) => {
       // One representative group per community.
       const probe = new Map<string, string>();
       for (const g of groups) if (!probe.has(g.community_id)) probe.set(g.community_id, g.group_id);
-      const checks = await Promise.all(
+      // One community's check failing must not hide every other community's groups: a failed
+      // check counts as "not creatable". Only when EVERY check fails is that an error, not an
+      // empty list.
+      const checks = await Promise.allSettled(
         [...probe].map(async ([cid, gid]) => {
           const res = await db.rpc('can_create_event', { p_group_id: gid });
           if (res.error) throw res.error;
           return [cid, res.data === true] as const;
         }),
       );
-      const allowed = new Set(checks.filter(([, ok]) => ok).map(([cid]) => cid));
+      const firstFailure = checks.find((c) => c.status === 'rejected');
+      if (checks.length > 0 && firstFailure && checks.every((c) => c.status === 'rejected')) {
+        throw (firstFailure as PromiseRejectedResult).reason;
+      }
+      const allowed = new Set(
+        checks.flatMap((c) => (c.status === 'fulfilled' && c.value[1] ? [c.value[0]] : [])),
+      );
       return pickEventCreatableGroups(groups, allowed, communityId);
     },
   });
