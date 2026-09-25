@@ -74,7 +74,7 @@ export function ProfileGroups({ userId }: { userId: string }) {
           <ul className="divide-y">
             {groups.map((g) => (
               <li key={g.group_id}>
-                <Link href={`/app/groups/${g.group_id}`} className="flex justify-between gap-4 py-3 text-sm hover:underline">
+                <Link href={`/app/group/${g.group_id}`} className="flex justify-between gap-4 py-3 text-sm hover:underline">
                   <span>{g.name}</span>
                   <span className="text-muted-foreground">{g.community_name}</span>
                 </Link>

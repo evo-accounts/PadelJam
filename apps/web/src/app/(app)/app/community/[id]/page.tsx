@@ -14,7 +14,7 @@ import {
   useCommunityFeedRealtime,
   useCommunityReviews,
   useCommunityGroups,
-  useCanCreateGroup,
+  useMayCreateGroup,
   useCommunityEvents,
 } from '@padel/api';
 import { EventCard, type EventCardEvent } from '@/components/event/EventCard';
@@ -56,7 +56,9 @@ export default function CommunityDetailPage() {
   const perms = useCommunityPermissions(id);
   const reviews = useCommunityReviews(id);
   const groups = useCommunityGroups(id);
-  const canCreateGroup = useCanCreateGroup(id);
+  // Permission only (decision 6): a community at its plan's group limit still offers "Create
+  // group", and the form explains the limit instead of the button silently not being there.
+  const canCreateGroup = useMayCreateGroup(id);
   const events = useCommunityEvents(id);
 
   const [ack, setAck] = useState(false);
@@ -247,7 +249,7 @@ export default function CommunityDetailPage() {
           <TabsContent value="groups" className="flex flex-col gap-3 pt-4">
             {canCreateGroup.data === true ? (
               <Button asChild variant="outline" className="self-start">
-                <Link href={`/app/community/${id}/group-create`}>{tg('newGroup')}</Link>
+                <Link href={`/app/community/${id}/group-create`}>{tg('createCta')}</Link>
               </Button>
             ) : null}
             {groups.isLoading ? (
