@@ -2173,6 +2173,35 @@ const mobileEvent = {
     joinedToast: 'Estás dentro!',
     leftToast: 'Saíste do evento',
 
+    // --- Event page (UX-JEVT-02..07) ---
+    moreActionsLabel: 'Mais opções',
+    shareAction: 'Partilhar',
+    addToCalendarAction: 'Adicionar ao calendário',
+    calendarDenied: 'Permite o acesso ao calendário nas Definições para adicionar este evento.',
+    calendarError: 'Não foi possível abrir o calendário.',
+    playersCapacity: '{{confirmed}} / {{capacity}} confirmados',
+    widgetCourts: 'Campos',
+    widgetScoring: 'Pontuação',
+    widgetFee: 'Taxa',
+    groupBadgeNone: 'Sem grupo',
+    goingBanner: 'Vais participar',
+    waitlistBannerTitle: 'Estás na lista de espera',
+    waitlistBannerBody: 'Quando abrir uma vaga, todos na lista são avisados ao mesmo tempo. A vaga fica para quem confirmar primeiro.',
+    noSpotsLine: 'Não há mais vagas',
+    eventClosedLine: 'Evento encerrado',
+    youAreInTitle: 'Estás dentro',
+    closeCta: 'Fechar',
+    leaveConfirmTitle: 'Sair do evento?',
+    leaveConfirmBody: 'Podes perder a tua vaga — se o evento encher, não a recuperas.',
+    leaveConfirmCta: 'Sair',
+    leaveLockedTitle: 'Sair',
+    leaveLockedSheetBody: 'Já passou o prazo para sair do evento na app. Se surgir algo urgente, contacta o organizador.',
+    chatCta: 'Chat',
+    playersListTitle: 'Jogadores',
+    playersListEmpty: 'Ainda não há jogadores confirmados',
+    playersListConfirmed: 'Confirmados',
+    playersListStandby: 'Suplentes',
+
     // --- Partner flow (team / mixed) ---
     partnerRequestsTitle: 'Pedidos de parceiro',
     choosePartnerTitle: 'Escolhe um parceiro',
@@ -2183,8 +2212,8 @@ const mobileEvent = {
     partnerRequestSent: 'Pedido enviado',
 
     // --- No-access (private event) ---
-    noAccessTitle: 'Evento privado',
-    noAccessBody: 'Não tens acesso a este evento.',
+    noAccessTitle: 'Não tens acesso',
+    noAccessBody: 'Este evento é privado. Só os jogadores convidados podem ver os detalhes.',
 
     // --- Organizer manage ---
     manageTitle: 'Gerir evento',
@@ -2653,6 +2682,35 @@ const mobileEvent = {
     joinedToast: 'Você está dentro!',
     leftToast: 'Você saiu do evento',
 
+    // --- Event page (UX-JEVT-02..07) ---
+    moreActionsLabel: 'Mais opções',
+    shareAction: 'Compartilhar',
+    addToCalendarAction: 'Adicionar ao calendário',
+    calendarDenied: 'Permita o acesso ao calendário nos Ajustes para adicionar este evento.',
+    calendarError: 'Não foi possível abrir o calendário.',
+    playersCapacity: '{{confirmed}} / {{capacity}} confirmados',
+    widgetCourts: 'Quadras',
+    widgetScoring: 'Pontuação',
+    widgetFee: 'Taxa',
+    groupBadgeNone: 'Sem grupo',
+    goingBanner: 'Você vai participar',
+    waitlistBannerTitle: 'Você está na lista de espera',
+    waitlistBannerBody: 'Quando abrir uma vaga, todos da lista são avisados ao mesmo tempo. A vaga fica com quem confirmar primeiro.',
+    noSpotsLine: 'Não há mais vagas',
+    eventClosedLine: 'Evento encerrado',
+    youAreInTitle: 'Você está dentro',
+    closeCta: 'Fechar',
+    leaveConfirmTitle: 'Sair do evento?',
+    leaveConfirmBody: 'Você pode perder sua vaga — se o evento lotar, não a recupera.',
+    leaveConfirmCta: 'Sair',
+    leaveLockedTitle: 'Sair',
+    leaveLockedSheetBody: 'O prazo para sair do evento pelo app já passou. Se surgir algo urgente, fale com o organizador.',
+    chatCta: 'Chat',
+    playersListTitle: 'Jogadores',
+    playersListEmpty: 'Ainda não há jogadores confirmados',
+    playersListConfirmed: 'Confirmados',
+    playersListStandby: 'Suplentes',
+
     // --- Partner flow (team / mixed) ---
     partnerRequestsTitle: 'Pedidos de parceiro',
     choosePartnerTitle: 'Escolha um parceiro',
@@ -2663,8 +2721,8 @@ const mobileEvent = {
     partnerRequestSent: 'Pedido enviado',
 
     // --- No-access (private event) ---
-    noAccessTitle: 'Evento privado',
-    noAccessBody: 'Você não tem acesso a este evento.',
+    noAccessTitle: 'Você não tem acesso',
+    noAccessBody: 'Este evento é privado. Só os jogadores convidados podem ver os detalhes.',
 
     // --- Organizer manage ---
     manageTitle: 'Gerenciar evento',
@@ -3133,6 +3191,35 @@ const mobileEvent = {
     joinedToast: "You're in!",
     leftToast: 'You left the event',
 
+    // --- Event page (UX-JEVT-02..07) ---
+    moreActionsLabel: 'More options',
+    shareAction: 'Share',
+    addToCalendarAction: 'Add to calendar',
+    calendarDenied: 'Allow calendar access in Settings to add this event.',
+    calendarError: 'Could not open the calendar.',
+    playersCapacity: '{{confirmed}} / {{capacity}} confirmed',
+    widgetCourts: 'Courts',
+    widgetScoring: 'Scoring',
+    widgetFee: 'Fee',
+    groupBadgeNone: 'No group',
+    goingBanner: 'You are going',
+    waitlistBannerTitle: 'You are on the waiting list',
+    waitlistBannerBody: 'When a spot opens, everyone on the list is notified at once. The spot goes to whoever confirms first.',
+    noSpotsLine: 'No more spots available',
+    eventClosedLine: 'Event closed',
+    youAreInTitle: 'You are in',
+    closeCta: 'Close',
+    leaveConfirmTitle: 'Leave event?',
+    leaveConfirmBody: 'You may lose your spot — if the event fills up, you will not get it back.',
+    leaveConfirmCta: 'Leave',
+    leaveLockedTitle: 'Leave',
+    leaveLockedSheetBody: 'The deadline to leave this event in the app has passed. If anything urgent comes up, contact the organizer.',
+    chatCta: 'Chat',
+    playersListTitle: 'Players',
+    playersListEmpty: 'No confirmed players yet',
+    playersListConfirmed: 'Confirmed',
+    playersListStandby: 'Stand-by',
+
     // --- Partner flow (team / mixed) ---
     partnerRequestsTitle: 'Partner requests',
     choosePartnerTitle: 'Choose a partner',
@@ -3143,8 +3230,8 @@ const mobileEvent = {
     partnerRequestSent: 'Request sent',
 
     // --- No-access (private event) ---
-    noAccessTitle: 'Private event',
-    noAccessBody: "You don't have access to this event.",
+    noAccessTitle: "You don't have access",
+    noAccessBody: 'This event is private. Only invited players can see its details.',
 
     // --- Organizer manage ---
     manageTitle: 'Manage event',

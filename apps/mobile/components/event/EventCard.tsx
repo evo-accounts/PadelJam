@@ -3,6 +3,7 @@ import { useT } from '@padel/i18n';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, palette } from '../../theme';
 import { Card } from '../../components/ui';
+import { EventThumb } from './EventThumb';
 
 /** The element type of the group-events hook data: the `events` table Row. */
 type EventRow = NonNullable<ReturnType<typeof useGroupEvents>['data']>[number];
@@ -21,8 +22,12 @@ function formatWhen(iso: string): string {
 }
 
 /**
- * A tappable card summarising one event: name, format meta, date/time and a
- * status badge. Presentational — the caller supplies the row and an onPress.
+ * A tappable card summarising one event: thumbnail (or an icon placeholder), name, format meta,
+ * date/time and — only when it says something — a status badge. Presentational — the caller
+ * supplies the row and an onPress.
+ *
+ * No badge for an upcoming event (UX-JEVT-01): every listed event is upcoming, so "Upcoming" said
+ * nothing. Starting now / Live / Completed still carry meaning and keep theirs.
  *
  * Two arrangements of the same content (UX-GLOB-09): `vertical` is a fixed-width
  * card for a horizontally scrolling rail (image on top, text below); `horizontal`
@@ -64,7 +69,7 @@ export function EventCard({
         ? styled.badgeStarting
         : status === 'statusCompleted'
           ? styled.badgeDone
-          : styled.badgeScheduled;
+          : null;
   const badgeTextStyle =
     status === 'statusInProgress'
       ? styled.badgeTextLive
@@ -72,15 +77,16 @@ export function EventCard({
         ? styled.badgeTextStarting
         : status === 'statusCompleted'
           ? styled.badgeTextDone
-          : styled.badgeTextScheduled;
+          : null;
 
-  const badge = (
-    <View style={[styled.badge, badgeStyle]}>
-      <Text style={[styled.badgeText, badgeTextStyle]} numberOfLines={1}>
-        {t(status)}
-      </Text>
-    </View>
-  );
+  const badge =
+    status === 'statusScheduled' ? null : (
+      <View style={[styled.badge, badgeStyle]}>
+        <Text style={[styled.badgeText, badgeTextStyle]} numberOfLines={1}>
+          {t(status)}
+        </Text>
+      </View>
+    );
   const meta = (
     <Text style={styled.meta} numberOfLines={1}>
       {`${typeLabel} · ${specLabel}`}
@@ -101,7 +107,7 @@ export function EventCard({
         onPress={onPress}
         testID={`event-card-${event.id}`}
       >
-        <View style={styled.thumbTop} />
+        <EventThumb path={event.thumbnail_path} shape="rail" />
         <View style={styled.bodyVertical}>
           <Text style={styled.name} numberOfLines={2}>
             {event.name}
@@ -117,7 +123,7 @@ export function EventCard({
 
   return (
     <Card padding="none" style={styled.card} onPress={onPress} testID={`event-card-${event.id}`}>
-      <View style={styled.thumb} />
+      <EventThumb path={event.thumbnail_path} shape="row" />
       <View style={styled.body}>
         <Text style={styled.name} numberOfLines={1}>
           {event.name}
@@ -152,8 +158,6 @@ const styled = StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
-  thumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.muted },
-  thumbTop: { height: 96, backgroundColor: colors.muted },
   body: { flex: 1, gap: 4 },
   bodyVertical: { padding: 12, gap: 4, alignItems: 'flex-start' },
   name: { fontSize: 16, fontWeight: '700', color: colors.foreground },
@@ -162,8 +166,6 @@ const styled = StyleSheet.create({
   distance: { fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
   badge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontSize: 11, fontWeight: '700' },
-  badgeScheduled: { backgroundColor: palette.purple[100] },
-  badgeTextScheduled: { color: colors.primary },
   badgeStarting: { backgroundColor: palette.yellow[100] },
   badgeTextStarting: { color: palette.yellow[800] },
   badgeLive: { backgroundColor: palette.green[100] },

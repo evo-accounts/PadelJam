@@ -62,6 +62,12 @@
       "expo-image",
       "expo-sharing",
       [
+        "expo-calendar",
+        {
+          "calendarPermission": "PadelJam adds an event to your calendar when you ask it to."
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "PadelJam uses your location to suggest nearby games and communities."

@@ -42,6 +42,7 @@ const ICONS = {
   mappin: { sf: 'mappin', android: 'location_on' },
   photo: { sf: 'photo', android: 'photo' },
   star: { sf: 'star', android: 'star' },
+  'lock.fill': { sf: 'lock.fill', android: 'lock' },
   'exclamationmark.triangle': { sf: 'exclamationmark.triangle', android: 'warning' },
   'person.crop.circle.badge.checkmark': {
     sf: 'person.crop.circle.badge.checkmark',

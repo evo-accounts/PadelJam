@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { qk } from '../query-keys';
-import { PARTICIPANT_PROFILE_EMBED } from './queries';
+import { EVENT_DETAIL_SELECT, PARTICIPANT_PROFILE_EMBED } from './queries';
 
 describe('participant profile embed', () => {
   // event_participants has two FKs to profiles (user_id, invited_by). An
@@ -40,5 +40,22 @@ describe('my events query keys', () => {
   it('keeps the past toggle under the same prefix, so one invalidation covers every tab', () => {
     expect(qk.myEvents('all', true)).toEqual(['my-events', 'all', 'past']);
     expect(qk.myEvents('all', true).slice(0, qk.myEventsAll.length)).toEqual([...qk.myEventsAll]);
+  });
+});
+
+describe('event detail select', () => {
+  // B17: the organizer card reads the event's own organizer FK, so an organizer who
+  // only organizes (no participant row) still shows up.
+  it('embeds the organizer through the organizer_id foreign key', () => {
+    expect(EVENT_DETAIL_SELECT).toContain('organizer:profiles!events_organizer_id_fkey(');
+  });
+
+  it('embeds the group name for the badges row', () => {
+    expect(EVENT_DETAIL_SELECT).toContain('group:groups!events_group_id_fkey(id, name)');
+  });
+
+  it('never selects a whole profile row (phone must not leak)', () => {
+    expect(EVENT_DETAIL_SELECT).not.toMatch(/profiles![a-z_]+\(\s*\*/);
+    expect(EVENT_DETAIL_SELECT).not.toContain('phone');
   });
 });

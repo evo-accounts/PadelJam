@@ -3,15 +3,18 @@ import { query, snapshot } from '../driver/a11y';
 import { scrollUntilVisible, tap } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
-import { loginAs, switchUser, tabTo } from '../driver/flows';
+import { deepLink, loginAs, switchUser, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
 
 /**
- * Event detail is role-adaptive: the CTA block differs for organizer, confirmed
- * player, waitlisted player, invitee and outsider. Navigation goes through the
- * UI rather than deep links (see suite 13 for why).
+ * Event detail is role-adaptive: the fixed bottom area and the top banner differ
+ * for organizer, confirmed player, waitlisted player, invitee and outsider
+ * (UX-JEVT-02..07). Leaving is never in the bottom area — it lives in the header's
+ * ⋯ sheet ("More options"). Navigation goes through the UI rather than deep links
+ * (see suite 13 for why), except for the no-access screen, which is reached from
+ * a link by definition.
  *
  * Two navigation paths matter: the Events tab lists only events you organize or
  * are going to, so any event you are NOT part of (a full event, an invite you
@@ -54,11 +57,26 @@ describe('04 event detail & membership', () => {
     }
   });
 
-  it('confirmed player can leave and re-join an event', async () => {
+  /** Open the header's ⋯ sheet. */
+  const openMore = async () => {
+    await tap({ label: 'More options' });
+    await expectVisible({ text: /^share$/i }, { timeout: 10_000 });
+  };
+
+  it('confirmed player leaves from the ⋯ sheet and re-joins into "You are in"', async () => {
     const m = manifest();
     await openMyEvent(/tuesday americano/i); // alex joined E1 in the seed
-    await scrollUntilVisible({ text: /leave/i }, { maxSwipes: 6 });
-    await tap({ text: /leave (event|as a player)/i });
+    await expectVisible({ text: /you are going/i }, { timeout: 15_000 });
+    // The bottom area carries no leave action any more (UX-JEVT-03).
+    if (query(await snapshot(), { text: /^leave/i, type: 'Button' })) {
+      throw new Error('a confirmed player should not see a leave button in the bottom area');
+    }
+    await openMore();
+    await expectVisible({ text: /add to calendar/i });
+    await tap({ text: /^leave event$/i });
+    // Within the deadline the sheet asks first: primary Leave, secondary Cancel (UX-JEVT-05).
+    await expectVisible({ text: /leave event\?/i }, { timeout: 10_000 });
+    await tap({ text: /^leave$/i, type: 'Button' });
     await pollUntil(
       () => select('event_participants', `event_id=eq.${m.events.e1}&user_id=eq.${m.users.alex}&select=status`),
       (rows) => (rows as unknown[]).length === 0,
@@ -70,6 +88,10 @@ describe('04 event detail & membership', () => {
       (rows) => (rows as { status: string }[])[0]?.status === 'confirmed',
       { label: 'participant re-confirmed', timeoutMs: 15_000 },
     );
+    // A confirmed join lands on the full-screen confirmation, which closes back onto the event.
+    await expectVisible({ text: /you are in/i }, { timeout: 15_000 });
+    await tap({ text: /^close$/i, type: 'Button' });
+    await expectVisible({ text: /you are going/i }, { timeout: 15_000 });
   });
 
   it('a full event waitlists a member holding no invitation', async () => {
@@ -84,15 +106,16 @@ describe('04 event detail & membership', () => {
     // would be 6 — the screen offers a plain "Join" and a 5th player lands
     // CONFIRMED (is_standby), never waitlisted. With standby off the cap is the
     // 4 regular spots, all taken, and the app offers the waiting list instead.
-    await expectVisible({ text: /0 spots left/i }, { timeout: 15_000 });
+    await expectVisible({ text: /no more spots available/i }, { timeout: 15_000 });
     await tap({ text: /join waiting list/i });
     await pollUntil(
       () => select('event_participants', `event_id=eq.${m.events.e9}&user_id=eq.${m.users.alex}&select=status`),
       (rows) => (rows as { status: string }[])[0]?.status === 'waiting_list',
       { label: 'waitlisted', timeoutMs: 15_000 },
     );
-    // Same reasoning as the Join above: take whichever leave control the screen
-    // actually offers rather than asserting on copy that may not exist.
+    // The waiting-list banner explains the broadcast rule; the bottom area offers
+    // a secondary "Leave waiting list" (UX-JEVT-04).
+    await expectVisible({ text: /you are on the waiting list/i }, { timeout: 15_000 });
     await scrollUntilVisible({ text: /leave/i }, { maxSwipes: 6 });
     const leave = query(await snapshot(), { text: /leave/i, type: 'Button' });
     if (!leave) throw new Error('no leave control offered after being waitlisted');
@@ -104,32 +127,51 @@ describe('04 event detail & membership', () => {
     );
   });
 
-  it('an event inside the join cutoff shows joining closed', async () => {
+  it('an event inside the join cutoff shows event closed', async () => {
     // E10 starts in ~3h (inside the 6h cutoff) and carries no invitations, so a
     // plain group member sees the cutoff copy rather than Accept/Decline (public
     // group events carry no invitations since migration 0112). alex organizes
     // E10, so view it as joao.
     await switchUser('joao');
     await openAnyEvent(/cutoff no invites/i);
-    await scrollUntilVisible({ text: /joining closed/i }, { maxSwipes: 6 });
+    await scrollUntilVisible({ text: /event closed/i }, { maxSwipes: 6 });
     if (query(await snapshot(), { text: /^join$/i })) {
       throw new Error('Join CTA should be gone inside the cutoff');
     }
   });
 
-  it('an invitee can accept an invitation', async () => {
+  it('an invitee sees who invited them, accepts, and lands on "You are in"', async () => {
     const m = manifest();
-    // NOT a cutoff event: inside the join cutoff the app shows "Joining closed"
+    // NOT a cutoff event: inside the join cutoff the app shows "Event closed"
     // even to an invitee, so use E5 (a week out), where the seed has alex invite
     // sofia explicitly (public events are no longer auto-invited, 0112).
     await switchUser('sofia');
     await openAnyEvent(/weekly friday social/i);
-    await scrollUntilVisible({ text: /accept/i }, { maxSwipes: 8 });
+    // The inviter is named in the bottom area (UX-JEVT-03); E5's invite comes from alex.
+    await scrollUntilVisible({ text: /invited you/i }, { maxSwipes: 8 });
+    await expectVisible({ text: /alex organizer invited you/i });
     await tap({ text: /^accept$/i });
     await pollUntil(
       () => select('event_participants', `event_id=eq.${m.events.e5}&user_id=eq.${m.users.sofia}&select=status`),
       (rows) => (rows as { status: string }[])[0]?.status === 'confirmed',
       { label: 'invitation accepted', timeoutMs: 15_000 },
     );
+    await expectVisible({ text: /you are in/i }, { timeout: 15_000 });
+    await expectVisible({ text: /add to calendar/i });
+    await tap({ text: /^close$/i, type: 'Button' });
+    await expectVisible({ text: /you are going/i }, { timeout: 15_000 });
+    // Now confirmed, the ⋯ sheet offers Leave event alongside Share / Add to calendar.
+    await openMore();
+    await expectVisible({ text: /^leave event$/i });
+    await tap({ label: 'Close' }); // the sheet's own ✕
+  });
+
+  it('a private event the viewer was not invited to shows no access, closing to Home', async () => {
+    const m = manifest();
+    // E8 is nina's private standalone event with no invitees; sofia cannot see it.
+    await deepLink(`mobile:///event/${m.events.e8}`, /you don't have access/i);
+    await expectVisible({ text: /only invited players/i });
+    await tap({ label: 'Close' });
+    await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
   });
 });
