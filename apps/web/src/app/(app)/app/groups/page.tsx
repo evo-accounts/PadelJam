@@ -16,8 +16,7 @@ import Link from 'next/link';
 import { useCreatableCommunities, useMyGroups, type MyGroup } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { GroupEmpty } from '@/components/group/GroupEmpty';
-import { GroupThumb } from '@/components/group/GroupThumb';
-import { Badge } from '@/components/ui/badge';
+import { GroupMiniCard } from '@/components/group/GroupMiniCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -86,25 +85,7 @@ export default function YourGroupsPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {s.groups.map((g) => (
-                <Link
-                  key={g.group_id}
-                  href={`/app/group/${g.group_id}`}
-                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                  data-testid={`group-card-${g.group_id}`}
-                >
-                  <GroupThumb path={g.thumbnail_path} name={g.name} className="size-11" />
-                  <span className="flex min-w-0 flex-1 flex-col items-start">
-                    <span className="w-full truncate text-sm font-medium">{g.name}</span>
-                    {g.description ? (
-                      <span className="line-clamp-2 text-xs text-muted-foreground">{g.description}</span>
-                    ) : null}
-                    {g.archived_at ? (
-                      <Badge variant="outline" className="mt-1">
-                        {t('archivedTag')}
-                      </Badge>
-                    ) : null}
-                  </span>
-                </Link>
+                <GroupMiniCard key={g.group_id} group={g} />
               ))}
             </div>
           </section>
