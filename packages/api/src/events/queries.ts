@@ -313,6 +313,30 @@ export const usePartnerRequests = (id: string) => {
   });
 };
 
+/** A player the caller may pick (choose_partner) or ask (request_partner) on a team event —
+ *  eligible, not blocked either way, not paired or waiting (migration 0111, B6). */
+export type PartnerCandidate = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  /** The candidate's roster status on this event, or null when they are only invited/a member. */
+  participant_status: string | null;
+};
+
+export const useEventPartnerCandidates = (eventId: string) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.partnerCandidates(eventId),
+    enabled: !!uid && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('event_partner_candidates', { p_event_id: eventId });
+      if (error) throw error;
+      return (data ?? []) as PartnerCandidate[];
+    },
+  });
+};
+
 export type MyEventsFilter = 'all' | 'organizing' | 'going';
 const MY_EVENTS_PAGE_SIZE = 20;
 

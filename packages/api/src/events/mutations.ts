@@ -194,6 +194,7 @@ export const useRequestPartner = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+      qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
     },
   });
 };
@@ -211,6 +212,7 @@ export const useChoosePartner = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+      qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
     },
@@ -227,6 +229,7 @@ export const useAcceptPartnerRequest = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+      qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
     },
@@ -243,6 +246,23 @@ export const useDeclinePartnerRequest = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+    },
+  });
+};
+
+/** The requester takes back a pending request (0111, B5). The row is deleted, so the same
+ *  person can be asked again later. */
+export const useWithdrawPartnerRequest = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { error } = await db.rpc('withdraw_partner_request', { p_request_id: requestId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+      qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
     },
   });
 };

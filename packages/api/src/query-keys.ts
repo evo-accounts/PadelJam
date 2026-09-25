@@ -40,6 +40,7 @@ export const qk = {
   eventTimer: (id: string) => ['event', id, 'timer'] as const,
   eventResultSummary: (id: string) => ['event', id, 'result-summary'] as const,
   partnerRequests: (id: string) => ['event', id, 'partner-requests'] as const,
+  partnerCandidates: (id: string) => ['event', id, 'partner-candidates'] as const,
   canCreateEvent: (groupId: string) => ['group', groupId, 'can-create-event'] as const,
   canInviteToGroup: (groupId: string) => ['group', groupId, 'can-invite'] as const,
   groupInvitationPreview: (groupId: string) => ['group', groupId, 'invitation-preview'] as const,
