@@ -20,6 +20,10 @@ describe('mapPgError', () => {
     expect(mapPgError({ message: 'not_on_waiting_list' })).toBe('not_on_waiting_list');
     expect(mapPgError({ message: 'spot_taken' })).toBe('spot_taken');
   });
+  it('maps the partner-request codes (0111)', () => {
+    expect(mapPgError({ message: 'request_stale' })).toBe('request_stale');
+    expect(mapPgError({ message: 'partner_unavailable' })).toBe('partner_unavailable');
+  });
   it('maps the plan grant/downgrade guard codes', () => {
     expect(mapPgError({ message: 'invalid_plan' })).toBe('invalid_plan');
     expect(mapPgError({ message: 'plan_downgrade_over_limit' })).toBe('plan_downgrade_over_limit');

@@ -2523,6 +2523,15 @@ export type Database = {
       event_capacity: { Args: { e: string }; Returns: number }
       event_group_community: { Args: { e: string }; Returns: string }
       event_is_visible: { Args: { e: string; u: string }; Returns: boolean }
+      event_partner_candidates: {
+        Args: { p_event_id: string }
+        Returns: {
+          id: string
+          full_name: string | null
+          avatar_url: string | null
+          participant_status: string | null
+        }[]
+      }
       event_result_summary: {
         Args: { p_event_id: string }
         Returns: { rank: number; name: string; points: number }[]
@@ -3710,6 +3719,10 @@ export type Database = {
       }
       upsert_community_review: {
         Args: { p_community_id: string; p_rating: number; p_body: string | null }
+        Returns: undefined
+      }
+      withdraw_partner_request: {
+        Args: { p_request_id: string }
         Returns: undefined
       }
     }
