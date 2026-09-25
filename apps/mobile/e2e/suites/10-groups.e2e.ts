@@ -86,7 +86,8 @@ describe('10 groups', () => {
     await sleep(1000);
     await tap({ text: /reset ranking/i });
     // Reset ranking opens its confirmation directly (UX-GRP-14).
-    await expectVisible({ id: 'confirm-sheet' }, { timeout: 10_000 });
+    // The sheet container's testID is not an a11y element; its confirm button is.
+    await expectVisible({ id: 'confirm-sheet-confirm' }, { timeout: 10_000 });
     await tap({ id: 'confirm-sheet-confirm' });
     await pollUntil(
       () => select('group_seasons', `group_id=eq.${m.groups.g1}&select=id`),
