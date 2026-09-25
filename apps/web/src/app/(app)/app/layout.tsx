@@ -30,6 +30,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { Toaster } from '@/components/ui/toaster';
 import ProfileDropdown from '@/components/shadcn-studio/blocks/dropdown-profile';
 
 type NavItem = { key: string; href: string; labelKey: string; icon: LucideIcon };
@@ -108,6 +109,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="flex-1">{children}</main>
+        <Toaster />
       </SidebarInset>
     </SidebarProvider>
   );

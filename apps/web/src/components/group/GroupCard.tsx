@@ -40,9 +40,9 @@ export function GroupCard({ group }: GroupCardProps) {
             ) : null}
             <div className="flex flex-wrap gap-1">
               {group.memberCount !== undefined ? (
-                <Badge variant="secondary">{t('memberCount', { count: group.memberCount })}</Badge>
+                <Badge variant="secondary">{t('playersCount', { count: group.memberCount })}</Badge>
               ) : null}
-              {group.archived ? <Badge variant="outline">{t('archived')}</Badge> : null}
+              {group.archived ? <Badge variant="outline">{t('archivedTag')}</Badge> : null}
             </div>
           </div>
         </CardContent>
