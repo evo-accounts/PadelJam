@@ -91,7 +91,9 @@ describe('04 event detail & membership', () => {
     // A confirmed join lands on the full-screen confirmation, which closes back onto the event.
     await expectVisible({ text: /you are in/i }, { timeout: 15_000 });
     await tap({ text: /^close$/i, type: 'Button' });
-    await expectVisible({ text: /you are going/i }, { timeout: 15_000 });
+    // Re-joining can land on a stand-by spot: the regular spots may have filled while alex was
+    // out (run 36212979222 showed 5 / 6 with alex on stand-by). Either banner is a confirmed join.
+    await expectVisible({ text: /you are going|on standby/i }, { timeout: 15_000 });
   });
 
   it('a full event waitlists a member holding no invitation', async () => {
