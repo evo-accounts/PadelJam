@@ -20,6 +20,14 @@ declare v constant uuid := 'fa000001-0000-0000-0000-000000000001';   -- viewer
   d_near double precision; d_far double precision; d_nullarg double precision;
   v_rows uuid[];
 begin
+  -- Precondition, not an assertion: PostGIS lives in `public` here, and the mobile E2E wipe
+  -- (apps/mobile/e2e/fixtures/seed.ts, wipeDb) truncates every public table it does not list —
+  -- spatial_ref_sys included. Without SRID 4326 every geography st_distance fails, so say so
+  -- instead of surfacing "Cannot find SRID" from inside viewer_distance_m.
+  if not exists (select 1 from spatial_ref_sys where srid = 4326) then
+    raise exception using errcode='PT002', message='spatial_ref_sys has no SRID 4326 (emptied by the E2E wipe?)',
+      hint='Restore it from the PostGIS spatial_ref_sys.sql, or supabase db reset.'; end if;
+
   -- Viewer's home location = Lisbon.
   update profiles set location_point = st_setsrid(st_makepoint(-9.14, 38.72), 4326)::geography where id = v;
 

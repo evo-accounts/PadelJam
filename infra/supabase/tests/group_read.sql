@@ -1,6 +1,9 @@
 -- Groups RLS read: public groups visible to community members, private groups only to their members.
 -- group_members + group_seasons of a private group hidden from non-members, visible to admins/members.
 -- 'PT001' = "expected behaviour did not hold" sentinel (distinct from RLS's silent row-filtering).
+-- The community is request_to_join on purpose: since 0100 a PUBLIC community's open groups and
+-- non-private group events are readable by any signed-in user, which would bypass the group-member
+-- branch tested here. That public branch is covered by public-community-read.test.mjs.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
   ('e1000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','grown@x.com'),
@@ -13,10 +16,10 @@ insert into profiles (id, email, phone, full_name) values
   ('e1000003-0000-0000-0000-000000000003','groutsider@x.com','+351901000003','GrOutsider'),
   ('e1000004-0000-0000-0000-000000000004','grprivmem@x.com','+351901000004','GrPrivMember') on conflict do nothing;
 
--- Owner creates a PUBLIC community (basic plan so >1 group fits), one public + one private group.
+-- Owner creates a request_to_join community (basic plan so >1 group fits), one public + one private group.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"e1000001-0000-0000-0000-000000000001","role":"authenticated"}';
-select create_community_with_personal_tenant('GReadC','club','PT','public') as cid \gset
+select create_community_with_personal_tenant('GReadC','club','PT','request_to_join') as cid \gset
 reset role;
 insert into community_subscriptions (community_id, plan_id)
   select id, 'basic' from communities where name='GReadC' order by created_at desc limit 1
@@ -55,7 +58,7 @@ begin
 end $$;
 reset role;
 
--- A non-community-member (outsider) sees neither group.
+-- A non-community-member (outsider) of a non-public community sees neither group.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"e1000003-0000-0000-0000-000000000003","role":"authenticated"}';
 do $$
