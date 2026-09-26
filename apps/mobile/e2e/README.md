@@ -240,8 +240,8 @@ private, review-gated, sole-owner). Suites call `resetDb('minimal'|'full')` in
 `plan_features`, `plan_limits`, `blast_templates`) and every table owned by an
 extension — notably PostGIS's `public.spatial_ref_sys`, which it used to truncate: with
 no SRID 4326 every geography op (distance, explore ranking, `set_my_location`,
-`create_event`) fails with "Cannot find SRID (4326)". If a local DB was emptied by an
-older run, `supabase db reset` restores it. Email OTPs are read from Mailpit
+`create_event`) fails with "Cannot find SRID (4326)". A DB emptied by an older run is
+refilled on the next wipe from PostGIS's own `spatial_ref_sys.sql` in the db container. Email OTPs are read from Mailpit
 (`:55324`); the phone test number `+351912345678` verifies with `123456`.
 
 **The plan caps are live, and the seed sits inside them.** `plan_limits` used to be

@@ -1,6 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { CONFIG } from '../driver/config';
+import { runOk } from '../driver/proc';
 import { psql } from './db';
 
 const ROOT = join(__dirname, '..', '..', '..', '..');
@@ -28,6 +30,27 @@ export interface SeedManifest {
 }
 
 let cached: SeedManifest | null = null;
+
+/**
+ * Refill PostGIS's spatial_ref_sys if an older wipe emptied it (it used to be truncated along
+ * with everything else in public). Casts to geography survive an empty table on a built-in 4326
+ * fallback, but st_distance / st_dwithin / <-> fail with "Cannot find SRID (4326)". The rows ship
+ * in the extension's contrib dir inside the db container; the script ends ON CONFLICT DO NOTHING,
+ * so it is safe to re-run. The table is owned by supabase_admin, hence the superuser.
+ */
+async function ensureSpatialRefSys(): Promise<void> {
+  const has4326 = async () => (await psql('select count(*) from public.spatial_ref_sys where srid = 4326')).trim() === '1';
+  if (await has4326()) return;
+  const version = (await psql(`select extversion from pg_extension where extname = 'postgis'`)).trim();
+  if (!/^\d+\.\d+(\.\d+)?$/.test(version)) throw new Error(`unexpected postgis version "${version}"`);
+  const minor = version.split('.').slice(0, 2).join('.');
+  const file = `/nix/store/*-postgis-${version}/share/postgresql/contrib/postgis-${minor}/spatial_ref_sys.sql`;
+  await runOk('docker', [
+    'exec', '-e', 'PGPASSWORD=postgres', CONFIG.dbContainer, 'sh', '-c',
+    `psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q -f ${file}`,
+  ], { timeoutMs: 120_000 });
+  if (!(await has4326())) throw new Error('spatial_ref_sys still has no SRID 4326 — run `supabase db reset`.');
+}
 
 /** Wipe all app data (public tables, auth users, storage objects) without a full supabase db reset. */
 export async function wipeDb(): Promise<void> {
@@ -75,6 +98,7 @@ export async function wipeDb(): Promise<void> {
     end $$;
     delete from auth.users;
   `);
+  await ensureSpatialRefSys();
   // Verify BOTH sides: auth.users deletion is FK-restricted by public tables
   // (tenants.owner_id), so a partial wipe leaves users behind and every later
   // seed fails with a duplicate-email 500. Retry once, then fail loudly.
