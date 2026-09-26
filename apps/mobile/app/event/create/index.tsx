@@ -240,31 +240,33 @@ function CreateEventWizard() {
           </Text>
           <step.Component {...stepProps} />
         </ScrollView>
-      </KeyboardAvoidingView>
 
-      {/*
-        Multi-value steps keep a primary button fixed at the bottom. A single-choice
-        step advances on the tap itself and has none — unless it brings its own
-        bottom area (Group's "Continue without group").
-      */}
-      {advanceByFor(step, draft) === 'button' ? (
-        <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
-          {/* A button step's own fixed content sits above the button (Date's summary). */}
-          {Footer ? <Footer {...stepProps} /> : null}
-          <Button
-            label={isLast ? t('finish') : t('next')}
-            onPress={onPrimary}
-            loading={submitting}
-            style={styles.primaryBtn}
-          />
-        </View>
-      ) : Footer ? (
-        <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
-          <Footer {...stepProps} />
-        </View>
-      ) : (
-        <View style={{ height: insets.bottom }} />
-      )}
+        {/*
+          Multi-value steps keep a primary button fixed at the bottom. A single-choice
+          step advances on the tap itself and has none — unless it brings its own
+          bottom area (Group's "Continue without group"). Inside the KeyboardAvoidingView,
+          so the button rides up with the keyboard instead of hiding under it (the manual
+          venue form's fields are typed with Next still in reach).
+        */}
+        {advanceByFor(step, draft) === 'button' ? (
+          <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
+            {/* A button step's own fixed content sits above the button (Date's summary). */}
+            {Footer ? <Footer {...stepProps} /> : null}
+            <Button
+              label={isLast ? t('finish') : t('next')}
+              onPress={onPrimary}
+              loading={submitting}
+              style={styles.primaryBtn}
+            />
+          </View>
+        ) : Footer ? (
+          <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
+            <Footer {...stepProps} />
+          </View>
+        ) : (
+          <View style={{ height: insets.bottom }} />
+        )}
+      </KeyboardAvoidingView>
       {planCommunityId ? (
         <UpgradePrompt
           visible={showUpgrade}

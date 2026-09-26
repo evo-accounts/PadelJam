@@ -33,7 +33,15 @@ export function TimeSlotPicker({
   now: Date;
 }) {
   const { t } = useT('event');
-  const [period, setPeriod] = useState<DayPeriod>(() => periodOf(value ?? '18:00'));
+  const valuePeriod = value ? periodOf(value) : null;
+  const [period, setPeriod] = useState<DayPeriod>(valuePeriod ?? 'evening');
+  // Follow the value when it moves to another period from outside (a day change that snapped
+  // the start to the first free slot); a tab the user opened stays open until then.
+  const [syncedPeriod, setSyncedPeriod] = useState(valuePeriod);
+  if (valuePeriod !== syncedPeriod) {
+    setSyncedPeriod(valuePeriod);
+    if (valuePeriod) setPeriod(valuePeriod);
+  }
 
   return (
     <View style={styles.container}>

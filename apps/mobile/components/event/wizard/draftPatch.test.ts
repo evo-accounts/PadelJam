@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { defaultDraft, type EventDraft } from './draft';
-import { applyPatch } from './draftPatch';
+import { applyPatch, onEnterStep } from './draftPatch';
 
 const inGroup: EventDraft = { ...defaultDraft, groupId: 'g1', groupCommunityId: 'c1', isPrivate: true };
 
@@ -22,5 +22,21 @@ describe('applyPatch', () => {
 
   it('leaves privacy alone for unrelated patches', () => {
     expect(applyPatch(inGroup, { name: 'x' }).isPrivate).toBe(true);
+  });
+});
+
+describe('onEnterStep', () => {
+  const now = new Date(2026, 9, 3, 15, 12).getTime();
+
+  it('gives the Date step a start before it renders: the first slot an hour or more out', () => {
+    const d = onEnterStep(defaultDraft, 'date', now);
+    const start = new Date(d.startsAt!);
+    expect([start.getDate(), start.getHours(), start.getMinutes()]).toEqual([3, 16, 30]);
+  });
+
+  it('keeps a start already chosen, and leaves other steps alone', () => {
+    const chosen = { ...defaultDraft, startsAt: '2026-10-10T18:00:00.000Z' };
+    expect(onEnterStep(chosen, 'date', now)).toBe(chosen);
+    expect(onEnterStep(defaultDraft, 'courts', now)).toBe(defaultDraft);
   });
 });

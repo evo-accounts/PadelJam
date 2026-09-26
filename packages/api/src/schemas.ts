@@ -178,7 +178,8 @@ export function buildCreateEventPayload(input: CreateEventInput): Record<string,
     venue_id: input.venueId ?? null,
     location_lat: input.locationLat ?? null,
     location_lng: input.locationLng ?? null,
-    location_text: input.manualLocationName ?? null,
+    // A manual venue's name is optional (UX-CEVT-06): the address stands in for it.
+    location_text: input.manualLocationName ?? input.manualLocationAddress ?? null,
     has_location: input.hasLocation,
   };
   if (input.series) {
@@ -262,7 +263,8 @@ export function buildUpdateEventPayload(input: UpdateEventInput): Record<string,
     venue_id: input.venueId ?? null,
     location_lat: input.locationLat ?? null,
     location_lng: input.locationLng ?? null,
-    location_text: input.manualLocationName ?? null,
+    // A manual venue's name is optional (UX-CEVT-06): the address stands in for it.
+    location_text: input.manualLocationName ?? input.manualLocationAddress ?? null,
     has_location: input.hasLocation,
   };
 }

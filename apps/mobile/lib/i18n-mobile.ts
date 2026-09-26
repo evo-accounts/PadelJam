@@ -2037,6 +2037,7 @@ const mobileEvent = {
     venueListEmptyBody: 'Adiciona tu o local para este evento.',
     venueListErrorTitle: 'Não foi possível carregar os locais',
     venueRetry: 'Tentar novamente',
+    venueLoadMore: 'Ver mais locais',
     noLocationCta: 'Não quero adicionar um local',
     manualVenueBanner: 'Este local serve apenas este evento. Para o adicionar oficialmente à app, contacta-nos.',
     manualVenueNameLabel: 'Nome do local (opcional)',
@@ -2054,7 +2055,9 @@ const mobileEvent = {
     venueCourtsEmpty: 'Este local não tem campos registados. Indica quantos vais usar.',
     capacityPlayers: 'Capacidade: {{count}} jogadores · 4 por campo',
     capacityMixed: 'Metade por género: {{count}} homens e {{count}} mulheres',
-    capacityStandby: '+ {{count}} lugares de suplente',
+    capacityStandby_one: '+ {{count}} lugar de suplente',
+    capacityStandby_other: '+ {{count}} lugares de suplente',
+    venueCourtsErrorTitle: 'Não foi possível carregar os campos deste local',
 
     // --- Date (UX-CEVT-08) ---
     durationCardTitle: 'Duração',
@@ -2627,6 +2630,7 @@ const mobileEvent = {
     venueListEmptyBody: 'Adicione você mesmo o local para este evento.',
     venueListErrorTitle: 'Não foi possível carregar os locais',
     venueRetry: 'Tentar novamente',
+    venueLoadMore: 'Ver mais locais',
     noLocationCta: 'Não quero adicionar um local',
     manualVenueBanner: 'Este local vale apenas para este evento. Para adicioná-lo oficialmente ao app, entre em contato conosco.',
     manualVenueNameLabel: 'Nome do local (opcional)',
@@ -2644,7 +2648,9 @@ const mobileEvent = {
     venueCourtsEmpty: 'Este local não tem quadras cadastradas. Informe quantas você vai usar.',
     capacityPlayers: 'Capacidade: {{count}} jogadores · 4 por quadra',
     capacityMixed: 'Metade por gênero: {{count}} homens e {{count}} mulheres',
-    capacityStandby: '+ {{count}} vagas de reserva',
+    capacityStandby_one: '+ {{count}} vaga de reserva',
+    capacityStandby_other: '+ {{count}} vagas de reserva',
+    venueCourtsErrorTitle: 'Não foi possível carregar as quadras deste local',
 
     // --- Date (UX-CEVT-08) ---
     durationCardTitle: 'Duração',
@@ -3217,6 +3223,7 @@ const mobileEvent = {
     venueListEmptyBody: 'Add the venue yourself for this event.',
     venueListErrorTitle: "Couldn't load the venues",
     venueRetry: 'Try again',
+    venueLoadMore: 'Show more venues',
     noLocationCta: "I don't want to add a location",
     manualVenueBanner: 'This venue is for this event only. To have it added to the app officially, contact us.',
     manualVenueNameLabel: 'Venue name (optional)',
@@ -3234,7 +3241,9 @@ const mobileEvent = {
     venueCourtsEmpty: 'This venue has no courts listed. Set how many you will use.',
     capacityPlayers: 'Capacity: {{count}} players · 4 per court',
     capacityMixed: 'Half per gender: {{count}} men and {{count}} women',
-    capacityStandby: '+ {{count}} stand-by spots',
+    capacityStandby_one: '+ {{count}} stand-by spot',
+    capacityStandby_other: '+ {{count}} stand-by spots',
+    venueCourtsErrorTitle: "Couldn't load this venue's courts",
 
     // --- Date (UX-CEVT-08) ---
     durationCardTitle: 'Duration',

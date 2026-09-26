@@ -146,4 +146,10 @@ describe('eventCapacity', () => {
   it('splits a mixed event evenly per gender', () => {
     expect(eventCapacity(4, 'mixed')).toEqual({ players: 16, perGender: 8 });
   });
+
+  it('counts stand-by spots in the per-gender cap and rounds down, as the server does', () => {
+    expect(eventCapacity(2, 'mixed', 4)).toEqual({ players: 8, perGender: 6 });
+    expect(eventCapacity(2, 'mixed', 3)).toEqual({ players: 8, perGender: 5 });
+    expect(eventCapacity(2, 'classic', 3)).toEqual({ players: 8, perGender: null });
+  });
 });

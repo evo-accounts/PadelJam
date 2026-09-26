@@ -15,7 +15,7 @@ import {
   nextWeekly,
   timeOf,
 } from '@padel/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useNow } from '@/lib/useNow';
@@ -70,10 +70,8 @@ export function Step7Schedule({ draft, patch, errors, clearError }: WizardStepPr
   const lead: InviteLeadDays = draft.series?.inviteLeadDays ?? DEFAULT_INVITE_LEAD;
   const repeatOn = draft.series != null;
 
-  // Opens on a start already chosen: the first free slot an hour or more from now.
-  useEffect(() => {
-    if (!draft.startsAt) patch({ startsAt: defaultStart(new Date()).toISOString() });
-  }, [draft.startsAt, patch]);
+  // The start is never empty here: entering the step sets the default (`onEnterStep`), so the
+  // time tabs open on the right period on the first render.
 
   /** Every change re-derives the series, so a recurring event follows its first occurrence. */
   const update = (next: { startsAt?: string; durationMinutes?: number }) => {
@@ -86,7 +84,11 @@ export function Step7Schedule({ draft, patch, errors, clearError }: WizardStepPr
   };
 
   const pickDay = (day: Date) => {
-    update({ startsAt: atTime(day, start ? timeOf(start) : timeOf(defaultStart(now))).toISOString() });
+    // The time is kept across days — unless on the new day it has already gone (today, earlier
+    // than now), when the start snaps to the first free slot instead.
+    const kept = start ? atTime(day, timeOf(start)) : null;
+    const next = kept && kept.getTime() > now.getTime() ? kept : defaultStart(now);
+    update({ startsAt: next.toISOString() });
     clearError?.('startsAt');
   };
   const pickTime = (hhmm: string) => {

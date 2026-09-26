@@ -1,7 +1,7 @@
 import { updateEventSchema, useEvent, useUpdateEvent } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { geocodeQuery } from '@padel/utils';
+import { DURATION_MAX, DURATION_MIN, geocodeQuery } from '@padel/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
@@ -196,8 +196,9 @@ export default function EditEventScreen() {
           label={t('durationLabel')}
           value={d.durationMinutes}
           onChange={(durationMinutes) => patch({ durationMinutes })}
-          min={30}
-          max={240}
+          // The wizard's range (decision 9): an event created with 15 or 300 minutes stays editable.
+          min={DURATION_MIN}
+          max={DURATION_MAX}
           step={15}
         />
 

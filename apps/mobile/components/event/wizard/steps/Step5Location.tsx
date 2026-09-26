@@ -1,4 +1,4 @@
-import { useSearchVenues } from '@padel/api';
+import { useVenueRegistry } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useDeferredValue, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -21,8 +21,8 @@ import { Button, EmptyState, emptyIcon, Field, SearchInput, Text } from '../../.
 /**
  * Location (UX-CEVT-06). Three ways to answer:
  *
- * 1. Pick a venue from the curated registry — the list shows every venue alphabetically and the
- *    search narrows it. The card is the answer: tapping it advances to Courts.
+ * 1. Pick a venue from the curated registry — the list shows every venue alphabetically, a page
+ *    at a time, and the search narrows it. The card is the answer: tapping it advances to Courts.
  * 2. "Add manually" (or the CTA on "Location not found") opens the manual venue form: optional
  *    name, required address, 1–20 courts with optional names, and a note that the venue serves
  *    this event only. It has fields, so the step shows the primary button; Courts is skipped.
@@ -40,8 +40,8 @@ function VenueList({ draft, patch, advance }: WizardStepProps) {
   const { t } = useT('event');
   const [query, setQuery] = useState('');
   const term = useDeferredValue(query.trim());
-  const venues = useSearchVenues(term, { listAll: true });
-  const rows = venues.data ?? [];
+  const venues = useVenueRegistry(term);
+  const rows = venues.data?.pages.flat() ?? [];
   const manual = () => patch(openManualVenue(draft));
 
   let body: React.ReactNode;
@@ -82,6 +82,15 @@ function VenueList({ draft, patch, advance }: WizardStepProps) {
             }}
           />
         ))}
+        {venues.hasNextPage ? (
+          <Button
+            label={t('venueLoadMore')}
+            variant="outline"
+            loading={venues.isFetchingNextPage}
+            onPress={() => void venues.fetchNextPage()}
+            testID="venue-load-more"
+          />
+        ) : null}
       </View>
     );
   }

@@ -100,6 +100,20 @@ describe('buildCreateEventPayload', () => {
       court_ids: ['33333333-3333-3333-3333-333333333333'],
     });
   });
+
+  it('falls back to the address for location_text when a manual venue has no name', () => {
+    const payload = buildCreateEventPayload({
+      ...baseEvent,
+      hasLocation: true,
+      manualLocationName: undefined,
+      manualLocationAddress: 'Rua das Flores 1',
+    });
+    expect(payload).toMatchObject({
+      manual_location_name: null,
+      manual_location_address: 'Rua das Flores 1',
+      location_text: 'Rua das Flores 1',
+    });
+  });
 });
 
 describe('guests and manual court names (0113)', () => {

@@ -189,12 +189,20 @@ export const COURTS_MAX = 20;
 
 /**
  * What the court count means for the roster (UX-CEVT-07): four players a court, and on a mixed
- * event half the spots per gender — every pair is one man and one woman (decision 8).
+ * event half the spots per gender — every pair is one man and one woman (decision 8). The
+ * per-gender cap counts stand-by spots too and rounds down, exactly as the join RPCs do
+ * (0112: `floor((num_courts * 4 + standby) / 2)`), so the wizard never promises a spot the server
+ * would refuse. Pass `standbySpots` only when stand-by is enabled.
  */
 export function eventCapacity(
   numCourts: number,
   specification: string | undefined,
+  standbySpots = 0,
 ): { players: number; perGender: number | null } {
   const players = Math.max(0, numCourts) * PLAYERS_PER_COURT;
-  return { players, perGender: specification === 'mixed' ? players / 2 : null };
+  const standby = Math.max(0, standbySpots);
+  return {
+    players,
+    perGender: specification === 'mixed' ? Math.floor((players + standby) / 2) : null,
+  };
 }

@@ -8,7 +8,7 @@ import type { WizardStepProps } from '../draft';
 import { InfoNote } from '../InfoNote';
 import { clampCourts, setCourtSelection, toggleCourt } from '../location';
 import { colors, space } from '../../../../theme';
-import { Checkbox, Segmented, Text } from '../../../ui';
+import { Checkbox, EmptyState, Segmented, Text } from '../../../ui';
 
 type Selection = 'select' | 'count';
 
@@ -42,6 +42,19 @@ export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProp
   let top: React.ReactNode;
   if (draft.venueId && courts.isLoading) {
     top = <ActivityIndicator color={colors.foreground} />;
+  } else if (draft.venueId && courts.isError) {
+    // The count still works without the list, so the counter stays under the error.
+    top = (
+      <>
+        <EmptyState
+          tone="error"
+          title={t('venueCourtsErrorTitle')}
+          action={{ label: t('venueRetry'), onPress: () => void courts.refetch(), variant: 'outline' }}
+          testID="venue-courts-error"
+        />
+        {counter}
+      </>
+    );
   } else if (hasCourtList) {
     top = (
       <>
@@ -109,7 +122,8 @@ export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProp
 /** "Capacity: 12 players · 4 per court", plus the per-gender split and stand-by spots when set. */
 function CapacityLine({ draft }: Pick<WizardStepProps, 'draft'>) {
   const { t } = useT('event');
-  const { players, perGender } = eventCapacity(draft.numCourts, draft.specification);
+  const standby = draft.allowStandby ? (draft.standbySpots ?? 0) : 0;
+  const { players, perGender } = eventCapacity(draft.numCourts, draft.specification, standby);
   return (
     <View style={styles.capacity} testID="courts-capacity" accessible>
       <Text variant="label">{t('capacityPlayers', { count: players })}</Text>
@@ -118,9 +132,9 @@ function CapacityLine({ draft }: Pick<WizardStepProps, 'draft'>) {
           {t('capacityMixed', { count: perGender })}
         </Text>
       ) : null}
-      {draft.allowStandby && draft.standbySpots ? (
+      {standby > 0 ? (
         <Text variant="caption" tone="muted">
-          {t('capacityStandby', { count: draft.standbySpots })}
+          {t('capacityStandby', { count: standby })}
         </Text>
       ) : null}
     </View>
