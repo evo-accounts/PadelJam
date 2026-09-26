@@ -23,9 +23,9 @@ const KNOWN = [
   'use_team_join', 'not_a_team_event', 'partner_unavailable', 'request_stale', 'gender_required',
   // 0112: a mixed event's half for the caller's gender is full (claim_waitlist_spot).
   'gender_full',
-  // 0113: a guest's name is empty or over 60 characters; manual court names don't match the courts;
-  // the picked registry venue was deleted.
-  'invalid_guest_name', 'invalid_court_names', 'venue_not_found',
+  // 0113: a guest's name is empty or over 60 characters; manual court names don't match the courts.
+  // (A deleted registry venue raises 'venue_not_found', listed with the 0114 codes below.)
+  'invalid_guest_name', 'invalid_court_names',
   'setup_incomplete', 'mixed_unbalanced', 'mixed_gender_missing', 'round_not_scored', 'round_exists', 'event_not_scheduled',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
   'recurring_events', 'not_cancellable', 'invalid_scope', 'not_editable', 'standby_below_roster', 'series_inactive', 'courts_below_roster', 'not_retryable',
