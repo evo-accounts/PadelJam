@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { avatarUrl } from '@/lib/upload';
 
 type Tab = 'confirmed' | 'waiting' | 'invited';
@@ -103,8 +103,9 @@ export default function EventPlayersPage() {
     },
   ];
 
-  const failed = participants.isError || (tab === 'invited' && invited.isError);
-  const loading = participants.isLoading || (tab === 'invited' && invited.isLoading);
+  // The event row gives the capacity in the Confirmed label: without it the count would read n/0.
+  const failed = event.isError || participants.isError || (tab === 'invited' && invited.isError);
+  const loading = event.isLoading || participants.isLoading || (tab === 'invited' && invited.isLoading);
 
   let body: React.ReactNode;
   if (failed) {
@@ -114,6 +115,7 @@ export default function EventPlayersPage() {
         <Button
           variant="outline"
           onClick={() => {
+            void event.refetch();
             void participants.refetch();
             void invited.refetch();
           }}
@@ -183,8 +185,10 @@ export default function EventPlayersPage() {
             </TabsTrigger>
           ))}
         </TabsList>
+        <TabsContent value={tab} className="pt-2">
+          {body}
+        </TabsContent>
       </Tabs>
-      {body}
     </div>
   );
 }

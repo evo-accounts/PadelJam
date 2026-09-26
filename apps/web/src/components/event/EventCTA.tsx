@@ -192,7 +192,7 @@ export function EventCTA({
           <p className="text-center text-sm font-medium text-primary" data-testid="event-spot-open">
             {t('spotOpenLine')}
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button variant="outline" disabled={busy} onClick={onLeaveWaitlist} data-testid="event-leave-waitlist">
               {t('leaveWaitlistCta')}
             </Button>
