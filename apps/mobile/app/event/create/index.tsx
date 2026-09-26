@@ -179,6 +179,8 @@ function CreateEventWizard() {
   // validates too before it finalises — with Invite players skipped, that is Details,
   // whose name is required.
   const onPrimary = () => {
+    // A double tap on Next would otherwise answer (or submit) the step it just opened.
+    if (Date.now() - lastAdvanceAt.current < ADVANCE_GUARD_MS) return;
     const failing = step.validate(draft);
     if (failing.length) {
       setStepErrors(failing);
@@ -187,6 +189,7 @@ function CreateEventWizard() {
     }
     setStepErrors([]);
     if (isLast) {
+      lastAdvanceAt.current = Date.now();
       void finalize();
       return;
     }

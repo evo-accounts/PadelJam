@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
@@ -18,7 +18,7 @@ import {
 } from '@padel/utils';
 import { uploadCommunityImage } from '@/lib/upload';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/toaster';
+import { toast, useLiftToasts } from '@/components/ui/toaster';
 import { GroupConfirm } from '@/components/group/GroupConfirm';
 import { WizardHeader } from '@/components/event/wizard/WizardHeader';
 import { NoGroupFooter, Step1Group } from '@/components/event/wizard/steps/Step1Group';
@@ -86,6 +86,19 @@ export default function EventCreatePage() {
   const [flagged, setFlagged] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const lastAdvance = useRef(0);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
+
+  // The sticky bottom bar would sit under a toast; lift toasts clear of it while the wizard is open.
+  useLiftToasts(72);
+
+  // After a step change, focus moves to the new step's title, so keyboard and screen-reader users
+  // start at the top of the step instead of on a control that no longer exists.
+  useEffect(() => {
+    if (!moved.current) return;
+    moved.current = false;
+    heading.current?.focus();
+  }, [key]);
 
   const visible = visibleStepKeys(draft);
   const isFirst = visible[0] === key;
@@ -93,8 +106,9 @@ export default function EventCreatePage() {
   const isTap = TAP_STEPS.has(key);
   const Footer = FOOTERS[key];
 
+  // `flagged` stays on while the step is open: each field shows its error only while it is still
+  // wrong, so fixing one clears its mark without hiding the others.
   const patch = (partial: Partial<WizardDraft>) => {
-    setFlagged(false);
     setState((s) => ({ ...s, draft: applyPatch(s.draft, partial), touched: true }));
   };
 
@@ -103,6 +117,7 @@ export default function EventCreatePage() {
     const now = Date.now();
     if (now - lastAdvance.current < ADVANCE_GUARD_MS) return;
     lastAdvance.current = now;
+    moved.current = true;
     setFlagged(false);
     setState((s) => {
       const d = partial ? applyPatch(s.draft, partial) : s.draft;
@@ -112,12 +127,19 @@ export default function EventCreatePage() {
   };
 
   const back = () => {
+    moved.current = true;
     setFlagged(false);
     setState((s) => ({ ...s, key: neighbourStep(s.draft, s.key, -1) }));
     window.scrollTo({ top: 0 });
   };
 
-  const leave = () => router.push(`/app/community/${id}`);
+  // Back where the wizard was opened from: the group page when it came with one, else the previous
+  // page, or the community when there is no history to go back to (a pasted link).
+  const leave = () => {
+    if (presetGroup) router.push(`/app/group/${presetGroup}`);
+    else if (window.history.length > 1) router.back();
+    else router.push(`/app/community/${id}`);
+  };
   // Anything touched — a patch or a step taken — is work the organizer would lose.
   const onClose = () => (state.touched ? setConfirmClose(true) : leave());
 
@@ -152,6 +174,8 @@ export default function EventCreatePage() {
   // Validate on tap, never a disabled button (UX-GLOB-06). The last VISIBLE step validates too
   // before it submits — with Invite players skipped, that is Details, whose name is required.
   const onPrimary = () => {
+    // A double click on Next would otherwise answer (or submit) the step it just opened.
+    if (Date.now() - lastAdvance.current < ADVANCE_GUARD_MS) return;
     const n = (STEP_KEYS.indexOf(key) + 1) as keyof typeof stepIsValid;
     if (!stepIsValid[n](draft, nowMs)) {
       setFlagged(true);
@@ -159,13 +183,14 @@ export default function EventCreatePage() {
       return;
     }
     if (isLast) {
+      lastAdvance.current = Date.now();
       void onSubmit();
       return;
     }
     advance();
   };
 
-  const stepProps: StepProps = { draft, patch, advance, communityId: id, flagged };
+  const stepProps: StepProps = { draft, patch, advance, communityId: id, flagged, nowMs };
 
   return (
     <div className="mx-auto flex min-h-[calc(100svh-3.5rem)] w-full max-w-xl flex-col">
@@ -180,7 +205,12 @@ export default function EventCreatePage() {
 
       <div className="flex flex-1 flex-col gap-4 px-4 py-6 sm:px-6">
         {/* One title for every step, naming what is being set (UX-CEVT-01). */}
-        <h1 className="text-2xl font-semibold" data-testid="event-wizard-title">
+        <h1
+          ref={heading}
+          tabIndex={-1}
+          className="text-2xl font-semibold outline-none"
+          data-testid="event-wizard-title"
+        >
           {t(TITLE_KEY(key))}
         </h1>
         {key === 'group' ? <Step1Group {...stepProps} /> : null}

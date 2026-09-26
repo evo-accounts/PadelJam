@@ -13,19 +13,32 @@ export function CourtCounter({ value, onChange }: { value: number; onChange: (n:
         <Button
           variant="outline"
           size="icon"
+          aria-label={t('courtsDecreaseLabel')}
+          aria-controls="event-courts-count"
           disabled={value <= 1}
           onClick={() => onChange(Math.max(1, value - 1))}
         >
           &minus;
         </Button>
-        <span className="w-8 text-center text-lg font-medium" data-testid="event-wizard-courts">
+        <span
+          id="event-courts-count"
+          aria-live="polite"
+          className="w-8 text-center text-lg font-medium"
+          data-testid="event-wizard-courts"
+        >
           {value}
         </span>
-        <Button variant="outline" size="icon" onClick={() => onChange(value + 1)}>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={t('courtsIncreaseLabel')}
+          aria-controls="event-courts-count"
+          onClick={() => onChange(value + 1)}
+        >
           +
         </Button>
       </div>
-      <p className="text-sm text-muted-foreground">{t('capacityHint', { count: value * 4 })}</p>
+      <p className="text-sm text-muted-foreground" aria-live="polite">{t('capacityHint', { count: value * 4 })}</p>
     </div>
   );
 }

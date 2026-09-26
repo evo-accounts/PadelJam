@@ -49,14 +49,23 @@ export function Step5Location({ draft, patch }: StepProps) {
             patch({
               manualLocationName: e.target.value,
               venueId: undefined,
-              hasLocation: e.target.value.trim().length > 0,
+              // Name and address both count: either one makes this a manual venue.
+              hasLocation:
+                e.target.value.trim().length > 0 || (draft.manualLocationAddress ?? '').trim().length > 0,
             })
           }
         />
         <Input
           placeholder={t('locationAddressLabel')}
           value={draft.manualLocationAddress ?? ''}
-          onChange={(e) => patch({ manualLocationAddress: e.target.value })}
+          onChange={(e) =>
+            patch({
+              manualLocationAddress: e.target.value,
+              venueId: undefined,
+              hasLocation:
+                (draft.manualLocationName ?? '').trim().length > 0 || e.target.value.trim().length > 0,
+            })
+          }
         />
       </div>
       {/*

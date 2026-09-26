@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useT } from '@padel/i18n';
 import { SCORING_MODES } from '@padel/api';
 import {
@@ -39,6 +39,18 @@ export function Step4Scoring({ draft, patch, flagged }: StepProps) {
   const [customOpen, setCustomOpen] = useState(false);
   const hasCustom = draft.scoringValue != null && !isPreset(draft.scoringValue);
 
+  const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  // A radio group moves with the arrow keys (and selects as it moves); Tab enters at the checked card.
+  const onArrow = (e: React.KeyboardEvent, i: number) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const next = SCORING_MODES[(i + step + SCORING_MODES.length) % SCORING_MODES.length]!;
+    select(next);
+    cardRefs.current[next]?.focus();
+  };
+  const focusable = draft.scoringMode ?? SCORING_MODES[0];
+
   const select = (mode: string) => {
     // Re-selecting the open card keeps its value; switching starts the new mode at its default.
     if (draft.scoringMode === mode) return;
@@ -47,7 +59,7 @@ export function Step4Scoring({ draft, patch, flagged }: StepProps) {
 
   return (
     <div className="flex flex-col gap-3" role="radiogroup" aria-label={t('step4Title')}>
-      {SCORING_MODES.map((mode) => {
+      {SCORING_MODES.map((mode, i) => {
         const selected = draft.scoringMode === mode;
         const minutes = draft.scoringValue ?? MINUTES_MIN;
         return (
@@ -56,13 +68,18 @@ export function Step4Scoring({ draft, patch, flagged }: StepProps) {
             className={cn(
               'rounded-lg border transition-colors',
               selected ? 'border-primary bg-primary/5' : 'border-border',
-              flagged && !selected && 'border-destructive',
+              flagged && !draft.scoringMode && 'border-destructive',
             )}
           >
             <button
               type="button"
               role="radio"
               aria-checked={selected}
+              tabIndex={mode === focusable ? 0 : -1}
+              ref={(el) => {
+                cardRefs.current[mode] = el;
+              }}
+              onKeyDown={(e) => onArrow(e, i)}
               onClick={() => select(mode)}
               className="flex w-full items-start gap-3 p-4 text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               data-testid={`scoring-${mode}`}
@@ -202,7 +219,7 @@ function CustomPointsForm({
     <form onSubmit={save} className="flex flex-col gap-4" noValidate>
       <DialogHeader>
         <DialogTitle>{t('customPointsTitle')}</DialogTitle>
-        <DialogDescription id="custom-points-hint" className={cn(invalid && 'text-destructive')}>
+        <DialogDescription className={cn(invalid && 'text-destructive')}>
           {invalid ? t('customPointsError') : t('customPointsHint')}
         </DialogDescription>
       </DialogHeader>
@@ -218,7 +235,6 @@ function CustomPointsForm({
         }}
         aria-label={t('customPointsTitle')}
         aria-invalid={invalid}
-        aria-describedby="custom-points-hint"
         className="mx-auto h-14 w-28 text-center text-2xl font-semibold"
         data-testid="custom-points-input"
       />

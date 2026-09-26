@@ -11,4 +11,6 @@ export interface StepProps {
   advance?: (partial?: Partial<WizardDraft>) => void;
   /** True once the fixed primary button was tapped on this step while it was incomplete (UX-GLOB-06). */
   flagged?: boolean;
+  /** The wizard's clock, fixed when it opened, so "in the future" is checked without calling Date.now() in render. */
+  nowMs?: number;
 }
