@@ -9,7 +9,7 @@ import { SessionProvider } from '@padel/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { TypedClient } from '@padel/db';
 import { supabase } from '@/lib/supabase/client';
-import { registerWebAuthCopy, registerWebAppCopy, registerWebProfileCopy, registerWebSettingsCopy, registerWebCommunityCopy, registerWebGroupCopy, registerWebEventCopy, registerWebChatCopy, registerWebNotificationsCopy } from '@/lib/i18n-web';
+import { registerWebAuthCopy, registerWebAppCopy, registerWebProfileCopy, registerWebSettingsCopy, registerWebCommunityCopy, registerWebGroupCopy, registerWebEventCopy, registerWebChatCopy, registerWebNotificationsCopy, registerWebSuperAdminCopy } from '@/lib/i18n-web';
 import { initSentry } from '@/lib/sentry';
 import { resolveLocale } from '@/lib/locale';
 
@@ -70,6 +70,7 @@ export function Providers({ children }: { children: ReactNode }) {
       registerWebEventCopy(instance);
       registerWebChatCopy(instance);
       registerWebNotificationsCopy(instance);
+      registerWebSuperAdminCopy(instance);
       // `app/layout.tsx` renders `<html lang="en">` on the server, which is wrong for every
       // Portuguese user and is what a screen reader announces the page in. Correct it here, and
       // again on every change of language, so the attribute tracks what is actually on screen.

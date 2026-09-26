@@ -13,6 +13,8 @@ export * from './events/queries';
 export * from './events/status';
 export * from './events/mutations';
 export * from './events/realtime';
+export * from './venues/queries';
+export * from './venues/mutations';
 export * from './round-gen';
 export * from './discovery/queries';
 export * from './profile/queries';

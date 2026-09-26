@@ -1,3 +1,6 @@
+import { redirect } from 'next/navigation';
+
+/** The venue registry is the only super-admin tool so far. */
 export default function SuperAdminHome() {
-  return <main>Padel Jam — super-admin</main>;
+  redirect('/super-admin/venues');
 }

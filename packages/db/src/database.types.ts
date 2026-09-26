@@ -1635,6 +1635,29 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_admins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_features: {
         Row: {
           dimension: Database["public"]["Enums"]["plan_dimension"]
@@ -2104,6 +2127,7 @@ export type Database = {
           created_by: string
           deleted_at: string | null
           id: string
+          image_path: string | null
           name: string
           rating: number | null
         }
@@ -2111,9 +2135,10 @@ export type Database = {
           address?: string | null
           community_id?: string | null
           created_at?: string
-          created_by: string
+          created_by?: string
           deleted_at?: string | null
           id?: string
+          image_path?: string | null
           name: string
           rating?: number | null
         }
@@ -2124,6 +2149,7 @@ export type Database = {
           created_by?: string
           deleted_at?: string | null
           id?: string
+          image_path?: string | null
           name?: string
           rating?: number | null
         }
@@ -2983,6 +3009,7 @@ export type Database = {
       is_event_participant: { Args: { e: string; u: string }; Returns: boolean }
       is_group_admin: { Args: { g: string; u: string }; Returns: boolean }
       is_group_member: { Args: { g: string }; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
       join_community: {
         Args: { p_ack?: boolean; p_community_id: string }
         Returns: string
@@ -3112,9 +3139,26 @@ export type Database = {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
       }
+      save_venue: {
+        Args: {
+          p_address: string
+          p_courts: Json
+          p_image_path: string
+          p_name: string
+          p_venue_id: string
+        }
+        Returns: string
+      }
       search_venues: {
-        Args: { p_query: string }
-        Returns: { id: string; name: string; address: string | null }[]
+        Args: { p_limit?: number; p_offset?: number; p_query?: string }
+        Returns: {
+          address: string
+          court_count: number
+          id: string
+          image_path: string
+          name: string
+          rating: number
+        }[]
       }
       social_email_conflict: { Args: Record<PropertyKey, never>; Returns: boolean }
       st_3dmaxdistance: {
