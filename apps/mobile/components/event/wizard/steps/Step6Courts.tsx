@@ -1,6 +1,7 @@
 import { useVenueCourts } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { eventCapacity } from '@padel/utils';
+import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { CourtCounter } from '../CourtCounter';
@@ -28,6 +29,14 @@ export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProp
   const venueCourts = courts.data ?? [];
   const selection: Selection = draft.courtIds ? 'select' : 'count';
   const hasCourtList = !!draft.venueId && venueCourts.length > 0;
+
+  // With no court list on screen (the query failed, or the venue has no courts) a selection left
+  // over from "Select courts" could not be seen or fixed, yet would fail validation — drop it.
+  const listSettled = !draft.venueId || courts.isSuccess || courts.isError;
+  const staleSelection = listSettled && !hasCourtList && draft.courtIds !== undefined;
+  useEffect(() => {
+    if (staleSelection) patch({ courtIds: undefined });
+  }, [staleSelection, patch]);
 
   const counter = (
     <CourtCounter
@@ -74,6 +83,7 @@ export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProp
           <>
             <InfoNote text={t('courtsNoReserveBanner')} testID="courts-no-reserve-note" />
             <View style={styles.checks}>
+              {/* Past 20 ticked courts `toggleCourt` refuses more; the ticked ones can still be unticked. */}
               {venueCourts.map((c) => (
                 <Checkbox
                   key={c.id}

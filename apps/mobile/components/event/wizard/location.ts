@@ -85,6 +85,8 @@ export function setManualCourtName(d: EventDraft, index: number, name: string): 
  */
 export function toggleCourt(d: EventDraft, courtId: string): Partial<EventDraft> {
   const current = d.courtIds ?? [];
+  // At most COURTS_MAX can be ticked — beyond it the count would be invalid with nothing to show why.
+  if (!current.includes(courtId) && current.length >= COURTS_MAX) return {};
   const courtIds = current.includes(courtId)
     ? current.filter((id) => id !== courtId)
     : [...current, courtId];
