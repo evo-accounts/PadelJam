@@ -1,5 +1,5 @@
 // infra/supabase/tests/mixed-start.test.mjs
-import { user, rpc, sel, insert, expectError, assert, run } from './lib.mjs';
+import { user, rpc, sel, insert, patch, expectError, assert, run } from './lib.mjs';
 
 const hoursFromNow = (h) => new Date(Date.now() + h * 3600_000).toISOString();
 
@@ -91,12 +91,18 @@ await run('a member without a profile gender blocks the start', async () => {
   const org = await user('org5');
   const groupId = await communityAndGroup(org);
   const players = [];
-  for (const [i, g] of [['male'], ['female'], ['female'], [null]].entries()) players.push(await user(`t${i}`, { gender: g[0] }));
+  for (const [i, g] of ['male', 'female', 'female', 'male'].entries()) players.push(await user(`t${i}`, { gender: g }));
+  const nog = await user('t-nog', { gender: null });
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
+  // Since 0112 a mixed event refuses a joiner without a gender up front…
+  await rpc(nog.jwt, 'join_group', { p_group_id: groupId });
+  await expectError(() => rpc(nog.jwt, 'join_event', { p_event_id: eventId }), 'gender_required');
   for (const p of players) {
     await rpc(p.jwt, 'join_group', { p_group_id: groupId });
     await rpc(p.jwt, 'join_event', { p_event_id: eventId });
   }
+  // …so start_event's check is the backstop for a gender cleared after joining.
+  await patch('profiles', `id=eq.${players[3].id}`, { gender: null });
   await expectError(() => rpc(org.jwt, 'start_event', { p_event_id: eventId }), 'mixed_gender_missing');
 });
 
@@ -108,7 +114,12 @@ await run('standby players count toward the balance', async () => {
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, { allow_standby: true, standby_spots: 1 }) });
   for (const p of players) {
     await rpc(p.jwt, 'join_group', { p_group_id: groupId });
-    await rpc(p.jwt, 'join_event', { p_event_id: eventId });   // the fifth lands confirmed with is_standby
+    await rpc(p.jwt, 'join_event', { p_event_id: eventId });
   }
+  // Since 0112 each gender holds capacity/2 = 2 spots, so the third man waits instead of taking the
+  // stand-by spot. Only the organizer override can unbalance the roster — and then start refuses.
+  const [fifth] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${players[4].id}&select=id,status`);
+  assert(fifth.status === 'waiting_list', 'the third man is waitlisted, not confirmed');
+  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: fifth.id });
   await expectError(() => rpc(org.jwt, 'start_event', { p_event_id: eventId }), 'mixed_unbalanced');
 });

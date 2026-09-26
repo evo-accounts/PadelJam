@@ -80,13 +80,14 @@ await run('B8: a newcomer queues behind waiters even when a spot is free (join a
   // First-come: the LAST in the queue claims it.
   assert((await rpc(us[6].jwt, 'claim_waitlist_spot', { p_event_id: ev })) === 'confirmed', 'any waiter may claim');
   await expectError(() => rpc(us[4].jwt, 'claim_waitlist_spot', { p_event_id: ev }), 'spot_taken');
-  // With the event full again the other offers are stale: read, so a next spot re-notifies.
-  for (const u of [us[4], us[5]]) {
-    const n = await notifs(u, 'waitlist_spot', ev);
-    assert(n.length === 1 && n[0].read_at && !n[0].cta_done, 'stale offer marked read, not done');
-  }
+  // Only us[4] was waiting when the spot freed, so only us[4] was offered it. With the event full
+  // again that offer is stale: marked read (not done), so the next spot re-notifies.
+  const stale = await notifs(us[4], 'waitlist_spot', ev);
+  assert(stale.length === 1 && stale[0].read_at && !stale[0].cta_done, 'stale offer marked read, not done');
+  assert((await notifs(us[5], 'waitlist_spot', ev)).length === 0, 'us[5] queued after the spot freed: no offer');
   await rpc(us[1].jwt, 'leave_event', { p_event_id: ev });
   assert((await notifs(us[4], 'waitlist_spot', ev)).length === 2, 'a fresh offer for the next spot');
+  assert((await notifs(us[5], 'waitlist_spot', ev)).length === 1, 'and every other waiter is offered it too');
 });
 
 // ---------------------------------------------------------------------------------------------
