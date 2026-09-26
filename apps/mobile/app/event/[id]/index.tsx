@@ -20,6 +20,7 @@ import {
   useEvent,
   useEventInvitations,
   useEventParticipants,
+  useEventRealtime,
   useEventSeries,
   useEventTeams,
   useJoinEvent,
@@ -44,7 +45,7 @@ import {
   showJoinCountdown,
 } from '@padel/utils';
 import { SymbolView } from 'expo-symbols';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useIsFocused, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -98,6 +99,10 @@ export default function EventDetailScreen() {
   const banner = useBanner();
 
   const { t: tcommon } = useT('common');
+  // Live roster, so a freed spot shows "Confirm spot" without leaving the page. Only while this
+  // page is focused: the live screen pushed on top subscribes to the same event itself.
+  const focused = useIsFocused();
+  useEventRealtime(id, { enabled: focused });
   const { data: event, isLoading, isError, refetch } = useEvent(id);
   const { data: participantsData } = useEventParticipants(id);
   const { data: invitationsData } = useEventInvitations(id);

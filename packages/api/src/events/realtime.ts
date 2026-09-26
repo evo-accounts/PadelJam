@@ -4,16 +4,34 @@ import { useDb } from '../client';
 import { qk } from '../query-keys';
 import { uniqueChannelTopic } from '../realtime-channel';
 
-export const useEventRealtime = (eventId: string) => {
+/**
+ * Keeps one event's queries live. `enabled: false` holds no channel at all — the mobile event page
+ * passes its focus state, so while the live screen is pushed on top (and subscribes itself) the
+ * page underneath does not hold a second channel for the same event. The channel is removed on
+ * unmount and whenever `enabled` or the event changes.
+ */
+export const useEventRealtime = (eventId: string, { enabled = true }: { enabled?: boolean } = {}) => {
   const db = useDb();
   const qc = useQueryClient();
   useEffect(() => {
+    if (!enabled || !eventId) return;
     const filter = 'event_id=eq.' + eventId;
     const ch = db
       .channel(uniqueChannelTopic('event:' + eventId))
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'event_participants', filter },
+        () => {
+          qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+          qc.invalidateQueries({ queryKey: qk.event(eventId) });
+        },
+      )
+      // A player leaving (leave_event, leave_waiting_list, an organizer removal) DELETEs their row,
+      // and a filtered subscription never delivers DELETEs (see partner_requests below). Without
+      // this a freed spot would not reach the waiting list's "Confirm spot" (decision 4).
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'event_participants' },
         () => {
           qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
           qc.invalidateQueries({ queryKey: qk.event(eventId) });
@@ -98,5 +116,5 @@ export const useEventRealtime = (eventId: string) => {
     return () => {
       db.removeChannel(ch);
     };
-  }, [db, qc, eventId]);
+  }, [db, qc, eventId, enabled]);
 };
