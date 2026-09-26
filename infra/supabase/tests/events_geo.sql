@@ -66,9 +66,12 @@ begin
     raise exception using errcode='PT001', message=format('distance order wrong near=%s far=%s', d_near, d_far); end if;
 
   -- explore_events (as viewer): near first, far second, null-coord last — despite null being soonest.
+  -- Only the relative order of THIS test's three events is asserted: a stack holding seed/E2E data
+  -- has other visible events (null-coord ones that start sooner would take slot 3 outright).
   perform set_config('role','authenticated',true);
   select array_agg((event).id order by ord) into v_rows
-    from (select event, row_number() over () as ord from explore_events(10, 0)) s;
+    from (select event, row_number() over () as ord from explore_events(1000, 0)) s
+   where (event).id in (e_near, e_far, e_null);
   if v_rows[1] <> e_near or v_rows[2] <> e_far or v_rows[3] <> e_null then
     raise exception using errcode='PT001', message=format('explore order wrong: %s (want near,far,null = %s,%s,%s)', v_rows, e_near, e_far, e_null); end if;
 
