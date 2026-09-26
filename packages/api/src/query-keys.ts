@@ -68,6 +68,9 @@ export const qk = {
   notificationsUnread: ['notifications', 'unread'] as const,
   partnerRequestSummary: ['notifications', 'partner-summary'] as const,
   incomingPartnerRequests: ['notifications', 'partner-requests', 'incoming'] as const,
+  /** Date / time / place of the events the Partner Requests inbox groups by (UX-JEVT-12). */
+  incomingPartnerRequestEvents: (ids: readonly string[]) =>
+    ['notifications', 'partner-requests', 'events', ...[...ids].sort()] as const,
   profile: (id: string) => ['profile', id] as const,
   following: (id: string) => ['profile', id, 'following'] as const,
   followers: (id: string) => ['profile', id, 'followers'] as const,

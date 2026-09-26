@@ -120,3 +120,40 @@ export const useIncomingPartnerRequests = () => {
     },
   });
 };
+
+/** What the Partner Requests inbox shows under each event name: date, time and place. */
+export type PartnerRequestEvent = {
+  id: string;
+  name: string;
+  starts_at: string;
+  has_location: boolean;
+  manual_location_name: string | null;
+  manual_location_address: string | null;
+  location_text: string | null;
+  venue: { name: string; address: string | null } | null;
+};
+
+/**
+ * `incoming_partner_requests` (0098) carries only the event's id and name, so the inbox reads the
+ * rest from `events` — visible to the target, who is an invitee, a participant or a member of the
+ * event's public group. An event RLS hides is simply missing and its heading shows the name alone.
+ */
+export const usePartnerRequestEvents = (eventIds: readonly string[]) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.incomingPartnerRequestEvents(eventIds),
+    enabled: !!uid && eventIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('events')
+        .select(
+          'id, name, starts_at, has_location, manual_location_name, manual_location_address, location_text, venue:venues(name, address)',
+        )
+        .in('id', [...eventIds])
+        .returns<PartnerRequestEvent[]>();
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};

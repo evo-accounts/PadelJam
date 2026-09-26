@@ -183,6 +183,11 @@ export const useLeaveWaitingList = (eventId: string) => {
 // Partner selection (team / mixed events)
 // ---------------------------------------------------------------------------
 
+/**
+ * "I need a partner" (UX-JEVT-11): marks the caller interested and asks each target (0112). An empty
+ * list is "Let others invite me" — listed as looking, no request sent. Errors: already_joined
+ * (paired or waiting), forbidden, event_closed.
+ */
 export const useRequestPartner = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
@@ -194,10 +199,9 @@ export const useRequestPartner = (eventId: string) => {
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
-      qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
-    },
+    // The caller becomes 'interested' (a roster row, the event page's banner, the Going tab), so
+    // this refreshes what a pairing does and not just the request lists.
+    onSuccess: () => invalidatePairing(qc, eventId),
   });
 };
 
@@ -209,6 +213,9 @@ function invalidatePairing(qc: ReturnType<typeof useQueryClient>, eventId: strin
   qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
   qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
   qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+  // choose_partner / accept_partner_request accept both players' pending invitations.
+  qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+  qc.invalidateQueries({ queryKey: qk.eventInvitedPlayers(eventId) });
   qc.invalidateQueries({ queryKey: qk.event(eventId) });
   invalidateMyEvents(qc);
 }
