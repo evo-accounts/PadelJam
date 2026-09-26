@@ -8,12 +8,12 @@ import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
+import { EventLocationFields } from '@/components/event/EventLocationFields';
+import { CourtCounter } from '@/components/event/wizard/CourtCounter';
 import { DateTimePicker } from '@/components/event/wizard/DateTimePicker';
 import type { EventDraft } from '@/components/event/wizard/draft';
 import { Stepper } from '@/components/event/wizard/Stepper';
 import { Step4Scoring } from '@/components/event/wizard/steps/Step4Scoring';
-import { Step5Location } from '@/components/event/wizard/steps/Step5Location';
-import { Step6Courts } from '@/components/event/wizard/steps/Step6Courts';
 import { Step8Preferences } from '@/components/event/wizard/steps/Step8Preferences';
 import { geocodeAddress } from '@/lib/geocode';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
@@ -210,11 +210,12 @@ export default function EditEventScreen() {
 
         {/* Location */}
         <Text variant="label" tone="muted" style={styles.section}>{t('editLocationSection')}</Text>
-        <Step5Location draft={d} patch={patch} />
+        <EventLocationFields draft={d} patch={patch} />
 
         {/* Courts */}
         <Text variant="label" tone="muted" style={styles.section}>{t('editCourtsSection')}</Text>
-        <Step6Courts draft={d} patch={patch} />
+        <CourtCounter value={d.numCourts} onChange={(numCourts) => patch({ numCourts })} />
+        <Text variant="caption" tone="muted">{t('capacityHint', { count: d.numCourts * 4 })}</Text>
 
         {/* Thumbnail */}
         <Text variant="label" tone="muted" style={styles.section}>{t('editThumbnailSection')}</Text>

@@ -18,7 +18,7 @@ const future = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 const past = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
 describe('wizard step validators', () => {
-  it('step1/5/10 never block (no required fields)', () => {
+  it('step1/5/10 never block on an untouched draft', () => {
     expect(validateStep1(defaultDraft)).toEqual([]);
     expect(validateStep5(defaultDraft)).toEqual([]);
     expect(validateStep10(defaultDraft)).toEqual([]);
@@ -53,9 +53,34 @@ describe('wizard step validators', () => {
     expect(time(91)).toEqual(['scoringValue']);
   });
 
-  it('step6 requires at least one court', () => {
+  it('step5 validates only the manual venue form: an address and 1–20 courts', () => {
+    expect(validateStep5({ ...defaultDraft, locationMode: 'registry', venueId: 'v' })).toEqual([]);
+    expect(validateStep5({ ...defaultDraft, locationMode: 'none' })).toEqual([]);
+    const manual: EventDraft = { ...defaultDraft, locationMode: 'manual', hasLocation: true };
+    expect(validateStep5(manual)).toEqual(['manualLocationAddress']);
+    expect(validateStep5({ ...manual, manualLocationAddress: '   ' })).toEqual(['manualLocationAddress']);
+    expect(validateStep5({ ...manual, manualLocationAddress: 'Rua A 1' })).toEqual([]);
+    expect(validateStep5({ ...manual, manualLocationAddress: 'Rua A 1', numCourts: 21 })).toEqual(['numCourts']);
+  });
+
+  it('step6 requires 1–20 courts', () => {
     expect(validateStep6({ ...defaultDraft, numCourts: 0 })).toEqual(['numCourts']);
     expect(validateStep6({ ...defaultDraft, numCourts: 1 })).toEqual([]);
+    expect(validateStep6({ ...defaultDraft, numCourts: 20 })).toEqual([]);
+    expect(validateStep6({ ...defaultDraft, numCourts: 21 })).toEqual(['numCourts']);
+  });
+
+  it('step6 needs a ticked court once "Select courts" is chosen', () => {
+    expect(validateStep6({ ...defaultDraft, courtIds: [] })).toEqual(['courtIds']);
+    expect(validateStep6({ ...defaultDraft, courtIds: ['c1'] })).toEqual([]);
+  });
+
+  it('step7 holds a custom duration to 15–480 minutes (decision 9)', () => {
+    const d = (m: number) => validateStep7({ ...defaultDraft, startsAt: future, durationMinutes: m });
+    expect(d(14)).toEqual(['durationMinutes']);
+    expect(d(15)).toEqual([]);
+    expect(d(480)).toEqual([]);
+    expect(d(481)).toEqual(['durationMinutes']);
   });
 
   it('step7 requires a future start time and a positive duration', () => {

@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
+import { advanceByFor } from '@/components/event/wizard/draft';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -125,8 +126,9 @@ function CreateEventWizard() {
       specification,
       scoringMode,
       scoringValue: draft.scoringValue,
-      manualLocationName: draft.manualLocationName,
-      manualLocationAddress: draft.manualLocationAddress,
+      // A manual venue's name is optional (UX-CEVT-06): blank is no name, not an empty one.
+      manualLocationName: draft.manualLocationName?.trim() || undefined,
+      manualLocationAddress: draft.manualLocationAddress?.trim() || undefined,
       venueId: draft.venueId,
       locationLat,
       locationLng,
@@ -149,6 +151,8 @@ function CreateEventWizard() {
       // Interim (0113): manual entries become guests by name until M3 rebuilds the invite step.
       ...(skipsInvite(draft) ? {} : splitWizardInvitees(draft.invitees)),
       courtIds: draft.courtIds,
+      // TODO(0113): send draft.manualCourtNames once `buildCreateEventPayload` carries
+      // `manual_court_names` — until then a manual venue's court names stay in the draft only.
     };
 
     setSubmitting(true);
@@ -243,8 +247,10 @@ function CreateEventWizard() {
         step advances on the tap itself and has none — unless it brings its own
         bottom area (Group's "Continue without group").
       */}
-      {step.advanceBy === 'button' ? (
+      {advanceByFor(step, draft) === 'button' ? (
         <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
+          {/* A button step's own fixed content sits above the button (Date's summary). */}
+          {Footer ? <Footer {...stepProps} /> : null}
           <Button
             label={isLast ? t('finish') : t('next')}
             onPress={onPrimary}

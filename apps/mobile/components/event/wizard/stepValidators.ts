@@ -1,3 +1,5 @@
+import { COURTS_MAX, COURTS_MIN, DURATION_MAX, DURATION_MIN } from '@padel/utils';
+
 import type { EventDraft } from './draft';
 import { CUSTOM_POINTS_MAX, CUSTOM_POINTS_MIN, MINUTES_MAX, MINUTES_MIN } from '@padel/utils';
 
@@ -24,14 +26,31 @@ export function validateStep4(d: EventDraft): string[] {
   return v != null && Number.isInteger(v) && v >= min && v <= max ? [] : ['scoringValue'];
 }
 
-export const validateStep5 = (_d: EventDraft): string[] => [];
+const courtsInRange = (n: number) => Number.isInteger(n) && n >= COURTS_MIN && n <= COURTS_MAX;
 
-export const validateStep6 = (d: EventDraft): string[] => (d.numCourts >= 1 ? [] : ['numCourts']);
+/**
+ * Location only validates the manual venue form — the registry list and "no location" advance on
+ * the tap. A manual venue needs an address (its name is optional) and 1–20 courts.
+ */
+export function validateStep5(d: EventDraft): string[] {
+  if (d.locationMode !== 'manual') return [];
+  const errors: string[] = [];
+  if (!(d.manualLocationAddress ?? '').trim()) errors.push('manualLocationAddress');
+  if (!courtsInRange(d.numCourts)) errors.push('numCourts');
+  return errors;
+}
+
+/** Courts: a count in range, and — when picking a venue's courts — at least one ticked. */
+export function validateStep6(d: EventDraft): string[] {
+  if (d.courtIds && d.courtIds.length === 0) return ['courtIds'];
+  return courtsInRange(d.numCourts) ? [] : ['numCourts'];
+}
 
 export function validateStep7(d: EventDraft): string[] {
   const errors: string[] = [];
   if (!d.startsAt || new Date(d.startsAt).getTime() <= Date.now()) errors.push('startsAt');
-  if (!(d.durationMinutes > 0)) errors.push('durationMinutes');
+  const m = d.durationMinutes;
+  if (!(Number.isInteger(m) && m >= DURATION_MIN && m <= DURATION_MAX)) errors.push('durationMinutes');
   return errors;
 }
 

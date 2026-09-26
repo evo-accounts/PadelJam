@@ -1,22 +1,139 @@
+import { useVenueCourts } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { StyleSheet, Text, View } from 'react-native';
+import { eventCapacity } from '@padel/utils';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { CourtCounter } from '../CourtCounter';
 import type { WizardStepProps } from '../draft';
-import { colors } from '../../../../theme';
+import { InfoNote } from '../InfoNote';
+import { clampCourts, setCourtSelection, toggleCourt } from '../location';
+import { colors, space } from '../../../../theme';
+import { Checkbox, Segmented, Text } from '../../../ui';
 
-export function Step6Courts({ draft, patch }: WizardStepProps) {
+type Selection = 'select' | 'count';
+
+/**
+ * Courts (UX-CEVT-07). The step follows how Location was answered:
+ *
+ * - A registry venue: "Select courts" (its courts as checkboxes, with a note that this books
+ *   nothing) or "Have not reserved yet" (the count only). Ticked courts become the event's courts
+ *   and their number its court count.
+ * - No location (a manual venue never reaches this step — its courts are on its form): the count.
+ *
+ * Below, in every case, what the count means: 4 players a court, split per gender on a mixed event.
+ */
+export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProps) {
   const { t } = useT('event');
+  const courts = useVenueCourts(draft.venueId);
+  const venueCourts = courts.data ?? [];
+  const selection: Selection = draft.courtIds ? 'select' : 'count';
+  const hasCourtList = !!draft.venueId && venueCourts.length > 0;
+
+  const counter = (
+    <CourtCounter
+      value={draft.numCourts}
+      onChange={(n) => {
+        patch({ numCourts: clampCourts(n) });
+        clearError?.('numCourts');
+      }}
+    />
+  );
+
+  let top: React.ReactNode;
+  if (draft.venueId && courts.isLoading) {
+    top = <ActivityIndicator color={colors.foreground} />;
+  } else if (hasCourtList) {
+    top = (
+      <>
+        <Segmented<Selection>
+          options={[
+            { value: 'select', label: t('courtsSelectOption') },
+            { value: 'count', label: t('courtsNotReservedOption') },
+          ]}
+          value={selection}
+          onChange={(v) => {
+            patch(setCourtSelection(draft, v === 'select'));
+            clearError?.('courtIds');
+          }}
+          testID="courts-mode"
+        />
+        {selection === 'select' ? (
+          <>
+            <InfoNote text={t('courtsNoReserveBanner')} testID="courts-no-reserve-note" />
+            <View style={styles.checks}>
+              {venueCourts.map((c) => (
+                <Checkbox
+                  key={c.id}
+                  label={c.name}
+                  checked={draft.courtIds?.includes(c.id) ?? false}
+                  onChange={() => {
+                    patch(toggleCourt(draft, c.id));
+                    clearError?.('courtIds');
+                  }}
+                  testID={`venue-court-${c.id}`}
+                />
+              ))}
+            </View>
+            {errors?.includes('courtIds') ? (
+              <Text variant="caption" tone="destructive">
+                {t('courtsSelectError')}
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          counter
+        )}
+      </>
+    );
+  } else {
+    top = (
+      <>
+        {draft.venueId && courts.isSuccess ? (
+          <Text variant="caption" tone="muted">
+            {t('venueCourtsEmpty')}
+          </Text>
+        ) : null}
+        {counter}
+      </>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <CourtCounter value={draft.numCourts} onChange={(n) => patch({ numCourts: n })} />
-      <Text style={styles.hint}>{t('capacityHint', { count: draft.numCourts * 4 })}</Text>
+      {top}
+      <CapacityLine draft={draft} />
+    </View>
+  );
+}
+
+/** "Capacity: 12 players · 4 per court", plus the per-gender split and stand-by spots when set. */
+function CapacityLine({ draft }: Pick<WizardStepProps, 'draft'>) {
+  const { t } = useT('event');
+  const { players, perGender } = eventCapacity(draft.numCourts, draft.specification);
+  return (
+    <View style={styles.capacity} testID="courts-capacity" accessible>
+      <Text variant="label">{t('capacityPlayers', { count: players })}</Text>
+      {perGender != null ? (
+        <Text variant="caption" tone="muted">
+          {t('capacityMixed', { count: perGender })}
+        </Text>
+      ) : null}
+      {draft.allowStandby && draft.standbySpots ? (
+        <Text variant="caption" tone="muted">
+          {t('capacityStandby', { count: draft.standbySpots })}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 16 },
-  hint: { fontSize: 14, color: colors.mutedForeground },
+  container: { gap: space[4] },
+  checks: { gap: space[3] },
+  capacity: {
+    gap: space[1],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
 });
