@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import { eventStatusKey } from '@padel/api';
+import { eventStatusKey, type MyEventStatus } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,8 +23,18 @@ export interface EventCardEvent {
  *
  * No badge for an upcoming event: every listed event is upcoming, so "Scheduled" said nothing.
  * Starting now / Live / Completed still carry meaning and keep theirs.
+ *
+ * `viewerStatus` labels an event the viewer holds no spot in yet — on the waiting list, or
+ * interested (a team player without a partner). Since migration 0112 those events are listed under
+ * Going, and without a label they would read as a held spot. Mobile's EventCard does the same.
  */
-export function EventCard({ event }: { event: EventCardEvent }) {
+export function EventCard({
+  event,
+  viewerStatus,
+}: {
+  event: EventCardEvent;
+  viewerStatus?: MyEventStatus;
+}) {
   const { t, i18n } = useT('event');
   const when = event.starts_at
     ? new Date(event.starts_at).toLocaleString(i18n.language, {
@@ -49,6 +59,18 @@ export function EventCard({ event }: { event: EventCardEvent }) {
             </div>
             {when ? <span className="text-sm text-muted-foreground">{when}</span> : null}
             <span className="truncate text-sm text-muted-foreground">{where}</span>
+            {viewerStatus ? (
+              <Badge
+                className={
+                  viewerStatus === 'waiting_list'
+                    ? 'bg-warning text-warning-foreground'
+                    : 'bg-info text-info-foreground'
+                }
+                data-testid={`event-card-status-${event.id}`}
+              >
+                {viewerStatus === 'waiting_list' ? t('cardWaitingList') : t('cardInterested')}
+              </Badge>
+            ) : null}
           </div>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </CardContent>

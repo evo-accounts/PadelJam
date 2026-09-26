@@ -8,7 +8,11 @@
  *   banner   You are going / stand-by / waiting list
  *   body     image, name + date · time · place, Players card, type + group badges, description,
  *            Courts / Scoring / Fee, Organizer card, Location card
- *   bottom   invited · join (+ countdown) · full · waiting list · closed · organizer actions
+ *   bottom   invited · join (+ countdown) · full · waiting list (+ Confirm spot when one is free —
+ *            decision 4) · closed · organizer actions
+ *
+ * The roster is live (`useEventRealtime`), so a freed spot turns the waiting list's bottom area into
+ * "Confirm spot" without a reload.
  */
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -17,6 +21,7 @@ import { useSession } from '@padel/auth';
 import {
   bannerState,
   bottomState,
+  canClaimWaitlistSpot,
   canLeave,
   eventPlace,
   participationState,
@@ -25,6 +30,7 @@ import {
 import {
   eventStatusKey,
   useAcceptEventInvitation,
+  useClaimWaitlistSpot,
   useDeclineEventInvitation,
   useEnsureChannel,
   useEvent,
@@ -77,6 +83,7 @@ export default function EventDetailPage() {
   const joinEvent = useJoinEvent();
   const leaveEvent = useLeaveEvent();
   const leaveWaitlist = useLeaveWaitingList(id);
+  const claimSpot = useClaimWaitlistSpot(id);
   const acceptInvite = useAcceptEventInvitation();
   const declineInvite = useDeclineEventInvitation(id);
   const ensureChannel = useEnsureChannel();
@@ -113,6 +120,10 @@ export default function EventDetailPage() {
   const place = eventPlace(e);
   const organizer = e.organizer;
 
+  // Decision 4: nobody is confirmed automatically — when a spot frees, every waiter who could take
+  // it is offered it and the first to confirm wins. Mirrors the server's _waiter_can_claim.
+  const claimable =
+    status === 'scheduled' && !joinClosed && canClaimWaitlistSpot(e.specification, ps.totalCapacity, parts, me);
   const bottom = bottomState({
     status,
     specification: e.specification,
@@ -122,6 +133,7 @@ export default function EventDetailPage() {
     joinClosed,
     full: ps.totalIn >= ps.totalCapacity,
     countdown: showJoinCountdown(joinCutoffMs, nowMs),
+    claimable,
   });
   const bannerKind = bannerState(status, me);
   const leaveOffered = canLeave(status, me, isOrganizer, leaveLocked);
@@ -176,6 +188,19 @@ export default function EventDetailPage() {
     });
   const onDecline = () => run(() => declineInvite.mutateAsync());
   const onLeaveWaitlist = () => run(() => leaveWaitlist.mutateAsync());
+  // spot_taken (someone confirmed first), gender_full (mixed: the free spot is in the other half),
+  // not_on_waiting_list and event_closed come back as the error line via `run`. On a claim,
+  // use_team_join means the viewer's waiting partner is gone (only a pair claims a team spot), so
+  // say that rather than the generic "join via your team".
+  const onClaim = () =>
+    run(async () => {
+      try {
+        await claimSpot.mutateAsync();
+      } catch (err) {
+        throw err instanceof Error && err.message === 'use_team_join' ? new Error('claimPartnerLeft') : err;
+      }
+      setJoinedOpen(true);
+    });
   const onLeave = async () => {
     setBusy(true);
     try {
@@ -328,6 +353,7 @@ export default function EventDetailPage() {
         isTeam={e.specification === 'team'}
         organizerPlaying={me != null && me.status !== 'waiting_list'}
         organizerWaiting={status === 'scheduled' && me?.status === 'waiting_list'}
+        organizerCanClaim={claimable}
         canJoinAsPlayer={status === 'scheduled' && me == null && !joinClosed}
         scheduled={status === 'scheduled'}
         countdownMs={joinCutoffMs - nowMs}
@@ -336,6 +362,7 @@ export default function EventDetailPage() {
         error={ctaError}
         onJoin={() => void onJoin()}
         onLeaveWaitlist={() => void onLeaveWaitlist()}
+        onClaim={() => void onClaim()}
         onAccept={() => void onAccept()}
         onDecline={() => void onDecline()}
       />

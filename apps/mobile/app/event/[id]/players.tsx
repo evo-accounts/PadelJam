@@ -9,13 +9,13 @@
  */
 import { useEvent, useEventInvitedPlayers, useEventParticipants } from '@padel/api';
 import { useT } from '@padel/i18n';
+import { playerTabs, type PlayerRow } from '@padel/utils';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
-import { playerTabs, type PlayerRow } from '@/lib/eventPlayers';
 import { useGoBack } from '@/lib/useGoBack';
 import { Chevron } from '../../../components/event/EventDetailParts';
 import { colors, radius, space } from '../../../theme';

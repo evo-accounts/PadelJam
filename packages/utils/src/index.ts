@@ -18,3 +18,4 @@ export * from './badges';
 export * from './eventViewerState';
 export * from './eventLocation';
 export * from './ics';
+export * from './eventPlayers';
