@@ -7,7 +7,7 @@
  */
 import { useState } from 'react';
 import { useT } from '@padel/i18n';
-import { useMyEvents, type MyEventsFilter } from '@padel/api';
+import { useMyEvents, useMyEventStatuses, type MyEventsFilter } from '@padel/api';
 import { EventCard, type EventCardEvent } from '@/components/event/EventCard';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,8 @@ const FILTERS: { key: MyEventsFilter; label: string }[] = [
 function EventList({ filter, includePast }: { filter: MyEventsFilter; includePast: boolean }) {
   const { t } = useT('event');
   const q = useMyEvents(filter, includePast);
+  // Waiting-list / interested events sit under Going since 0112: the card labels them.
+  const { data: statuses } = useMyEventStatuses();
   if (q.isLoading) return <Skeleton className="h-24 w-full" />;
   if (q.isError) {
     return (
@@ -47,7 +49,7 @@ function EventList({ filter, includePast }: { filter: MyEventsFilter; includePas
   return (
     <div className="flex flex-col gap-3">
       {rows.map((e) => (
-        <EventCard key={e.id} event={e} />
+        <EventCard key={e.id} event={e} viewerStatus={statuses?.[e.id]} />
       ))}
       {q.hasNextPage ? (
         <Button

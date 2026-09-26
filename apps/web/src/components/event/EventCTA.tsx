@@ -1,7 +1,8 @@
 'use client';
 /**
  * The event page's bottom area (UX-JEVT-03/04) — what it shows is decided by `bottomState` in
- * `@padel/utils`, the same table mobile reads. Leaving is never here: it lives in the ⋯ menu, and
+ * `@padel/utils`, the same table mobile reads. A waiter offered a free spot (`claim`, decision 4)
+ * gets "Leave waiting list" next to a primary "Confirm spot". Leaving is never here: it lives in the ⋯ menu, and
  * past the 12h deadline it opens the contact-the-organizer dialog instead (UX-JEVT-05).
  */
 import Link from 'next/link';
@@ -18,6 +19,7 @@ export function EventCTA({
   isTeam,
   organizerPlaying,
   organizerWaiting,
+  organizerCanClaim,
   canJoinAsPlayer,
   scheduled,
   countdownMs,
@@ -26,6 +28,7 @@ export function EventCTA({
   error,
   onJoin,
   onLeaveWaitlist,
+  onClaim,
   onAccept,
   onDecline,
 }: {
@@ -36,6 +39,8 @@ export function EventCTA({
   organizerPlaying: boolean;
   /** Organizer only: they tried to play on a full event and are on its waiting list. */
   organizerWaiting: boolean;
+  /** Organizer only: waiting, and a spot is free for them — "Confirm spot" (decision 4). */
+  organizerCanClaim: boolean;
   /** Organizer only: not playing, and joining is still open. */
   canJoinAsPlayer: boolean;
   /** Organizer only: the event is still scheduled (Start, Edit and joining apply). */
@@ -47,6 +52,8 @@ export function EventCTA({
   error: string | null;
   onJoin: () => void;
   onLeaveWaitlist: () => void;
+  /** Take the free spot from the waiting list (decision 4). */
+  onClaim: () => void;
   onAccept: () => void;
   onDecline: () => void;
 }) {
@@ -102,6 +109,11 @@ export function EventCTA({
               )
             ) : null}
             {/* An organizer who tried to play on a full event is waiting like anyone else. */}
+            {organizerWaiting && organizerCanClaim ? (
+              <Button disabled={busy} onClick={onClaim} data-testid="event-confirm-spot">
+                {t('confirmSpotCta')}
+              </Button>
+            ) : null}
             {organizerWaiting ? (
               <Button variant="outline" disabled={busy} onClick={onLeaveWaitlist}>
                 {t('leaveWaitlistCta')}
@@ -162,9 +174,33 @@ export function EventCTA({
       break;
     case 'waiting_list':
       body = (
-        <Button variant="outline" className="w-full" disabled={busy} onClick={onLeaveWaitlist}>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={busy}
+          onClick={onLeaveWaitlist}
+          data-testid="event-leave-waitlist"
+        >
           {t('leaveWaitlistCta')}
         </Button>
+      );
+      break;
+    case 'claim':
+      // A spot is free and every waiter was told at once: the first to confirm takes it.
+      body = (
+        <div className="flex flex-col gap-3">
+          <p className="text-center text-sm font-medium text-primary" data-testid="event-spot-open">
+            {t('spotOpenLine')}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" disabled={busy} onClick={onLeaveWaitlist} data-testid="event-leave-waitlist">
+              {t('leaveWaitlistCta')}
+            </Button>
+            <Button disabled={busy} onClick={onClaim} data-testid="event-confirm-spot">
+              {t('confirmSpotCta')}
+            </Button>
+          </div>
+        </div>
       );
       break;
     case 'team_entry':
