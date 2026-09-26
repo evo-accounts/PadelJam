@@ -162,7 +162,7 @@ The event detail screen is shared by everyone, but the status banner and primary
 | Invited to a private event | *(amended)* (none) — the bottom area shows the inviter’s photo, name and “invited you” | *(amended)* Decline (secondary) + Accept (primary) |
 | Group member, public event, not joined | (none) — *(amended)* the member was notified (`event_created`), not invited | Join (with the countdown to its left within 24 h of the cutoff) |
 | Team event, not joined *(amended)* | (none) | Join → “Team Event” sheet: I have a partner / I need a partner |
-| Partner left *(amended)* | (none) | The team entry state again — Join (public) or Decline / Accept (private) |
+| Partner left *(amended)* | (none) | The team entry state again — Join (public) or Decline / Accept (private). An organizer whose partner left sees “Join as a player”. |
 | Confirmed | “You’re going!” | More menu (no Join) — Leave lives in ⋯ |
 | Interested (team event, no partner) | “You’re interested!” | Edit response |
 | On the waiting list | “You’re on the waiting list” — *(amended)* with the line that everyone on the list is notified when a spot opens and it goes to whoever confirms first | Leave waiting list (secondary); *(amended)* Claim spot while a spot is free |
@@ -190,7 +190,7 @@ The detail body is the same throughout: hero image, name, date/time, location, p
 </tr>
 <tr>
 <th><strong>Confirmation screen</strong></th>
-<th>“You’re in!” screen with event summary and two actions: Add to calendar, Close. *(amended)* The same full screen follows accepting an invitation; Add to calendar opens the native calendar editor (mobile) or downloads an .ics (web).</th>
+<th>“You’re in!” screen with event summary and two actions: Add to calendar, Close. *(amended)* The same confirmation follows accepting an invitation — a full card screen on mobile, a dialog on web. Add to calendar opens the native calendar editor (mobile) or downloads an .ics (web).</th>
 </tr>
 <tr>
 <th><strong>After joining</strong></th>
@@ -756,7 +756,7 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 
 ### 4.8 Organizer as a player
 
-- If the organizer chose “Organizing only” at creation, the detail screen offers “Join as a player”, and the top-right shows only the settings icon.
+- If the organizer chose “Organizing only” at creation, the detail screen offers “Join as a player”, and the top-right shows only the settings icon. *(amended)* An organizer who was playing and whose partner left a team event is back in this state and sees “Join as a player” (both apps).
 
 - If the organizer chose “Organizing and playing”, they are already a confirmed player, and the top-right shows the settings and more icons.
 

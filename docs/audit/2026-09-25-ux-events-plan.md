@@ -91,9 +91,10 @@ Defaults taken (object at plan review):
 | B17 | Organizer who only organizes is invisible on the event page (organizer is read from participants) | detail:193 | M4 |
 | B18 | Web join countdown is frozen at mount | web `page.tsx:54` | W2 |
 
-## Status (2026-09-26) — as shipped
+## Status (2026-09-27) — as shipped
 
-Migrations are 0111, 0112, 0113, 0114 (0116 folded in), 0115 and 0117. Mobile is M1–M5, web W1–W4.
+Migrations are 0111, 0112, 0113, 0114 (0116 folded in), 0115 and 0117. Mobile shipped as M1–M5 (M4 in two
+parts), web as W1–W5 (the web split differs from the plan's W1–W4 below).
 
 | Step | What | PR | State |
 |------|------|----|-------|
@@ -101,20 +102,29 @@ Migrations are 0111, 0112, 0113, 0114 (0116 folded in), 0115 and 0117. Mobile is
 | 0111 | Roster integrity (B1–B6) | #207 | merged |
 | 0112 | Join rules — waitlist broadcast, no invites on public events, mixed capacity, waiting pairs, `partner_left`, `my_events` Pending/past, `event_invited_players` (D1, D4–D6, D8, D14; B7, B8, B10) | #213 | merged |
 | 0113 | Guests + manual court names; manual email/phone invitee removed (D7, B12) | #215 | merged |
-| 0114 | Venue registry + super-admin (`platform_admins`, `is_super_admin()`, `venue-images`, soft delete) — **0116 folded in**; ships with the web super-admin venues screens (W4) | #212 | merged |
+| 0114 | Venue registry + super-admin (`platform_admins`, `is_super_admin()`, `venue-images`, soft delete) — **0116 folded in**; ships with the web super-admin venues screens | #212 | merged |
 | 0115 | Phone privacy — column grants on `profiles` exclude `phone` (D2, B11) | #209 | merged |
-| 0117 | Recurrence scheduler — hourly `pg_cron` `materialize-due-occurrences`, Lisbon wall-clock anchoring, duplicate is a one-off (D10, B15) | #217 | open |
+| 0117 | Recurrence scheduler — hourly `pg_cron` `materialize-due-occurrences`, Lisbon wall-clock anchoring, duplicate is a one-off (D10, B15) | #217 | merged |
 | M1 | Mobile wizard shell + steps 1–4 (UX-CEVT-01..05, B14, B16) | #208 | merged |
-| M2 | Mobile steps 5–8 — location, courts, date (UX-CEVT-06..08) | #218 | open |
-| M3 | Mobile steps 9–10 — preferences, details, invite + guests (UX-CEVT-09..11) | #221 | draft |
-| M4 | Mobile event page, ⋯ actions, invited/join/leave (UX-JEVT-01..07 part 1, B13, B17) | #210 | merged |
-| M4b | Mobile events tabs, past toggle, player list, waiting-list claim (UX-JEVT-01/04/08 part 2) | #216 | open |
-| M5 | Mobile team events (UX-JEVT-09..14, B6, B9) | #220 | draft |
+| M2 | Mobile steps 5–8 — location, courts, date (UX-CEVT-06..08) | #218 | merged |
+| M3 | Mobile steps 9–10 — preferences, details, invite + guests (UX-CEVT-09..11) | #221 | merged |
+| M4a | Mobile event page, ⋯ actions, invited/join/leave (UX-JEVT-01..07 part 1, B13, B17) | #210 | merged |
+| M4b | Mobile events tabs, past toggle, player list, waiting-list claim (UX-JEVT-01/04/08 part 2) | #216 | merged |
+| M5 | Mobile team events (UX-JEVT-09..14, B6, B9) | #220 | merged |
 | W1 | Web wizard shell + steps 1–4 (UX-CEVT-01..05) | #211 | merged |
-| W2 | Web event page, ⋯ actions, invited/join/leave (UX-JEVT-01..07 part 1, B18) | #214 | open |
-| W3 | Web steps 5–10, events list part 2 and team events parity | — | to do |
-| W4 | Web super-admin venues | #212 | merged (with 0114) |
-| 8 | Requirements amended (`create-event.md` v1.3, `join-manage-event.md` v1.4) | this PR | open |
+| W2 | Web event page, ⋯ actions, invited/join/leave (UX-JEVT-01..07 part 1, B18) | #214 | merged |
+| W3a | Web events tabs, player list, waiting-list claim | #225 | merged |
+| W3b | Web team events | #226 | merged |
+| W4 | Web wizard steps 5–8 | #227 | merged |
+| W5 | Web wizard steps 9–10 | #228 | open (merges next) |
+| 8 | Requirements amended (`create-event.md` v1.3, `join-manage-event.md` v1.4) + this status and hand-off | #223 | open |
+
+**Decisions taken during implementation** (documented in the Requirements):
+
+- Team events hide the wizard's "Add manually" — a guest joins a team event only as a player's partner.
+- Web shows the plan's recurring-event cap through the `UpgradePrompt` dialog.
+- "You are in" is a dialog on web and a full card screen on mobile.
+- An organizer whose partner left sees "Join as a player" (both apps).
 
 The original sequence below is kept as planned; the table above is authoritative for what shipped.
 
@@ -230,7 +240,8 @@ and records each one in `supabase_migrations.schema_migrations` after it succeed
    select jobname, schedule from cron.job where jobname = 'materialize-due-occurrences';
    ```
    If 0117 was pasted before `pg_cron` was on, it only printed a NOTICE: enable the extension and re-run the
-   file's final `cron.schedule` block.
+   file's final `cron.schedule` block. **After 0117, verify the cron job** with the query above (one row,
+   schedule `5 * * * *`); optionally run `select public.materialize_due_occurrences();` once.
 
 Record each after it succeeds:
 ```sql
@@ -240,6 +251,15 @@ values ('0111', 'event_roster_integrity') on conflict do nothing;  -- repeat per
 
 **New native module:** `expo-calendar` (Add to calendar) needs a new EAS build — an OTA update cannot ship
 it. Cut the build before (or together with) the 0115 gate above.
+
+## Open items
+
+- **Web browser pass** — a combined manual browser pass over #214, #225, #226 and #228 has not been done yet;
+  do it once #228 merges.
+- **`profiles.email` exposure** — 0115 hides `phone` only; `email` is still readable by other signed-in users.
+  Follow-up offered to the product owner.
+- **Client UPDATE on `phone` / `email`** — the column grants still let a client update those columns on its own
+  row directly, outside the auth flows. Follow-up offered to the product owner.
 
 ## Out of scope / follow-ups
 
