@@ -4,6 +4,7 @@ import {
   LEAVE_CUTOFF_MS,
   deadlineState,
   formatCountdown,
+  showJoinCountdown,
 } from './eventDeadlines';
 
 const START = '2026-06-20T18:00:00.000Z';
@@ -49,5 +50,28 @@ describe('formatCountdown', () => {
   });
   it('days and hours at or above a day', () => {
     expect(formatCountdown((26 * 60) * 60_000)).toBe('1d 2h');
+  });
+});
+
+describe('showJoinCountdown', () => {
+  const CUTOFF = START_MS - JOIN_CUTOFF_MS;
+  const HOUR = 60 * 60 * 1000;
+
+  it('is hidden more than 24h before the join cut-off', () => {
+    expect(showJoinCountdown(CUTOFF, CUTOFF - 25 * HOUR)).toBe(false);
+  });
+
+  it('is shown inside the last 24h before the cut-off', () => {
+    expect(showJoinCountdown(CUTOFF, CUTOFF - 24 * HOUR)).toBe(true);
+    expect(showJoinCountdown(CUTOFF, CUTOFF - 60_000)).toBe(true);
+  });
+
+  it('is hidden once the cut-off has passed', () => {
+    expect(showJoinCountdown(CUTOFF, CUTOFF)).toBe(false);
+    expect(showJoinCountdown(CUTOFF, CUTOFF + HOUR)).toBe(false);
+  });
+
+  it('is hidden when the start time could not be parsed', () => {
+    expect(showJoinCountdown(NaN, Date.now())).toBe(false);
   });
 });

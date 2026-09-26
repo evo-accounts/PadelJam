@@ -131,6 +131,8 @@ export const useJoinEvent = () => {
       const { data, error } = await db.rpc('join_event', { p_event_id: input.eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
       await logActivity(db, input.eventId, 'joined', { status: data });
+      // 'confirmed' or 'waiting_list' — the caller shows "You are in" only for the former.
+      return data;
     },
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.event(input.eventId) });
@@ -371,8 +373,11 @@ export const useAcceptEventInvitation = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { eventId: string; groupId: string | null }) => {
-      const { error } = await db.rpc('accept_event_invitation', { p_event_id: input.eventId });
+      const { data, error } = await db.rpc('accept_event_invitation', { p_event_id: input.eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      // The participant status the acceptance produced ('confirmed', 'waiting_list', or
+      // 'interested' on a team event).
+      return data;
     },
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.event(input.eventId) });

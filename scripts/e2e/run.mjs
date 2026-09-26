@@ -486,6 +486,12 @@ function pruneArtifacts(root, keep) {
  * neither. That is exactly the shape of the Xcode 27 deployment-target fix in
  * apps/mobile/plugins/withPodMinimumDeploymentTarget.js: same dependencies,
  * different build settings.
+ *
+ * apps/mobile/package.json is hashed too. Adding a native Expo module (expo-calendar,
+ * PR #210) changes NEITHER the Podfile (`use_expo_modules!` autolinks at install time)
+ * NOR the Podfile.lock (only `pod install` rewrites it) — so the stale Pods were
+ * reused, the module was never linked, and the Release app died at launch with
+ * "Cannot find native module 'ExpoCalendar'" the first time the bundle imported it.
  */
 function installPodsIfStale() {
   const podfile = join(MOBILE, 'ios', 'Podfile');
@@ -493,12 +499,13 @@ function installPodsIfStale() {
   const hash = createHash('sha1')
     .update(readFileSync(podfile))
     .update(existsSync(lock) ? readFileSync(lock) : '')
+    .update(readFileSync(join(MOBILE, 'package.json')))
     .digest('hex');
 
   const installed = existsSync(join(MOBILE, 'ios', 'Pods'));
   if (installed && existsSync(PODS_STAMP) && readFileSync(PODS_STAMP, 'utf8') === hash) return;
 
-  log(installed ? 'Podfile changed — running pod install' : 'Pods missing — running pod install');
+  log(installed ? 'Podfile or native dependencies changed — running pod install' : 'Pods missing — running pod install');
   // CocoaPods refuses to run under an ASCII-8BIT locale, and a launchd-started
   // runner does not inherit one from a login shell.
   sh('/usr/local/bin/pod', ['install'], {

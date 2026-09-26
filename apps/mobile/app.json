@@ -37,6 +37,10 @@
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
       ]
     },
     "web": {
@@ -61,6 +65,12 @@
       "expo-localization",
       "expo-image",
       "expo-sharing",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "PadelJam adds an event to your calendar when you ask it to."
+        }
+      ],
       [
         "expo-location",
         {

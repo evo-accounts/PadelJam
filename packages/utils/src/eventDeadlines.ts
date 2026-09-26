@@ -1,6 +1,8 @@
 /** Players may join up to 6h before start; leave up to 12h before. Both are fixed (JM-18). */
 export const JOIN_CUTOFF_MS = 6 * 60 * 60 * 1000;
 export const LEAVE_CUTOFF_MS = 12 * 60 * 60 * 1000;
+/** The join countdown only appears in the last 24h before the join cut-off (UX-JEVT-04). */
+export const JOIN_COUNTDOWN_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export interface DeadlineState {
   joinCutoffMs: number;
@@ -40,4 +42,13 @@ export function formatCountdown(msRemaining: number): string {
   if (days >= 1) return `${days}d ${hours}h`;
   if (hours >= 1) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
+}
+
+/**
+ * Whether the "time left to join" countdown is shown: only once the join cut-off is less than
+ * 24h away, and never after it has passed. Before the window the Join action stands alone.
+ */
+export function showJoinCountdown(joinCutoffMs: number, nowMs: number): boolean {
+  const remaining = joinCutoffMs - nowMs;
+  return Number.isFinite(remaining) && remaining > 0 && remaining <= JOIN_COUNTDOWN_WINDOW_MS;
 }

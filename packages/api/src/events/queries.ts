@@ -74,7 +74,20 @@ export const useCanCreateEvent = (groupId: string | null | undefined) => {
 
 export type EventDetail = Tables<'events'> & {
   venue: { name: string; address: string | null } | null;
+  /**
+   * Read from the event row's own FK, not from the participant list: an organizer who only
+   * organizes has no participant row and used to vanish from the event page (B17). Explicit
+   * columns — never `*`, which would carry `phone`.
+   */
+  organizer: { id: string; full_name: string | null; avatar_url: string | null } | null;
+  /** Null for an event without a group, or when RLS hides the group from this viewer. */
+  group: { id: string; name: string } | null;
 };
+
+export const EVENT_DETAIL_SELECT =
+  '*, venue:venues(name, address), ' +
+  'organizer:profiles!events_organizer_id_fkey(id, full_name, avatar_url), ' +
+  'group:groups!events_group_id_fkey(id, name)';
 
 export const useEvent = (id: string) => {
   const db = useDb();
@@ -85,7 +98,7 @@ export const useEvent = (id: string) => {
       // filters the row) rather than throwing — the no-access UI relies on this.
       const { data, error } = await db
         .from('events')
-        .select('*, venue:venues(name, address)')
+        .select(EVENT_DETAIL_SELECT)
         .eq('id', id)
         .maybeSingle()
         .returns<EventDetail>();
@@ -138,8 +151,12 @@ export const useEventInvitations = (id: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('event_invitations')
+        // Both FKs to profiles are named: invitee_id and invited_by. The inviter is what the
+        // invited state shows (UX-JEVT-03) — it is often the organizer, who may not play, so it
+        // cannot be looked up among the participants.
         .select(
-          '*, invitee:profiles!event_invitations_invitee_id_fkey(id, full_name, avatar_url)',
+          '*, invitee:profiles!event_invitations_invitee_id_fkey(id, full_name, avatar_url), ' +
+            'inviter:profiles!event_invitations_invited_by_fkey(id, full_name, avatar_url)',
         )
         .eq('event_id', id)
         .eq('status', 'pending')
@@ -156,6 +173,7 @@ export const useEventInvitations = (id: string) => {
             invited_at: string;
             responded_at: string | null;
             invitee: ProfileEmbed;
+            inviter: ProfileEmbed;
           }[]
         >();
       if (error) throw error;
