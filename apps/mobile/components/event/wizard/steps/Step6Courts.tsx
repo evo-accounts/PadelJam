@@ -10,7 +10,6 @@ export function Step6Courts({ draft, patch }: WizardStepProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('step6Title')}</Text>
       <CourtCounter value={draft.numCourts} onChange={(n) => patch({ numCourts: n })} />
       <Text style={styles.hint}>{t('capacityHint', { count: draft.numCourts * 4 })}</Text>
     </View>
@@ -19,6 +18,5 @@ export function Step6Courts({ draft, patch }: WizardStepProps) {
 
 const styles = StyleSheet.create({
   container: { gap: 16 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   hint: { fontSize: 14, color: colors.mutedForeground },
 });

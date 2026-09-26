@@ -41,6 +41,7 @@ import { TopBar } from './TopBar';
 import { Field } from './Field';
 import { PasswordField } from './PasswordField';
 import { PhoneField } from './PhoneField';
+import { ProgressBar } from './ProgressBar';
 import { RadioCardGroup } from './RadioCardGroup';
 import { Rating } from './Rating';
 import { Segmented } from './Segmented';
@@ -476,6 +477,20 @@ export function Overview() {
       */}
       <Section title="Choice controls">
         <GalleryChoiceDemo />
+      </Section>
+
+      {/*
+        The wizard's progress (UX-CEVT-01): the bar and its percentage share one
+        line, and the whole row is ONE accessibility element — a progressbar
+        whose value is the percentage.
+      */}
+      <Section title="ProgressBar">
+        <View style={{ gap: space[3] }}>
+          <ProgressBar value={0} testID="gallery-progress-0" />
+          <ProgressBar value={0.4} testID="gallery-progress-40" />
+          <ProgressBar value={8 / 9} testID="gallery-progress-89" />
+          <ProgressBar value={1} testID="gallery-progress-100" />
+        </View>
       </Section>
 
       <Section title="EmptyState">

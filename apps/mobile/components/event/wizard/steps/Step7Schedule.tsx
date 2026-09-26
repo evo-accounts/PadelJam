@@ -60,7 +60,6 @@ export function Step7Schedule({ draft, patch }: WizardStepProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('step7Title')}</Text>
 
       <DateTimePicker value={draft.startsAt} onChange={onStartsAtChange} />
 
@@ -114,7 +113,6 @@ export function Step7Schedule({ draft, patch }: WizardStepProps) {
 
 const styles = StyleSheet.create({
   container: { gap: 20 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.foreground },
   section: { gap: 12 },
   label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
   hint: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },

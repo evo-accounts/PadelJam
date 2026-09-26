@@ -1,4 +1,5 @@
 import type { EventDraft } from './draft';
+import { CUSTOM_POINTS_MAX, CUSTOM_POINTS_MIN, MINUTES_MAX, MINUTES_MIN } from './scoring';
 
 /**
  * Pure per-step validators (UX-GLOB-06). Each returns the failing field keys for
@@ -16,8 +17,11 @@ export const validateStep3 = (d: EventDraft): string[] => (d.specification ? [] 
 
 export function validateStep4(d: EventDraft): string[] {
   if (!d.scoringMode) return ['scoringMode'];
-  if (d.scoringMode !== 'classic' && !(d.scoringValue != null && d.scoringValue > 0)) return ['scoringValue'];
-  return [];
+  if (d.scoringMode === 'classic') return [];
+  const [min, max] =
+    d.scoringMode === 'points' ? [CUSTOM_POINTS_MIN, CUSTOM_POINTS_MAX] : [MINUTES_MIN, MINUTES_MAX];
+  const v = d.scoringValue;
+  return v != null && Number.isInteger(v) && v >= min && v <= max ? [] : ['scoringValue'];
 }
 
 export const validateStep5 = (_d: EventDraft): string[] => [];

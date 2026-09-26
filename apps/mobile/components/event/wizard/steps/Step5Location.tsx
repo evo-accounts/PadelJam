@@ -7,11 +7,13 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import { geocodeAddress } from '@/lib/geocode';
 
+import { CourtCounter } from '../CourtCounter';
 import type { WizardStepProps } from '../draft';
-import { colors, palette } from '../../../../theme';
+import { isManualVenue } from '../visibleSteps';
+import { colors, palette, space, type } from '../../../../theme';
 import { Button, EmptyState, emptyIcon } from '../../../../components/ui';
 
-export function Step5Location({ draft, patch }: WizardStepProps) {
+export function Step5Location({ draft, patch, advance }: WizardStepProps) {
   const { t } = useT('event');
   const [venueQuery, setVenueQuery] = useState('');
   const [locating, setLocating] = useState(false);
@@ -92,7 +94,6 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('step5Title')}</Text>
 
       <Text style={styles.label}>{t('searchVenueLabel')}</Text>
       <TextInput
@@ -164,13 +165,25 @@ export function Step5Location({ draft, patch }: WizardStepProps) {
       />
       {draft.locationLat != null ? <Text style={styles.coords}>✓ {draft.locationLat.toFixed(4)}, {draft.locationLng?.toFixed(4)}</Text> : null}
       {denied ? <Text style={styles.denied}>{t('locationDenied')}</Text> : null}
+
+      {/*
+        A place that is not in the venue registry has no courts to pick, so the Courts step
+        is skipped for it (UX-CEVT-01) and the count is set here instead. M2 replaces this with
+        the manual venue form's courts and court names. Only in the wizard: the edit screen,
+        which reuses this step without `advance`, shows the Courts section itself.
+      */}
+      {advance && isManualVenue(draft) ? (
+        <View style={styles.courts}>
+          <CourtCounter value={draft.numCourts} onChange={(n) => patch({ numCourts: n })} />
+          <Text style={styles.courtsHint}>{t('capacityHint', { count: draft.numCourts * 4 })}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { gap: 8 },
-  title: { fontSize: 20, fontWeight: '800', color: colors.foreground, marginBottom: 4 },
   label: { fontSize: 13, fontWeight: '600', color: colors.foreground, marginTop: 8 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: colors.card },
   denied: { color: colors.destructive, fontSize: 12, marginTop: 6, textAlign: 'center' },
@@ -178,5 +191,7 @@ const styles = StyleSheet.create({
   venueRowOn: { borderColor: colors.primary, backgroundColor: palette.purple[100] },
   venueName: { fontSize: 15, color: colors.foreground, fontWeight: '600' },
   or: { textAlign: 'center', color: colors.mutedForeground, fontSize: 13, marginVertical: 12 },
+  courts: { gap: space[2], marginTop: space[4] },
+  courtsHint: { ...type.caption, color: colors.mutedForeground },
   coords: { color: colors.successStrong, fontSize: 12, marginTop: 6, textAlign: 'center' },
 });

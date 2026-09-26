@@ -34,6 +34,8 @@ export { Illustration, type IllustrationName, type IllustrationProps } from './I
 export { ListRow, type ListRowVariant } from './ListRow';
 export { PasswordField } from './PasswordField';
 export { PhoneField, type PhoneFieldProps } from './PhoneField';
+export { ProgressBar, type ProgressBarProps } from './ProgressBar';
+export { percentOf } from './progressPercent';
 export { RadioCardGroup, type RadioCardOption } from './RadioCardGroup';
 export { Rating, type RatingProps, type RatingSize } from './Rating';
 export { SearchInput, type SearchInputProps } from './SearchInput';

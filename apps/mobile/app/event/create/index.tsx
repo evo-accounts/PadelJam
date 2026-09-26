@@ -1,9 +1,9 @@
-import { type CreateEventInput, useCreateEvent } from '@padel/api';
+import { type CreateEventInput, useCommunityMembers, useCreateEvent } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { geocodeQuery } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -15,12 +15,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
-import { StepIndicator } from '@/components/event/wizard/StepIndicator';
+import { skipsInvite } from '@/components/event/wizard/visibleSteps';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
-import { Button, TopBar, useBanner, useConfirm } from '../../../components/ui';
-import { colors } from '../../../theme';
+import { Button, ProgressBar, Text, TopBar, useBanner, useConfirm } from '../../../components/ui';
+import { colors, space } from '../../../theme';
+
+const ADVANCE_GUARD_MS = 300;
 
 export default function CreateEventScreen() {
   const { groupId, communityId } = useLocalSearchParams<{
@@ -40,7 +42,7 @@ function CreateEventWizard() {
   const banner = useBanner();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { draft, patch, stepIndex, goNext, goBack, steps, isFirst, isLast, isDirty, communityId } =
+  const { draft, patch, step, progress, goNext, goBack, isFirst, isLast, isDirty, communityId } =
     useEventWizard();
   const create = useCreateEvent();
   const uid = useSession().session?.user.id;
@@ -49,13 +51,28 @@ function CreateEventWizard() {
   const [stepErrors, setStepErrors] = useState<string[]>([]);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const step = steps[stepIndex];
-
   // A step's failing fields are only shown after a Next tap on that step; moving
-  // to a new step (forward or back) clears the flagged fields until the next tap.
-  useEffect(() => {
+  // to a new step (forward, back, or by a tap) clears them until the next tap.
+  const back = () => {
     setStepErrors([]);
-  }, [stepIndex]);
+    goBack();
+  };
+  // A tap-to-advance card sits where the NEXT step's card will be, so a double tap would answer
+  // two steps at once. Presses within ADVANCE_GUARD_MS of the last advance are ignored.
+  const lastAdvanceAt = useRef(0);
+  const advance = (partial?: Parameters<typeof goNext>[0]) => {
+    const now = Date.now();
+    if (now - lastAdvanceAt.current < ADVANCE_GUARD_MS) return;
+    lastAdvanceAt.current = now;
+    setStepErrors([]);
+    goNext(partial);
+  };
+
+  // The recurring-events cap names a community: the route's, or — opened from Home — the one the
+  // picked group belongs to.
+  const planCommunityId = communityId || draft.groupCommunityId;
+  const { data: communityMembers } = useCommunityMembers(planCommunityId);
+  const canManagePlan = communityMembers?.find((m) => m.user_id === uid)?.role === 'admin';
 
   // Drops one flagged field as the user corrects it, so it turns back to
   // normal without waiting for the next Next tap (UX-GLOB-06).
@@ -128,7 +145,9 @@ function CreateEventWizard() {
       description: draft.description,
       thumbnailPath,
       series: draft.series,
-      invitees: draft.invitees,
+      // A path without Invite players sends none — even ones picked before the path changed
+      // (e.g. the event was made public afterwards). Public group events invite nobody (decision 5).
+      invitees: skipsInvite(draft) ? undefined : draft.invitees,
       courtIds: draft.courtIds,
     };
 
@@ -143,10 +162,11 @@ function CreateEventWizard() {
       }
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';
-      if (code === 'recurring_events' && communityId) {
-        // create_event already requires is_community_admin for a group event, so
-        // whoever reaches this wizard can act on the community's plan — see
-        // UpgradePrompt.
+      if (code === 'recurring_events' && planCommunityId) {
+        // Since 0098 create_event gates a group event on may_create_event — an admin,
+        // OR a member with the create-events permission — so the creator is not
+        // necessarily someone who can change the plan. UpgradePrompt gets canManage
+        // and offers "OK" instead of "See plans" to a non-admin.
         setShowUpgrade(true);
         setSubmitting(false);
         return;
@@ -156,61 +176,92 @@ function CreateEventWizard() {
     }
   };
 
+  // Validate on tap, never a disabled button (UX-GLOB-06). The last VISIBLE step
+  // validates too before it finalises — with Invite players skipped, that is Details,
+  // whose name is required.
   const onPrimary = () => {
-    if (isLast) {
-      void finalize();
-      return;
-    }
-    const failing = step ? step.validate(draft) : [];
+    const failing = step.validate(draft);
     if (failing.length) {
       setStepErrors(failing);
       banner.show(tc('missingInformation'));
       return;
     }
     setStepErrors([]);
-    goNext();
+    if (isLast) {
+      void finalize();
+      return;
+    }
+    advance();
   };
+
+  const stepProps = {
+    draft,
+    patch,
+    advance,
+    communityId,
+    errors: stepErrors,
+    clearError: clearStepError,
+  };
+  const Footer = step.Footer;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar
         variant="wizard"
         title={t('createTitle')}
-        onBack={isFirst ? undefined : goBack}
+        onBack={isFirst ? undefined : back}
         onClose={onClose}
         testID="event-wizard-bar"
       />
 
-      <StepIndicator stepIndex={stepIndex} total={steps.length} />
+      <ProgressBar value={progress} style={styles.progress} testID="event-wizard-progress" />
 
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {/* Keyed by step so each step opens scrolled to its top. */}
         <ScrollView
+          key={step.key}
           style={styles.flex}
           contentContainerStyle={styles.inner}
           keyboardShouldPersistTaps="handled"
         >
-          {step ? (
-            <step.Component draft={draft} patch={patch} errors={stepErrors} clearError={clearStepError} />
-          ) : null}
+          {/* One title for every step, naming what is being set (UX-CEVT-01). */}
+          <Text variant="title" tone="default" accessibilityRole="header" style={styles.title}>
+            {t(step.titleKey)}
+          </Text>
+          <step.Component {...stepProps} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        <Button
-          label={isLast ? t('finish') : t('next')}
-          onPress={onPrimary}
-          loading={submitting}
-          style={styles.primaryBtn}
-        />
-      </View>
-      {communityId ? (
+      {/*
+        Multi-value steps keep a primary button fixed at the bottom. A single-choice
+        step advances on the tap itself and has none — unless it brings its own
+        bottom area (Group's "Continue without group").
+      */}
+      {step.advanceBy === 'button' ? (
+        <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
+          <Button
+            label={isLast ? t('finish') : t('next')}
+            onPress={onPrimary}
+            loading={submitting}
+            style={styles.primaryBtn}
+          />
+        </View>
+      ) : Footer ? (
+        <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
+          <Footer {...stepProps} />
+        </View>
+      ) : (
+        <View style={{ height: insets.bottom }} />
+      )}
+      {planCommunityId ? (
         <UpgradePrompt
           visible={showUpgrade}
           onClose={() => setShowUpgrade(false)}
-          communityId={communityId}
+          communityId={planCommunityId}
+          canManage={canManagePlan}
           message={t('upgradeRecurringCap', { ns: 'community' })}
         />
       ) : null}
@@ -221,16 +272,15 @@ function CreateEventWizard() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.card },
   flex: { flex: 1 },
-  inner: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 },
+  progress: { paddingHorizontal: space[5], paddingVertical: space[3] },
+  inner: { paddingHorizontal: space[6], paddingTop: space[2], paddingBottom: space[6] },
+  title: { marginBottom: space[3] },
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingHorizontal: space[5],
+    paddingTop: space[3],
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
-  // Back moved to the TopBar; the primary button now owns the whole row.
+  // Back is the TopBar's ‹; the primary button owns the whole row.
   primaryBtn: { width: '100%' },
 });

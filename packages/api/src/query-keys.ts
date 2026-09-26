@@ -25,6 +25,8 @@ export const qk = {
   canCreateGroup: (cid: string) => ['community', cid, 'can-create-group'] as const,
   myGroups: ['my-groups'] as const,
   myGroupsWithArchived: ['my-groups', 'with-archived'] as const,
+  // Under the my-groups prefix, so invalidating qk.myGroups refreshes it too.
+  eventCreatableGroups: (communityId: string) => ['my-groups', 'event-creatable', communityId] as const,
   events: (groupId: string) => ['group', groupId, 'events'] as const,
   communityEvents: (communityId: string) => ['community', communityId, 'events'] as const,
   myEvents: (filter: 'all' | 'organizing' | 'going') => ['my-events', filter] as const,
