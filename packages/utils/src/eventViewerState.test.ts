@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { bannerState, bottomState, canLeave, type ViewerInput } from './eventViewerState';
+import {
+  bannerState,
+  bottomState,
+  canClaimWaitlistSpot,
+  canLeave,
+  type ClaimParticipant,
+  type ViewerInput,
+} from './eventViewerState';
 
 const base: ViewerInput = {
   status: 'scheduled',
@@ -128,5 +135,74 @@ describe('canLeave', () => {
   it('is withdrawn from a playing organizer past the deadline', () => {
     expect(canLeave('scheduled', { status: 'confirmed' }, true, false)).toBe(true);
     expect(canLeave('scheduled', { status: 'confirmed' }, true, true)).toBe(false);
+  });
+});
+
+describe('bottomState — waiting-list claim (decision 4)', () => {
+  const waiting = { status: 'waiting_list', is_standby: false };
+
+  it('offers Confirm spot to a waiter when a spot is claimable', () => {
+    expect(bottomState({ ...base, me: waiting, full: true, claimable: true })).toEqual({ kind: 'claim' });
+  });
+
+  it('keeps Leave waiting list when nothing is claimable', () => {
+    expect(bottomState({ ...base, me: waiting, full: true })).toEqual({ kind: 'waiting_list' });
+    expect(bottomState({ ...base, me: waiting, claimable: false })).toEqual({ kind: 'waiting_list' });
+  });
+
+  it('never offers the claim past the join cut-off', () => {
+    expect(bottomState({ ...base, me: waiting, claimable: true, joinClosed: true })).toEqual({
+      kind: 'waiting_list',
+    });
+  });
+});
+
+describe('canClaimWaitlistSpot', () => {
+  const confirmed = (id: string, gender: string | null = null): ClaimParticipant => ({
+    id,
+    status: 'confirmed',
+    profiles: { gender },
+  });
+  const me: ClaimParticipant = { id: 'me', status: 'waiting_list', profiles: { gender: 'male' } };
+
+  it('is false for anyone not on the waiting list', () => {
+    expect(canClaimWaitlistSpot('classic', 4, [], null)).toBe(false);
+    expect(canClaimWaitlistSpot('classic', 4, [], { ...me, status: 'confirmed' })).toBe(false);
+  });
+
+  it('needs one free spot on a plain event, stand-by included in the capacity', () => {
+    const three = [confirmed('a'), confirmed('b'), confirmed('c')];
+    expect(canClaimWaitlistSpot('classic', 4, [...three, me], me)).toBe(true);
+    expect(canClaimWaitlistSpot('classic', 4, [...three, confirmed('d'), me], me)).toBe(false);
+    expect(canClaimWaitlistSpot('classic', 6, [...three, confirmed('d'), me], me)).toBe(true);
+  });
+
+  it('on a mixed event needs room in the viewer\'s own half', () => {
+    const men = [confirmed('m1', 'male'), confirmed('m2', 'male')];
+    const woman = confirmed('w1', 'female');
+    // 4 spots → 2 per gender: both men's spots are taken, one woman's is free.
+    expect(canClaimWaitlistSpot('mixed', 4, [...men, woman, me], me)).toBe(false);
+    const her: ClaimParticipant = { id: 'her', status: 'waiting_list', profiles: { gender: 'female' } };
+    expect(canClaimWaitlistSpot('mixed', 4, [...men, woman, her], her)).toBe(true);
+  });
+
+  it('counts guests by their guest gender on a mixed event', () => {
+    const guestMan: ClaimParticipant = { id: 'g', status: 'confirmed', guest_gender: 'male', profiles: null };
+    expect(canClaimWaitlistSpot('mixed', 4, [confirmed('m1', 'male'), guestMan, me], me)).toBe(false);
+  });
+
+  it('refuses a mixed waiter with no gender (the server answers gender_required)', () => {
+    const unknown: ClaimParticipant = { id: 'u', status: 'waiting_list', profiles: { gender: null } };
+    expect(canClaimWaitlistSpot('mixed', 4, [unknown], unknown)).toBe(false);
+  });
+
+  it('on a team event only a waiting pair claims, and it needs two free spots', () => {
+    const a: ClaimParticipant = { id: 'a', status: 'waiting_list', pair_participant_id: 'b' };
+    const b: ClaimParticipant = { id: 'b', status: 'waiting_list', pair_participant_id: 'a' };
+    const two = [confirmed('x'), confirmed('y')];
+    expect(canClaimWaitlistSpot('team', 4, [...two, a, b], a)).toBe(true);
+    expect(canClaimWaitlistSpot('team', 4, [...two, confirmed('z'), a, b], a)).toBe(false);
+    const lone: ClaimParticipant = { id: 'l', status: 'waiting_list', pair_participant_id: null };
+    expect(canClaimWaitlistSpot('team', 8, [lone], lone)).toBe(false);
   });
 });

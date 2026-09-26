@@ -1,10 +1,10 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
-import { scrollUntilVisible, tap } from '../driver/actions';
+import { backGesture, scrollUntilVisible, tap } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { deepLink, loginAs, switchUser, tabTo } from '../driver/flows';
-import { select } from '../fixtures/db';
+import { psql, select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
 
@@ -55,6 +55,21 @@ describe('04 event detail & membership', () => {
     if (query(await snapshot(), { text: /^Join$/ })) {
       throw new Error('organizer should not see a Join CTA');
     }
+  });
+
+  it('the players card opens the read-only player list, with an Invited tab', async () => {
+    // Still on E5 (alex organizes it; the seed invites sofia explicitly). UX-JEVT-08.
+    await scrollUntilVisible({ id: 'event-players-card' }, { maxSwipes: 6 });
+    await tap({ id: 'event-players-card' });
+    await expectVisible({ text: /^confirmed \(\d+\/\d+\)$/i, type: 'Button' }, { timeout: 15_000 });
+    // No waiting list on E5, so no Waiting list tab.
+    if (query(await snapshot(), { text: /^waiting list/i, type: 'Button' })) {
+      throw new Error('the Waiting list tab should only appear when the event has one');
+    }
+    await tap({ text: /^invited \(\d+\)$/i, type: 'Button' });
+    await expectVisible({ text: /sofia costa/i }, { timeout: 15_000 });
+    await backGesture();
+    await expectVisible({ id: 'event-players-card' }, { timeout: 15_000 });
   });
 
   /** Open the header's ⋯ sheet. */
@@ -127,6 +142,34 @@ describe('04 event detail & membership', () => {
       (rows) => (rows as unknown[]).length === 0,
       { label: 'left waiting list', timeoutMs: 15_000 },
     );
+  });
+
+  it('a waiter confirms a freed spot from the event page (decision 4)', async () => {
+    const m = manifest();
+    // alex joins E9's waiting list through the app (the previous test left it), so every list
+    // the app caches is invalidated the way a real join does it. A spot set up behind the app's
+    // back with SQL never reached the cached Events tab (run 36253794592).
+    await openAnyEvent(/waitlist only/i);
+    await tap({ text: /join waiting list/i });
+    await pollUntil(
+      () => select('event_participants', `event_id=eq.${m.events.e9}&user_id=eq.${m.users.alex}&select=status`),
+      (rows) => (rows as { status: string }[])[0]?.status === 'waiting_list',
+      { label: 'waitlisted again', timeoutMs: 15_000 },
+    );
+    await expectVisible({ text: /you are on the waiting list/i }, { timeout: 15_000 });
+    // A confirmed player leaves while alex is looking at the page. Nobody is confirmed
+    // automatically: the page's realtime roster turns the bottom area into "Confirm spot".
+    await psql(`delete from event_participants where event_id = '${m.events.e9}' and user_id = '${m.users.rita}';`);
+    await expectVisible({ text: /it goes to whoever confirms first/i }, { timeout: 20_000 });
+    await tap({ text: /^confirm spot$/i, type: 'Button' });
+    await pollUntil(
+      () => select('event_participants', `event_id=eq.${m.events.e9}&user_id=eq.${m.users.alex}&select=status`),
+      (rows) => (rows as { status: string }[])[0]?.status === 'confirmed',
+      { label: 'spot claimed', timeoutMs: 15_000 },
+    );
+    await expectVisible({ text: /you are in/i }, { timeout: 15_000 });
+    await tap({ text: /^close$/i, type: 'Button' });
+    await expectVisible({ text: /you are going/i }, { timeout: 15_000 });
   });
 
   it('an event inside the join cutoff shows event closed', async () => {

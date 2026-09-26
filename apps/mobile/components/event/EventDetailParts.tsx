@@ -15,7 +15,7 @@ import { Avatar, BottomSheet, Button, ListRow, Text } from '../ui';
 
 export type PersonLite = { id: string; full_name: string | null; avatar_url: string | null };
 
-const Chevron = () => (
+export const Chevron = () => (
   <Text variant="body" tone="muted">
     ›
   </Text>

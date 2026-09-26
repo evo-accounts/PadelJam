@@ -33,6 +33,8 @@ export const qk = {
   myEventsAll: ['my-events'] as const,
   myEvents: (filter: 'all' | 'organizing' | 'going' | 'pending', includePast = false) =>
     (includePast ? (['my-events', filter, 'past'] as const) : (['my-events', filter] as const)),
+  /** The viewer's waiting-list / interested rows — under the prefix, refreshed with the lists. */
+  myEventStatuses: ['my-events', 'statuses'] as const,
   eventInvitedPlayers: (id: string) => ['event', id, 'invited-players'] as const,
   event: (id: string) => ['event', id] as const,
   eventParticipants: (id: string) => ['event', id, 'participants'] as const,

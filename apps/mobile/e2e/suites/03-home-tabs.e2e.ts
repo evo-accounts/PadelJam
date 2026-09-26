@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { query, queryAll, snapshot, type AxElement } from '../driver/a11y';
-import { backGesture, scrollUntilVisible, swipe, tap, typeText } from '../driver/actions';
+import { backGesture, scrollUntilVisible, swipe, tap, toggleSwitch, typeText } from '../driver/actions';
 import { CONFIG } from '../driver/config';
-import { expectVisible } from '../driver/expect';
+import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { loginAs, switchUser, tabTo } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
@@ -37,15 +37,32 @@ describe('03 home & tabs', () => {
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 15_000 });
   });
 
-  it('events tab filters organizing vs going', async () => {
+  it('events tab filters organizing vs going, with a Pending tab', async () => {
     await tabTo('Events');
-    await expectVisible({ text: /organizing/i });
-    await tap({ text: /organizing/i });
+    // Four tabs (UX-JEVT-01). Anchored: "Show past events" sits above them.
+    await expectVisible({ text: /^pending$/i, type: 'Button' });
+    await tap({ text: /^organizing$/i, type: 'Button' });
     // alex organizes the in-progress E3 and recurring E5.
     await expectVisible({ text: /live mexicano|weekly friday social/i }, { timeout: 20_000 });
-    await tap({ text: /going/i });
+    await tap({ text: /^going$/i, type: 'Button' });
     // alex is going to E1 (joined via seed).
     await expectVisible({ text: /tuesday americano/i }, { timeout: 20_000 });
+  });
+
+  it('events tab shows past events only with the toggle on', async () => {
+    await tap({ text: /^organizing$/i, type: 'Button' });
+    await expectVisible({ text: /live mexicano|weekly friday social/i }, { timeout: 20_000 });
+    // E4 "Last Week Mexicano" (alex, completed 7 days ago) is past: hidden by default.
+    await expectGone({ text: /last week mexicano/i }, { timeout: 2_000 });
+    await toggleSwitch({ id: 'events-show-past' });
+    await scrollUntilVisible({ text: /last week mexicano/i }, { maxSwipes: 6 });
+    // Back off, so the rest of the run sees the default list (the toggle is remembered).
+    await swipe('down');
+    await swipe('down');
+    await toggleSwitch({ id: 'events-show-past' });
+    // No `type: 'Button'` here: after the other segments were tapped, run 36235775381 read the
+    // "All" segment as AXGenericElement (traits still Button) — the Fabric stale-role effect.
+    await tap({ text: /^all$/i });
   });
 
   it('explore shows all four rails and see-all paginates events', async () => {

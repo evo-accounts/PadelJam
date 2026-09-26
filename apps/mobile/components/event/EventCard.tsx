@@ -2,7 +2,7 @@ import { eventStatusKey, useGroupEvents } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, palette } from '../../theme';
-import { Card } from '../../components/ui';
+import { Badge, Card } from '../../components/ui';
 import { EventThumb } from './EventThumb';
 
 /** The element type of the group-events hook data: the `events` table Row. */
@@ -29,6 +29,10 @@ function formatWhen(iso: string): string {
  * No badge for an upcoming event (UX-JEVT-01): every listed event is upcoming, so "Upcoming" said
  * nothing. Starting now / Live / Completed still carry meaning and keep theirs.
  *
+ * `viewerStatus` labels an event the viewer holds no spot in yet — on the waiting list, or
+ * interested (a team player without a partner). Since migration 0112 those events are listed under
+ * Going and in Home's next events, and without a label they would read as a held spot.
+ *
  * Two arrangements of the same content (UX-GLOB-09): `vertical` is a fixed-width
  * card for a horizontally scrolling rail (image on top, text below); `horizontal`
  * (the default, and the only look this card had before) is a full-width row for
@@ -40,9 +44,11 @@ export function EventCard({
   onPress,
   orientation = 'horizontal',
   railWidth = 260,
+  viewerStatus,
 }: {
   event: EventRow & { distance_m?: number | null };
   onPress: () => void;
+  viewerStatus?: 'waiting_list' | 'interested';
   orientation?: 'vertical' | 'horizontal';
   railWidth?: number;
 }) {
@@ -97,6 +103,13 @@ export function EventCard({
       {formatWhen(event.starts_at)}
     </Text>
   );
+  const viewerBadge = viewerStatus ? (
+    <Badge
+      label={viewerStatus === 'waiting_list' ? t('cardWaitingList') : t('cardInterested')}
+      tone={viewerStatus === 'waiting_list' ? 'warning' : 'info'}
+      testID={`event-card-status-${event.id}`}
+    />
+  ) : null;
   const distanceText = distance ? <Text style={styled.distance}>{distance}</Text> : null;
 
   if (orientation === 'vertical') {
@@ -115,6 +128,7 @@ export function EventCard({
           {meta}
           {when}
           {distanceText}
+          {viewerBadge}
           {badge}
         </View>
       </Card>
@@ -131,6 +145,7 @@ export function EventCard({
         {meta}
         {when}
         {distanceText}
+        {viewerBadge}
       </View>
       {badge}
       <Text style={styled.chevron} accessibilityElementsHidden importantForAccessibility="no">

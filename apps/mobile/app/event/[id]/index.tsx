@@ -6,7 +6,8 @@
  *   banner      You are going / stand-by / waiting list
  *   body        image, name + date · time · place, Players card, type + group badges,
  *               description, Courts / Scoring / Fee, Organizer card, Location card
- *   bottom      invited · join (+ countdown) · full · waiting list · closed · organizer actions
+ *   bottom      invited · join (+ countdown) · full · waiting list (+ Confirm spot when one is
+ *               free — decision 4) · closed · organizer actions
  *
  * Leaving is never in the bottom area: it lives in the ⋯ sheet, and past the 12h deadline it
  * opens the contact-the-organizer sheet instead (UX-JEVT-05).
@@ -14,10 +15,12 @@
 import {
   eventStatusKey,
   useAcceptEventInvitation,
+  useClaimWaitlistSpot,
   useDeclineEventInvitation,
   useEvent,
   useEventInvitations,
   useEventParticipants,
+  useEventRealtime,
   useEventSeries,
   useEventTeams,
   useJoinEvent,
@@ -33,6 +36,7 @@ import { useT } from '@padel/i18n';
 import {
   bannerState,
   bottomState,
+  canClaimWaitlistSpot,
   canLeave,
   eventPlace,
   formatCountdown,
@@ -41,7 +45,7 @@ import {
   showJoinCountdown,
 } from '@padel/utils';
 import { SymbolView } from 'expo-symbols';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useIsFocused, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -95,6 +99,10 @@ export default function EventDetailScreen() {
   const banner = useBanner();
 
   const { t: tcommon } = useT('common');
+  // Live roster, so a freed spot shows "Confirm spot" without leaving the page. Only while this
+  // page is focused: the live screen pushed on top subscribes to the same event itself.
+  const focused = useIsFocused();
+  useEventRealtime(id, { enabled: focused });
   const { data: event, isLoading, isError, refetch } = useEvent(id);
   const { data: participantsData } = useEventParticipants(id);
   const { data: invitationsData } = useEventInvitations(id);
@@ -104,6 +112,7 @@ export default function EventDetailScreen() {
   const joinEvent = useJoinEvent();
   const leaveEvent = useLeaveEvent();
   const leaveWaitingList = useLeaveWaitingList(id);
+  const claimWaitlistSpot = useClaimWaitlistSpot(id);
   const acceptInvitation = useAcceptEventInvitation();
   const declineInvitation = useDeclineEventInvitation(id);
   const startEvent = useStartEvent(id);
@@ -222,6 +231,12 @@ export default function EventDetailScreen() {
   const hasOwnChat = event.is_private || event.group_id == null;
 
   // --- Viewer state ---
+  // Decision 4: nobody is confirmed automatically — when a spot frees, every waiter who could take
+  // it is offered it and the first to confirm wins. Mirrors the server's _waiter_can_claim.
+  const claimable =
+    status === 'scheduled' &&
+    !joinClosed &&
+    canClaimWaitlistSpot(event.specification, ps.totalCapacity, participants, me);
   const bottom = bottomState({
     status,
     specification: event.specification,
@@ -231,6 +246,7 @@ export default function EventDetailScreen() {
     joinClosed,
     full: ps.totalIn >= ps.totalCapacity,
     countdown: showJoinCountdown(joinCutoffMs, nowMs),
+    claimable,
   });
   const bannerKind = bannerState(status, me);
   const leaveOffered = canLeave(status, me, isOrganizer, leaveLocked);
@@ -261,6 +277,19 @@ export default function EventDetailScreen() {
     });
   const onDecline = () => run(() => declineInvitation.mutateAsync());
   const onLeaveWaitlist = () => run(() => leaveWaitingList.mutateAsync());
+  // spot_taken (someone confirmed first), gender_full (mixed: the free spot is in the other half)
+  // and use_team_join (a team waiter whose pair broke up) come back as banners via `fail`.
+  // On a claim, use_team_join means the viewer's waiting partner is gone (only a pair claims a
+  // team spot), so say that rather than the generic "join via your team".
+  const onClaim = () =>
+    run(async () => {
+      try {
+        await claimWaitlistSpot.mutateAsync();
+      } catch (e) {
+        throw e instanceof Error && e.message === 'use_team_join' ? new Error('claimPartnerLeft') : e;
+      }
+      openJoined();
+    });
   const onLeave = () =>
     run(async () => {
       await leaveEvent.mutateAsync({ eventId: id, groupId: event.group_id });
@@ -410,6 +439,9 @@ export default function EventDetailScreen() {
                 />
               ) : null}
               {/* An organizer who tried to play on a full event is waiting like anyone else. */}
+              {me?.status === 'waiting_list' && claimable ? (
+                <Button label={t('confirmSpotCta')} fullWidth loading={busy} onPress={onClaim} />
+              ) : null}
               {me?.status === 'waiting_list' ? (
                 <Button
                   label={t('leaveWaitlistCta')}
@@ -473,6 +505,25 @@ export default function EventDetailScreen() {
     case 'waiting_list':
       bottomArea = (
         <Button label={t('leaveWaitlistCta')} variant="outline" fullWidth loading={busy} onPress={onLeaveWaitlist} />
+      );
+      break;
+    case 'claim':
+      bottomArea = (
+        <View style={styles.col}>
+          <Text variant="label" tone="primary" style={styles.centerText} testID="event-spot-open">
+            {t('spotOpenLine')}
+          </Text>
+          <View style={styles.row}>
+            <Button
+              label={t('leaveWaitlistCta')}
+              variant="outline"
+              loading={busy}
+              onPress={onLeaveWaitlist}
+              style={styles.flex}
+            />
+            <Button label={t('confirmSpotCta')} loading={busy} onPress={onClaim} style={styles.flex} />
+          </View>
+        </View>
       );
       break;
     case 'team_entry':
