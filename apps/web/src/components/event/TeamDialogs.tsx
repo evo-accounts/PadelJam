@@ -147,11 +147,13 @@ export function GuestPartnerDialog({
       open={open}
       onOpenChange={(o) => {
         if (o) return;
+        // No dismissing mid-save: the pairing would land with the dialog already gone.
+        if (saving) return;
         setName('');
         onClose();
       }}
     >
-      <DialogContent data-testid="guest-partner-sheet">
+      <DialogContent showCloseButton={!saving} data-testid="guest-partner-sheet">
         <DialogHeader>
           <DialogTitle>{t('guestPartnerTitle')}</DialogTitle>
           <DialogDescription>{t('guestPartnerNote')}</DialogDescription>

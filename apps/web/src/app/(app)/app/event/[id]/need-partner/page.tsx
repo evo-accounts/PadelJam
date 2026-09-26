@@ -118,6 +118,7 @@ export default function NeedPartnerPage() {
                 variant={invited ? 'outline' : 'default'}
                 disabled={rowBusy != null || finishing}
                 aria-busy={rowBusy === c.id}
+                aria-pressed={invited}
                 aria-label={invited ? t('partnerWithdrawLabel', { name }) : t('partnerInviteLabel', { name })}
                 onClick={() => void onToggle(c.id)}
                 data-testid={`need-partner-invite-${c.id}`}

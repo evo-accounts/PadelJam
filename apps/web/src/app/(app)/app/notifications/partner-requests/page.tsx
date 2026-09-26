@@ -35,7 +35,14 @@ export default function PartnerRequestsPage() {
   const { t, i18n } = useT('notifications');
   const list = useIncomingPartnerRequests();
   const respond = useRespondToRequest();
+  // The request stays in state after the dialog closes, so its text does not flip while it fades
+  // out; only `confirmOpen` is cleared on close.
   const [confirming, setConfirming] = useState<Pending>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const ask = (p: NonNullable<Pending>) => {
+    setConfirming(p);
+    setConfirmOpen(true);
+  };
 
   const sections = requestSections(list.data ?? []);
 
@@ -58,16 +65,16 @@ export default function PartnerRequestsPage() {
       const code = e instanceof Error ? e.message : 'unknown_error';
       toast(t(code, { defaultValue: t('respondError') }), 'error');
     } finally {
-      setConfirming(null);
+      setConfirmOpen(false);
     }
   };
 
   // A partner request's Accept and a community request's Decline ask first; a partner request's
   // Decline is silent (the requester is not told) and a community Accept is immediate.
   const onAccept = (item: IncomingPartnerRequest) =>
-    item.kind === 'event' ? setConfirming({ item, action: 'accept' }) : void respondTo(item, 'accept');
+    item.kind === 'event' ? ask({ item, action: 'accept' }) : void respondTo(item, 'accept');
   const onDecline = (item: IncomingPartnerRequest) =>
-    item.kind === 'community' ? setConfirming({ item, action: 'decline' }) : void respondTo(item, 'decline');
+    item.kind === 'community' ? ask({ item, action: 'decline' }) : void respondTo(item, 'decline');
 
   const renderRow = (item: IncomingPartnerRequest) => {
     const name = item.requester_name ?? '—';
@@ -169,8 +176,8 @@ export default function PartnerRequestsPage() {
       <GroupPageTitle title={t('partnerRequests')} fallbackHref="/app/notifications" />
       {body}
       <GroupConfirm
-        open={c != null}
-        onClose={() => setConfirming(null)}
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
         title={c?.action === 'accept' ? t('partnerAcceptTitle') : t('declineTitle')}
         body={
           c?.action === 'accept'

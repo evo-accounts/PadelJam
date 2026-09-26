@@ -2910,6 +2910,7 @@ const webNotifications = {
     request_not_found: 'Este pedido já não está disponível.',
     event_full: 'Este evento está cheio.',
     already_joined: 'Já tens parceiro neste evento.',
+    forbidden: 'Não tens permissão para realizar esta ação.',
     joinRequestLabel: 'quer aderir a {{entity}}',
     // Sentence templates by notification type:
     follow: '{{actor}} começou a seguir-te',
@@ -2970,6 +2971,7 @@ const webNotifications = {
     request_not_found: 'Este pedido não está mais disponível.',
     event_full: 'Este evento está cheio.',
     already_joined: 'Você já tem parceiro neste evento.',
+    forbidden: 'Você não tem permissão para realizar esta ação.',
     joinRequestLabel: 'quer entrar em {{entity}}',
     // Sentence templates by notification type:
     follow: '{{actor}} começou a seguir você',
@@ -3030,6 +3032,7 @@ const webNotifications = {
     request_not_found: 'This request is no longer available.',
     event_full: 'This event is full.',
     already_joined: 'You already have a partner for this event.',
+    forbidden: 'You do not have permission to perform this action.',
     joinRequestLabel: 'wants to join {{entity}}',
     // Sentence templates by notification type:
     follow: '{{actor}} followed you',
