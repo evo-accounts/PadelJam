@@ -29,7 +29,8 @@ export function Step6Courts({ draft, patch, flagged }: StepProps) {
   const courts = useVenueCourts(draft.venueId);
   const venueCourts = courts.data ?? [];
   const selection: Selection = draft.courtIds ? 'select' : 'count';
-  const hasCourtList = !!draft.venueId && venueCourts.length > 0;
+  // A failed query shows the error, not the list — even with courts cached from an earlier load.
+  const hasCourtList = !!draft.venueId && !courts.isError && venueCourts.length > 0;
   const errors = flagged ? courtsErrors(draft) : [];
 
   // With no court list on screen (the query failed, or the venue has no courts) a selection left

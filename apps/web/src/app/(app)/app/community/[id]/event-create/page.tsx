@@ -135,10 +135,23 @@ export default function EventCreatePage() {
   const [nowMs] = useState(() => Date.now());
   // The picked thumbnail and its preview URL, made and released here in the event handler.
   const [thumb, setThumb] = useState<{ file: File; url: string } | null>(null);
+  // The preview URL still held, so it can be released when the wizard unmounts.
+  const thumbUrl = useRef<string | null>(null);
   const onThumbnail = (file: File | null) => {
     if (thumb) URL.revokeObjectURL(thumb.url);
-    setThumb(file ? { file, url: URL.createObjectURL(file) } : null);
+    const next = file ? { file, url: URL.createObjectURL(file) } : null;
+    thumbUrl.current = next?.url ?? null;
+    setThumb(next);
   };
+  useEffect(
+    () => () => {
+      if (thumbUrl.current) URL.revokeObjectURL(thumbUrl.current);
+    },
+    [],
+  );
+  // The storage path of a thumbnail already uploaded, so a retry after a failed create does not
+  // upload the same file again. Tied to the file: picking another one uploads that one.
+  const uploaded = useRef<{ file: File; path: string } | null>(null);
   // Which button started the create, so only that one shows it: the primary, or "I will invite later".
   const [submitting, setSubmittingState] = useState<'primary' | 'later' | null>(null);
   // State lags a render behind, so a fast double click could start two creates. The ref flips
@@ -236,22 +249,40 @@ export default function EventCreatePage() {
     if (inFlight.current) return;
     setSubmitting(mode);
     let hadGuests = false;
-    try {
-      let thumbnailPath: string | undefined;
-      if (thumb && uid) {
-        try {
-          thumbnailPath = await uploadCommunityImage(thumb.file, uid, 'event-thumbnails');
-        } catch {
-          /* non-fatal */
-        }
-      }
-      // Platform players are invited, guests confirmed (UX-CEVT-11). None on a path without
-      // Invite players (a public group event, decision 5) or on "I will invite later".
-      const parsed = createEventSchema.safeParse(
+    // Platform players are invited, guests confirmed (UX-CEVT-11). None on a path without
+    // Invite players (a public group event, decision 5) or on "I will invite later".
+    const inputFor = (thumbnailPath: string | undefined) =>
+      createEventSchema.safeParse(
         webCreateInput(draft, thumbnailPath, (number) => t('courtNamePlaceholder', { number }), {
           later: mode === 'later',
         }),
       );
+    try {
+      // Validate before uploading anything, so an invalid draft leaves no orphan image behind.
+      const checked = inputFor(undefined);
+      if (!checked.success) {
+        toast(t(checked.error.issues[0]?.message ?? 'unknown_error', { defaultValue: t('unknown_error') }), 'error');
+        setSubmitting(null);
+        return;
+      }
+      let thumbnailPath: string | undefined;
+      if (thumb && uid) {
+        if (uploaded.current?.file === thumb.file) {
+          thumbnailPath = uploaded.current.path;
+        } else {
+          try {
+            thumbnailPath = await uploadCommunityImage(thumb.file, uid, 'event-thumbnails');
+            uploaded.current = { file: thumb.file, path: thumbnailPath };
+          } catch {
+            // As on mobile: a picked image that did not upload stops the create, rather than
+            // making the event without the image the organizer chose.
+            toast(t('unknown_error'), 'error');
+            setSubmitting(null);
+            return;
+          }
+        }
+      }
+      const parsed = thumbnailPath ? inputFor(thumbnailPath) : checked;
       if (!parsed.success) {
         toast(t(parsed.error.issues[0]?.message ?? 'unknown_error', { defaultValue: t('unknown_error') }), 'error');
         setSubmitting(null);
@@ -259,6 +290,10 @@ export default function EventCreatePage() {
       }
       hadGuests = (parsed.data.guests?.length ?? 0) > 0;
       const newId = (await create.mutateAsync(parsed.data)) as string;
+      if (thumbUrl.current) {
+        URL.revokeObjectURL(thumbUrl.current);
+        thumbUrl.current = null;
+      }
       router.replace(`/app/event/${newId}`);
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';

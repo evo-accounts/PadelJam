@@ -130,8 +130,7 @@ export function Step8Preferences({ draft, patch, flagged }: StepProps) {
                 onChange={(standbySpots) => patch({ standbySpots })}
                 decreaseLabel={t('standbyDecreaseLabel')}
                 increaseLabel={t('standbyIncreaseLabel')}
-                invalid={badStandby}
-                errorId="pref-standby-error"
+                errorId={badStandby ? 'pref-standby-error' : undefined}
                 testId="pref-standby-spots"
               />
               <FieldError id="pref-standby-error" show={badStandby} />

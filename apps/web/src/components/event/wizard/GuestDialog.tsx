@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useT } from '@padel/i18n';
 import { guestBlocker, type RosterRoom } from '@padel/utils';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { InfoNote } from './InfoNote';
@@ -17,7 +17,8 @@ type Gender = 'male' | 'female';
  * (UX-GLOB-02 on web). A guest is a name — and, on a mixed event, a gender — for someone with no
  * access to the app; saving adds them straight to the step's confirmed list. Validated on Save
  * (UX-GLOB-06), and refused here when they would not fit, so the organizer learns it now rather
- * than from `create_event`. The form is mounted fresh on each opening.
+ * than from `create_event`. The form stays mounted (so closing animates with its content); a key
+ * bumped on each opening resets its fields.
  */
 export function GuestDialog({
   open,
@@ -37,10 +38,22 @@ export function GuestDialog({
   onSave: (guest: GuestInput) => void;
 }) {
   const { t } = useT('event');
+  const [opening, setOpening] = useState(0);
+  // A new key per opening: the form starts from `initial` (or empty) every time.
+  useEffect(() => {
+    if (open) setOpening((n) => n + 1);
+  }, [open]);
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? null : onClose())}>
-      <DialogContent className="sm:max-w-md" data-testid="guest-dialog">
-        {open ? <GuestForm mixed={mixed} room={room} initial={initial} onSave={onSave} title={initial ? t('guestSheetEditTitle') : t('guestSheetTitle')} /> : null}
+      <DialogContent className="sm:max-w-md" aria-describedby="guest-note" data-testid="guest-dialog">
+        <GuestForm
+          key={opening}
+          mixed={mixed}
+          room={room}
+          initial={initial}
+          onSave={onSave}
+          title={initial ? t('guestSheetEditTitle') : t('guestSheetTitle')}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -82,7 +95,6 @@ function GuestForm({
     <form onSubmit={save} className="flex flex-col gap-4" noValidate>
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
-        <DialogDescription className="sr-only">{t('guestNote')}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-2">
         <Label htmlFor="guest-name">{t('guestNameLabel')}</Label>
@@ -103,7 +115,7 @@ function GuestForm({
           data-testid="guest-name"
         />
         {badName ? (
-          <p id="guest-name-error" className="text-sm text-destructive">
+          <p id="guest-name-error" role="alert" className="text-sm text-destructive">
             {t('guestNameRequired')}
           </p>
         ) : null}
@@ -138,7 +150,7 @@ function GuestForm({
           testId="guest-capacity-warning"
         />
       ) : null}
-      <InfoNote text={t('guestNote')} testId="guest-note" />
+      <InfoNote id="guest-note" text={t('guestNote')} testId="guest-note" />
       <Button type="submit" className="w-full" data-testid="guest-save">
         {t('guestSave')}
       </Button>

@@ -7,7 +7,18 @@ import { cn } from '@/lib/utils';
  * decorative. `warning` is a consequence to weigh (a private event leaves the group ranking) or
  * something to fix before creating (guests that no longer fit) — announced as a status.
  */
-export function InfoNote({ text, testId, tone = 'info' }: { text: string; testId?: string; tone?: 'info' | 'warning' }) {
+export function InfoNote({
+  id,
+  text,
+  testId,
+  tone = 'info',
+}: {
+  /** Lets a dialog point `aria-describedby` at the note it shows. */
+  id?: string;
+  text: string;
+  testId?: string;
+  tone?: 'info' | 'warning';
+}) {
   const Icon = tone === 'warning' ? TriangleAlert : Info;
   return (
     <div
@@ -22,7 +33,7 @@ export function InfoNote({ text, testId, tone = 'info' }: { text: string; testId
         className={cn('mt-0.5 size-4 shrink-0', tone === 'warning' ? undefined : 'text-muted-foreground')}
         aria-hidden
       />
-      <p>{text}</p>
+      <p id={id}>{text}</p>
     </div>
   );
 }

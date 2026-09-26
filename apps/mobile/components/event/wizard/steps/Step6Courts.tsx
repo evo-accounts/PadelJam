@@ -1,6 +1,6 @@
 import { useVenueCourts } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { eventCapacity } from '@padel/utils';
+import { COURTS_MAX, eventCapacity } from '@padel/utils';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
@@ -28,7 +28,9 @@ export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProp
   const courts = useVenueCourts(draft.venueId);
   const venueCourts = courts.data ?? [];
   const selection: Selection = draft.courtIds ? 'select' : 'count';
-  const hasCourtList = !!draft.venueId && venueCourts.length > 0;
+  // A failed query shows the error, not the list — even with courts cached from an earlier load —
+  // so it counts as "no list" and a leftover selection is dropped below.
+  const hasCourtList = !!draft.venueId && !courts.isError && venueCourts.length > 0;
 
   // With no court list on screen (the query failed, or the venue has no courts) a selection left
   // over from "Select courts" could not be seen or fixed, yet would fail validation — drop it.
@@ -37,6 +39,7 @@ export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProp
   useEffect(() => {
     if (staleSelection) patch({ courtIds: undefined });
   }, [staleSelection, patch]);
+  const atCap = (draft.courtIds?.length ?? 0) >= COURTS_MAX;
 
   const counter = (
     <CourtCounter
@@ -83,12 +86,13 @@ export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProp
           <>
             <InfoNote text={t('courtsNoReserveBanner')} testID="courts-no-reserve-note" />
             <View style={styles.checks}>
-              {/* Past 20 ticked courts `toggleCourt` refuses more; the ticked ones can still be unticked. */}
+              {/* At 20 ticked courts the rest are disabled; the ticked ones can still be unticked. */}
               {venueCourts.map((c) => (
                 <Checkbox
                   key={c.id}
                   label={c.name}
                   checked={draft.courtIds?.includes(c.id) ?? false}
+                  disabled={atCap && !draft.courtIds?.includes(c.id)}
                   onChange={() => {
                     patch(toggleCourt(draft, c.id));
                     clearError?.('courtIds');

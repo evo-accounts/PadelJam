@@ -186,7 +186,7 @@ export function Step10Invite({ draft, patch, organizerGender }: StepProps) {
                   : t('inviteGuestTag');
               const body = (
                 <>
-                  <Avatar className="size-9">
+                  <Avatar className="size-9" aria-hidden>
                     <AvatarFallback className="text-xs">{initials(g.name)}</AvatarFallback>
                   </Avatar>
                   <span className="flex min-w-0 flex-1 flex-col">
@@ -266,7 +266,7 @@ export function Step10Invite({ draft, patch, organizerGender }: StepProps) {
                     )}
                     data-testid={`invite-row-${p.id}`}
                   >
-                    <Avatar className="size-9">
+                    <Avatar className="size-9" aria-hidden>
                       <AvatarImage src={avatarUrl(p.avatar_url) ?? undefined} alt="" />
                       <AvatarFallback className="text-xs">{initials(name)}</AvatarFallback>
                     </Avatar>

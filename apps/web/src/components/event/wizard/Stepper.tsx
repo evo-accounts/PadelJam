@@ -3,8 +3,9 @@ import { useId } from 'react';
 import { Button } from '@/components/ui/button';
 
 /**
- * A labelled − n + counter bounded to [min, max]: Preferences' extra stand-by spots (1–20). The
- * buttons at a bound are disabled, so the value can never leave the range.
+ * A labelled − n + counter bounded to [min, max]: Preferences' extra stand-by spots (1–20). A
+ * button at a bound is `aria-disabled` and does nothing — not `disabled`, which would drop focus
+ * from the button just pressed and send keyboard users back to the top of the page.
  */
 export function Stepper({
   label,
@@ -14,7 +15,6 @@ export function Stepper({
   onChange,
   decreaseLabel,
   increaseLabel,
-  invalid,
   errorId,
   testId,
 }: {
@@ -25,7 +25,7 @@ export function Stepper({
   onChange: (n: number) => void;
   decreaseLabel: string;
   increaseLabel: string;
-  invalid?: boolean;
+  /** The error line's id, while it shows: the count is described by it. */
   errorId?: string;
   testId?: string;
 }) {
@@ -43,16 +43,18 @@ export function Stepper({
           size="icon"
           aria-label={decreaseLabel}
           aria-controls={`${id}-count`}
-          disabled={value <= min}
-          onClick={() => set(value - 1)}
+          aria-disabled={value <= min || undefined}
+          className="aria-disabled:opacity-50"
+          onClick={() => {
+            if (value > min) set(value - 1);
+          }}
         >
           &minus;
         </Button>
         <span
           id={`${id}-count`}
           aria-live="polite"
-          aria-invalid={invalid || undefined}
-          aria-describedby={invalid ? errorId : undefined}
+          aria-describedby={errorId}
           className="w-8 text-center text-lg font-medium tabular-nums"
           data-testid={testId}
         >
@@ -64,8 +66,11 @@ export function Stepper({
           size="icon"
           aria-label={increaseLabel}
           aria-controls={`${id}-count`}
-          disabled={value >= max}
-          onClick={() => set(value + 1)}
+          aria-disabled={value >= max || undefined}
+          className="aria-disabled:opacity-50"
+          onClick={() => {
+            if (value < max) set(value + 1);
+          }}
         >
           +
         </Button>
