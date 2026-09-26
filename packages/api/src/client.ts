@@ -18,9 +18,14 @@ const KNOWN = [
   'invalid_event_config', 'series_requires_group', 'event_not_found', 'event_closed',
   'event_full', 'leave_deadline_passed', 'already_joined', 'not_invited', 'not_participant',
   'not_on_waiting_list', 'spot_taken',
+  // 0113: a mixed event's guest has no gender. BEFORE 'gender_required', which is a substring.
+  'guest_gender_required',
   'use_team_join', 'not_a_team_event', 'partner_unavailable', 'request_stale', 'gender_required',
   // 0112: a mixed event's half for the caller's gender is full (claim_waitlist_spot).
   'gender_full',
+  // 0113: a guest's name is empty or over 60 characters; manual court names don't match the courts;
+  // the picked registry venue was deleted.
+  'invalid_guest_name', 'invalid_court_names', 'venue_not_found',
   'setup_incomplete', 'mixed_unbalanced', 'mixed_gender_missing', 'round_not_scored', 'round_exists', 'event_not_scheduled',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
   'recurring_events', 'not_cancellable', 'invalid_scope', 'not_editable', 'standby_below_roster', 'series_inactive', 'courts_below_roster', 'not_retryable',

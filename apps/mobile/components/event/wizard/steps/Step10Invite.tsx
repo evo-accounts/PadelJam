@@ -22,6 +22,7 @@ export function Step10Invite({ draft, patch }: WizardStepProps) {
       <InvitePicker
         groupId={draft.groupId}
         isPrivate={draft.isPrivate}
+        specification={draft.specification}
         invitees={draft.invitees ?? []}
         onChange={(invitees) => patch({ invitees })}
       />

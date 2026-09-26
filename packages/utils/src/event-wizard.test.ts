@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stepIsValid, draftToCreateInput, defaultWizardDraft, type WizardDraft } from './event-wizard';
+import { stepIsValid, draftToCreateInput, defaultWizardDraft, splitWizardInvitees, type WizardDraft } from './event-wizard';
 
 const HOUR = 60 * 60 * 1000;
 const full = (over: Partial<WizardDraft> = {}): WizardDraft => ({
@@ -57,5 +57,22 @@ describe('draftToCreateInput', () => {
   });
   it('passes the thumbnail path through', () => {
     expect(draftToCreateInput(full(), 'evt/x.jpg').thumbnailPath).toBe('evt/x.jpg');
+  });
+});
+
+describe('splitWizardInvitees (0113 interim bridge)', () => {
+  it('keeps platform users as invitations and turns named manual entries into guests', () => {
+    expect(
+      splitWizardInvitees([
+        { invitee_id: '22222222-2222-2222-2222-222222222222' },
+        { name: ' Rui ', gender: 'male' },
+        { name: 'Ana' },
+        { name: '' },
+      ]),
+    ).toEqual({
+      invitees: [{ invitee_id: '22222222-2222-2222-2222-222222222222' }],
+      guests: [{ name: 'Rui', gender: 'male' }, { name: 'Ana' }],
+    });
+    expect(splitWizardInvitees(undefined)).toEqual({ invitees: undefined, guests: undefined });
   });
 });

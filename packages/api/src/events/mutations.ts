@@ -243,6 +243,29 @@ export const useChoosePartner = (eventId: string) => {
   });
 };
 
+/**
+ * Pair with someone who is not on the app (UX-JEVT-10, migration 0113): a guest partner is created
+ * for this event only — no account, no history, no ranking, not reusable. Same gates and outcome as
+ * useChoosePartner: resolves to 'confirmed', or 'waiting_list' when the pair has to queue. Errors:
+ * invalid_guest_name (empty or over 60 characters), already_joined, forbidden, event_closed.
+ */
+export const useChooseGuestPartner = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { name: string; gender?: 'male' | 'female' | null }) => {
+      const { data, error } = await db.rpc('choose_guest_partner', {
+        p_event_id: eventId,
+        p_name: input.name,
+        p_gender: input.gender ?? undefined,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as 'confirmed' | 'waiting_list';
+    },
+    onSuccess: () => invalidatePairing(qc, eventId),
+  });
+};
+
 /** Resolves to 'confirmed' or 'waiting_list', as useChoosePartner. */
 export const useAcceptPartnerRequest = (eventId: string) => {
   const db = useDb();
@@ -327,9 +350,9 @@ export const useInviteToEvent = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (
-      invitees: { invitee_id?: string; name?: string; email?: string; phone?: string }[],
-    ) => {
+    // Platform users only (0113): people without an account are guests, added with
+    // add_manual_participant or the wizard's `guests`.
+    mutationFn: async (invitees: { invitee_id: string }[]) => {
       const { error } = await db.rpc('invite_to_event', {
         p_event_id: eventId,
         p_invitees: invitees,

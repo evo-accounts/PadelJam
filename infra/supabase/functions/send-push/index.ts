@@ -21,6 +21,7 @@ function render(n: { type: string; actor_name: string | null; entity_name: strin
     case 'results_published': return { title: 'Results are out', body: `Results for ${entity} are out` };
     case 'event_created': return { title: 'New event', body: `${actor} created ${entity}` };
     case 'partner_left': return { title: 'Your partner left', body: `Your partner left ${entity} — set your team again` };
+    case 'partner_request': return { title: 'Partner request', body: `${actor} wants to partner with you in ${entity}` };
     default: return { title: 'Padel Jam', body: 'You have a new notification' };
   }
 }

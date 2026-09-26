@@ -1,7 +1,7 @@
 import { type CreateEventInput, useCommunityMembers, useCreateEvent } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { geocodeQuery, skipsInvite } from '@padel/utils';
+import { geocodeQuery, skipsInvite, splitWizardInvitees } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import {
@@ -146,7 +146,8 @@ function CreateEventWizard() {
       series: draft.series,
       // A path without Invite players sends none — even ones picked before the path changed
       // (e.g. the event was made public afterwards). Public group events invite nobody (decision 5).
-      invitees: skipsInvite(draft) ? undefined : draft.invitees,
+      // Interim (0113): manual entries become guests by name until M3 rebuilds the invite step.
+      ...(skipsInvite(draft) ? {} : splitWizardInvitees(draft.invitees)),
       courtIds: draft.courtIds,
     };
 

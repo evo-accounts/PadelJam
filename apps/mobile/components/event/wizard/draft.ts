@@ -11,11 +11,11 @@ import type { PickedImage } from '@/lib/storage';
 
 import type { StepKey } from '@padel/utils';
 
+/** A platform user (invitee_id) or, interim until M3, a manual entry sent as a guest (0113). */
 export type EventInvitee = {
   invitee_id?: string;
   name?: string;
-  email?: string;
-  phone?: string;
+  gender?: 'male' | 'female';
 };
 
 export type EventDraft = {

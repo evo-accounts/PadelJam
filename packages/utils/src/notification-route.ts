@@ -8,6 +8,8 @@ export type NotificationRouteInput = {
 
 /** Map a notification (DB row or push data payload) to an in-app route, or null if none applies. */
 export function notificationRoute(n: NotificationRouteInput): string | null {
+  // A partner request is answered on the Partner Requests screen, not on the event (0113).
+  if (n.type === 'partner_request') return '/notifications/partner-requests';
   if (n.event_id) return `/event/${n.event_id}`;
   // A group invitation opens its invitation screen (UX-GRP-02): for a private group the group
   // page itself is invisible until you accept, so only the invitation can show what it is.

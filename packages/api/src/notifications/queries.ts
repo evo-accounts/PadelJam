@@ -11,11 +11,13 @@ const PAGE_SIZE = 20;
  * know — a newer server can emit one before an old app build is updated.
  *   event_created — a public group event was created (members see Join; no invitation, 0112).
  *   partner_left  — your team partner left, you lost the spot and need to set a team again (0112).
+ *   partner_request — someone asked you to be their partner in a team event; opens the Partner
+ *                     Requests screen (0113).
  */
 export const NOTIFICATION_TYPES = [
   'event_invite', 'group_invite', 'community_invite', 'community_request_accepted', 'follow',
   'follow_joined_event', 'event_cancelled', 'event_updated', 'participant_confirmed', 'waitlist_spot',
-  'results_published', 'event_created', 'partner_left',
+  'results_published', 'event_created', 'partner_left', 'partner_request',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -97,6 +99,12 @@ export type IncomingPartnerRequest = {
   requester_name: string | null;
   requester_avatar: string | null;
   created_at: string;
+  /** Event rows only (0113); null on community rows. */
+  starts_at: string | null;
+  venue_name: string | null;
+  venue_address: string | null;
+  manual_location_name: string | null;
+  manual_location_address: string | null;
 };
 
 export const useIncomingPartnerRequests = () => {
