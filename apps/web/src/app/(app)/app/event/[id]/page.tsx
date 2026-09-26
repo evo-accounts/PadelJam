@@ -5,11 +5,18 @@
  * by `bottomState` / `bannerState` / `canLeave` in `@padel/utils`, the table mobile reads too.
  *
  *   header   back · ⋯ (Share, Add to calendar, Leave event)
- *   banner   You are going / stand-by / waiting list
+ *   banner   You are going / stand-by / waiting list / interested
  *   body     image, name + date · time · place, Players card, type + group badges, description,
  *            Courts / Scoring / Fee, Organizer card, Location card
  *   bottom   invited · join (+ countdown) · full · waiting list (+ Confirm spot when one is free —
- *            decision 4) · closed · organizer actions
+ *            decision 4) · closed · organizer actions · team entry (Join → the Team Event dialog,
+ *            UX-JEVT-09) · interested (Edit response, UX-JEVT-13)
+ *
+ * Team events: "Join", an invitee's "Accept" and the organizer's "Join as a player" all open the
+ * Team Event dialog — I have a partner (`have-partner`, UX-JEVT-10) or I need a partner
+ * (`need-partner`, UX-JEVT-11). Those pages do the confirming; accepting a team invitation never
+ * silently marks anyone interested (B9). A lone occupant whose partner left (`invited`, decision 1)
+ * is back at the team entry state.
  *
  * The roster is live (`useEventRealtime`), so a freed spot turns the waiting list's bottom area into
  * "Confirm spot" without a reload.
@@ -56,6 +63,8 @@ import {
 import { EventMenu, type EventMenuDialog } from '@/components/event/EventMenu';
 import { EventResultTable, type EventResultRow } from '@/components/event/EventResultTable';
 import { EventThumb } from '@/components/event/EventThumb';
+import { EditResponseDialog, TeamEventDialog, type EditChoice, type TeamChoice } from '@/components/event/TeamDialogs';
+import { GroupConfirm } from '@/components/group/GroupConfirm';
 import { BackButton } from '@/components/group/GroupHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -95,6 +104,9 @@ export default function EventDetailPage() {
   const [ctaError, setCtaError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<EventMenuDialog>(null);
   const [joinedOpen, setJoinedOpen] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [leaveInterestedOpen, setLeaveInterestedOpen] = useState(false);
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
   // A failed request is not "no access": RLS answers a hidden event with no row (data === null),
@@ -136,6 +148,9 @@ export default function EventDetailPage() {
     claimable,
   });
   const bannerKind = bannerState(status, me);
+  // Decision 1: a team player whose partner left is back to `invited`, holding no spot — for the
+  // organizer too, who then sees "Join as a player" again rather than "organizing and playing".
+  const loneTeamOccupant = e.specification === 'team' && me?.status === 'invited';
   const leaveOffered = canLeave(status, me, isOrganizer, leaveLocked);
 
   // --- Body values ---
@@ -146,8 +161,10 @@ export default function EventDetailPage() {
       ? `${e.entrance_fee_amount ?? 0} · ${t(`fee${cap(e.entrance_fee_method)}Label`)}`
       : `${e.entrance_fee_amount ?? 0}`
     : t('feeFree');
+  const isTeam = e.specification === 'team';
+  // A team event announces itself (UX-JEVT-09): the format badge names the team format.
   const badges = [
-    `${t(`type${cap(e.event_type)}Label`)} · ${t(`spec${cap(e.specification)}Label`)}`,
+    `${t(`type${cap(e.event_type)}Label`)} · ${isTeam ? t('teamFormatBadge') : t(`spec${cap(e.specification)}Label`)}`,
     e.group?.name ?? (e.group_id == null ? t('groupBadgeNone') : null),
   ].filter((b): b is string => b != null);
   // Confirmed regulars first, then stand-by: the three photos are the people surely playing.
@@ -181,11 +198,28 @@ export default function EventDetailPage() {
       const r = await joinEvent.mutateAsync({ eventId: id, groupId });
       if (r === 'confirmed') setJoinedOpen(true);
     });
-  const onAccept = () =>
-    run(async () => {
+  // A team invitation is answered by setting a team (B9): the chosen path does the confirming.
+  const onAccept = () => {
+    if (isTeam) {
+      setTeamOpen(true);
+      return;
+    }
+    void run(async () => {
       const r = await acceptInvite.mutateAsync({ eventId: id, groupId });
       if (r === 'confirmed') setJoinedOpen(true);
     });
+  };
+  const onTeamChoice = (c: TeamChoice) =>
+    router.push(`/app/event/${id}/${c === 'have' ? 'have-partner' : 'need-partner'}`);
+  // UX-JEVT-13. Leave cancels every request the player sent (leave_event, 0111/0112).
+  const onEditChoice = (c: EditChoice) => {
+    if (c !== 'leave') return onTeamChoice(c);
+    // The organizer never gets here past the deadline (the row is hidden — canLeave), but never
+    // send them to contact themselves either way.
+    if (leaveLocked && isOrganizer) return toast(t('leave_deadline_passed'), 'error');
+    if (leaveLocked) return setDialog('leaveLocked');
+    setLeaveInterestedOpen(true);
+  };
   const onDecline = () => run(() => declineInvite.mutateAsync());
   const onLeaveWaitlist = () => run(() => leaveWaitlist.mutateAsync());
   // spot_taken (someone confirmed first), gender_full (mixed: the free spot is in the other half),
@@ -206,6 +240,7 @@ export default function EventDetailPage() {
     try {
       await leaveEvent.mutateAsync({ eventId: id, groupId });
       setDialog(null);
+      setLeaveInterestedOpen(false);
       toast(t('leftToast'));
     } catch (err) {
       toast(t(err instanceof Error ? err.message : 'unknown_error', { defaultValue: t('unknown_error') }), 'error');
@@ -350,13 +385,15 @@ export default function EventDetailPage() {
       <EventCTA
         bottom={bottom}
         eventId={id}
-        isTeam={e.specification === 'team'}
-        organizerPlaying={me != null && me.status !== 'waiting_list'}
+        isTeam={isTeam}
+        organizerPlaying={me != null && me.status !== 'waiting_list' && !loneTeamOccupant}
         organizerWaiting={status === 'scheduled' && me?.status === 'waiting_list'}
         organizerCanClaim={claimable}
-        canJoinAsPlayer={status === 'scheduled' && me == null && !joinClosed}
+        canJoinAsPlayer={status === 'scheduled' && (me == null || loneTeamOccupant) && !joinClosed}
+        organizerInterested={status === 'scheduled' && me?.status === 'interested' && !joinClosed}
         scheduled={status === 'scheduled'}
         countdownMs={joinCutoffMs - nowMs}
+        teamCountdown={showJoinCountdown(joinCutoffMs, nowMs)}
         inviter={myInvite?.inviter ?? null}
         busy={busy}
         error={ctaError}
@@ -365,6 +402,27 @@ export default function EventDetailPage() {
         onClaim={() => void onClaim()}
         onAccept={() => void onAccept()}
         onDecline={() => void onDecline()}
+        onTeamJoin={() => setTeamOpen(true)}
+        onEditResponse={() => setEditOpen(true)}
+      />
+
+      <TeamEventDialog open={teamOpen} onClose={() => setTeamOpen(false)} onChoose={onTeamChoice} />
+      <EditResponseDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onChoose={onEditChoice}
+        canLeave={leaveOffered}
+      />
+      <GroupConfirm
+        open={leaveInterestedOpen}
+        onClose={() => setLeaveInterestedOpen(false)}
+        title={t('leaveConfirmTitle')}
+        body={t('leaveInterestedBody')}
+        confirmLabel={t('leaveConfirmCta')}
+        cancelLabel={t('cancel')}
+        destructive
+        busy={busy}
+        onConfirm={onLeave}
       />
 
       <JoinedDialog

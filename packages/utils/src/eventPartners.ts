@@ -1,7 +1,7 @@
 /**
  * Pure helpers behind the team-event screens (UX-JEVT-10..12): filtering the partner candidates,
  * finding the viewer's partner for the "You are going" screen, and grouping the Partner Requests
- * inbox by event. No React, so every rule is unit-tested.
+ * inbox by event. Shared by mobile and web (W3b). No React, so every rule is unit-tested.
  */
 
 /** Case- and accent-insensitive: "joao" finds "João". */

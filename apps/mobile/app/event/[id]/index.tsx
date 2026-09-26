@@ -265,6 +265,9 @@ export default function EventDetailScreen() {
     claimable,
   });
   const bannerKind = bannerState(status, me);
+  // Decision 1: a team player whose partner left is back to `invited`, holding no spot — for the
+  // organizer too, who then sees "Join as a player" again rather than "organizing and playing".
+  const loneTeamOccupant = event.specification === 'team' && me?.status === 'invited';
   const leaveOffered = canLeave(status, me, isOrganizer, leaveLocked);
 
   // --- Actions ---
@@ -438,7 +441,7 @@ export default function EventDetailScreen() {
       bottomArea = (
         <View style={styles.col}>
           <Text variant="bodyStrong" style={styles.centerText}>
-            {me != null ? t('organizerPlayingBadge') : t('organizerBadge')}
+            {me != null && !loneTeamOccupant ? t('organizerPlayingBadge') : t('organizerBadge')}
           </Text>
           <Button
             label={t('manageCta')}
@@ -464,7 +467,7 @@ export default function EventDetailScreen() {
                   {t('startSetupIncomplete', { needed: event.num_courts * 4 })}
                 </Text>
               ) : null}
-              {me == null && !joinClosed ? (
+              {(me == null || loneTeamOccupant) && !joinClosed ? (
                 <Button
                   label={t('joinAsPlayerCta')}
                   variant="outline"

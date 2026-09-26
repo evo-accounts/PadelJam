@@ -9,7 +9,7 @@
 import { useEvent, useEventTeams } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { eventPlace, mapsQuery } from '@padel/utils';
+import { eventPlace, mapsQuery, teamPartnerOf } from '@padel/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -17,7 +17,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { addToCalendar } from '@/lib/eventCalendar';
 import { eventSubtitle } from '@/lib/eventFormat';
-import { teamPartnerOf } from '@/lib/eventPartners';
 import { avatarUrl } from '@/lib/community-images';
 import { EventThumb } from '../../../components/event/EventThumb';
 import { colors, space } from '../../../theme';

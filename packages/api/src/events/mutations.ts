@@ -207,6 +207,7 @@ export const useRequestPartner = (eventId: string) => {
     // mutation settles only once the lists are fresh: an Invited → withdraw tap right after needs
     // the new request's id.
     onSuccess: () => invalidatePairing(qc, eventId),
+    onError: (e) => refetchCandidatesOnStale(qc, eventId, e),
   });
 };
 
@@ -228,6 +229,19 @@ function invalidatePairing(qc: ReturnType<typeof useQueryClient>, eventId: strin
     qc.invalidateQueries({ queryKey: qk.eventInvitedPlayers(eventId) }),
     qc.invalidateQueries({ queryKey: qk.event(eventId) }),
   ]);
+}
+
+/**
+ * A pick that went stale under the caller — the partner paired or left (partner_unavailable), the
+ * caller is already in (already_joined), or the request target stopped looking (request_stale):
+ * refetch the candidate and request lists so the page stops offering it.
+ */
+function refetchCandidatesOnStale(qc: ReturnType<typeof useQueryClient>, eventId: string, e: unknown) {
+  const code = e instanceof Error ? e.message : '';
+  if (code === 'partner_unavailable' || code === 'already_joined' || code === 'request_stale') {
+    qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
+    qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+  }
 }
 
 /**
@@ -259,6 +273,7 @@ export const useChoosePartner = (eventId: string) => {
       return data as 'confirmed' | 'waiting_list';
     },
     onSuccess: () => invalidatePairing(qc, eventId),
+    onError: (e) => refetchCandidatesOnStale(qc, eventId, e),
   });
 };
 
@@ -282,6 +297,7 @@ export const useChooseGuestPartner = (eventId: string) => {
       return data as 'confirmed' | 'waiting_list';
     },
     onSuccess: () => invalidatePairing(qc, eventId),
+    onError: (e) => refetchCandidatesOnStale(qc, eventId, e),
   });
 };
 

@@ -19,7 +19,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
-import { filterByName } from '@/lib/eventPartners';
+import { filterByName } from '@padel/utils';
 import { useGoBack } from '@/lib/useGoBack';
 import { GuestPartnerSheet } from '../../../components/event/TeamSheets';
 import { colors, space } from '../../../theme';

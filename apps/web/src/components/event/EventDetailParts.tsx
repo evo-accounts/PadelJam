@@ -9,6 +9,7 @@ import { ChevronRight, Lock, MapPin, X } from 'lucide-react';
 import { useT } from '@padel/i18n';
 import { mapsWebUrl, type BannerState, type EventPlace } from '@padel/utils';
 import { Avatar, AvatarFallback, AvatarGroup, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -154,22 +155,35 @@ export function LocationCard({ place }: { place: EventPlace }) {
   );
 }
 
-/** The strip under the header: "You are going", stand-by, or the waiting-list explanation. */
+/**
+ * The strip under the header: "You are going", stand-by, the waiting-list explanation, or — for a
+ * team-event player looking for a partner — "You are interested" (UX-JEVT-13).
+ */
 export function StateBanner({ state }: { state: Exclude<BannerState, null> }) {
   const { t } = useT('event');
   const waiting = state === 'waiting_list';
+  const title =
+    state === 'going'
+      ? t('goingBanner')
+      : state === 'standby'
+        ? t('standbyBadge')
+        : state === 'interested'
+          ? t('interestedBanner')
+          : t('waitlistBannerTitle');
   return (
     <div
       role="status"
       data-testid={`event-banner-${state}`}
       className={cn(
         'rounded-xl p-3',
-        waiting ? 'bg-warning text-warning-foreground' : 'bg-success text-success-foreground',
+        waiting
+          ? 'bg-warning text-warning-foreground'
+          : state === 'interested'
+            ? 'bg-info text-info-foreground'
+            : 'bg-success text-success-foreground',
       )}
     >
-      <p className="font-medium">
-        {state === 'going' ? t('goingBanner') : state === 'standby' ? t('standbyBadge') : t('waitlistBannerTitle')}
-      </p>
+      <p className="font-medium">{title}</p>
       {waiting ? <p className="mt-1 text-sm opacity-90">{t('waitlistBannerBody')}</p> : null}
     </div>
   );
@@ -213,10 +227,16 @@ export function LeaveLockedDialog({
   );
 }
 
+/** The other half of the viewer's team, for the "You are going" dialog (UX-JEVT-10). */
+export type JoinedPartner = { key: string; name: string | null; avatarPath: string | null; guest: boolean };
+
 /**
  * "You are in" (UX-JEVT-03), after accepting an invitation or joining with a confirmed spot: the
  * event image, the message, date · time · place, Add to calendar (downloads an .ics) and Close.
  * Close returns to the event page, which now shows the "You are going" banner.
+ *
+ * On a team event (UX-JEVT-10, after choosing a partner) it is the "You are going" variant and
+ * shows the partner's photo and name — a guest partner included.
  */
 export function JoinedDialog({
   open,
@@ -225,6 +245,8 @@ export function JoinedDialog({
   name,
   subtitle,
   onCalendar,
+  team = false,
+  partner = null,
 }: {
   open: boolean;
   onClose: () => void;
@@ -232,6 +254,8 @@ export function JoinedDialog({
   name: string;
   subtitle: string;
   onCalendar: () => void;
+  team?: boolean;
+  partner?: JoinedPartner | null;
 }) {
   const { t } = useT('event');
   return (
@@ -239,7 +263,17 @@ export function JoinedDialog({
       <DialogContent showCloseButton={false} data-testid="event-joined-dialog">
         <EventThumb path={thumbnailPath} shape="hero" />
         <DialogHeader className="items-center text-center sm:text-center">
-          <DialogTitle className="text-2xl">{t('youAreInTitle')}</DialogTitle>
+          <DialogTitle className="text-2xl">{team ? t('goingBanner') : t('youAreInTitle')}</DialogTitle>
+          {partner ? (
+            <div className="flex flex-col items-center gap-2 py-1" data-testid="event-joined-partner">
+              <Avatar className="size-14">
+                <AvatarImage src={avatarUrl(partner.avatarPath) ?? undefined} alt="" />
+                <AvatarFallback>{initials(partner.name)}</AvatarFallback>
+              </Avatar>
+              <span className="font-medium">{partner.name ?? '—'}</span>
+              {partner.guest ? <Badge variant="secondary">{t('guestTag')}</Badge> : null}
+            </div>
+          ) : null}
           <DialogDescription asChild>
             <div className="flex flex-col gap-1">
               <span className="font-medium text-foreground">{name}</span>

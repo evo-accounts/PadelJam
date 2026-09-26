@@ -20,3 +20,4 @@ export * from './eventLocation';
 export * from './ics';
 export * from './eventPlayers';
 export * from './event-schedule';
+export * from './eventPartners';

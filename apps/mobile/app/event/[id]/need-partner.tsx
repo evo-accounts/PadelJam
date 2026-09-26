@@ -26,7 +26,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
-import { filterByName, lookingForPartner, sentRequestTo } from '@/lib/eventPartners';
+import { filterByName, lookingForPartner, sentRequestTo } from '@padel/utils';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors, space } from '../../../theme';
 import {

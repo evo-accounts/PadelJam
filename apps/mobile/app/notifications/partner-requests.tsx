@@ -23,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { eventSubtitle } from '@/lib/eventFormat';
-import { requestSections } from '@/lib/eventPartners';
+import { requestSections } from '@padel/utils';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors, space } from '../../theme';
 import {
