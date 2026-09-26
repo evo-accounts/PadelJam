@@ -146,24 +146,21 @@ describe('04 event detail & membership', () => {
 
   it('a waiter confirms a freed spot from the event page (decision 4)', async () => {
     const m = manifest();
-    // Set the scene in the database, then open the event: alex back on E9's list, and one
-    // confirmed player gone. Nobody is confirmed automatically — the waiter has to claim it.
-    await psql(
-      // Both rows go first: alex left the list in the previous test, but if that test failed
-      // half-way his row is still there and the insert would hit the (event, user) unique key.
-      `delete from event_participants where event_id = '${m.events.e9}'` +
-        ` and user_id in ('${m.users.rita}', '${m.users.alex}');` +
-        ` insert into event_participants (event_id, user_id, status, waiting_list_position)` +
-        ` values ('${m.events.e9}', '${m.users.alex}', 'waiting_list', 1);`,
+    // alex joins E9's waiting list through the app (the previous test left it), so every list
+    // the app caches is invalidated the way a real join does it. A spot set up behind the app's
+    // back with SQL never reached the cached Events tab (run 36253794592).
+    await openAnyEvent(/waitlist only/i);
+    await tap({ text: /join waiting list/i });
+    await pollUntil(
+      () => select('event_participants', `event_id=eq.${m.events.e9}&user_id=eq.${m.users.alex}&select=status`),
+      (rows) => (rows as { status: string }[])[0]?.status === 'waiting_list',
+      { label: 'waitlisted again', timeoutMs: 15_000 },
     );
-    // Through the Events tab, not Find Event: Explore leaves out events the viewer is already on
-    // (run 36235775381 scrolled Find Event for it in vain). Going includes the waiting list since
-    // 0112, and the card says so.
-    await tabTo('Events');
-    await scrollUntilVisible({ text: /waitlist only.*waiting list/i }, { maxSwipes: 8 });
-    await openMyEvent(/waitlist only/i);
     await expectVisible({ text: /you are on the waiting list/i }, { timeout: 15_000 });
-    await expectVisible({ text: /it goes to whoever confirms first/i }, { timeout: 15_000 });
+    // A confirmed player leaves while alex is looking at the page. Nobody is confirmed
+    // automatically: the page's realtime roster turns the bottom area into "Confirm spot".
+    await psql(`delete from event_participants where event_id = '${m.events.e9}' and user_id = '${m.users.rita}';`);
+    await expectVisible({ text: /it goes to whoever confirms first/i }, { timeout: 20_000 });
     await tap({ text: /^confirm spot$/i, type: 'Button' });
     await pollUntil(
       () => select('event_participants', `event_id=eq.${m.events.e9}&user_id=eq.${m.users.alex}&select=status`),
