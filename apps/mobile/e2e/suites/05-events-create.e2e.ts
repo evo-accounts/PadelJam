@@ -208,7 +208,7 @@ describe('05 event create wizard', () => {
       await expectVisible({ text: heading, type: 'Heading' }, { timeout: 5_000 });
     }
     // No group: private is on, locked, and says why.
-    await expectVisible({ id: 'pref-private-always' });
+    // (A Text's testID never reaches the tree — match the copy.)
     await expectVisible({ text: /independent events are always private/i });
     // Stand-by opens an extra spots counter at 4 (decision 9).
     await tap({ id: 'pref-standby-switch' });
@@ -253,8 +253,7 @@ describe('05 event create wizard', () => {
     await expectVisible({ id: 'invite-add-manually' });
     await expectVisible({ id: 'event-wizard-later' });
     // 2 courts + 4 extra spots, less the organizer (organizing and playing).
-    const cap = query(await snapshot(), { id: 'invite-capacity' });
-    expect(`${cap?.AXLabel ?? ''} ${cap?.AXValue ?? ''}`).toMatch(/11 spots left/i);
+    expect(query(await snapshot(), { text: /11 spots left/i }), 'spots left').toBeDefined();
     // Before typing: the people alex follows.
     await expectVisible({ id: `invite-row-${m.users.maria}` }, { timeout: 15_000 });
     // Ticked here; the invitation itself is checked in the database once the event exists.
@@ -279,8 +278,7 @@ describe('05 event create wizard', () => {
     await tap({ id: 'guest-save' });
     await expectVisible({ text: /^confirmed \(1\)$/i }, { timeout: 5_000 });
     await expectVisible({ text: /^rui guest/i });
-    const cap = query(await snapshot(), { id: 'invite-capacity' });
-    expect(`${cap?.AXLabel ?? ''} ${cap?.AXValue ?? ''}`, 'the guest takes a spot').toMatch(/10 spots left/i);
+    await scrollUntilVisible({ text: /10 spots left/i }, { direction: 'up', maxSwipes: 5 });
   });
 
   it('creates the event end to end', async () => {
