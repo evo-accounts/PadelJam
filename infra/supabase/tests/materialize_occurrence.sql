@@ -40,6 +40,8 @@ begin
 
   perform set_config('role','postgres',true);
   select id into g from groups where community_id = cid order by created_at limit 1;
+  -- 0117: the organizer must be a member of the series' group to materialise.
+  insert into group_members (group_id, user_id) values (g, u1) on conflict do nothing;
 
   -- fixture needs two series in one community; bypass the recurring_events plan cap during seeding.
   alter table event_series disable trigger trg_recurring_events_cap;
@@ -87,8 +89,8 @@ begin
   perform set_config('role','postgres',true);
   select starts_at, name, num_courts, status into v_start, v_name, v_courts, v_status
     from events where id = new1;
-  if v_start <> (select starts_at + interval '7 days' from events where id = ev) then
-    raise exception using errcode='PT001', message='new occurrence starts_at should be source +7 days';
+  if v_start <> (select _series_slot(starts_at, 1) from events where id = ev) then
+    raise exception using errcode='PT001', message='new occurrence starts_at should be one week later, same Lisbon wall-clock time (0117)';
   end if;
   if v_name <> 'MatEv' or v_courts <> 2 or v_status <> 'scheduled' then
     raise exception using errcode='PT001', message='new occurrence should copy name/num_courts and be scheduled';
@@ -114,7 +116,7 @@ begin
     raise exception using errcode='PT001', message='second call should return the same occurrence id';
   end if;
   perform set_config('role','postgres',true);
-  if (select count(*) from events where series_id = s and starts_at = (select starts_at + interval '7 days' from events where id = ev) and deleted_at is null) <> 1 then
+  if (select count(*) from events where series_id = s and starts_at = (select _series_slot(starts_at, 1) from events where id = ev) and deleted_at is null) <> 1 then
     raise exception using errcode='PT001', message='idempotent re-call must not create a duplicate occurrence';
   end if;
   raise notice 'OK idempotent: re-call returns same id, single row';
