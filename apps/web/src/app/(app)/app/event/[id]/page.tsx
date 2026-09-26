@@ -56,7 +56,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
 import { downloadEventIcs, shareEvent } from '@/lib/eventLinks';
-import { streamClient } from '@/lib/streamClient';
+import { openDirectChannel } from '@/lib/streamDm';
 import { useNow } from '@/lib/useNow';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -90,6 +90,18 @@ export default function EventDetailPage() {
   const [joinedOpen, setJoinedOpen] = useState(false);
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
+  // A failed request is not "no access": RLS answers a hidden event with no row (data === null),
+  // and only that lands on the no-access page. Anything else can be retried.
+  if (event.isError) {
+    return (
+      <div className="flex flex-col items-center gap-3 p-8 text-center" role="alert" data-testid="event-load-error">
+        <p className="text-sm text-muted-foreground">{t('loadError')}</p>
+        <Button variant="outline" onClick={() => void event.refetch()}>
+          {t('retryCta')}
+        </Button>
+      </div>
+    );
+  }
   if (!event.data) return <EventNoAccess />;
 
   const e = event.data;
@@ -202,10 +214,9 @@ export default function EventDetailPage() {
     if (!uid || !organizer) return;
     setBusy(true);
     try {
-      const ch = streamClient.channel('messaging', { members: [uid, organizer.id] });
-      await ch.watch();
+      const cid = await openDirectChannel(uid, organizer.id);
       setDialog(null);
-      router.push(`/app/chat/${encodeURIComponent(ch.cid)}`);
+      router.push(`/app/chat/${encodeURIComponent(cid)}`);
     } catch {
       toast(tc('chatUnavailable'), 'error');
     } finally {
@@ -290,7 +301,9 @@ export default function EventDetailPage() {
 
       {place ? <LocationCard place={place} /> : null}
 
-      {me != null || isOrganizer ? (
+      {/* Only private and group-less events have their own chat (mobile's hasOwnChat); a public
+          group event talks in the group's channel. */}
+      {(me != null || isOrganizer) && (e.is_private || e.group_id == null) ? (
         <Button variant="outline" disabled={ensureChannel.isPending} onClick={() => void openEventChat()}>
           {tc('openChat')}
         </Button>

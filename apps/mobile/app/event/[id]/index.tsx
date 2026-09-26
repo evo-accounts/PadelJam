@@ -94,7 +94,8 @@ export default function EventDetailScreen() {
   const showSheet = useActionSheet();
   const banner = useBanner();
 
-  const { data: event, isLoading } = useEvent(id);
+  const { t: tcommon } = useT('common');
+  const { data: event, isLoading, isError, refetch } = useEvent(id);
   const { data: participantsData } = useEventParticipants(id);
   const { data: invitationsData } = useEventInvitations(id);
   const { data: teamsData } = useEventTeams(id);
@@ -121,6 +122,22 @@ export default function EventDetailScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <ActivityIndicator color={colors.foreground} />
+      </SafeAreaView>
+    );
+  }
+
+  // A failed request is not "no access" (that is RLS answering with no row): offer a retry.
+  if (isError) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <TopBar onBack={goBack} backLabel={t('back')} />
+        <EmptyState
+          fill
+          tone="error"
+          title={tcommon('loadError')}
+          action={{ label: tcommon('retry'), onPress: () => void refetch() }}
+          testID="event-load-error"
+        />
       </SafeAreaView>
     );
   }

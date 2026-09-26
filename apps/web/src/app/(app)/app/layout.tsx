@@ -30,6 +30,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { StreamConnection } from '@/components/chat/StreamConnection';
 import { Toaster } from '@/components/ui/toaster';
 import ProfileDropdown from '@/components/shadcn-studio/blocks/dropdown-profile';
 
@@ -53,6 +54,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
+      <StreamConnection />
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <SidebarMenu>

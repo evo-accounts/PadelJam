@@ -26,11 +26,21 @@ function EventList({ filter, includePast }: { filter: MyEventsFilter; includePas
   const { t } = useT('event');
   const q = useMyEvents(filter, includePast);
   if (q.isLoading) return <Skeleton className="h-24 w-full" />;
+  if (q.isError) {
+    return (
+      <div className="flex flex-col items-start gap-2" role="alert" data-testid={`events-error-${filter}`}>
+        <p className="text-sm text-muted-foreground">{t('loadError')}</p>
+        <Button variant="outline" size="sm" onClick={() => void q.refetch()}>
+          {t('retryCta')}
+        </Button>
+      </div>
+    );
+  }
   const rows = (q.data?.pages.flat() ?? []) as EventCardEvent[];
   if (rows.length === 0) {
     return (
       <p className="text-sm text-muted-foreground" data-testid={`events-empty-${filter}`}>
-        {filter === 'pending' ? t('emptyPending') : t('emptyEvents')}
+        {filter === 'pending' ? t('emptyPending') : includePast ? t('emptyEventsAny') : t('emptyEvents')}
       </p>
     );
   }
@@ -58,7 +68,7 @@ export default function EventsPage() {
   const [tab, setTab] = useState<MyEventsFilter>('all');
   const [includePast, setIncludePast] = useState(false);
   return (
-    <div className="flex flex-col gap-4 p-6">
+    <div className="flex flex-col gap-4 px-4 py-6 sm:p-6">
       <h1 className="text-2xl font-semibold">{t('title')}</h1>
       <div className="flex items-center gap-2">
         <Switch
@@ -70,9 +80,10 @@ export default function EventsPage() {
         <Label htmlFor="events-show-past">{t('showPastEvents')}</Label>
       </div>
       <Tabs value={tab} onValueChange={(v) => setTab(v as MyEventsFilter)}>
-        <TabsList>
+        {/* Four tabs overflow a 375px screen in Portuguese: the list scrolls sideways instead. */}
+        <TabsList className="w-full justify-start overflow-x-auto sm:w-fit">
           {FILTERS.map((f) => (
-            <TabsTrigger key={f.key} value={f.key}>
+            <TabsTrigger key={f.key} value={f.key} className="flex-none">
               {t(f.label)}
             </TabsTrigger>
           ))}
