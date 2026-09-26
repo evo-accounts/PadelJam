@@ -11,17 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { FieldError } from '../FieldError';
 import type { StepProps } from '../types';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export function Step8Preferences({ draft, patch }: StepProps) {
+export function Step8Preferences({ draft, patch, flagged }: StepProps) {
   const { t } = useT('event');
   const fee = draft.entranceFee;
+  const badAmount = !!flagged && fee.enabled && !(fee.amount != null && fee.amount > 0);
+  const badMethod = !!flagged && fee.enabled && !fee.method;
   const standalone = draft.groupId === null;
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{t('step8Title')}</h2>
 
       <div className="flex items-center justify-between">
         <Label>{t('standbyToggle')}</Label>
@@ -60,22 +62,30 @@ export function Step8Preferences({ draft, patch }: StepProps) {
       {fee.enabled ? (
         <div className="flex flex-col gap-4 rounded-lg border p-4">
           <div className="space-y-2">
-            <Label>{t('feeAmountLabel')}</Label>
+            <Label htmlFor="event-fee-amount">{t('feeAmountLabel')}</Label>
             <Input
+              id="event-fee-amount"
               type="number"
+              aria-invalid={badAmount || undefined}
+              aria-describedby={badAmount ? 'event-fee-amount-error' : undefined}
               value={fee.amount ?? ''}
               onChange={(e) =>
                 patch({ entranceFee: { ...fee, amount: Number(e.target.value) || undefined } })
               }
             />
+            <FieldError id="event-fee-amount-error" show={badAmount} />
           </div>
           <div className="space-y-2">
-            <Label>{t('feeMethodLabel')}</Label>
+            <Label htmlFor="event-fee-method">{t('feeMethodLabel')}</Label>
             <Select
               value={fee.method ?? ''}
               onValueChange={(value) => patch({ entranceFee: { ...fee, method: value } })}
             >
-              <SelectTrigger>
+              <SelectTrigger
+                id="event-fee-method"
+                aria-invalid={badMethod || undefined}
+                aria-describedby={badMethod ? 'event-fee-method-error' : undefined}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -86,6 +96,7 @@ export function Step8Preferences({ draft, patch }: StepProps) {
                 ))}
               </SelectContent>
             </Select>
+            <FieldError id="event-fee-method-error" show={badMethod} />
           </div>
           {fee.method === 'mba' ? (
             <div className="space-y-2">

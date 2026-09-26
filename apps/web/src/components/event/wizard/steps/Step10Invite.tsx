@@ -46,7 +46,6 @@ export function Step10Invite({ draft, patch }: StepProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{t('step10Title')}</h2>
 
       {draft.groupId ? (
         <div className="flex flex-col gap-2">

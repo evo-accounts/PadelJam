@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { FieldError } from '../FieldError';
 import type { StepProps } from '../types';
 
 const toLocalInput = (iso?: string) => {
@@ -23,27 +24,38 @@ const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : undefined
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 const LEAD_DAYS = [3, 5, 7] as const;
 
-export function Step7Schedule({ draft, patch }: StepProps) {
+export function Step7Schedule({ draft, patch, flagged, nowMs = 0 }: StepProps) {
   const { t } = useT('event');
   const series = draft.series;
+  // Flagged fields stay marked only while still wrong, so fixing one clears it at once.
+  const badStart =
+    !!flagged && (!draft.startsAt || new Date(draft.startsAt).getTime() <= nowMs);
+  const badDuration = !!flagged && !(draft.durationMinutes > 0);
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{t('step7Title')}</h2>
       <div className="space-y-2">
-        <Label>{t('startsAtLabel')}</Label>
+        <Label htmlFor="event-starts-at">{t('startsAtLabel')}</Label>
         <Input
+          id="event-starts-at"
           type="datetime-local"
+          aria-invalid={badStart || undefined}
+          aria-describedby={badStart ? 'event-starts-at-error' : undefined}
           value={toLocalInput(draft.startsAt)}
           onChange={(e) => patch({ startsAt: fromLocalInput(e.target.value) })}
         />
+        <FieldError id="event-starts-at-error" show={badStart} />
       </div>
       <div className="space-y-2">
-        <Label>{t('durationLabel')}</Label>
+        <Label htmlFor="event-duration">{t('durationLabel')}</Label>
         <Input
+          id="event-duration"
           type="number"
+          aria-invalid={badDuration || undefined}
+          aria-describedby={badDuration ? 'event-duration-error' : undefined}
           value={draft.durationMinutes}
           onChange={(e) => patch({ durationMinutes: Number(e.target.value) || 0 })}
         />
+        <FieldError id="event-duration-error" show={badDuration} />
       </div>
       <div className="flex items-center justify-between">
         <Label>{t('recurringToggle')}</Label>

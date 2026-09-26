@@ -10,6 +10,8 @@ export * from './chat-preview';
 export * from './notification-route';
 export * from './geocode-query';
 export * from './event-wizard';
+export * from './event-wizard-steps';
+export * from './event-scoring';
 export * from './match-view';
 export * from './passwordRules';
 export * from './badges';

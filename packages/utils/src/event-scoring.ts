@@ -1,5 +1,3 @@
-import type { ScoringMode } from '@padel/api';
-
 /** Decision 9 / UX-CEVT-05: the point presets, with 32 selected when Points is chosen. */
 export const POINTS_PRESETS = [8, 11, 16, 21, 24, 32, 40] as const;
 export const DEFAULT_POINTS = 32;
@@ -13,7 +11,7 @@ export const MINUTES_MIN = 1;
 export const MINUTES_MAX = 90;
 
 /** The value a mode starts with when its card is selected (B16: was 24 points / 15 minutes). */
-export function scoringDefault(mode: ScoringMode): number | null {
+export function scoringDefault(mode: string): number | null {
   if (mode === 'points') return DEFAULT_POINTS;
   if (mode === 'time') return DEFAULT_MINUTES;
   return null;

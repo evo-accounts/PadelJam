@@ -9,7 +9,7 @@ import {
 
 import { colors, radius, space } from '../../../theme';
 import { Text } from '../../ui';
-import { minutesAt } from './scoring';
+import { minutesAt } from '@padel/utils';
 
 const THUMB = 28;
 const TRACK = 6;

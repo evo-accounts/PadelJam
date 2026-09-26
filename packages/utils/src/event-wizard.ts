@@ -1,3 +1,5 @@
+import { CUSTOM_POINTS_MAX, CUSTOM_POINTS_MIN, MINUTES_MAX, MINUTES_MIN } from './event-scoring';
+
 export interface WizardSeries {
   dayOfWeek: number;
   startTime: string;
@@ -64,9 +66,15 @@ export const stepIsValid: StepGates = {
   1: () => true,
   2: (d) => Boolean(d.eventType),
   3: (d) => Boolean(d.specification),
-  4: (d) =>
-    Boolean(d.scoringMode) &&
-    (d.scoringMode === 'classic' || (d.scoringValue != null && d.scoringValue > 0)),
+  4: (d) => {
+    if (!d.scoringMode) return false;
+    if (d.scoringMode === 'classic') return true;
+    // Decision 9: Points take 1–99 (presets or Custom), Time the slider's 1–90 minutes.
+    const [min, max] =
+      d.scoringMode === 'points' ? [CUSTOM_POINTS_MIN, CUSTOM_POINTS_MAX] : [MINUTES_MIN, MINUTES_MAX];
+    const v = d.scoringValue;
+    return v != null && Number.isInteger(v) && v >= min && v <= max;
+  },
   5: () => true,
   6: (d) => d.numCourts >= 1,
   7: (d, nowMs) =>

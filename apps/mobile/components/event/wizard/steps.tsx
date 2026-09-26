@@ -1,5 +1,5 @@
 import type { WizardStep } from './draft';
-import type { StepKey } from './visibleSteps';
+import type { StepKey } from '@padel/utils';
 import {
   validateStep1,
   validateStep10,

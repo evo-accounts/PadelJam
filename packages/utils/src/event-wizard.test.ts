@@ -24,6 +24,14 @@ describe('stepIsValid', () => {
     expect(stepIsValid[4](full({ scoringMode: 'points', scoringValue: 0 }), 0)).toBe(false);
     expect(stepIsValid[4](full({ scoringMode: 'classic', scoringValue: null }), 0)).toBe(true);
   });
+  it('step4 keeps Points to 1–99 and Time to 1–90 minutes (decision 9)', () => {
+    expect(stepIsValid[4](full({ scoringMode: 'points', scoringValue: 99 }), 0)).toBe(true);
+    expect(stepIsValid[4](full({ scoringMode: 'points', scoringValue: 100 }), 0)).toBe(false);
+    expect(stepIsValid[4](full({ scoringMode: 'points', scoringValue: 2.5 }), 0)).toBe(false);
+    expect(stepIsValid[4](full({ scoringMode: 'time', scoringValue: 90 }), 0)).toBe(true);
+    expect(stepIsValid[4](full({ scoringMode: 'time', scoringValue: 91 }), 0)).toBe(false);
+    expect(stepIsValid[4](full({ scoringMode: 'time', scoringValue: null }), 0)).toBe(false);
+  });
   it('step7 requires a future start', () => {
     expect(stepIsValid[7](full({ startsAt: new Date(100 * HOUR).toISOString() }), 50 * HOUR)).toBe(true);
     expect(stepIsValid[7](full({ startsAt: new Date(10 * HOUR).toISOString() }), 50 * HOUR)).toBe(false);

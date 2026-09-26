@@ -1,7 +1,7 @@
 import { type CreateEventInput, useCommunityMembers, useCreateEvent } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { geocodeQuery } from '@padel/utils';
+import { geocodeQuery, skipsInvite } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import {
@@ -15,7 +15,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
-import { skipsInvite } from '@/components/event/wizard/visibleSteps';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -180,6 +179,8 @@ function CreateEventWizard() {
   // validates too before it finalises — with Invite players skipped, that is Details,
   // whose name is required.
   const onPrimary = () => {
+    // A double tap on Next would otherwise answer (or submit) the step it just opened.
+    if (Date.now() - lastAdvanceAt.current < ADVANCE_GUARD_MS) return;
     const failing = step.validate(draft);
     if (failing.length) {
       setStepErrors(failing);
@@ -188,6 +189,7 @@ function CreateEventWizard() {
     }
     setStepErrors([]);
     if (isLast) {
+      lastAdvanceAt.current = Date.now();
       void finalize();
       return;
     }

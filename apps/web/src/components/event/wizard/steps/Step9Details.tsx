@@ -4,6 +4,7 @@ import { useT } from '@padel/i18n';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { FieldError } from '../FieldError';
 import type { StepProps } from '../types';
 
 type Step9Props = StepProps & {
@@ -11,8 +12,9 @@ type Step9Props = StepProps & {
   thumbFile: File | null;
 };
 
-export function Step9Details({ draft, patch, onThumbnail, thumbFile }: Step9Props) {
+export function Step9Details({ draft, patch, flagged, onThumbnail, thumbFile }: Step9Props) {
   const { t } = useT('event');
+  const badName = !!flagged && draft.name.trim().length === 0;
   const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,15 +29,18 @@ export function Step9Details({ draft, patch, onThumbnail, thumbFile }: Step9Prop
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{t('step9Title')}</h2>
       <div className="space-y-2">
-        <Label>{t('nameLabel')}</Label>
+        <Label htmlFor="event-name">{t('nameLabel')}</Label>
         <Input
+          id="event-name"
           maxLength={80}
+          aria-invalid={badName || undefined}
+          aria-describedby={badName ? 'event-name-error' : undefined}
           placeholder={t('namePlaceholder')}
           value={draft.name}
           onChange={(e) => patch({ name: e.target.value })}
         />
+        <FieldError id="event-name-error" show={badName} />
       </div>
       <div className="space-y-2">
         <Label>{t('descriptionLabel')}</Label>

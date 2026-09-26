@@ -15,7 +15,7 @@ import {
   type StepKey,
   stepProgress,
   visibleStepKeys,
-} from './visibleSteps';
+} from '@padel/utils';
 
 type CreateEventContextValue = {
   draft: EventDraft;

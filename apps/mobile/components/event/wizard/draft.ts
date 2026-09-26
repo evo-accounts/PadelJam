@@ -9,7 +9,7 @@ import type React from 'react';
 
 import type { PickedImage } from '@/lib/storage';
 
-import type { StepKey } from './visibleSteps';
+import type { StepKey } from '@padel/utils';
 
 export type EventInvitee = {
   invitee_id?: string;
