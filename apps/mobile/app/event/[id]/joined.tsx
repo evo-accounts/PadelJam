@@ -2,10 +2,14 @@
  * "You are in" (UX-JEVT-03): shown full screen after accepting an invitation or joining with a
  * confirmed spot. Add to calendar opens the OS event editor; Close returns to the event page,
  * which now shows the "You are going" banner.
+ *
+ * On a team event (UX-JEVT-10, after choosing a partner or accepting a partner request) it is the
+ * "You are going" variant and shows the partner's photo and name — a guest partner included.
  */
-import { useEvent } from '@padel/api';
-import { eventPlace, mapsQuery } from '@padel/utils';
+import { useEvent, useEventTeams } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
+import { eventPlace, mapsQuery } from '@padel/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -13,9 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { addToCalendar } from '@/lib/eventCalendar';
 import { eventSubtitle } from '@/lib/eventFormat';
+import { teamPartnerOf } from '@/lib/eventPartners';
+import { avatarUrl } from '@/lib/community-images';
 import { EventThumb } from '../../../components/event/EventThumb';
 import { colors, space } from '../../../theme';
-import { Button, Text, useBanner } from '../../../components/ui';
+import { Avatar, Badge, Button, Text, useBanner } from '../../../components/ui';
 
 export default function EventJoinedScreen() {
   const { t, i18n } = useT('event');
@@ -23,6 +29,10 @@ export default function EventJoinedScreen() {
   const banner = useBanner();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: event } = useEvent(id);
+  const uid = useSession().session?.user.id;
+  const isTeam = event?.specification === 'team';
+  const { data: teams } = useEventTeams(id);
+  const partner = isTeam ? teamPartnerOf(teams ?? [], uid) : null;
   const [calendarBusy, setCalendarBusy] = useState(false);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace(`/event/${id}` as never));
@@ -47,8 +57,23 @@ export default function EventJoinedScreen() {
       <View style={styles.body}>
         <EventThumb path={event?.thumbnail_path} shape="hero" style={styles.image} />
         <Text variant="display" style={styles.center} accessibilityRole="header" testID="event-joined-title">
-          {t('youAreInTitle')}
+          {isTeam ? t('goingBanner') : t('youAreInTitle')}
         </Text>
+        {partner ? (
+          // Not an `accessible` group: its Texts are read one by one (the M4a lesson — accessible
+          // non-button Views turn later screens' Buttons into AXGenericElement in E2E).
+          <View style={styles.partner}>
+            <Avatar
+              uri={avatarUrl(partner.avatarPath)}
+              name={partner.name}
+              colourKey={partner.key}
+              size="lg"
+              decorative
+            />
+            <Text variant="bodyStrong">{partner.name ?? '—'}</Text>
+            {partner.guest ? <Badge label={t('guestTag')} /> : null}
+          </View>
+        ) : null}
         {event ? (
           <>
             <Text variant="heading" style={styles.center}>
@@ -73,5 +98,6 @@ const styles = StyleSheet.create({
   body: { flex: 1, justifyContent: 'center', paddingHorizontal: space[6], gap: space[3] },
   image: { alignSelf: 'stretch', marginBottom: space[4] },
   center: { textAlign: 'center' },
+  partner: { alignItems: 'center', gap: space[2], marginVertical: space[2] },
   actions: { paddingHorizontal: space[4], paddingBottom: space[4], gap: space[2] },
 });

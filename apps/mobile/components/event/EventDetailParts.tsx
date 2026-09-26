@@ -136,10 +136,22 @@ export function LocationCard({ place, onPress }: { place: EventPlace; onPress: (
   );
 }
 
-/** The strip under the header: "You are going", stand-by, or the waiting-list explanation. */
+/**
+ * The strip under the header: "You are going", stand-by, the waiting-list explanation, or — for a
+ * team-event player looking for a partner — "You are interested" (UX-JEVT-13).
+ */
 export function StateBanner({ state }: { state: Exclude<BannerState, null> }) {
   const { t } = useT('event');
   const waiting = state === 'waiting_list';
+  // Literal keys, so scripts/check-i18n-keys.mjs can see every one of them.
+  const title =
+    state === 'going'
+      ? t('goingBanner')
+      : state === 'standby'
+        ? t('standbyBadge')
+        : state === 'interested'
+          ? t('interestedBanner')
+          : t('waitlistBannerTitle');
   return (
     // A plain View whose Texts are read one by one — deliberately NOT `accessible` with a role.
     // On #210's E2E runs, after this page unmounted, the NEXT screen's buttons (sign-in's
@@ -148,10 +160,14 @@ export function StateBanner({ state }: { state: Exclude<BannerState, null> }) {
     // between screens, and the suspected source is the one thing new on this page: accessible,
     // non-button Views (this banner with role "summary", the widgets, the inviter row) — the old
     // page had none. Keeping them non-accessible keeps that pool clean.
-    <View style={[styles.banner, waiting ? styles.bannerWaiting : styles.bannerGoing]} testID={`event-banner-${state}`}>
-      <Text variant="bodyStrong">
-        {state === 'going' ? t('goingBanner') : state === 'standby' ? t('standbyBadge') : t('waitlistBannerTitle')}
-      </Text>
+    <View
+      style={[
+        styles.banner,
+        waiting ? styles.bannerWaiting : state === 'interested' ? styles.bannerInterested : styles.bannerGoing,
+      ]}
+      testID={`event-banner-${state}`}
+    >
+      <Text variant="bodyStrong">{title}</Text>
       {waiting ? (
         <Text variant="caption" tone="muted" style={styles.bannerBody}>
           {t('waitlistBannerBody')}
@@ -221,6 +237,7 @@ const styles = StyleSheet.create({
   banner: { marginHorizontal: space[4], marginTop: space[2], padding: space[3], borderRadius: radius.xl },
   bannerGoing: { backgroundColor: palette.green[100] },
   bannerWaiting: { backgroundColor: palette.yellow[100] },
+  bannerInterested: { backgroundColor: palette.purple[100] },
   bannerBody: { marginTop: space[1] },
   sheetBody: { paddingHorizontal: space[2], marginBottom: space[4] },
   sheetOrganizer: { paddingHorizontal: space[2], marginBottom: space[4] },

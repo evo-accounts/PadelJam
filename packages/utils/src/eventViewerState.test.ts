@@ -59,13 +59,21 @@ describe('bottomState', () => {
     });
   });
 
-  it('routes a lone team occupant (status invited) back into the team flow', () => {
+  it('routes a lone team occupant (status invited) back to the team entry, and an interested one to Edit response', () => {
     expect(bottomState({ ...base, specification: 'team', me: { status: 'invited', is_standby: false } })).toEqual({
-      kind: 'interested',
+      kind: 'team_entry',
     });
     expect(bottomState({ ...base, specification: 'team', me: { status: 'interested', is_standby: false } })).toEqual({
       kind: 'interested',
     });
+    // Past the cut-off the lone occupant can no longer pair.
+    expect(
+      bottomState({ ...base, specification: 'team', joinClosed: true, me: { status: 'invited', is_standby: false } }),
+    ).toEqual({ kind: 'closed' });
+  });
+
+  it('offers a team event\'s Join even when every spot is taken — the pair queues together', () => {
+    expect(bottomState({ ...base, specification: 'team', full: true })).toEqual({ kind: 'team_entry' });
   });
 
   it('does not treat an unknown participant status as going', () => {
@@ -106,6 +114,13 @@ describe('bannerState', () => {
   it('explains the waiting list only while the event is still open', () => {
     expect(bannerState('scheduled', { status: 'waiting_list', is_standby: false })).toBe('waiting_list');
     expect(bannerState('completed', { status: 'waiting_list', is_standby: false })).toBeNull();
+  });
+
+  it('says "You are interested" to a player looking for a partner (UX-JEVT-13)', () => {
+    expect(bannerState('scheduled', { status: 'interested', is_standby: false })).toBe('interested');
+    expect(bannerState('completed', { status: 'interested', is_standby: false })).toBeNull();
+    // A lone occupant whose partner left holds nothing: no banner, the team entry state instead.
+    expect(bannerState('scheduled', { status: 'invited', is_standby: false })).toBeNull();
   });
 
   it('shows nothing to an outsider or on a cancelled event', () => {

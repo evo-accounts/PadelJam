@@ -3,11 +3,17 @@
  * bottom area change with the viewer's state (see `@padel/utils` eventViewerState for the table).
  *
  *   header      back · ⋯ (Share, Add to calendar, Leave event)
- *   banner      You are going / stand-by / waiting list
+ *   banner      You are going / stand-by / waiting list / interested
  *   body        image, name + date · time · place, Players card, type + group badges,
  *               description, Courts / Scoring / Fee, Organizer card, Location card
  *   bottom      invited · join (+ countdown) · full · waiting list (+ Confirm spot when one is
- *               free — decision 4) · closed · organizer actions
+ *               free — decision 4) · closed · organizer actions · team entry (Join → the Team Event
+ *               sheet, UX-JEVT-09) · interested (Edit response, UX-JEVT-13)
+ *
+ * Team events: "Join", an invitee's "Accept" and the organizer's "Join as a player" all open the
+ * Team Event sheet — I have a partner (`have-partner`, UX-JEVT-10) or I need a partner
+ * (`need-partner`, UX-JEVT-11). Those screens do the confirming; accepting a team invitation never
+ * silently marks anyone interested (B9).
  *
  * Leaving is never in the bottom area: it lives in the ⋯ sheet, and past the 12h deadline it
  * opens the contact-the-organizer sheet instead (UX-JEVT-05).
@@ -61,6 +67,12 @@ import { openInMaps } from '@/lib/eventLocation';
 import { eventSubtitle, eventWhen } from '@/lib/eventFormat';
 import { shareEvent } from '@/lib/eventShare';
 import { PendingActionsSheet } from '../../../components/event/PendingActionsSheet';
+import {
+  EditResponseSheet,
+  TeamEventSheet,
+  type EditChoice,
+  type TeamChoice,
+} from '../../../components/event/TeamSheets';
 import { EventThumb } from '../../../components/event/EventThumb';
 import {
   InfoWidgets,
@@ -82,6 +94,7 @@ import {
   TopBar,
   useActionSheet,
   useBanner,
+  useConfirm,
 } from '../../../components/ui';
 
 /** Capitalize the first character of a raw enum value (rest left untouched). */
@@ -96,6 +109,7 @@ export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = useSession().session?.user.id;
   const showSheet = useActionSheet();
+  const confirm = useConfirm();
   const banner = useBanner();
 
   const { t: tcommon } = useT('common');
@@ -121,6 +135,8 @@ export default function EventDetailScreen() {
 
   const [busy, setBusy] = useState(false);
   const [lockedSheetOpen, setLockedSheetOpen] = useState(false);
+  const [teamSheetOpen, setTeamSheetOpen] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
   // One native calendar editor at a time: a second tap while it is opening would be rejected.
   const [calendarBusy, setCalendarBusy] = useState(false);
 
@@ -270,11 +286,17 @@ export default function EventDetailScreen() {
       const result = await joinEvent.mutateAsync({ eventId: id, groupId: event.group_id });
       if (result === 'confirmed') openJoined();
     });
-  const onAccept = () =>
-    run(async () => {
+  // A team invitation is answered by setting a team (B9): the chosen path does the confirming.
+  const onAccept = () => {
+    if (event.specification === 'team') {
+      setTeamSheetOpen(true);
+      return;
+    }
+    void run(async () => {
       const result = await acceptInvitation.mutateAsync({ eventId: id, groupId: event.group_id });
       if (result === 'confirmed') openJoined();
     });
+  };
   const onDecline = () => run(() => declineInvitation.mutateAsync());
   const onLeaveWaitlist = () => run(() => leaveWaitingList.mutateAsync());
   // spot_taken (someone confirmed first), gender_full (mixed: the free spot is in the other half)
@@ -295,6 +317,20 @@ export default function EventDetailScreen() {
       await leaveEvent.mutateAsync({ eventId: id, groupId: event.group_id });
       banner.show(t('leftToast'), 'success');
     });
+  const onTeamChoice = (c: TeamChoice) =>
+    router.push(`/event/${id}/${c === 'have' ? 'have-partner' : 'need-partner'}` as Href);
+  // UX-JEVT-13. Leave cancels every request the player sent (leave_event, 0111/0112).
+  const onEditChoice = async (c: EditChoice) => {
+    if (c !== 'leave') return onTeamChoice(c);
+    if (leaveLocked) return setLockedSheetOpen(true);
+    const ok = await confirm({
+      title: t('leaveConfirmTitle'),
+      body: t('leaveInterestedBody'),
+      confirmLabel: t('leaveConfirmCta'),
+      destructive: true,
+    });
+    if (ok) await onLeave();
+  };
   const onStart = () =>
     run(async () => {
       await startEvent.mutateAsync({
@@ -431,11 +467,18 @@ export default function EventDetailScreen() {
                   variant="outline"
                   fullWidth
                   loading={busy}
-                  onPress={
-                    event.specification === 'team'
-                      ? () => router.push(`/event/${id}/partner-requests` as Href)
-                      : onJoin
-                  }
+                  onPress={event.specification === 'team' ? () => setTeamSheetOpen(true) : onJoin}
+                />
+              ) : null}
+              {/* An organizer who plays and is still looking for a partner (UX-JEVT-13). */}
+              {me?.status === 'interested' && !joinClosed ? (
+                <Button
+                  label={t('editResponseCta')}
+                  variant="outline"
+                  fullWidth
+                  disabled={busy}
+                  onPress={() => setEditSheetOpen(true)}
+                  testID="event-edit-response"
                 />
               ) : null}
               {/* An organizer who tried to play on a full event is waiting like anyone else. */}
@@ -527,15 +570,38 @@ export default function EventDetailScreen() {
       );
       break;
     case 'team_entry':
-    case 'interested':
-      // M5 (UX-JEVT-09..14) redesigns the team flow; this only re-homes the existing entry point.
+      // UX-JEVT-09: "Join" like any event; whether you have a partner is the next question.
       bottomArea = (
-        <Button
-          label={t('teamJoinCta')}
-          fullWidth
-          disabled={busy}
-          onPress={() => router.push(`/event/${id}/partner-requests` as Href)}
-        />
+        <View style={styles.row}>
+          {showJoinCountdown(joinCutoffMs, nowMs) ? (
+            <Text variant="label" tone="primary" style={styles.flex} testID="event-join-countdown">
+              {t('joinCountdown', { time: formatCountdown(joinCutoffMs - nowMs) })}
+            </Text>
+          ) : null}
+          <Button
+            label={t('joinCta')}
+            disabled={busy}
+            onPress={() => setTeamSheetOpen(true)}
+            style={styles.flex}
+            testID="event-team-join"
+          />
+        </View>
+      );
+      break;
+    case 'interested':
+      bottomArea = (
+        <View style={styles.col}>
+          <Text variant="caption" tone="muted" style={styles.centerText}>
+            {t('interestedLine')}
+          </Text>
+          <Button
+            label={t('editResponseCta')}
+            fullWidth
+            disabled={busy}
+            onPress={() => setEditSheetOpen(true)}
+            testID="event-edit-response"
+          />
+        </View>
       );
       break;
     case 'closed':
@@ -550,8 +616,9 @@ export default function EventDetailScreen() {
       break;
   }
 
+  // A team event announces itself (UX-JEVT-09): the format badge names the team format.
   const badges = [
-    `${typeLabel} · ${specLabel}`,
+    event.specification === 'team' ? `${typeLabel} · ${t('teamFormatBadge')}` : `${typeLabel} · ${specLabel}`,
     event.group?.name ?? (event.group_id == null ? t('groupBadgeNone') : null),
   ].filter((b): b is string => b != null);
 
@@ -712,6 +779,12 @@ export default function EventDetailScreen() {
         organizer={organizer}
         onChat={onMessageOrganizer}
         chatLoading={busy}
+      />
+      <TeamEventSheet visible={teamSheetOpen} onClose={() => setTeamSheetOpen(false)} onChoose={onTeamChoice} />
+      <EditResponseSheet
+        visible={editSheetOpen}
+        onClose={() => setEditSheetOpen(false)}
+        onChoose={(c) => void onEditChoice(c)}
       />
     </SafeAreaView>
   );

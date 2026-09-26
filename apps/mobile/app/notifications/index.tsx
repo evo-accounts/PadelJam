@@ -13,10 +13,10 @@ import { notificationRoute } from '@padel/utils';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, StyleSheet } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGoBack } from '@/lib/useGoBack';
-import { colors } from '../../theme';
+import { colors, space } from '../../theme';
 import {
   Button,
   EmptyState,
@@ -109,8 +109,12 @@ export default function NotificationsScreen() {
         <ListRow
           variant="card"
           title={t('partnerRequests')}
+          // UX-JEVT-12: the pending count and a chevron — this row opens the Partner Requests list.
           trailing={
-            <Text variant="hint" tone="muted">{t('pendingCount', { count: pending })}</Text>
+            <View style={styles.pendingTrailing}>
+              <Text variant="hint" tone="muted">{t('pendingCount', { count: pending })}</Text>
+              <Text variant="body" tone="muted">›</Text>
+            </View>
           }
           trailingLabel={t('pendingCount', { count: pending })}
           onPress={() => router.push('/notifications/partner-requests' as never)}
@@ -194,4 +198,5 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  pendingTrailing: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
 });
