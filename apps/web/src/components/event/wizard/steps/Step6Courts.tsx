@@ -1,7 +1,8 @@
 'use client';
+import { useEffect } from 'react';
 import { useT } from '@padel/i18n';
 import { useVenueCourts } from '@padel/api';
-import { eventCapacity } from '@padel/utils';
+import { COURTS_MAX, eventCapacity } from '@padel/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,15 @@ export function Step6Courts({ draft, patch, flagged }: StepProps) {
   const selection: Selection = draft.courtIds ? 'select' : 'count';
   const hasCourtList = !!draft.venueId && venueCourts.length > 0;
   const errors = flagged ? courtsErrors(draft) : [];
+
+  // With no court list on screen (the query failed, or the venue has no courts) a selection left
+  // over from "Select courts" could not be seen or fixed, yet would fail validation — drop it.
+  const listSettled = !draft.venueId || courts.isSuccess || courts.isError;
+  const staleSelection = listSettled && !hasCourtList && draft.courtIds !== undefined;
+  useEffect(() => {
+    if (staleSelection) patch({ courtIds: undefined });
+  }, [staleSelection, patch]);
+  const atCap = (draft.courtIds?.length ?? 0) >= COURTS_MAX;
 
   const counter = (
     <CourtCounter
@@ -85,6 +95,8 @@ export function Step6Courts({ draft, patch, flagged }: StepProps) {
                   <input
                     type="checkbox"
                     className="size-4 shrink-0 accent-primary"
+                    // Ticking more than 20 courts is not allowed; the ticked ones can still be unticked.
+                    disabled={atCap && !draft.courtIds?.includes(c.id)}
                     checked={draft.courtIds?.includes(c.id) ?? false}
                     onChange={() => patch(toggleCourt(draft, c.id))}
                     data-testid={`venue-court-${c.id}`}

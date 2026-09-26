@@ -35,10 +35,27 @@ import type { StepProps } from '../types';
  * Not a map search and no geolocation.
  */
 export function Step5Location(props: StepProps) {
-  return props.draft.locationMode === 'manual' ? <ManualVenueForm {...props} /> : <VenueList {...props} />;
+  const manual = props.draft.locationMode === 'manual';
+  // Switching between the list and the manual form happens inside the step, so the wizard's
+  // step-change focus (to the heading) does not fire: the newly shown view takes focus itself —
+  // the form its first field, the list its search. Not on the step's first render, where the
+  // heading has it.
+  const [prevManual, setPrevManual] = useState(manual);
+  const [switched, setSwitched] = useState(false);
+  if (manual !== prevManual) {
+    setPrevManual(manual);
+    setSwitched(true);
+  }
+  return manual ? (
+    <ManualVenueForm {...props} focusOnMount={switched} />
+  ) : (
+    <VenueList {...props} focusOnMount={switched} />
+  );
 }
 
-function VenueList({ draft, patch, advance }: StepProps) {
+type ViewProps = StepProps & { focusOnMount: boolean };
+
+function VenueList({ draft, patch, advance, focusOnMount }: ViewProps) {
   const { t } = useT('event');
   const [query, setQuery] = useState('');
   const term = useDeferredValue(query.trim());
@@ -126,6 +143,7 @@ function VenueList({ draft, patch, advance }: StepProps) {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('venueSearchPlaceholder')}
           aria-label={t('venueSearchPlaceholder')}
+          autoFocus={focusOnMount}
           className="pl-9"
           data-testid="venue-search"
         />
@@ -145,7 +163,7 @@ function VenueList({ draft, patch, advance }: StepProps) {
   );
 }
 
-function ManualVenueForm({ draft, patch, flagged }: StepProps) {
+function ManualVenueForm({ draft, patch, flagged, focusOnMount }: ViewProps) {
   const { t } = useT('event');
   const errors = flagged ? locationErrors(draft) : [];
   const badAddress = errors.includes('manualLocationAddress');
@@ -158,6 +176,7 @@ function ManualVenueForm({ draft, patch, flagged }: StepProps) {
         <Label htmlFor="manual-venue-name">{t('manualVenueNameLabel')}</Label>
         <Input
           id="manual-venue-name"
+          autoFocus={focusOnMount}
           value={draft.manualLocationName ?? ''}
           onChange={(e) => patch({ manualLocationName: e.target.value })}
           placeholder={t('locationNamePlaceholder')}

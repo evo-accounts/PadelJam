@@ -98,9 +98,13 @@ export function manualCourtNamesPayload(
 
 // --- Courts (UX-CEVT-07) ------------------------------------------------------------------------
 
-/** Ticking a court adds it, unticking removes it; the court count is the number ticked (min 1). */
+/**
+ * Ticking a court adds it, unticking removes it; the court count is the number ticked (min 1).
+ * At most COURTS_MAX can be ticked — beyond it the count would be invalid with nothing to show why.
+ */
 export function toggleCourt(d: WebWizardDraft, courtId: string): Partial<WebWizardDraft> {
   const current = d.courtIds ?? [];
+  if (!current.includes(courtId) && current.length >= COURTS_MAX) return {};
   const courtIds = current.includes(courtId)
     ? current.filter((id) => id !== courtId)
     : [...current, courtId];

@@ -127,8 +127,11 @@ export default function EventCreatePage() {
   const moved = useRef(false);
 
   // The sticky bottom bar would sit under a toast; lift toasts clear of it while the wizard is open.
-  // Date's bar also carries the summary box, so it stands taller.
-  useLiftToasts(key === 'date' ? 176 : 72);
+  // Its height varies (Date's bar also carries the summary, which grows when the event repeats),
+  // so it is measured rather than assumed.
+  const bottomBar = useRef<HTMLDivElement>(null);
+  const [barHeight, setBarHeight] = useState(0);
+  useLiftToasts(barHeight > 0 ? barHeight + 8 : 0);
 
   // After a step change, focus moves to the new step's title, so keyboard and screen-reader users
   // start at the top of the step instead of on a control that no longer exists.
@@ -143,6 +146,20 @@ export default function EventCreatePage() {
   const isLast = visible[visible.length - 1] === key;
   const isTap = isTapStep(key, draft);
   const Footer = FOOTERS[key];
+  const hasBottomBar = !isTap || !!Footer;
+
+  useEffect(() => {
+    const el = bottomBar.current;
+    if (!hasBottomBar || !el) {
+      setBarHeight(0);
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setBarHeight(Math.round(entry.borderBoxSize[0]?.blockSize ?? el.offsetHeight));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasBottomBar]);
 
   // `flagged` stays on while the step is open: each field shows its error only while it is still
   // wrong, so fixing one clears its mark without hiding the others.
@@ -278,8 +295,8 @@ export default function EventCreatePage() {
         primary button; a tap step has none unless it brings its own area (Group's "Continue
         without group"). There is no Back button — going back is the header arrow.
       */}
-      {!isTap || Footer ? (
-        <div className="sticky bottom-0 border-t bg-background px-4 py-3 sm:px-6">
+      {hasBottomBar ? (
+        <div ref={bottomBar} className="sticky bottom-0 border-t bg-background px-4 py-3 sm:px-6">
           {isTap && Footer ? (
             <Footer {...stepProps} />
           ) : (
