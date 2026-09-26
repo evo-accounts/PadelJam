@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { keyboardTop, query, queryAll, snapshot, type AxElement } from '../driver/a11y';
-import { clearText, dismissKeyboard, pressReturn, scrollUntilVisible, swipe, tap, typeText } from '../driver/actions';
+import { clearText, dismissKeyboard, pressReturn, scrollUntilVisible, swipe, tap, toggleSwitch, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { loginAs, tabTo } from '../driver/flows';
@@ -211,11 +211,13 @@ describe('05 event create wizard', () => {
     // (A Text's testID never reaches the tree — match the copy.)
     await expectVisible({ text: /independent events are always private/i });
     // Stand-by opens an extra spots counter at 4 (decision 9).
-    await tap({ id: 'pref-standby-switch' });
+    await toggleSwitch({ id: 'pref-standby-switch' });
     await expectVisible({ text: /increase extra spots/i, type: 'Button' }, { timeout: 5_000 });
     expect(query(await snapshot(), { text: /^4$/ }), 'extra spots default to 4').toBeDefined();
+    // RN's Switch is an unlabelled CheckBox; a centre tap does not always actuate it, so
+    // toggleSwitch retries until its value flips.
     // The fee opens payment tabs + amount; MB WAY adds the number field.
-    await tap({ id: 'pref-fee-switch' });
+    await toggleSwitch({ id: 'pref-fee-switch' });
     await expectVisible({ text: /^cash$/i, type: 'Button' }, { timeout: 5_000 });
     await expectVisible({ text: /^at club$/i, type: 'Button' });
     await tap({ text: /^mb way$/i, type: 'Button' });
@@ -226,7 +228,7 @@ describe('05 event create wizard', () => {
     await sleep(900);
     await onStep(/^preferences$/i, 2_000);
     await scrollUntilVisible({ id: 'pref-fee-switch' }, { direction: 'up', maxSwipes: 5 });
-    await tap({ id: 'pref-fee-switch' });
+    await toggleSwitch({ id: 'pref-fee-switch' });
     await sleep(300);
     expect(query(await snapshot(), { id: 'pref-fee-amount' }), 'fee off: its fields go').toBeUndefined();
     await scrollUntilVisible({ text: /^organizing and playing/i }, { maxSwipes: 5 });
