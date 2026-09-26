@@ -125,8 +125,9 @@ function CapacityLine({ draft }: Pick<WizardStepProps, 'draft'>) {
   const standby = draft.allowStandby ? (draft.standbySpots ?? 0) : 0;
   const { players, perGender } = eventCapacity(draft.numCourts, draft.specification, standby);
   return (
-    <View style={styles.capacity} testID="courts-capacity" accessible>
-      <Text variant="label">{t('capacityPlayers', { count: players })}</Text>
+    // Plain View, each line its own element (see InfoNote on accessible grouping Views).
+    <View style={styles.capacity}>
+      <Text variant="label" testID="courts-capacity">{t('capacityPlayers', { count: players })}</Text>
       {perGender != null ? (
         <Text variant="caption" tone="muted">
           {t('capacityMixed', { count: perGender })}

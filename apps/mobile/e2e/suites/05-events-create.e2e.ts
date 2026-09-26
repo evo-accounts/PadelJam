@@ -126,6 +126,10 @@ describe('05 event create wizard', () => {
   it('a search with no hits says "Location not found" and offers the manual form', async () => {
     await typeText({ id: 'venue-search' }, 'zzqxnowhere');
     await expectVisible({ text: /location not found/i }, { timeout: 10_000 });
+    // With the keyboard up, the fixed "no location" footer rides above it and covers the empty
+    // state's button (run 36230787990: the tap landed on the footer). Put the keyboard away first.
+    await dismissKeyboard();
+    await scrollUntilVisible({ text: /^add manually$/i, type: 'Button' }, { maxSwipes: 3 });
     await tap({ text: /^add manually$/i, type: 'Button' });
     // The manual venue form: its note, its fields, and a Next that wants an address.
     await expectVisible({ text: /this event only/i }, { timeout: 5_000 });

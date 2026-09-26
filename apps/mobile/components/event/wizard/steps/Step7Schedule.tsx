@@ -203,11 +203,12 @@ export function DateSummaryFooter({ draft }: WizardStepProps) {
   const next = start && draft.series ? nextWeekly(start) : null;
 
   return (
-    <View style={styles.summary} accessible testID="date-summary">
+    // Plain View, each line its own element (see InfoNote on accessible grouping Views).
+    <View style={styles.summary}>
       <Text variant="label" tone="muted">
         {t('summaryTitle')}
       </Text>
-      <Text variant="bodyStrong">
+      <Text variant="bodyStrong" testID="date-summary">
         {start ? formatEventWhen(start, draft.durationMinutes, locale) : t('summaryPickTime')}
       </Text>
       {next && draft.series ? (

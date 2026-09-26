@@ -11,7 +11,9 @@ import { Text } from '../../ui';
  */
 export function InfoNote({ text, testID }: { text: string; testID?: string }) {
   return (
-    <View style={styles.box} accessible accessibilityLabel={text} testID={testID}>
+    // Deliberately NOT an `accessible` grouping View: non-button accessible Views have left later
+    // screens' buttons reporting as AXGenericElement in the E2E tree. The Text is the element.
+    <View style={styles.box}>
       <SymbolView
         name={{ ios: 'info.circle', android: 'info', web: 'info' } as never}
         size={18}
@@ -19,7 +21,7 @@ export function InfoNote({ text, testID }: { text: string; testID?: string }) {
         accessibilityElementsHidden
         importantForAccessibility="no"
       />
-      <Text variant="caption" tone="default" style={styles.text}>
+      <Text variant="caption" tone="default" style={styles.text} testID={testID}>
         {text}
       </Text>
     </View>

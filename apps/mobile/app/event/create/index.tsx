@@ -233,6 +233,8 @@ function CreateEventWizard() {
           style={styles.flex}
           contentContainerStyle={styles.inner}
           keyboardShouldPersistTaps="handled"
+          // The fixed footer rides up with the keyboard; dragging the list puts both away.
+          keyboardDismissMode="on-drag"
         >
           {/* One title for every step, naming what is being set (UX-CEVT-01). */}
           <Text variant="title" tone="default" accessibilityRole="header" style={styles.title}>
