@@ -26,6 +26,11 @@ type Props<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   disabled?: boolean;
+  /**
+   * Keep each label on one line, shrinking it (to 75%) rather than wrapping. For labels that carry
+   * counts and can outgrow a narrow segment on a small phone (the event Player list's tabs).
+   */
+  singleLine?: boolean;
   /** LAYOUT only — margins and alignment. */
   style?: ViewStyle;
   testID?: string;
@@ -36,6 +41,7 @@ export function Segmented<T extends string>({
   value,
   onChange,
   disabled = false,
+  singleLine = false,
   style,
   testID,
 }: Props<T>) {
@@ -53,7 +59,14 @@ export function Segmented<T extends string>({
             accessibilityState={{ selected, disabled }}
             testID={testID ? `${testID}-${option.value}` : undefined}
           >
-            <Text variant="label">{option.label}</Text>
+            <Text
+              variant="label"
+              numberOfLines={singleLine ? 1 : undefined}
+              adjustsFontSizeToFit={singleLine}
+              minimumFontScale={singleLine ? 0.75 : undefined}
+            >
+              {option.label}
+            </Text>
           </Pressable>
         );
       })}

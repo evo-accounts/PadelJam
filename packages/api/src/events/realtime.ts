@@ -29,10 +29,18 @@ export const useEventRealtime = (eventId: string, { enabled = true }: { enabled?
       // A player leaving (leave_event, leave_waiting_list, an organizer removal) DELETEs their row,
       // and a filtered subscription never delivers DELETEs (see partner_requests below). Without
       // this a freed spot would not reach the waiting list's "Confirm spot" (decision 4).
+      //
+      // Unfiltered, it fires for a deletion on ANY event, so it is narrowed client-side: the old
+      // record carries the primary key (event_participants keeps REPLICA IDENTITY default), and a
+      // row that is not in this event's cached roster is someone else's event — nothing to refetch.
+      // With no cached roster we cannot tell, so we refetch.
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'event_participants' },
-        () => {
+        (payload) => {
+          const deletedId = (payload.old as { id?: string } | null)?.id;
+          const cached = qc.getQueryData<{ id: string }[]>(qk.eventParticipants(eventId));
+          if (cached && deletedId && !cached.some((p) => p.id === deletedId)) return;
           qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
           qc.invalidateQueries({ queryKey: qk.event(eventId) });
         },

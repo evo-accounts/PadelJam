@@ -53,7 +53,11 @@ export default function EventPlayersScreen() {
   const options = [
     { value: 'confirmed' as const, label: t('playersTabConfirmed', { n: tabs.confirmed.length, capacity }) },
     ...(hasWaiting ? [{ value: 'waiting' as const, label: t('playersTabWaiting', { n: tabs.waitingCount }) }] : []),
-    { value: 'invited' as const, label: t('playersTabInvited', { n: tabs.invited.length }) },
+    {
+      value: 'invited' as const,
+      // No count until the list has loaded: "Invited (0)" would claim nobody is invited.
+      label: invited.data ? t('playersTabInvited', { n: tabs.invited.length }) : t('playersTabInvitedPlain'),
+    },
   ];
 
   const renderRow = (p: PlayerRow) => {
@@ -119,7 +123,7 @@ export default function EventPlayersScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TopBar onBack={goBack} backLabel={t('back')} title={t('playersListTitle')} />
       <View style={styles.head}>
-        <Segmented options={options} value={tab} onChange={setPicked} />
+        <Segmented options={options} value={tab} onChange={setPicked} singleLine />
       </View>
       <ScrollView contentContainerStyle={[styles.content, empty && listEmptyContent]}>{body}</ScrollView>
     </SafeAreaView>

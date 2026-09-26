@@ -34,8 +34,10 @@ export default function EventsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<MyEventsFilter>('all');
-  const [includePast, setIncludePast] = useStoredFlag('events.showPast', false);
-  const query = useMyEvents(filter, includePast);
+  const [includePast, setIncludePast, pastHydrated] = useStoredFlag('events.showPast', false);
+  // Wait for the remembered toggle: fetching with the default first would load (and flash) the
+  // wrong list for anyone who left it on.
+  const query = useMyEvents(filter, includePast, { enabled: pastHydrated });
   const { data: statuses } = useMyEventStatuses();
   const rows = query.data?.pages.flat() ?? [];
 
@@ -48,7 +50,12 @@ export default function EventsScreen() {
 
   const findEvents = { label: t('eventsEmptyCta'), onPress: () => router.push('/(tabs)/explore?tab=events' as never) };
   const empty = {
-    all: { icon: 'calendar', title: t('empty'), body: t('eventsEmptyBody'), action: findEvents },
+    all: {
+      icon: 'calendar',
+      title: includePast ? t('emptyWithPast') : t('empty'),
+      body: t('eventsEmptyBody'),
+      action: findEvents,
+    },
     organizing: {
       icon: 'calendar',
       title: t('emptyOrganizing'),
@@ -76,7 +83,7 @@ export default function EventsScreen() {
           onChange={setFilter}
         />
       </View>
-      {query.isLoading ? (
+      {query.isLoading || !pastHydrated ? (
         <ActivityIndicator color={colors.foreground} style={styles.state} />
       ) : (
         <FlashList

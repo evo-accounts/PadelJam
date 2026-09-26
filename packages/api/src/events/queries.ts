@@ -369,12 +369,16 @@ export const useEventPartnerCandidates = (eventId: string) => {
 export type MyEventsFilter = 'all' | 'organizing' | 'going' | 'pending';
 const MY_EVENTS_PAGE_SIZE = 20;
 
-export const useMyEvents = (filter: MyEventsFilter, includePast = false) => {
+export const useMyEvents = (
+  filter: MyEventsFilter,
+  includePast = false,
+  { enabled = true }: { enabled?: boolean } = {},
+) => {
   const db = useDb();
   const uid = useSession().session?.user.id;
   return useInfiniteQuery({
     queryKey: qk.myEvents(filter, includePast),
-    enabled: !!uid,
+    enabled: !!uid && enabled,
     initialPageParam: 0,
     queryFn: async ({ pageParam: offset }) => {
       // p_include_past is sent only when set: a build that always sends it cannot find the

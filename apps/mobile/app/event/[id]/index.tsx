@@ -279,9 +279,15 @@ export default function EventDetailScreen() {
   const onLeaveWaitlist = () => run(() => leaveWaitingList.mutateAsync());
   // spot_taken (someone confirmed first), gender_full (mixed: the free spot is in the other half)
   // and use_team_join (a team waiter whose pair broke up) come back as banners via `fail`.
+  // On a claim, use_team_join means the viewer's waiting partner is gone (only a pair claims a
+  // team spot), so say that rather than the generic "join via your team".
   const onClaim = () =>
     run(async () => {
-      await claimWaitlistSpot.mutateAsync();
+      try {
+        await claimWaitlistSpot.mutateAsync();
+      } catch (e) {
+        throw e instanceof Error && e.message === 'use_team_join' ? new Error('claimPartnerLeft') : e;
+      }
       openJoined();
     });
   const onLeave = () =>

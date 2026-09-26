@@ -116,6 +116,11 @@ export type ClaimParticipant = {
  *   else  — one free spot.
  * Free spots are the total capacity (regular + stand-by) minus every confirmed row, as the server
  * counts them. The server still decides: a lost race answers spot_taken / gender_full.
+ *
+ * Blind spot on mixed events: the roster reaches the client through RLS, so a player the viewer
+ * has blocked (or is blocked by) may be missing, or arrive without a readable gender. Their row
+ * then does not count toward a half here, and the button can show when that half is in fact full.
+ * That is acceptable: the server counts every row and answers gender_full, shown as a banner.
  */
 export function canClaimWaitlistSpot(
   specification: string,

@@ -149,7 +149,10 @@ describe('04 event detail & membership', () => {
     // Set the scene in the database, then open the event: alex back on E9's list, and one
     // confirmed player gone. Nobody is confirmed automatically — the waiter has to claim it.
     await psql(
-      `delete from event_participants where event_id = '${m.events.e9}' and user_id = '${m.users.rita}';` +
+      // Both rows go first: alex left the list in the previous test, but if that test failed
+      // half-way his row is still there and the insert would hit the (event, user) unique key.
+      `delete from event_participants where event_id = '${m.events.e9}'` +
+        ` and user_id in ('${m.users.rita}', '${m.users.alex}');` +
         ` insert into event_participants (event_id, user_id, status, waiting_list_position)` +
         ` values ('${m.events.e9}', '${m.users.alex}', 'waiting_list', 1);`,
     );
