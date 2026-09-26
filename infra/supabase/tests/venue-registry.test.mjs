@@ -34,6 +34,7 @@ await run('platform_admins is not readable or writable by a client', async () =>
 });
 
 let venueId;
+let secondId;
 let courts;
 await run('a super admin creates a venue with courts through save_venue', async () => {
   venueId = await rpc(admin.jwt, 'save_venue', {
@@ -72,12 +73,16 @@ await run('venue-images: only a super admin can upload', async () => {
   assert(ok.ok, `admin upload must succeed (got ${ok.status}: ${await ok.text()})`);
   const pub = await fetch(`${BASE_URL}/storage/v1/object/public/venue-images/vr-${RUN}-admin.png`);
   assert(pub.ok, 'the bucket is public-read');
+  const txt = await fetch(`${BASE_URL}/storage/v1/object/venue-images/vr-${RUN}-admin.txt`, {
+    method: 'POST', headers: { apikey: ANON, Authorization: `Bearer ${admin.jwt}`, 'Content-Type': 'text/plain' }, body: 'x',
+  });
+  assert(!txt.ok, `a non-image upload must be refused (got ${txt.status})`);
 });
 
 await run('search_venues: empty query lists the registry alphabetically with court counts', async () => {
-  const second = await rpc(admin.jwt, 'save_venue', {
+  const second = (secondId = await rpc(admin.jwt, 'save_venue', {
     p_venue_id: null, p_name: `AAA Registry ${RUN} b`, p_address: null, p_image_path: `vr-${RUN}-admin.png`, p_courts: [],
-  });
+  }));
   for (const q of [{}, { p_query: '' }, { p_query: null }]) {
     const rows = await rpc(player.jwt, 'search_venues', { ...q, p_limit: 200 });
     const mine = rows.filter((r) => r.name.includes(RUN));
@@ -149,16 +154,38 @@ await run('a court an event used cannot be deleted', async () => {
   });
 });
 
-await run('soft delete: the venue leaves search, the admin still reads it', async () => {
-  const del = await asUser(admin.jwt, `/rest/v1/venues?id=eq.${venueId}`, 'PATCH', { deleted_at: new Date().toISOString() });
-  assert(del.length === 1, 'admin soft-deleted the venue');
+await run('soft delete: gone from the registry, still readable through events', async () => {
+  // A player's own (private) event held at the venue.
+  const eventId = await rpc(player.jwt, 'create_event', {
+    p_payload: {
+      group_id: null, event_type: 'americano', specification: 'classic', scoring_mode: 'points', scoring_value: 24,
+      organizer_role: 'organizing_and_playing', name: `Player venue event ${RUN}`, venue_id: venueId,
+      manual_location_name: null, manual_location_address: null, has_location: true,
+      location_lat: null, location_lng: null, location_text: null,
+      num_courts: 1, starts_at: new Date(Date.now() + 3 * 864e5).toISOString(), duration_minutes: 90,
+      allow_standby: false, standby_spots: 0, is_private: true, players_submit_results: false,
+      entrance_fee_enabled: false, entrance_fee_amount: null, entrance_fee_method: null, entrance_fee_mba_number: null,
+      description: null, thumbnail_path: null, series: null, invitees: null, court_ids: null,
+    },
+  });
+  for (const id of [venueId, secondId]) {
+    const del = await asUser(admin.jwt, `/rest/v1/venues?id=eq.${id}`, 'PATCH', { deleted_at: new Date().toISOString() });
+    assert(del.length === 1, 'admin soft-deleted the venue');
+  }
   const rows = await rpc(player.jwt, 'search_venues', { p_query: RUN });
-  assert(!rows.some((r) => r.id === venueId), 'gone from search');
-  const asPlayer = await asUser(player.jwt, `/rest/v1/venues?id=eq.${venueId}&select=id`, 'GET');
-  assert(asPlayer.length === 0, 'players no longer read it');
-  const asAdmin = await asUser(admin.jwt, `/rest/v1/venues?id=eq.${venueId}&select=id,deleted_at`, 'GET');
+  assert(rows.length === 0, 'both gone from search');
+  const [ev] = await asUser(player.jwt, `/rest/v1/events?id=eq.${eventId}&select=id,venues(id,name)`, 'GET');
+  assert(ev?.venues?.id === venueId, 'the event still embeds its (deleted) venue');
+  const unused = await asUser(player.jwt, `/rest/v1/venues?id=eq.${secondId}&select=id`, 'GET');
+  assert(unused.length === 0, 'a deleted venue no visible event uses is hidden from players');
+  const asAdmin = await asUser(admin.jwt, `/rest/v1/venues?id=eq.${secondId}&select=id,deleted_at`, 'GET');
   assert(asAdmin.length === 1 && asAdmin[0].deleted_at, 'admin still reads it');
   await expectError(() => rpc(admin.jwt, 'save_venue', {
     p_venue_id: venueId, p_name: 'x', p_address: null, p_image_path: null, p_courts: [],
   }), 'venue_not_found');
+});
+
+await run('venues are never hard-deleted by a client, not even a super admin', async () => {
+  await expectError(() => asUser(admin.jwt, `/rest/v1/venues?id=eq.${secondId}`, 'DELETE'), 'permission denied');
+  await expectError(() => asUser(player.jwt, `/rest/v1/venues?id=eq.${secondId}`, 'DELETE'), 'permission denied');
 });

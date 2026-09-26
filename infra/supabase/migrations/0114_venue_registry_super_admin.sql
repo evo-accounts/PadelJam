@@ -10,8 +10,9 @@
 --
 --   insert into platform_admins (user_id) values ('<profiles.id>') on conflict do nothing;
 --
--- WHAT A SUPER ADMIN CAN DO. Insert/update/delete `venues` and `courts` under RLS, and write the
--- public `venue-images` bucket. Everyone keeps reading exactly what they read before.
+-- WHAT A SUPER ADMIN CAN DO. Insert/update `venues` (soft delete only) and insert/update/delete
+-- `courts` under RLS, and write the public `venue-images` bucket. Reads are unchanged, except that
+-- a soft-deleted venue stays readable through any event you can see that uses it.
 --
 -- DELETION. A venue is soft-deleted (`deleted_at`), never removed: `events.venue_id` is ON DELETE
 -- SET NULL, so a hard delete would silently strip the location off every past event held there.
@@ -45,6 +46,14 @@ grant execute on function is_super_admin() to authenticated;
 
 -- venues / courts write policies (reads unchanged) -----------------------------------------------
 -- `(select is_super_admin())` is evaluated once per statement, not once per row.
+-- A soft-deleted venue leaves the registry (search_venues) but must stay readable wherever an
+-- event points at it, or every event held there would lose its location in embeds. The events
+-- subquery runs under the caller's RLS: you see the venue of an event you can see.
+drop policy if exists "venues: read" on venues;
+create policy "venues: read" on venues for select
+  using (deleted_at is null or exists (select 1 from events e where e.venue_id = venues.id));
+-- Super admins also read soft-deleted venues no event uses (and the soft-delete UPDATE needs the
+-- row visible afterwards).
 drop policy if exists "venues: super admin read all" on venues;
 create policy "venues: super admin read all" on venues for select to authenticated
   using ((select is_super_admin()));
@@ -54,9 +63,7 @@ create policy "venues: super admin insert" on venues for insert to authenticated
 drop policy if exists "venues: super admin update" on venues;
 create policy "venues: super admin update" on venues for update to authenticated
   using ((select is_super_admin())) with check ((select is_super_admin()));
-drop policy if exists "venues: super admin delete" on venues;
-create policy "venues: super admin delete" on venues for delete to authenticated
-  using ((select is_super_admin()));
+-- No DELETE policy (and no DELETE grant) on venues: removal is the soft delete above.
 
 drop policy if exists "courts: super admin insert" on courts;
 create policy "courts: super admin insert" on courts for insert to authenticated
@@ -68,12 +75,14 @@ drop policy if exists "courts: super admin delete" on courts;
 create policy "courts: super admin delete" on courts for delete to authenticated
   using ((select is_super_admin()));
 
-grant insert, update, delete on venues, courts to authenticated;
+grant insert, update on venues to authenticated;
+revoke delete on venues from anon, authenticated;
+grant insert, update, delete on courts to authenticated;
 
 -- A court an event has used is history; it can be renamed or reordered, never deleted. -----------
 -- SECURITY DEFINER so the check sees every event_courts row, including private events the admin
--- cannot read. Deleting a venue row (service role only in practice) cascades to its courts, and
--- the same guard then blocks it — use `deleted_at`.
+-- cannot read. Deleting a venue row (service role only) cascades to its courts, and the same guard
+-- then blocks it — use `deleted_at`.
 create or replace function _guard_court_in_use() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
@@ -91,8 +100,11 @@ create trigger trg_guard_court_in_use before delete on courts
 
 -- venue-images bucket (public read; super-admin writes) ------------------------------------------
 -- Path convention: {uuid}.{ext} (flat — a new venue has no id until save_venue returns).
-insert into storage.buckets (id, name, public) values ('venue-images', 'venue-images', true)
-  on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('venue-images', 'venue-images', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update
+  set public = excluded.public, file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 drop policy if exists "venue-images write: super admin" on storage.objects;
 create policy "venue-images write: super admin" on storage.objects for insert to authenticated
   with check (bucket_id = 'venue-images' and (select is_super_admin()));

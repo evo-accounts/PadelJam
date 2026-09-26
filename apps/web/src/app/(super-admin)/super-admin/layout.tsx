@@ -15,9 +15,10 @@ import { Toaster } from '@/components/ui/toaster';
 
 export default function SuperAdminLayout({ children }: { children: ReactNode }) {
   const { t } = useT('superAdmin');
-  const { data: isAdmin, isError } = useIsSuperAdmin();
+  const { data: isAdmin, isError, refetch, isFetching } = useIsSuperAdmin();
 
-  if (isAdmin === false || isError) notFound();
+  // Only a definite "no" is a 404; a failed check (network, 5xx) is not an answer.
+  if (isAdmin === false) notFound();
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
@@ -30,7 +31,18 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
         </Button>
       </header>
       <main className="flex-1">
-        {isAdmin === true ? children : <Skeleton className="m-6 h-40" data-testid="super-admin-checking" />}
+        {isAdmin === true ? (
+          children
+        ) : isError ? (
+          <div role="alert" className="mx-auto flex max-w-xl flex-col items-start gap-2 p-6">
+            <p className="text-sm">{t('checkError')}</p>
+            <Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>
+              {t('retry')}
+            </Button>
+          </div>
+        ) : (
+          <Skeleton className="m-6 h-40" data-testid="super-admin-checking" />
+        )}
       </main>
       <Toaster />
     </div>
