@@ -123,6 +123,13 @@ async function assertReferenceData() {
   if (!templates.length) {
     throw new Error(`blast_templates is EMPTY — the blast template picker has no fixtures. ${WIPE_HINT}`);
   }
+  // PostGIS's own table, not a migration's, but it lives in public and the wipe
+  // truncated it too: with no SRID 4326 every geography cast (distance, explore
+  // ranking, set_my_location, create_event) errors instead of returning a value.
+  const srid = await sel('spatial_ref_sys', 'select=srid&srid=eq.4326');
+  if (!srid.length) {
+    throw new Error(`spatial_ref_sys has no SRID 4326 — every geography op will fail. ${WIPE_HINT}`);
+  }
   console.log(`  reference data OK (${limits.length} plan limits, ${templates.length} blast templates)`);
 }
 

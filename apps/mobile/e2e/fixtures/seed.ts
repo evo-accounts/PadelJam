@@ -43,8 +43,8 @@ export async function wipeDb(): Promise<void> {
     declare r record;
     begin
       for r in (
-        select tablename from pg_tables
-        where schemaname = 'public'
+        select t.tablename from pg_tables t
+        where t.schemaname = 'public'
           -- Migration-seeded reference data must survive the wipe: these tables
           -- are populated by a migration, never by the seed, so truncating them
           -- leaves them EMPTY for the rest of the run with nothing to refill
@@ -53,7 +53,22 @@ export async function wipeDb(): Promise<void> {
           -- which the cap triggers read as "unlimited", so no plan cap was ever
           -- enforced in an E2E run. Anything a migration inserts into the
           -- public schema belongs here (today: 0013_seed_plans, 0072_event_blasts).
-          and tablename not in ('plans', 'plan_features', 'plan_limits', 'blast_templates')
+          and t.tablename not in ('plans', 'plan_features', 'plan_limits', 'blast_templates',
+                                  'spatial_ref_sys')
+          -- Tables owned by an extension are never ours to wipe. PostGIS lives in
+          -- public, and truncating its spatial_ref_sys leaves no SRID 4326, so
+          -- every geography cast (viewer_distance_m, explore_events distance
+          -- ranking, set_my_location, create_event) fails with "Cannot find SRID
+          -- (4326) in spatial_ref_sys" until the next supabase db reset.
+          -- Excluded by ownership (pg_depend deptype 'e'), not by name, so the
+          -- next extension that installs a table in public is covered too.
+          and not exists (
+            select 1 from pg_depend d
+            where d.classid = 'pg_class'::regclass
+              and d.objid = format('public.%I', t.tablename)::regclass
+              and d.refclassid = 'pg_extension'::regclass
+              and d.deptype = 'e'
+          )
       ) loop
         execute format('truncate table public.%I cascade', r.tablename);
       end loop;
