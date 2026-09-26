@@ -135,6 +135,8 @@ export const useEventParticipants = (id: string) => {
             guest_name: string | null;
             guest_gender: string | null;
             invited_by: string | null;
+            /** The other half of a waiting PAIR on a team event (0112); null otherwise. */
+            pair_participant_id: string | null;
             profiles: ParticipantProfileEmbed;
           }[]
         >();
@@ -389,6 +391,34 @@ export const useMyEvents = (filter: MyEventsFilter, includePast = false) => {
     },
     getNextPageParam: (lastPage: unknown[], allPages: unknown[][]) =>
       lastPage.length < MY_EVENTS_PAGE_SIZE ? undefined : allPages.length * MY_EVENTS_PAGE_SIZE,
+  });
+};
+
+/**
+ * The viewer's own roster status on the events where it is not simply "confirmed" — the waiting
+ * list or interested (a team player without a partner). Since 0112 the Going tab and Home's next
+ * events include those events, so the cards label them rather than read as a held spot.
+ * Keyed under the My Events prefix, so every mutation that refreshes the lists refreshes this too.
+ */
+export type MyEventStatus = 'waiting_list' | 'interested';
+
+export const useMyEventStatuses = () => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.myEventStatuses,
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('event_participants')
+        .select('event_id, status')
+        .eq('user_id', uid!)
+        .in('status', ['waiting_list', 'interested']);
+      if (error) throw error;
+      const byEvent: Record<string, MyEventStatus> = {};
+      for (const row of data ?? []) byEvent[row.event_id] = row.status as MyEventStatus;
+      return byEvent;
+    },
   });
 };
 
