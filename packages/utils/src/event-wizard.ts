@@ -6,11 +6,14 @@ export interface WizardSeries {
   durationMinutes: number;
   inviteLeadDays: 3 | 5 | 7;
 }
+/**
+ * A platform user (invitee_id) or, interim until M3 / W-M3, a manual entry sent as a guest by name
+ * (0113), with a gender on mixed events.
+ */
 export interface WizardInvitee {
   invitee_id?: string;
   name?: string;
-  email?: string;
-  phone?: string;
+  gender?: 'male' | 'female';
 }
 export interface WizardEntranceFee {
   enabled: boolean;
@@ -86,6 +89,28 @@ export const stepIsValid: StepGates = {
   10: () => true,
 };
 
+/**
+ * Interim bridge for the current wizards (mobile InvitePicker, web Step10Invite) until M3 / W-M3
+ * rebuild the invite step: entries with an invitee_id stay invitations; a manual entry becomes a
+ * guest by its name and gender (0113 dropped the email/phone invitation path). Unnamed entries are
+ * dropped. The one copy — packages/api and the mobile wizard use it too.
+ */
+export function splitWizardInvitees(list: WizardInvitee[] | undefined): {
+  invitees?: { invitee_id: string }[];
+  guests?: { name: string; gender?: 'male' | 'female' }[];
+} {
+  const invitees = (list ?? []).flatMap((i) => (i.invitee_id ? [{ invitee_id: i.invitee_id }] : []));
+  const guests = (list ?? []).flatMap((i) =>
+    !i.invitee_id && i.name?.trim()
+      ? [{ name: i.name.trim(), ...(i.gender ? { gender: i.gender } : {}) }]
+      : [],
+  );
+  return {
+    invitees: invitees.length > 0 ? invitees : undefined,
+    guests: guests.length > 0 ? guests : undefined,
+  };
+}
+
 /** Build the camelCase CreateEventInput-shaped object from the draft (+ resolved thumbnail path). */
 export function draftToCreateInput(d: WizardDraft, thumbnailPath?: string): Record<string, unknown> {
   return {
@@ -116,6 +141,8 @@ export function draftToCreateInput(d: WizardDraft, thumbnailPath?: string): Reco
     description: d.description?.trim() || undefined,
     thumbnailPath: thumbnailPath || undefined,
     series: d.series,
-    invitees: d.invitees && d.invitees.length > 0 ? d.invitees : undefined,
+    // 0113: platform users stay invitations; a manual entry becomes a guest by its name (the
+    // email/phone invitation path is gone). Interim until W-M3 rebuilds the invite step.
+    ...splitWizardInvitees(d.invitees),
   };
 }

@@ -345,9 +345,11 @@ await run('event_invited_players: pending invitees for anyone who can see the ev
   const ev = await rpc(org.jwt, 'create_event', {
     p_payload: base(null, {
       is_private: true,
-      invitees: [...invitees(viewer, a, accepted, blocked), { invitee_id: null, name: 'Manual Guest', email: 'guest@example.test', phone: null }],
+      invitees: invitees(viewer, a, accepted, blocked),
     }),
   });
+  // 0113 (B12) dropped the contact-only path from create_event; rows made before it still exist.
+  await insert('event_invitations', { event_id: ev, invitee_id: null, invitee_name: 'Manual Guest', invitee_email: 'guest@example.test', invited_by: org.id });
   await rpc(accepted.jwt, 'accept_event_invitation', { p_event_id: ev });
   await block(viewer, blocked);
   const rows = await rpc(viewer.jwt, 'event_invited_players', { p_event_id: ev });
@@ -484,8 +486,10 @@ await run('the public-event clean-up spares explicit invitations to non-members'
   const [dead] = await insert('notifications', { user_id: member.id, type: 'event_invite', actor_id: admin.id, event_id: ev, ref_id: inv.id });
   await rpc(admin.jwt, 'invite_to_event', {
     p_event_id: ev,
-    p_invitees: [{ invitee_id: outsider.id, name: null, email: null, phone: null }, { name: 'Manual', email: 'm@example.test', phone: null }],
+    p_invitees: [{ invitee_id: outsider.id, name: null, email: null, phone: null }],
   });
+  // 0113 (B12) dropped the contact-only path from invite_to_event; rows made before it still exist.
+  await insert('event_invitations', { event_id: ev, invitee_id: null, invitee_name: 'Manual', invitee_email: 'm@example.test', invited_by: admin.id });
   await rpc(null, '_cleanup_public_event_invitations', {});
   assert((await invitation(ev, member)) === null, "the member's leftover invitation is gone");
   assert((await invitation(ev, outsider))?.status === 'pending', "the outsider's explicit invitation stays");

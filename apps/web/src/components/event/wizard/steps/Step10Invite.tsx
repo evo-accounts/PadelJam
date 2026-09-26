@@ -13,8 +13,8 @@ export function Step10Invite({ draft, patch }: StepProps) {
   const { t } = useT('event');
   const members = useGroupMembers(draft.groupId);
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | ''>('');
+  const mixed = draft.specification === 'mixed';
 
   const invitees = draft.invitees ?? [];
 
@@ -28,16 +28,15 @@ export function Step10Invite({ draft, patch }: StepProps) {
   };
 
   const addManual = () => {
+    // 0113: a manual entry is a guest (name, and gender on a mixed event), confirmed for this event only.
     const entry: WizardInvitee = {
       name: name.trim() || undefined,
-      email: email.trim() || undefined,
-      phone: phone.trim() || undefined,
+      ...(mixed && gender ? { gender } : {}),
     };
-    if (!entry.name && !entry.email && !entry.phone) return;
+    if (!entry.name || (mixed && !gender)) return;
     patch({ invitees: [...invitees, entry] });
     setName('');
-    setEmail('');
-    setPhone('');
+    setGender('');
   };
 
   const removeAt = (index: number) => {
@@ -65,15 +64,31 @@ export function Step10Invite({ draft, patch }: StepProps) {
           <Label>{t('inviteeNameLabel')}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </div>
-        <div className="space-y-2">
-          <Label>{t('inviteeEmailLabel')}</Label>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label>{t('inviteePhoneLabel')}</Label>
-          <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </div>
-        <Button type="button" variant="outline" onClick={addManual}>
+        {mixed ? (
+          <div className="space-y-2">
+            <Label>{t('manualGenderLabel')}</Label>
+            <div className="flex gap-2" role="radiogroup" aria-label={t('manualGenderLabel')}>
+              {(['male', 'female'] as const).map((g) => (
+                <Button
+                  key={g}
+                  type="button"
+                  role="radio"
+                  aria-checked={gender === g}
+                  variant={gender === g ? 'default' : 'outline'}
+                  onClick={() => setGender(g)}
+                >
+                  {t(g === 'male' ? 'genderMale' : 'genderFemale')}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={addManual}
+          disabled={name.trim() === '' || (mixed && !gender)}
+        >
           {t('addInviteeCta')}
         </Button>
       </div>
@@ -91,7 +106,7 @@ export function Step10Invite({ draft, patch }: StepProps) {
                 {inv.invitee_id
                   ? (members.data ?? []).find((m) => m.user_id === inv.invitee_id)?.profiles
                       ?.full_name ?? inv.invitee_id
-                  : inv.name || inv.email || inv.phone}
+                  : inv.name}
               </span>
               <Button type="button" variant="ghost" size="sm" onClick={() => removeAt(index)}>
                 &times;

@@ -83,17 +83,17 @@ Defaults taken (object at plan review):
 | B9 | "Aderir com um parceiro" appears only after join+leave; accepting a team invite silently makes you `interested` and the UI shows "Going" | mobile/web detail CTA | M5, W3 |
 | B10 | Leaving leaves your own invitation `accepted`, so the Invited state never comes back | 0093:61 | 2 |
 | B11 | Every signed-in user can read every user's phone | profiles policy 0055:49 + table grant 0030 | 5 |
-| B12 | A manual invitee with a name only violates `ei_user_or_contact` → `create_event` fails | 0041:32, `InvitePicker` | 4 |
+| B12 | A manual invitee with a name only violates `ei_user_or_contact` → `create_event` fails | 0041:32, `InvitePicker` | 3 |
 | B13 | `events.thumbnail_path` is uploaded but rendered nowhere | mobile/web `EventCard`, detail | M4, W2 |
 | B14 | Wizard from Home/FAB (no `communityId`) lists no groups at all; from a community it lists every group, not those you may create in | `Step1Group.tsx:19` | M1 |
-| B15 | `invite_lead_days` stored, never used — recurring events never materialise on their own | 0079/0086 | 7 |
+| B15 | `invite_lead_days` stored, never used — recurring events never materialise on their own | 0079/0086 | 7 (0117) |
 | B16 | Scoring defaults 24 pts / 15 min break EV-04 (32 / 10) | `Step4Scoring.tsx:28` | M1 |
 | B17 | Organizer who only organizes is invisible on the event page (organizer is read from participants) | detail:193 | M4 |
 | B18 | Web join countdown is frozen at mount | web `page.tsx:54` | W2 |
 
 ## PR sequence
 
-Migrations are 0111–0117. Every PR touching `apps/mobile/**`, `packages/**` or `infra/**` queues the ~37-min
+Migrations are 0111–0115 and 0117 (0116 was folded into 0114). Every PR touching `apps/mobile/**`, `packages/**` or `infra/**` queues the ~37-min
 self-hosted E2E and they serialise; web-only PRs skip E2E. Mobile PRs open as drafts until green locally. Each
 PR: `check` (all eight) green + `test:db` for migrations + E2E green → squash-merge → next. Hosted migrations
 are pasted by the product owner (the account cannot push) — handed over as one batch at the end.
@@ -121,26 +121,29 @@ are pasted by the product owner (the account cannot push) — handed over as one
 - `my_events(p_filter 'all'|'organizing'|'going'|'pending', p_include_past)`; Going includes waiting/interested.
 - `event_invited_players(event)` read-only RPC.
 
-**3 — migration 0113 "guests"** (+ api): decision 7.
-- `create_event` accepts `guests: [{name, gender}]` → confirmed guest participants.
-- `choose_guest_partner(event, name, gender)`.
+**3 — migration 0113 "guests"** (+ api): decision 7, B12, CEVT-06 court names (#215).
+- `create_event` accepts `guests: [{name, gender}]` → confirmed guest participants
+  (`guest_gender_required` on mixed, `event_full` / `gender_full` at creation).
+- `choose_guest_partner(event, name, gender)`; a guest never outlives the player who brought them.
+- `events.manual_court_names text[]`; `create_event` stores it; drop the manual-invitee email/phone path
+  (B12). `create_event` / `update_event` refuse a soft-deleted venue (`venue_not_found`).
 
-**4 — migration 0114 "venues"** (+ api): CEVT-06/07, B12.
+**4 — migration 0114 "venues + super-admin"** (+ api): CEVT-06/07, decision 3 (#212).
 - `venues.image_path`; `search_venues(q)` returns image, address, court count, empty query lists all
   (paged, alphabetical).
-- `events.manual_court_names text[]`; `create_event` stores it; drop the manual-invitee email/phone path.
+- `is_super_admin()` from a `platform_admins` table (seeded by SQL); insert/update/delete policies on
+  `venues`/`courts`; `venue-images` bucket; venues are soft-deleted.
 
 **5 — migration 0115 "phone privacy"** (+ api, mobile/web reads): decision 2, B11.
 - Column-level grants on `profiles` exclude `phone`; own phone read from the auth user. Every
   `profiles select('*')` in `packages/api` is replaced by an explicit column list first (a revoked column makes
   `*` fail).
 
-**6 — migration 0116 "super-admin"**: decision 3.
-- `is_super_admin()` from a `platform_admins` table (seeded by SQL); insert/update/delete policies on
-  `venues`/`courts`; `venue-images` bucket.
+**6 — (no migration 0116)**: the super-admin work moved into 0114 above.
 
 **7 — migration 0117 "recurrence scheduler"**: decision 10, B15. `pg_cron` hourly job calling a
-`materialize_due_occurrences()` that reuses `materialize_occurrence`.
+`materialize_due_occurrences()` that reuses `materialize_occurrence`. `materialize_occurrence` and
+`duplicate_event` also copy `events.manual_court_names` (added by 0113).
 
 **M1 — mobile wizard shell + steps 1–4** (UX-CEVT-01..05, B14, B16). `ProgressBar` primitive (Storybook +
 suite 00); dynamic `steps` in `CreateEventContext` (Courts skipped for manual venue, Invite skipped for public
@@ -170,7 +173,7 @@ interested banner + Edit response sheet; partner-left state.
 
 **8 — docs.** Amend `Requirements/create-event.md` and `join-manage-event.md` to the decisions above
 (EV-04, EV-20, EV-26, Steps 4/6/8/10, JM-01, JM-03, JM-08, JM-17, JM-22, JM-28, §3.10), and hand over the
-hosted paste list 0111–0117 + `pg_cron` toggle.
+hosted paste list 0111–0115 + 0117 + `pg_cron` toggle.
 
 ## Out of scope / follow-ups
 

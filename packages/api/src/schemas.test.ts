@@ -101,3 +101,47 @@ describe('buildCreateEventPayload', () => {
     });
   });
 });
+
+describe('guests and manual court names (0113)', () => {
+  it('sends guests and court names in the payload', () => {
+    const payload = buildCreateEventPayload({
+      ...baseEvent,
+      specification: 'mixed',
+      guests: [{ name: '  Ana  ', gender: 'female' }],
+      manualCourtNames: [' Central ', 'Court B'],
+    });
+    expect(payload.guests).toEqual([{ name: 'Ana', gender: 'female' }]);
+    expect(payload.manual_court_names).toEqual(['Central', 'Court B']);
+  });
+  it('omits court names with a registry venue and empty guests', () => {
+    const payload = buildCreateEventPayload({
+      ...baseEvent,
+      venueId: '44444444-4444-4444-4444-444444444444',
+      manualCourtNames: ['A', 'B'],
+      guests: [],
+    });
+    expect(payload).not.toHaveProperty('manual_court_names');
+    expect(payload).not.toHaveProperty('guests');
+  });
+  it('validates court names against the court count and the venue', () => {
+    expect(createEventSchema.safeParse({ ...baseEvent, manualCourtNames: ['A', 'B'] }).success).toBe(true);
+    expect(createEventSchema.safeParse({ ...baseEvent, manualCourtNames: ['A'] }).success).toBe(false);
+    expect(
+      createEventSchema.safeParse({
+        ...baseEvent,
+        venueId: '44444444-4444-4444-4444-444444444444',
+        manualCourtNames: ['A', 'B'],
+      }).success,
+    ).toBe(false);
+    expect(createEventSchema.safeParse({ ...baseEvent, manualCourtNames: ['A', 'x'.repeat(41)] }).success).toBe(false);
+  });
+  it('requires a guest gender on mixed events and a 1..60 name', () => {
+    expect(createEventSchema.safeParse({ ...baseEvent, specification: 'mixed', guests: [{ name: 'Ana' }] }).success).toBe(false);
+    expect(
+      createEventSchema.safeParse({ ...baseEvent, specification: 'mixed', guests: [{ name: 'Ana' }] }).error?.issues[0]?.message,
+    ).toBe('guest_gender_required');
+    expect(createEventSchema.safeParse({ ...baseEvent, guests: [{ name: 'Ana' }] }).success).toBe(true);
+    expect(createEventSchema.safeParse({ ...baseEvent, guests: [{ name: ' ' }] }).success).toBe(false);
+    expect(createEventSchema.safeParse({ ...baseEvent, guests: [{ name: 'x'.repeat(61) }] }).success).toBe(false);
+  });
+});

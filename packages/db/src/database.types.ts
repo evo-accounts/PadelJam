@@ -1171,6 +1171,7 @@ export type Database = {
           location_point: string | null
           location_text: string | null
           manual_location_address: string | null
+          manual_court_names: string[] | null
           manual_location_name: string | null
           name: string
           num_courts: number
@@ -1210,6 +1211,7 @@ export type Database = {
           location_point?: string | null
           location_text?: string | null
           manual_location_address?: string | null
+          manual_court_names?: string[] | null
           manual_location_name?: string | null
           name: string
           num_courts: number
@@ -1249,6 +1251,7 @@ export type Database = {
           location_point?: string | null
           location_text?: string | null
           manual_location_address?: string | null
+          manual_court_names?: string[] | null
           manual_location_name?: string | null
           name?: string
           num_courts?: number
@@ -2469,6 +2472,11 @@ export type Database = {
         Args: { p_kind: string; p_id: string }
         Returns: { name: string; member_ids: string[] }[]
       }
+      choose_guest_partner: {
+        Args: { p_event_id: string; p_name: string; p_gender?: string }
+        /** 'confirmed', or 'waiting_list' when the pair queues together (migration 0113). */
+        Returns: string
+      }
       choose_partner: {
         Args: { p_event_id: string; p_partner_user: string }
         /** 'confirmed', or 'waiting_list' when the pair queues together (migration 0112). */
@@ -2686,6 +2694,7 @@ export type Database = {
           location_point: string | null
           location_text: string | null
           manual_location_address: string | null
+          manual_court_names: string[] | null
           manual_location_name: string | null
           name: string
           num_courts: number
@@ -3010,6 +3019,11 @@ export type Database = {
           requester_name: string | null
           requester_avatar: string | null
           created_at: string
+          starts_at: string | null
+          venue_name: string | null
+          venue_address: string | null
+          manual_location_name: string | null
+          manual_location_address: string | null
         }[]
       }
       invite_to_community: {

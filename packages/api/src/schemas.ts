@@ -63,12 +63,20 @@ export type ScoringMode = (typeof SCORING_MODES)[number];
 export type OrganizerRole = (typeof ORGANIZER_ROLES)[number];
 export type EntranceFeeMethod = (typeof ENTRANCE_FEE_METHODS)[number];
 
+/** A platform user invited to a private event. People without an account are `guests` (0113). */
 const inviteeSchema = z.object({
-  invitee_id: z.string().uuid().optional(),
-  name: z.string().trim().optional(),
-  email: z.string().trim().email().optional(),
-  phone: z.string().trim().optional(),
+  invitee_id: z.string().uuid(),
 });
+
+/**
+ * A guest player (decision 7, UX-CEVT-11): no account, confirmed for this event only, no history,
+ * no ranking. Gender is required on mixed events (the RPC raises gender_required).
+ */
+export const guestSchema = z.object({
+  name: z.string().trim().min(1, 'invalid_guest_name').max(60, 'invalid_guest_name'),
+  gender: z.enum(['male', 'female']).nullable().optional(),
+});
+export type EventGuest = z.infer<typeof guestSchema>;
 
 const seriesSchema = z.object({
   dayOfWeek: z.number().int().min(1).max(7),
@@ -109,7 +117,10 @@ export const createEventSchema = z
     thumbnailPath: z.string().optional(),
     series: seriesSchema.optional(),
     invitees: z.array(inviteeSchema).optional(),
+    guests: z.array(guestSchema).optional(),
     courtIds: z.array(z.string().uuid()).optional(),
+    /** Manual venue / no location only: one name per court, in order (UX-CEVT-06). */
+    manualCourtNames: z.array(z.string().trim().min(1).max(40)).optional(),
   })
   // A standalone event (no group) must be private.
   .refine((v) => v.groupId !== null || v.isPrivate, {
@@ -120,6 +131,16 @@ export const createEventSchema = z
   .refine((v) => !v.entranceFee.enabled || (v.entranceFee.amount != null && !!v.entranceFee.method), {
     path: ['entranceFee'],
     message: 'fee_requires_amount_and_method',
+  })
+  // Court names belong to a manual venue (or no location), one per court.
+  .refine(
+    (v) => v.manualCourtNames == null || (!v.venueId && v.manualCourtNames.length === v.numCourts),
+    { path: ['manualCourtNames'], message: 'invalid_court_names' },
+  )
+  // A mixed event balances by gender, so every guest needs one.
+  .refine((v) => v.specification !== 'mixed' || (v.guests ?? []).every((g) => g.gender != null), {
+    path: ['guests'],
+    message: 'guest_gender_required',
   });
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 
@@ -168,8 +189,14 @@ export function buildCreateEventPayload(input: CreateEventInput): Record<string,
       invite_lead_days: input.series.inviteLeadDays,
     };
   }
-  if (input.invitees) payload.invitees = input.invitees;
+  if (input.invitees) payload.invitees = input.invitees.map((i) => ({ invitee_id: i.invitee_id }));
+  if (input.guests && input.guests.length > 0) {
+    payload.guests = input.guests.map((g) => ({ name: g.name.trim(), gender: g.gender ?? null }));
+  }
   if (input.courtIds) payload.court_ids = input.courtIds;
+  if (input.manualCourtNames && !input.venueId) {
+    payload.manual_court_names = input.manualCourtNames.map((n) => n.trim());
+  }
   return payload;
 }
 

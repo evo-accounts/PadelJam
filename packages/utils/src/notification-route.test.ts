@@ -15,6 +15,7 @@ describe('notificationRoute', () => {
   });
   it('opens a group invitation on its invitation screen', () => {
     expect(notificationRoute({ type: 'group_invite', group_id: 'g1' })).toBe('/group/g1/join');
+    expect(notificationRoute({ type: 'partner_request', event_id: 'e1' })).toBe('/notifications/partner-requests');
   });
 
   it('prefers event over group over community', () => {

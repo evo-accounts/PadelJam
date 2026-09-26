@@ -6,16 +6,19 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { avatarUrl } from '@/lib/community-images';
 import type { EventInvitee } from './draft';
 import { colors, palette } from '../../../theme';
-import { Avatar, Button } from '../../../components/ui';
+import { Avatar, Button, Segmented } from '../../../components/ui';
 
 export function InvitePicker({
   groupId,
   isPrivate,
+  specification,
   invitees,
   onChange,
 }: {
   groupId: string | null;
   isPrivate: boolean;
+  /** A mixed event's guest needs a gender (0113, guest_gender_required). */
+  specification?: string;
   invitees: EventInvitee[];
   onChange: (invitees: EventInvitee[]) => void;
 }) {
@@ -36,7 +39,7 @@ export function InvitePicker({
       {groupId ? (
         <GroupMemberList groupId={groupId} invitees={invitees} onChange={onChange} />
       ) : null}
-      <ManualInvitees invitees={invitees} onChange={onChange} />
+      <ManualInvitees invitees={invitees} onChange={onChange} mixed={specification === 'mixed'} />
     </View>
   );
 }
@@ -102,31 +105,25 @@ function GroupMemberList({
 function ManualInvitees({
   invitees,
   onChange,
+  mixed,
 }: {
   invitees: EventInvitee[];
   onChange: (invitees: EventInvitee[]) => void;
+  mixed: boolean;
 }) {
   const { t } = useT('event');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | ''>('');
 
   const manual = invitees.filter((i) => i.invitee_id == null);
 
   const add = () => {
     const trimmed = name.trim();
-    if (!trimmed) return;
-    onChange([
-      ...invitees,
-      {
-        name: trimmed,
-        email: email.trim() || undefined,
-        phone: phone.trim() || undefined,
-      },
-    ]);
+    if (!trimmed || (mixed && !gender)) return;
+    // 0113: a manual entry is a guest (name, and gender on a mixed event), confirmed for this event only.
+    onChange([...invitees, { name: trimmed, ...(mixed && gender ? { gender } : {}) }]);
     setName('');
-    setEmail('');
-    setPhone('');
+    setGender('');
   };
 
   const remove = (target: EventInvitee) => {
@@ -144,30 +141,24 @@ function ManualInvitees({
         placeholderTextColor={palette.slate[400]}
         accessibilityLabel={t('manualNameLabel')}
       />
-      <TextInput
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder={t('manualEmailLabel')}
-        placeholderTextColor={palette.slate[400]}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        accessibilityLabel={t('manualEmailLabel')}
-      />
-      <TextInput
-        style={styles.input}
-        value={phone}
-        onChangeText={setPhone}
-        placeholder={t('manualPhoneLabel')}
-        placeholderTextColor={palette.slate[400]}
-        keyboardType="phone-pad"
-        accessibilityLabel={t('manualPhoneLabel')}
-      />
+      {mixed ? (
+        <View style={styles.genderRow}>
+          <Text style={styles.hint}>{t('manualGenderLabel')}</Text>
+          <Segmented<'male' | 'female' | ''>
+            options={[
+              { value: 'male', label: t('genderMale') },
+              { value: 'female', label: t('genderFemale') },
+            ]}
+            value={gender}
+            onChange={setGender}
+          />
+        </View>
+      ) : null}
       <Button
         label={t('addManual')}
         variant="outline"
         fullWidth
-        disabled={name.trim().length === 0}
+        disabled={name.trim().length === 0 || (mixed && !gender)}
         onPress={add}
       />
 
@@ -175,7 +166,7 @@ function ManualInvitees({
         <View style={styles.chips}>
           {manual.map((inv, index) => (
             <Pressable
-              key={`${inv.name ?? ''}-${inv.email ?? ''}-${inv.phone ?? ''}-${index}`}
+              key={`${inv.name ?? ''}-${index}`}
               onPress={() => remove(inv)}
               accessibilityRole="button"
               accessibilityLabel={`${t('removeCta')}: ${inv.name ?? ''}`}
@@ -197,6 +188,7 @@ const styles = StyleSheet.create({
   section: { gap: 10 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground },
   hint: { fontSize: 14, color: colors.mutedForeground },
+  genderRow: { gap: 6 },
   list: { gap: 10 },
   loading: { paddingVertical: 24, alignItems: 'center' },
   memberCard: {
