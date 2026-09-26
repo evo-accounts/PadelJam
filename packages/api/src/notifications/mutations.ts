@@ -113,7 +113,9 @@ export const useCompleteNotificationCta = () => {
 };
 
 // Accept/decline an aggregate partner/join request, routing to the per-type RPC.
-// Invalidates the aggregate list + the Phase 2A pinned-count + the feed.
+// Invalidates the aggregate list + the Phase 2A pinned-count + the feed, and — for an event
+// partner request, whose accept confirms a pair (UX-JEVT-12) — that event's roster.
+// Errors are the stable codes of mapPgError (request_stale, event_full, event_closed, …).
 export const useRespondToRequest = () => {
   const db = useDb();
   const qc = useQueryClient();
@@ -122,6 +124,8 @@ export const useRespondToRequest = () => {
       kind: 'event' | 'community';
       requestId: string;
       action: 'accept' | 'decline';
+      /** The event (or community) the request belongs to — refreshes its screens when given. */
+      entityId?: string;
     }) => {
       const rpc =
         input.kind === 'event'
@@ -131,13 +135,25 @@ export const useRespondToRequest = () => {
           : input.action === 'accept'
             ? 'accept_join_request'
             : 'decline_join_request';
-      const { error } = await db.rpc(rpc, { p_request_id: input.requestId });
-      if (error) throw error;
+      const { data, error } = await db.rpc(rpc, { p_request_id: input.requestId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      // accept_partner_request: 'confirmed' | 'waiting_list' (0112); the others return nothing.
+      return (data ?? null) as string | null;
     },
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
       qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
       qc.invalidateQueries({ queryKey: qk.notifications });
+      if (input.kind === 'event' && input.entityId) {
+        // The ['event', id] prefix covers participants, teams, invitations and partner requests.
+        qc.invalidateQueries({ queryKey: qk.event(input.entityId) });
+        qc.invalidateQueries({ queryKey: qk.myEventsAll });
+      }
+    },
+    onError: () => {
+      // A request that vanished (withdrawn, or closed when a pair formed) should leave the list.
+      qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
+      qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
     },
   });
 };

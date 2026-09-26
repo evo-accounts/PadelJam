@@ -8,7 +8,9 @@
  *
  * The waiting-list claim (decision 4) is here: `canClaimWaitlistSpot` mirrors the server's
  * `_waiter_can_claim` (migration 0112) so "Confirm spot" appears exactly when the claim can succeed.
- * Team-event entry and the `interested` state belong to M5; they are routed but not redesigned.
+ * Team events (UX-JEVT-09..14): an outsider, or a lone occupant whose partner left (decision 1),
+ * sees `team_entry` — a plain "Join" that opens the Team Event sheet. A player looking for a partner
+ * is `interested`: the "You are interested" banner and "Edit response".
  */
 
 export type BottomState =
@@ -28,14 +30,14 @@ export type BottomState =
   | { kind: 'claim' }
   /** Confirmed (or standby): nothing — leaving lives in the ⋯ sheet. */
   | { kind: 'going' }
-  /** Team event, not in yet: the existing partner flow entry (M5 redesigns it). */
+  /** Team event, not paired yet: "Join", which opens the Team Event sheet (UX-JEVT-09). */
   | { kind: 'team_entry' }
-  /** Team event, accepted and looking for a partner, or left `invited` by a partner leaving (M5 redesigns it). */
+  /** Team event, looking for a partner: the interested line + "Edit response" (UX-JEVT-13). */
   | { kind: 'interested' }
   /** Past the join cut-off, or cancelled: a static "Event closed" line. */
   | { kind: 'closed' };
 
-export type BannerState = 'going' | 'standby' | 'waiting_list' | null;
+export type BannerState = 'going' | 'standby' | 'waiting_list' | 'interested' | null;
 
 export type ViewerInput = {
   status: string;
@@ -63,12 +65,17 @@ export function bottomState(v: ViewerInput): BottomState {
       // The claim closes with joining (claim_waitlist_spot refuses event_closed past the cut-off).
       return v.claimable && !v.joinClosed ? { kind: 'claim' } : { kind: 'waiting_list' };
     }
-    // 'invited' is a lone team occupant whose partner left or who was placed by the organizer
-    // (decision 1): they hold no spot and re-enter through the team flow, like 'interested'.
-    if (v.me.status === 'interested' || v.me.status === 'invited') return { kind: 'interested' };
+    // Past the cut-off an interested player can no longer pair (every pairing RPC refuses
+    // event_closed), so "Edit response" would only lead to errors.
+    if (v.me.status === 'interested') return v.joinClosed ? { kind: 'closed' } : { kind: 'interested' };
     // Explicit, so a status this table does not know never strips the viewer of every action.
     if (v.me.status === 'confirmed') return { kind: 'going' };
   }
+  // Below: no roster row, or an 'invited' one — a lone team occupant placed by the organizer. Either
+  // way they hold no spot and enter like anyone else (decision 1: a partner who stays goes back to
+  // the team entry state with Join). Such a row may still sit alone in an event_teams slot; 0113
+  // makes the pairing RPCs clear that lone slot and has _is_paired_or_waiting count only full
+  // teams, so Join → choose_partner / request_partner works for them rather than already_joined.
   if (v.joinClosed) return { kind: 'closed' };
   if (v.hasInvite) return { kind: 'invited' };
   if (v.specification === 'team') return { kind: 'team_entry' };
@@ -81,6 +88,7 @@ export function bannerState(status: string, me: { status: string; is_standby: bo
   if (me == null || status === 'cancelled') return null;
   if (me.status === 'waiting_list') return status === 'scheduled' ? 'waiting_list' : null;
   if (me.status === 'confirmed') return me.is_standby ? 'standby' : 'going';
+  if (me.status === 'interested') return status === 'scheduled' ? 'interested' : null;
   return null;
 }
 
