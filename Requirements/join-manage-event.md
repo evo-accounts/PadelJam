@@ -1,8 +1,47 @@
 # Events Module — Join & Manage Event
 
-*Padel Jam — Version 1.3 • May 2026 • Updated with send blast and attendance export*
+*Padel Jam — Version 1.4 • September 2026 • Amended by the Create & Join Events UX audit (2026-09-25)*
+
+*Changelog — v1.4 (2026-09-26): amended to the Events UX audit decisions; see the block below. v1.3 (May 2026): send blast and attendance export.*
 
 This document defines two perspectives on an already-created event: Join Event (the player perspective — joining, leaving, partnering up, waiting lists) and Manage Event (the organizer perspective — editing the event, managing its roster, sending blasts, and exporting attendance / revenue). It builds directly on the data model established in the Create Event requirements doc (v1.1). Plan-driven behaviour — the organizer’s blast-customisation level — references the Profile & Settings document’s Subscription section. The In-progress Event sub-flows (player and manager views) are specified in a separate companion document.
+
+> **Amended 2026-09-25 by the Create & Join Events UX audit** (`docs/audit/2026-09-25-ux-events.md`,
+> decisions in `docs/audit/2026-09-25-ux-events-plan.md`). Where this document and the audit disagreed, the
+> product owner decided; rows and paragraphs marked *(amended)* carry the outcome. Only the Join Event
+> (player) side was audited; the Manage Event sections are amended only where a join rule reaches them. In
+> short:
+>
+> - **Waiting list first, broadcast** — when a spot frees, every waiter who could take it is notified at once
+>   and the first to claim it wins; nobody is auto-confirmed. While anyone is waiting, a newcomer queues
+>   behind them instead of taking the free spot. On team events, pairs wait together and claim two spots
+>   (JM-08, JM-17, §3.4).
+> - **Interested players stay interested when the event is full**; once they pair up, the pair joins the
+>   waiting list together (JM-17).
+> - **A partner who stays loses the spot** — when a confirmed player leaves a team event, the partner goes
+>   back to Invited (private) or Join (public) holding no spot, and gets a `partner_left` notification. The
+>   audit's "keeping their spot" is overridden (JM-16, §3.8).
+> - **Partner requests** — the requester can withdraw; a target's decline is sticky; a request the system
+>   closed (a pair formed, a partner dropped) can be asked again. `partner_request` notifications are
+>   settled automatically when the request ends (§3.6).
+> - **Mixed events** split capacity floor(capacity / 2) per gender on every confirming path; a player needs a
+>   gender on their profile to join a mixed event (§Event capacity).
+> - **Invitations are for private events only.** Public group events notify members (`event_created`) and
+>   show Join. Invitations can be declined; a declined invitation is recorded (JM-03, lifecycle, §3.2).
+> - **Guests** — name (+ gender on mixed), confirmed for that event only, no history or ranking, not
+>   reusable; added by the organizer in the wizard, or by a player as their partner on a team event
+>   ("I have a partner → Add manually"). The email / phone invitee is gone (JM-28).
+> - **Phones are never visible to other users** (migration 0115). After the leave deadline the organizer
+>   contact offers **Chat** only (JM-19).
+> - **Events list** — All / Organizing / Going / Pending tabs and a "Show past events" toggle; Going includes
+>   waiting list and interested (JM-01).
+> - **Player list** — read-only, visible to anyone who can see the event, with Confirmed / Waiting list /
+>   Invited tabs; guests carry a guest tag (JM-49).
+> - **No-access** closes with ✕ to Home (no "Try again"); **Share** is the native share sheet; **Add to
+>   calendar** is the native event editor on mobile and an `.ics` download on web (JM-22, §3.10).
+> - **Recurrence** — the next occurrence materialises automatically `invite_lead_days` before it (hourly
+>   `pg_cron`); there is no ~3-month rolling window of addressable occurrences (§4.6, matches Create Event
+>   EV-09). A duplicate is a one-off.
 
 **Confirmed design decisions**
 
@@ -12,15 +51,15 @@ This document defines two perspectives on an already-created event: Join Event (
 
 - Confirmation deadlines are fixed for every event and cannot be changed: a player can confirm up to 6 h before the event and leave up to 12 h before.
 
-- The waiting list has no size limit and is ordered by join order. When a spot frees up, the first person is notified and must confirm manually — there is no auto-confirmation.
+- The waiting list has no size limit and is ordered by join order. ~~When a spot frees up, the first person is notified and must confirm manually~~ *(amended)* When a spot frees up, everyone on the waiting list who could take it is notified at once and the first to claim it wins — there is no auto-confirmation. While anyone is waiting, a newcomer joins the end of the list.
 
-- In a team event, when the event fills up, a solo “interested” player is moved to the waiting list.
+- ~~In a team event, when the event fills up, a solo “interested” player is moved to the waiting list.~~ *(amended)* In a team event, interested players stay interested when the event fills up; once they find a partner, the pair joins the waiting list together.
 
 - event_type and specification are both immutable after creation. Every other event variable can be edited through Manage Event.
 
 - “I have a partner” confirms both players immediately, without the chosen partner’s consent. “I need a partner” sends requests that the recipient must accept.
 
-- Removing or adding a player never changes whether the event counts toward the group ranking — only is_private decides that. Manually-added players are event-scoped — no platform account or profile is created for them.
+- Removing or adding a player never changes whether the event counts toward the group ranking — only is_private decides that. Manually-added players are event-scoped — no platform account or profile is created for them. *(amended: they are guests — name, plus gender on mixed, confirmed for that event only, no history or ranking, not reusable.)*
 
 - Send blast is available only on events that belong to a community. The customisation level follows the community tier (Profile doc 7.6): Starter — send the template as-is on the chosen channels; Basic / Community Pro — fully customise title and description before sending.
 
@@ -40,10 +79,10 @@ A person’s relationship to an event moves through a small set of states. The M
 
 | **State** | **Meaning** | **Applies to** |
 |----|----|----|
-| Invited | Was invited but has not confirmed yet — stays “invited” until they confirm. There is no separate “declined” state. | All events |
+| Invited | Was invited but has not confirmed yet — stays “invited” until they confirm. ~~There is no separate “declined” state.~~ *(amended)* The invitee can Decline: the invitation is recorded as declined, leaves the Invited tab and is not copied to the next recurring occurrence. Private events only — a public group event has no invitations; members see Join. | Private events |
 | Interested | Joined a team event but is not yet in a complete pair. Holds no spot. | Team events only |
 | Confirmed | Holds a spot. Rotation: joined directly. Team: part of a complete pair. | All events |
-| Waiting list | Wants in but no spot is available. Ordered by join order. | All events |
+| Waiting list | Wants in but no spot is available. Ordered by join order. *(amended)* On team events a pair waits together and claims two spots. | All events |
 
 **Event capacity**
 
@@ -53,13 +92,15 @@ A person’s relationship to an event moves through a small set of states. The M
 
 - When every confirmed slot (regular + standby) is taken, further joiners go to the waiting list.
 
+- *(amended)* **Mixed events** split the capacity per gender: floor(capacity / 2) spots each (an odd stand-by spot stays unused). Every confirming path — join, accept an invitation, claim a waiting-list spot, guests at creation — enforces it; a player whose half is full goes to the waiting list, and a claim is refused with `gender_full`. A player with no gender on their profile is asked for it before joining a mixed event (`gender_required`). Organizer overrides are not restricted.
+
 **Event join window**
 
 Separate from the stored events.status (scheduled / in_progress / completed / cancelled), every event has a derived join window based on its start time:
 
 - Open — more than 6 h before the start. New confirmations are accepted.
 
-- Closing soon — a “X hours left to join” countdown is shown as the 6 h cutoff approaches (the countdown targets the cutoff, not the event start).
+- Closing soon — a “X hours left to join” countdown is shown as the 6 h cutoff approaches (the countdown targets the cutoff, not the event start). *(amended)* The countdown appears only within the 24 h before the cutoff, to the left of Join; before that only Join is shown.
 
 - Closed — within 6 h of the start. The event shows “Event closed” and accepts no new confirmations.
 
@@ -89,8 +130,8 @@ This module evolves three tables from the Create Event doc and adds five new one
 |----|----|----|
 | event_participants | Evolved — adds status, guest_gender, waiting_list_position, has_paid, paid_at, confirmed_at, invited_by. | Holds the live roster across the interested / confirmed / waiting-list states. |
 | event_teams | Evolved — player slots become nullable; adds team_number and is_confirmed. | A team can now be partially filled (one player = unpaired). |
-| event_invitations | Unchanged from the Create Event doc. | Tracks invitations as pending or accepted — there is no “declined” state. |
-| partner_requests | New. | Player-to-player “be my partner” requests in team events. |
+| event_invitations | Unchanged from the Create Event doc. | Tracks invitations as pending, accepted or *(amended)* declined. Private events only. |
+| partner_requests | New. *(amended)* Adds closed_by_system. | Player-to-player “be my partner” requests in team events. |
 | event_activity | New. | Activity log shown on the Manage Event hub. |
 | follows | New (minimal). | Follow graph — default suggestions when inviting to a standalone event. |
 | blast_templates | New. | System-provided blast templates exposed in the Templates tab of Send a blast. |
@@ -102,7 +143,11 @@ This module evolves three tables from the Create Event doc and adds five new one
 
 ### 3.1 Event list & entry points
 
-- The Events page lists events with three tabs: All (every event visible to the user), Organizing (events the user organises), Going (events the user is confirmed in).
+- ~~The Events page lists events with three tabs: All, Organizing, Going.~~ *(amended, UX-JEVT-01)* The Events page lists events with four tabs: All (every event visible to the user), Organizing (events the user organises), Going (events the user is confirmed in, **on the waiting list for, or interested in**), Pending (invitations the user has not answered and can still answer).
+
+- *(amended)* A "Show past events" toggle above the tabs, off by default, adds past events after the upcoming ones in every tab. Cancelled events are never listed.
+
+- *(amended)* Cards carry no "Coming soon" tag; an event with no image shows an icon placeholder. No search icon in the header — global search lives on Explore.
 
 - Each event card opens the event detail screen. A floating “+” button opens Create Event.
 
@@ -114,17 +159,19 @@ The event detail screen is shared by everyone, but the status banner and primary
 
 | **Viewer state** | **Banner** | **Primary CTA** |
 |----|----|----|
-| Invited to a private event | “\[Name\] invited you!” | Join |
-| Group member, public event, not joined | (none) | Join |
-| Confirmed | “You’re going!” | More menu (no Join) |
+| Invited to a private event | *(amended)* (none) — the bottom area shows the inviter’s photo, name and “invited you” | *(amended)* Decline (secondary) + Accept (primary) |
+| Group member, public event, not joined | (none) — *(amended)* the member was notified (`event_created`), not invited | Join (with the countdown to its left within 24 h of the cutoff) |
+| Team event, not joined *(amended)* | (none) | Join → “Team Event” sheet: I have a partner / I need a partner |
+| Partner left *(amended)* | (none) | The team entry state again — Join (public) or Decline / Accept (private) |
+| Confirmed | “You’re going!” | More menu (no Join) — Leave lives in ⋯ |
 | Interested (team event, no partner) | “You’re interested!” | Edit response |
-| On the waiting list | “You’re on the waiting list” | Leave waiting list |
+| On the waiting list | “You’re on the waiting list” — *(amended)* with the line that everyone on the list is notified when a spot opens and it goes to whoever confirms first | Leave waiting list (secondary); *(amended)* Claim spot while a spot is free |
 | Event full, not joined | “No more spots available” | Join waiting list |
-| Join window closed | “Event closed” | (none) |
+| Join window closed | “Event closed” *(amended: a static line in the bottom area)* | (none) |
 | Organizer, not playing | “You’re organizing” | Join as a player |
 | Organizer, playing | “You’re organizing and going!” | More menu |
 
-The detail body is the same throughout: hero image, name, date/time, location, players count, Type · Group line, Courts / Scoring / Fee chips, an Organizer section, and a location card. On the organizer’s view, the body also shows the quick-action row: Manage players, Payment list (when the event has an entrance fee), and Send blast (when the event belongs to a community — see 4.10).
+The detail body is the same throughout: hero image, name, date/time, location, players count, Type · Group line, Courts / Scoring / Fee chips, an Organizer section, and a location card. *(amended, UX-JEVT-02)* Header: back on the left, ⋯ on the right. The players card shows three confirmed avatars and confirmed / capacity, with a chevron to the Player list (§3.10). Type and group are badges; Courts, Scoring and Fee are three read-only widgets. The organizer card (always shown, even when the organizer only organizes) opens their profile; the location card opens the native maps app. On the organizer’s view, the body also shows the quick-action row: Manage players, Payment list (when the event has an entrance fee), and Send blast (when the event belongs to a community — see 4.10).
 
 ### 3.3 Joining a rotation event
 
@@ -143,7 +190,7 @@ The detail body is the same throughout: hero image, name, date/time, location, p
 </tr>
 <tr>
 <th><strong>Confirmation screen</strong></th>
-<th>“You’re in!” screen with event summary and two actions: Add to calendar, Close.</th>
+<th>“You’re in!” screen with event summary and two actions: Add to calendar, Close. *(amended)* The same full screen follows accepting an invitation; Add to calendar opens the native calendar editor (mobile) or downloads an .ics (web).</th>
 </tr>
 <tr>
 <th><strong>After joining</strong></th>
@@ -151,7 +198,7 @@ The detail body is the same throughout: hero image, name, date/time, location, p
 </tr>
 <tr>
 <th><strong>If the event is full</strong></th>
-<th>The Join CTA is replaced by “Join waiting list” (see 3.4).</th>
+<th>The Join CTA is replaced by “Join waiting list” (see 3.4). *(amended)* While anyone is waiting, Join places a newcomer at the end of the list even if a spot is free. On a mixed event a full gender half sends the player to the waiting list; a player without a gender is asked for it first.</th>
 </tr>
 <tr>
 <th><strong>DB impact</strong></th>
@@ -183,19 +230,19 @@ The detail body is the same throughout: hero image, name, date/time, location, p
 </tr>
 <tr>
 <th><strong>Order</strong></th>
-<th>Ordered by join order — first to join the waiting list is first to be offered a freed spot.</th>
+<th>Ordered by join order. *(amended)* The order is a queue for newcomers — they join the end while anyone is waiting — but a freed spot is offered to every waiter at once (below). On team events a waiting pair occupies two consecutive positions and moves as one unit.</th>
 </tr>
 <tr>
 <th><strong>When a spot frees</strong></th>
-<th>If a confirmed player leaves or is removed, the first person on the waiting list is notified and must confirm manually. No auto-confirmation — they could miss the message and otherwise be silently marked as confirmed.</th>
+<th>~~If a confirmed player leaves or is removed, the first person on the waiting list is notified and must confirm manually.~~ *(amended, decision 4)* If a confirmed player leaves or is removed, **every** waiter who could take the spot (right gender on a mixed event; a pair needs two spots) is notified at the same time, and the first to claim it wins. No auto-confirmation — they could miss the message and otherwise be silently marked as confirmed.</th>
 </tr>
 <tr>
 <th><strong>Player view</strong></th>
-<th>A “You’re on the waiting list” banner with a “Leave waiting list” action.</th>
+<th>A “You’re on the waiting list” banner with a “Leave waiting list” action. *(amended)* When a spot is free the bottom area offers Claim spot. If either half of a waiting pair leaves, the other loses their place too.</th>
 </tr>
 <tr>
 <th><strong>DB impact</strong></th>
-<th>event_participants with status = waiting_list and waiting_list_position set (sequential per event).</th>
+<th>event_participants with status = waiting_list and waiting_list_position set (sequential per event). *(amended)* A waiting pair is two rows at consecutive positions linked by pair_participant_id; the event_teams row is created only when the pair claims.</th>
 </tr>
 </thead>
 <tbody>
@@ -204,7 +251,7 @@ The detail body is the same throughout: hero image, name, date/time, location, p
 
 ### 3.5 Joining a team event
 
-When the event specification is “team”, tapping Join opens a modal: “This is a team event, how would you like to set your team?” — with two paths.
+When the event specification is “team”, tapping Join opens a modal: “This is a team event, how would you like to set your team?” — with two paths. *(amended, UX-JEVT-09)* A bottom sheet titled “Team Event” with two rows (I have a partner / I need a partner) and Cancel. Join is available in the normal state; on a public team event any group member may enter the team flow without an invitation.
 
 <table>
 <colgroup>
@@ -217,7 +264,7 @@ When the event specification is “team”, tapping Join opens a modal: “This 
 </tr>
 <tr>
 <th><strong>Screen</strong></th>
-<th>A list of the event’s invitees. The user picks one player.</th>
+<th>A list of the event’s invitees. The user picks one player. *(amended, UX-JEVT-10)* On a public group event the list is the whole group. Search at the top; blocked users, players already paired or waiting, and players who declined are excluded. “+ Add manually” adds a **guest** partner — a name (a player’s partner on a team event needs no gender, as team and mixed are exclusive) — confirmed for this event only, no history or ranking, not reusable; the guest never outlives the player who brought them.</th>
 </tr>
 <tr>
 <th><strong>Helper text</strong></th>
@@ -229,7 +276,7 @@ When the event specification is “team”, tapping Join opens a modal: “This 
 </tr>
 <tr>
 <th><strong>Result</strong></th>
-<th>“You’re going!” screen showing “Your partner: [name]” + Add to calendar.</th>
+<th>“You’re going!” screen showing “Your partner: [name]” + Add to calendar. *(amended)* If the event has fewer than two free spots, or anyone is waiting, the pair joins the waiting list together instead.</th>
 </tr>
 <tr>
 <th><strong>DB impact</strong></th>
@@ -291,7 +338,7 @@ When the event specification is “team”, tapping Join opens a modal: “This 
 </tr>
 <tr>
 <th><strong>Where they appear</strong></th>
-<th>Partner requests are highlighted in the Notifications screen and collected in a dedicated “Partner Requests” screen, grouped by event.</th>
+<th>Partner requests are highlighted in the Notifications screen and collected in a dedicated “Partner Requests” screen, grouped by event. *(amended, UX-JEVT-12)* Reached from a “Partner Requests” entry at the top of Notifications with the pending count. Each `partner_request` notification is settled automatically when its request ends (accepted, declined, withdrawn or closed). Empty: the standard empty state.</th>
 </tr>
 <tr>
 <th><strong>Accept</strong></th>
@@ -299,7 +346,7 @@ When the event specification is “team”, tapping Join opens a modal: “This 
 </tr>
 <tr>
 <th><strong>Decline</strong></th>
-<th>The request is removed from the accepter’s list. The requester is NOT notified of the decline.</th>
+<th>The request is removed from the accepter’s list. The requester is NOT notified of the decline. *(amended)* A target’s decline is sticky — the same requester cannot ask that player again for this event. A request the system closed (a pair formed, a partner dropped) can be asked again.</th>
 </tr>
 <tr>
 <th><strong>Multiple requests</strong></th>
@@ -307,7 +354,11 @@ When the event specification is “team”, tapping Join opens a modal: “This 
 </tr>
 <tr>
 <th><strong>DB impact</strong></th>
-<th>On accept: partner_requests.status = accepted, the others = declined; both event_participants rows set to confirmed; an event_teams row created with is_confirmed = true.</th>
+<th>On accept: partner_requests.status = accepted, the others = declined; both event_participants rows set to confirmed; an event_teams row created with is_confirmed = true. *(amended)* Requests closed this way carry closed_by_system = true.</th>
+</tr>
+<tr>
+<th><strong>Withdraw</strong> *(amended)*</th>
+<th>The requester can withdraw a pending request (withdraw_partner_request); leaving the event, or being removed, withdraws all their sent requests. Only the RPCs change a request — there is no direct update.</th>
 </tr>
 </thead>
 <tbody>
@@ -337,15 +388,15 @@ A player who is interested in a team event can revisit their choice via “Edit 
 </tr>
 <tr>
 <th><strong>Entry</strong></th>
-<th>More menu → “Leave Event” (rotation) or “Leave Event as a player” (organizer who is also playing). A confirmation modal is shown.</th>
+<th>More menu → “Leave Event” (rotation) or “Leave Event as a player” (organizer who is also playing). A confirmation modal is shown. *(amended, UX-JEVT-05)* A bottom sheet stating the user may lose their spot, with Leave (primary) and Cancel. On a private event the leaver’s own invitation returns to pending, so they see the Invited state again.</th>
 </tr>
 <tr>
 <th><strong>Team events</strong></th>
-<th>If the user is confirmed in a pair and leaves, their partner is automatically returned to the invited state. The pair’s event_teams row is cleared.</th>
+<th>If the user is confirmed in a pair and leaves, their partner is automatically returned to the invited state. The pair’s event_teams row is cleared. *(amended, decision 1)* The partner **loses the spot** (the audit’s “keeping their spot” is overridden) and receives a `partner_left` notification; their event screen shows the team entry state with Join (public) or Decline / Accept (private).</th>
 </tr>
 <tr>
 <th><strong>Past the leave deadline</strong></th>
-<th>Within 12 h of the start, leaving via the app is no longer possible. Instead of a Leave action, a modal shows the organizer’s contact (Chat / Call) so the player can arrange it directly.</th>
+<th>Within 12 h of the start, leaving via the app is no longer possible. Instead of a Leave action, a modal shows the organizer’s contact ~~(Chat / Call)~~ *(amended, decision 2)* — the organizer card with **Chat** only; phones are never visible to other users (migration 0115).</th>
 </tr>
 <tr>
 <th><strong>Effect on capacity</strong></th>
@@ -381,7 +432,7 @@ A player who is interested in a team event can revisit their choice via “Edit 
 </tr>
 <tr>
 <th><strong>Countdown</strong></th>
-<th>As the 6 h join cutoff approaches, the detail screen shows “X hours left to join” — the countdown targets the cutoff, not the event start.</th>
+<th>As the 6 h join cutoff approaches, the detail screen shows “X hours left to join” — the countdown targets the cutoff, not the event start. *(amended)* Shown only within the 24 h before the cutoff, and it keeps ticking while the screen is open.</th>
 </tr>
 <tr>
 <th><strong>After the cutoff</strong></th>
@@ -398,11 +449,15 @@ A player who is interested in a team event can revisit their choice via “Edit 
 
 ### 3.10 Sharing & access
 
-- More menu → Share opens a sheet: Message, Whatsapp, Instagram, Copy link.
+- ~~More menu → Share opens a sheet: Message, Whatsapp, Instagram, Copy link.~~ *(amended, decision 12)* More menu (⋯) → Share opens the **native share sheet** with the event link. The ⋯ sheet holds Share, Add to calendar and — only when the user is confirmed — Leave event.
 
-- If a private-event link is opened by a user who is not on the invite list, a no-access page is shown: “Sorry, you don’t have access to this page. This event is private and only invited players can access the info.” with a Try again action.
+- If a private-event link is opened by a user who is not on the invite list, a no-access page is shown: “Sorry, you don’t have access to this page. This event is private and only invited players can access the info.” ~~with a Try again action~~ *(amended, UX-JEVT-07)* as an empty state, with a ✕ in the header that returns to Home (no back arrow, no Try again). A deleted event lands here too — to the database the two are indistinguishable.
 
-- Add to calendar — available from the join confirmation screen and the More menu — creates an event in the user’s own calendar (the device calendar, or whichever calendar app they use).
+- Add to calendar — available from the join confirmation screen and the More menu — creates an event in the user’s own calendar. *(amended)* Mobile opens the native calendar event editor (`expo-calendar`); web downloads an `.ics` file.
+
+- *(amended, UX-JEVT-08)* **Player list** — the chevron on the players card opens a read-only list titled “Players”, visible to anyone who can see the event. Tabs with counts: Confirmed (x/y), Waiting list (only when there is one), Invited. Rows open the player’s profile; guests carry a guest tag and no chevron. Nothing on the screen acts on a player.
+
+- *(amended)* Phone numbers are never shown to other users anywhere in the event flows.
 
 ## Manage Event — organizer perspective
 
@@ -506,11 +561,11 @@ Each edit screen opens as its own sheet with Save / Cancel.
 </tr>
 <tr>
 <th><strong>Waiting list tab</strong></th>
-<th>Lists waiting-list players in confirmation order. The organizer can Remove a player from the event, or Mark as confirmed. When a confirmed player leaves, the first waiting-list player is auto-notified.</th>
+<th>Lists waiting-list players in confirmation order. The organizer can Remove a player from the event, or Mark as confirmed. ~~When a confirmed player leaves, the first waiting-list player is auto-notified.~~ *(amended)* When a confirmed player leaves, every waiter who could take the spot is notified; the first to claim wins.</th>
 </tr>
 <tr>
 <th><strong>Add manually</strong></th>
-<th>Via “+ Add manually”. For Classic and Team events the form asks only for a name; for Mixed events it also asks for gender. The player is created confirmed and is event-scoped only — no platform account.</th>
+<th>Via “+ Add manually”. For Classic and Team events the form asks only for a name; for Mixed events it also asks for gender. The player is created confirmed and is event-scoped only — no platform account. *(amended)* A guest: no history, no ranking, not reusable.</th>
 </tr>
 <tr>
 <th><strong>Inviting more players</strong></th>
@@ -536,7 +591,7 @@ Each edit screen opens as its own sheet with Save / Cancel.
 </tr>
 <tr>
 <th><strong>Public group event</strong></th>
-<th>Every group member was already invited at creation, so there is no one left to invite — only “+ Add manually” is shown.</th>
+<th>~~Every group member was already invited at creation~~ *(amended, decision 5)* A public group event has no invitations — every group member was notified at creation and can Join — so only “+ Add manually” is shown.</th>
 </tr>
 <tr>
 <th><strong>Private group event</strong></th>
@@ -667,21 +722,21 @@ Available only when the event has an entrance fee. It is reached as a quick acti
 
 ### 4.6 Recurring event management
 
-A recurring event is a weekly series with no end date. Occurrences within a rolling window of roughly the next three months are addressable; each occurrence is a normal event in its own right. Whether occurrences are pre-materialized rows or generated on demand within that window is an implementation detail.
+A recurring event is a weekly series with no end date. ~~Occurrences within a rolling window of roughly the next three months are addressable; whether occurrences are pre-materialized rows or generated on demand within that window is an implementation detail.~~ *(amended — resolves the conflict with Create Event EV-09)* Only the **next** occurrence exists as an events row (next-instance-only). It is materialized automatically `invite_lead_days` before it starts by an hourly `pg_cron` job (migration 0117), at the previous occurrence’s Europe/Lisbon wall-clock time + 7 days; the organizer can also open it early from the Manage hub. Each occurrence is a normal event in its own right.
 
 **Invitations & activation**
 
 - Invitations for an occurrence are sent invite_lead_days before that occurrence — the lead time (1 week / 5 days / 3 days) the organizer chose when enabling weekly recurrence at creation.
 
-- An occurrence appears on players’ Events screen, and can be confirmed or have its roster managed, only once its invitations have been sent. Before that it exists but is dormant.
+- ~~An occurrence appears on players’ Events screen only once its invitations have been sent. Before that it exists but is dormant.~~ *(amended)* An occurrence does not exist until it is materialized, which is the moment it is announced: a public group occurrence notifies the group (`event_created`, no invitations); a private one copies the previous occurrence’s invitations as pending (except declined ones and deleted accounts). A series is skipped while its organizer is no longer a member of the group, its group is archived, or its registry venue was deleted.
 
 **Organizer**
 
-- The Manage hub shows the recurrence at the bottom; from there the organizer can open any other occurrence within the ~3-month window — including future ones whose invitations have not been sent yet.
+- The Manage hub shows the recurrence at the bottom; ~~from there the organizer can open any other occurrence within the ~3-month window~~ *(amended)* from there the organizer can open the next occurrence early (before its lead time); occurrences further ahead do not exist yet.
 
 - To cancel, the organizer opens one occurrence and taps Cancel. The “Cancel Recurrent Event” modal always asks: “Only this event” or “This and upcoming events”.
 
-- A future occurrence can be cancelled ahead of time (e.g. a holiday week). If a not-yet-invited occurrence is cancelled, its prospective players are still notified — they may be counting on it.
+- A future occurrence can be cancelled ahead of time (e.g. a holiday week). If a not-yet-invited occurrence is cancelled, its prospective players are still notified — they may be counting on it. *(amended)* Only a materialized occurrence can be cancelled; cancelling one occurrence does not stop the series, and “This and upcoming events” stops it.
 
 - Editing an occurrence’s details prompts the same “this occurrence / this and all future occurrences” choice as cancelling.
 
@@ -732,7 +787,7 @@ A recurring event is a weekly series with no end date. Occurrences within a roll
 </tr>
 <tr>
 <th><strong>Inherited fields</strong></th>
-<th>Every field NOT in the modal is copied verbatim from the source event: event_type, specification, group, courts, venue / manual location, scoring, fee, standby, permissions, organizer role, recurring config (if any), and the full invitation list (a duplicate is treated as a brand-new event, so participants and waiting-list entries do NOT carry over — only invitations do).</th>
+<th>Every field NOT in the modal is copied verbatim from the source event: event_type, specification, group, courts, venue / manual location, scoring, fee, standby, permissions, organizer role, ~~recurring config (if any),~~ and the full invitation list (a duplicate is treated as a brand-new event, so participants and waiting-list entries do NOT carry over — only invitations do). *(amended)* A duplicate is always a **one-off** (series_id NULL), even of a recurring occurrence. A public group duplicate copies no invitations and notifies the group (`event_created`). Court selections and manual court names are copied; a soft-deleted venue refuses the duplicate (`venue_not_found`).</th>
 </tr>
 <tr>
 <th><strong>Confirm</strong></th>
@@ -999,45 +1054,45 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed JM (Join / Manage).
 
 | **ID** | **Requirement** | **Priority** | **Notes** |
 |----|----|----|----|
-| JM-01 | The events list has All / Organizing / Going tabs. | **Must** |  |
+| JM-01 | *(amended)* The events list has All / Organizing / Going / Pending tabs and a “Show past events” toggle (off by default); Going includes waiting list and interested. | **Must** | UX-JEVT-01 |
 | JM-02 | The event detail banner and CTA adapt to the viewer’s state. | **Must** | See the 3.2 matrix. |
-| JM-03 | An invitee to a private event sees “\[name\] invited you” + Join. | **Must** |  |
+| JM-03 | *(amended)* An invitee to a private event sees the inviter’s photo, name and “invited you”, with Decline (secondary) and Accept (primary). Invitations exist only on private events; public group members are notified and see Join. | **Must** | UX-JEVT-03, decision 5 |
 | JM-04 | Joining a rotation event confirms the player in a single action. | **Must** |  |
-| JM-05 | Joining shows a “You’re in!” confirmation with Add to calendar. | **Must** |  |
+| JM-05 | Joining shows a “You’re in!” confirmation with Add to calendar. | **Must** | *(amended)* Also after accepting an invitation. Native calendar editor on mobile, .ics on web. |
 | JM-06 | When an event is full, players can join the waiting list. | **Must** |  |
-| JM-07 | The waiting list has no size limit and is ordered by join order. | **Must** |  |
-| JM-08 | When a spot frees, the first waiting-list player is notified and must confirm manually. | **Must** | No auto-confirmation. |
+| JM-07 | The waiting list has no size limit and is ordered by join order. | **Must** | *(amended)* While anyone waits, newcomers join the end of the list. |
+| JM-08 | *(amended)* When a spot frees, every waiting-list player who could take it is notified at once; the first to claim it wins. | **Must** | No auto-confirmation. Decision 4, migration 0112 |
 | JM-09 | Joining a team event prompts “I have a partner” / “I need a partner”. | **Must** |  |
-| JM-10 | “I have a partner” confirms both players immediately, without the partner’s consent. | **Must** |  |
+| JM-10 | “I have a partner” confirms both players immediately, without the partner’s consent. | **Must** | *(amended)* The partner may be a guest (“Add manually”); on a public team event the candidates are the whole group, minus blocked users. |
 | JM-11 | “I need a partner” sends partner requests that must be accepted; marks the player interested. | **Must** |  |
 | JM-12 | Partner requests appear in Notifications and a dedicated Partner Requests screen. | **Must** |  |
-| JM-13 | Accepting a partner request confirms the pair; declining removes it silently. | **Must** | Requester not notified. |
+| JM-13 | Accepting a partner request confirms the pair; declining removes it silently. *(amended)* A decline is sticky; the requester can withdraw a pending request. | **Must** | Requester not notified. |
 | JM-14 | Accepting one partner request auto-declines the player’s other pending requests. | **Must** | Confirmation modal explains it. |
 | JM-15 | Interested players can Edit response: found a partner / need a partner / leave event. | **Must** |  |
-| JM-16 | Leaving a confirmed team pair returns the partner to the invited state. | **Must** |  |
-| JM-17 | When a team event fills, solo interested players move to the waiting list. | **Must** |  |
+| JM-16 | *(amended)* Leaving a confirmed team pair returns the partner to the invited state **without a spot**; the partner gets a `partner_left` notification and sees the team entry state. | **Must** | Decision 1 — overrides the audit’s “keeping their spot”. |
+| JM-17 | *(amended)* When a team event fills, interested players stay interested; a pair formed while the event is full (or anyone waits) joins the waiting list together and claims two spots. | **Must** | Decision 6 |
 | JM-18 | Players confirm up to 6 h before and leave up to 12 h before; deadlines are fixed. | **Must** | Not configurable. |
-| JM-19 | Past the leave deadline, the app shows the organizer’s contact instead of a Leave action. | **Must** | Chat / Call. |
+| JM-19 | Past the leave deadline, the app shows the organizer’s contact instead of a Leave action. | **Must** | *(amended)* Chat only — no Call; phones are never visible to other users. Decision 2 |
 | JM-20 | Past the join cutoff the event is closed — no new confirmations. | **Must** |  |
-| JM-21 | A “X hours left to join” countdown targets the join cutoff, not the event start. | Should |  |
-| JM-22 | Events can be shared; private-event links show a no-access page to non-invitees. | Should |  |
+| JM-21 | A “X hours left to join” countdown targets the join cutoff, not the event start. | Should | *(amended)* Only within 24 h of the cutoff. UX-JEVT-04 |
+| JM-22 | Events can be shared; private-event links show a no-access page to non-invitees. *(amended)* Share is the native share sheet; the no-access page closes with ✕ to Home — no Try again. | Should | UX-JEVT-06/07 |
 | JM-23 | The organizer reaches a Manage Event hub with summary, stats, edit entry points, and the action row (Share / Add to calendar / Send blast / Export / Duplicate / Cancel). | **Must** |  |
 | JM-24 | event_type and specification are immutable; every other variable is editable. | **Must** |  |
 | JM-25 | Manage players (rotation) has Confirmed / Invited / Waiting list tabs. | **Must** |  |
 | JM-26 | Removing a confirmed player prompts “remove from confirmed list” vs “remove from event”. | **Must** |  |
 | JM-27 | The organizer can Mark as confirmed an invited or waiting-list player. | **Must** |  |
-| JM-28 | Manually-added players are event-scoped; Mixed events require name + gender, others name only. | **Must** |  |
+| JM-28 | Manually-added players are event-scoped; Mixed events require name + gender, others name only. *(amended)* They are guests: confirmed for that event only, no history or ranking, not reusable. Added by the organizer (wizard, Manage players) or by a player as their partner on a team event. The email / phone invitee is removed. | **Must** | Decision 7, migration 0113 |
 | JM-29 | Manage players (team) has a Team view and a Player view. | **Must** |  |
 | JM-30 | Adding an unconfirmed player to a team auto-confirms them, with a confirm modal. | **Must** |  |
 | JM-31 | A team with one player stays unpaired; a team with two players confirms both. | **Must** |  |
 | JM-32 | Switch player swaps two players’ positions across teams / invited / waiting lists. | **Must** |  |
 | JM-33 | The payment list tracks paid / pending; informational only, no in-app payment. | **Must** |  |
-| JM-34 | Recurring events can be cancelled “only this” or “this and upcoming”. | **Must** |  |
+| JM-34 | Recurring events can be cancelled “only this” or “this and upcoming”. | **Must** | *(amended)* Only the next occurrence exists (§4.6). |
 | JM-35 | The organizer can Join as a player / Leave as a player without cancelling the event. | **Must** |  |
 | JM-36 | Private group events invite only group members; private standalone events can invite any user. | **Must** | Standalone default = followed users. |
 | JM-37 | Removing or adding a player never changes whether the event counts toward the ranking. | **Must** | Only is_private decides. |
 | JM-38 | The Manage view surfaces pending actions (set up teams, add players). | Should |  |
-| JM-39 | Duplicate event opens a modal with Name, Thumbnail, Date, and Time pickers; every other field is inherited from the source event. | Should |  |
+| JM-39 | Duplicate event opens a modal with Name, Thumbnail, Date, and Time pickers; every other field is inherited from the source event. | Should | *(amended)* A duplicate is a one-off (no series). |
 | JM-40 | An Activity log records roster and edit changes on the event. | Could |  |
 | JM-41 | Send blast is available only on events that belong to a community; the entry points are hidden on standalone events. | **Must** |  |
 | JM-42 | Send a blast (Basic / Community Pro) has Templates and Your blasts tabs and opens a Customize modal with editable title, description, send-to, and channels (Email / Whatsapp). | **Must** |  |
@@ -1045,6 +1100,11 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed JM (Join / Manage).
 | JM-44 | A blast is dispatched only on channels the recipient has enabled in user_settings; opted-out recipients are silently skipped. | **Must** |  |
 | JM-45 | Every send inserts an event_blasts row (sender_id, event_id, source_template_id, title, description, channels, sent_to_count, sent_at). The “Your blasts” tab reads from this table. | **Must** |  |
 | JM-46 | Export Attendance & Revenue opens a bottom sheet with Download CSV and Send CSV to my email; one must be picked to enable Confirm. | **Must** |  |
+| JM-48 | *(new, amended)* Mixed events split capacity floor(capacity / 2) per gender on every confirming path; a player needs a gender to join a mixed event. | **Must** | Decision 8 |
+| JM-49 | *(new, amended)* A read-only Player list (Confirmed / Waiting list / Invited tabs, guest tag) is visible to anyone who can see the event. | **Must** | UX-JEVT-08, decision 14 |
+| JM-50 | *(new, amended)* Invitees can decline an invitation; leaving a private event returns the leaver’s invitation to pending. | **Must** | UX-JEVT-03 |
+| JM-51 | *(new, amended)* Recurring occurrences materialise automatically `invite_lead_days` before they start (hourly `pg_cron`); the organizer must still be a group member. | **Must** | Decision 10, migration 0117; see Create Event EV-09 |
+| JM-52 | *(new, amended)* Other users’ phone numbers are never readable. | **Must** | Migration 0115 |
 | JM-47 | The exported CSV contains one row per participant with name, user_type, status, is_standby, joined_at, confirmed_at, has_paid, paid_at, fee_amount; member email and mobile are NOT included. | **Must** |  |
 
 ## Database schema
@@ -1110,6 +1170,8 @@ UNIQUE (event_id, user_id)
 
 );
 
+*(amended, migration 0112)* Adds pair_participant_id UUID — links the two halves of a pair waiting together on a team event; cleared when the pair claims its spots.
+
 **event_teams (evolved)**
 
 Player slots are now nullable so a team can be partially filled; team_number and is_confirmed are added.
@@ -1163,6 +1225,8 @@ CHECK (requester_id \<\> target_id),
 UNIQUE (event_id, requester_id, target_id)
 
 );
+
+*(amended, migrations 0111/0112)* Adds closed_by_system BOOLEAN — a request the system closed can be re-opened by a new request; a target’s own decline stays sticky. A withdrawn request is deleted.
 
 **event_activity (new)**
 
@@ -1360,6 +1424,9 @@ WITH CHECK (requester_id = auth.uid());
 
 -- UPDATE: the target answers; the requester may cancel (delete)
 
+-- (amended, migration 0111) The UPDATE policy is dropped: answering and withdrawing go through
+-- accept_partner_request / decline_partner_request / withdraw_partner_request only.
+
 CREATE POLICY "partner_requests: respond" ON partner_requests FOR UPDATE
 
 USING (target_id = auth.uid());
@@ -1462,7 +1529,7 @@ src/lib/validations/blast.schema.ts
 
 **Join (player)**
 
-src/app/(app)/events/page.tsx Event list — All / Organizing / Going
+src/app/(app)/events/page.tsx Event list — All / Organizing / Going / Pending + past toggle (amended)
 
 src/app/(app)/events/\[id\]/page.tsx Event detail
 
@@ -1486,7 +1553,7 @@ src/components/events/EditResponseModal.tsx
 
 src/components/events/LeaveEventModal.tsx
 
-src/components/events/PastDeadlineModal.tsx Organizer contact (Chat / Call)
+src/components/events/PastDeadlineModal.tsx Organizer contact (Chat only — amended)
 
 src/components/events/ShareSheet.tsx
 
@@ -1564,9 +1631,9 @@ Run the section 06 schema and section 07 RLS as Supabase migrations first. Then 
 
 - Build the team join path: TeamJoinModal.tsx (“I have a partner” / “I need a partner”); ChoosePartnerScreen.tsx (pick one invitee, confirm both, create the event_teams row); NeedPartnerScreen.tsx (invite players, “Let others invite me”, mark interested). Build PartnerRequestsScreen.tsx + usePartnerRequests.ts: accept (confirm the pair, decline the user’s other pending requests), decline (silent). Add the “Accept partner request” confirmation modal.
 
-- Build EditResponseModal.tsx (found a partner / need a partner / leave event), LeaveEventModal.tsx, and PastDeadlineModal.tsx (organizer Chat / Call when past the 12 h leave deadline). Build ShareSheet.tsx and NoAccessPage.tsx — a private-event link opened by a non-invitee renders the no-access page.
+- Build EditResponseModal.tsx (found a partner / need a partner / leave event), LeaveEventModal.tsx, and PastDeadlineModal.tsx (organizer Chat when past the 12 h leave deadline — no Call, amended). Build ShareSheet.tsx and NoAccessPage.tsx — a private-event link opened by a non-invitee renders the no-access page.
 
-- Write a Playwright spec covering: joining a rotation event flips the detail screen to “You’re going!”; joining a full event lands the user on the waiting list; when a confirmed player leaves, the first waiting-list player is notified and can confirm manually; leaving a confirmed team pair returns the partner to the invited state.
+- Write a Playwright spec covering: joining a rotation event flips the detail screen to “You’re going!”; joining a full event lands the user on the waiting list; when a confirmed player leaves, every waiting-list player is notified and the first to claim gets the spot (amended); leaving a confirmed team pair returns the partner to the invited state.
 
 **Prompt 2 — Manage Event (organizer) + send blast + export + duplicate**
 
