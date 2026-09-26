@@ -208,7 +208,7 @@ export function DateSummaryFooter({ draft }: WizardStepProps) {
       <Text variant="label" tone="muted">
         {t('summaryTitle')}
       </Text>
-      <Text variant="bodyStrong" testID="date-summary">
+      <Text variant="bodyStrong">
         {start ? formatEventWhen(start, draft.durationMinutes, locale) : t('summaryPickTime')}
       </Text>
       {next && draft.series ? (

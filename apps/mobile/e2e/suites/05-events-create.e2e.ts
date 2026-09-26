@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { query, queryAll, snapshot, type AxElement } from '../driver/a11y';
-import { clearText, dismissKeyboard, scrollUntilVisible, tap, typeText } from '../driver/actions';
+import { keyboardTop, query, queryAll, snapshot, type AxElement } from '../driver/a11y';
+import { clearText, dismissKeyboard, pressReturn, scrollUntilVisible, swipe, tap, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { loginAs, tabTo } from '../driver/flows';
@@ -52,10 +52,17 @@ describe('05 event create wizard', () => {
     return `date-day-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
 
-  const summaryText = (tree: AxElement[]) => {
-    const box = query(tree, { id: 'date-summary' });
-    return `${box?.AXLabel ?? ''} ${box?.AXValue ?? ''}`;
+  /** The venue search's return key is Search, which submits and blurs the field. */
+  const hideSearchKeyboard = async () => {
+    await pressReturn();
+    await sleep(600);
+    if (keyboardTop(await snapshot()) != null) await dismissKeyboard();
+    expect(keyboardTop(await snapshot()), 'the keyboard is away').toBeNull();
   };
+
+  /** The summary's "when" line — the only text with a HH:MM–HH:MM range on the Date step. */
+  const summaryText = (tree: AxElement[]) =>
+    query(tree, { text: /\d{2}:\d{2}–\d{2}:\d{2}/, type: 'StaticText' })?.AXLabel ?? '';
 
   it('opens on Group: a progress bar, no step counter, no Next, and your groups (B14)', async () => {
     await tabTo('Home');
@@ -126,9 +133,11 @@ describe('05 event create wizard', () => {
   it('a search with no hits says "Location not found" and offers the manual form', async () => {
     await typeText({ id: 'venue-search' }, 'zzqxnowhere');
     await expectVisible({ text: /location not found/i }, { timeout: 10_000 });
-    // With the keyboard up, the fixed "no location" footer rides above it and covers the empty
-    // state's button (run 36230787990: the tap landed on the footer). Put the keyboard away first.
-    await dismissKeyboard();
+    // Put the keyboard away with its Search key, as a person would. With it up, the empty
+    // state's button sits in the keyboard's suggestion bar (y 539, above the first key row the
+    // driver measures): runs 36230787990 and 36244200178 delivered the tap to the keyboard window,
+    // and a tap on a caption did not dismiss it either.
+    await hideSearchKeyboard();
     await scrollUntilVisible({ text: /^add manually$/i, type: 'Button' }, { maxSwipes: 3 });
     await tap({ text: /^add manually$/i, type: 'Button' });
     // The manual venue form: its note, its fields, and a Next that wants an address.
@@ -143,7 +152,7 @@ describe('05 event create wizard', () => {
     await tap({ id: 'venue-back-to-list' });
     await expectVisible({ id: 'venue-search' }, { timeout: 5_000 });
     await clearText({ id: 'venue-search' }, 15);
-    await dismissKeyboard();
+    await hideSearchKeyboard();
   });
 
   it('picking a registry venue advances to Courts, where its courts can be ticked', async () => {
@@ -157,11 +166,13 @@ describe('05 event create wizard', () => {
     await sleep(900);
     await onStep(/^courts$/i, 2_000);
     await expectVisible({ text: /select at least one court/i });
-    await tap({ text: /^court 1$/i });
-    await tap({ text: /^court 2$/i });
+    // A checkbox carries its state as AXValue, which the text matcher appends to the label
+    // ("Court 1 0"), so the pattern is anchored at the start only.
+    await tap({ text: /^court 1\b/i, type: 'Button' });
+    await tap({ text: /^court 2\b/i, type: 'Button' });
     // Two courts → eight players.
-    const cap = query(await snapshot(), { id: 'courts-capacity' });
-    expect(`${cap?.AXLabel ?? ''}`).toMatch(/8 players/i);
+    // A Text's testID does not reach the tree (only accessible elements carry one): match the copy.
+    await expectVisible({ text: /^capacity: 8 players/i }, { timeout: 5_000 });
     await nextTo(/^date$/i);
   });
 
@@ -172,6 +183,10 @@ describe('05 event create wizard', () => {
     await tap({ id: 'time-slot-19:00' });
     await sleep(300);
     expect(summaryText(await snapshot()), 'default duration is 60').toMatch(/19:00–20:00/);
+    // The Duration card starts under the fixed summary + Next footer; scroll the cards up so
+    // its chips are clear of it (the tree still lists covered chips at their layout position).
+    await swipe('up');
+    await sleep(700);
     await tap({ id: 'duration-90' });
     await sleep(300);
     expect(summaryText(await snapshot())).toMatch(/19:00–20:30/);

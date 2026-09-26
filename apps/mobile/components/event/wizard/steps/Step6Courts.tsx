@@ -127,7 +127,7 @@ function CapacityLine({ draft }: Pick<WizardStepProps, 'draft'>) {
   return (
     // Plain View, each line its own element (see InfoNote on accessible grouping Views).
     <View style={styles.capacity}>
-      <Text variant="label" testID="courts-capacity">{t('capacityPlayers', { count: players })}</Text>
+      <Text variant="label">{t('capacityPlayers', { count: players })}</Text>
       {perGender != null ? (
         <Text variant="caption" tone="muted">
           {t('capacityMixed', { count: perGender })}
