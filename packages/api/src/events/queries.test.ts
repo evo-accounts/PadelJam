@@ -34,5 +34,11 @@ describe('my events query keys', () => {
     expect(qk.myEvents('all')).toEqual(['my-events', 'all']);
     expect(qk.myEvents('organizing')).toEqual(['my-events', 'organizing']);
     expect(qk.myEvents('going')).toEqual(['my-events', 'going']);
+    expect(qk.myEvents('pending')).toEqual(['my-events', 'pending']);
+  });
+
+  it('keeps the past toggle under the same prefix, so one invalidation covers every tab', () => {
+    expect(qk.myEvents('all', true)).toEqual(['my-events', 'all', 'past']);
+    expect(qk.myEvents('all', true).slice(0, qk.myEventsAll.length)).toEqual([...qk.myEventsAll]);
   });
 });

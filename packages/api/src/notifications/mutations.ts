@@ -94,7 +94,8 @@ export const useCompleteNotificationCta = () => {
       const { error } = await callCta(db, call);
       if (error) {
         const code = mapPgError(error) ?? 'unknown_error';
-        if (code === 'spot_taken') {
+        // gender_full: the free spot is in the other half of a mixed event — this offer is stale too.
+        if (code === 'spot_taken' || code === 'gender_full') {
           // Best effort: the offer is stale either way; the rethrow below carries the user-facing code.
           await db.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id);
           invalidate(qc);

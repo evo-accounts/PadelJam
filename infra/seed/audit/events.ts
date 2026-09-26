@@ -168,7 +168,8 @@ export async function seedEvents(ctx: Ctx) {
   {
     const payload = base(id(ctx, 'G1'), { name: 'Treino Remarcado', starts_at: daysFromNow(11, 19) });
     const eventId = await create(ctx, 'f4', payload);
-    await ctx.c.rpc(a1.jwt, 'accept_event_invitation', { p_event_id: eventId });
+    // A public group event carries no invitation since 0112: A1 joins as a G1 member.
+    await join(ctx, 'a1', eventId);
     await ctx.c.rpc(u(ctx, 'f4').jwt, 'update_event', { p_event_id: eventId, p_payload: { ...payload, starts_at: daysFromNow(12, 19) } });
     ctx.ids.E_UPDATED = eventId;
     ctx.log(`E date-changed ${eventId}`);
@@ -177,7 +178,7 @@ export async function seedEvents(ctx: Ctx) {
   // Extra — cancelled event A1 was confirmed in (N5).
   {
     const eventId = await create(ctx, 'f4', base(id(ctx, 'G1'), { name: 'Treino Cancelado', starts_at: daysFromNow(10, 19) }));
-    await ctx.c.rpc(a1.jwt, 'accept_event_invitation', { p_event_id: eventId });
+    await join(ctx, 'a1', eventId);
     await ctx.c.rpc(u(ctx, 'f4').jwt, 'cancel_event', { p_event_id: eventId, p_scope: 'only_this' });
     ctx.ids.E_CANCELLED = eventId;
     ctx.log(`E cancelled ${eventId}`);
@@ -198,8 +199,12 @@ export async function seedEvents(ctx: Ctx) {
     ctx.log(`E7 ${eventId}`);
   }
 
-  // E8 — scheduled, A1 invited and unanswered (N2).
+  // E8 — scheduled, A1 invited and unanswered (N2). Public group events are no longer
+  // auto-invited (0112), so F4 invites A1 explicitly; invite_to_event still allows that.
   ctx.ids.E8 = await create(ctx, 'f4', base(id(ctx, 'G1'), { name: 'Americano de Sexta', starts_at: daysFromNow(8, 20) }));
+  await ctx.c.rpc(u(ctx, 'f4').jwt, 'invite_to_event', {
+    p_event_id: id(ctx, 'E8'), p_invitees: [{ invitee_id: a1.id, name: null, email: null, phone: null }],
+  });
   ctx.log(`E8 ${id(ctx, 'E8')}`);
 
   // U4's history — 20 completed, counted, spread over the last four months, in C3's ranking group.

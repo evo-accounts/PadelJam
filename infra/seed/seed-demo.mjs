@@ -405,14 +405,16 @@ async function main() {
   });
 
   // 7) Events ---------------------------------------------------------------
-  // E1 — scheduled americano, organizer Maria (admin), Alex GOING, 1 waitlist, rita invited
+  // E1 — scheduled americano, organizer Maria (admin), Alex GOING. Public group events carry no
+  // invitations since migration 0112 (the group gets an event_created notification instead), so
+  // the `invitees` below are ignored by create_event, as they always were for public events.
   const e1 = await rpc(jwt('maria'), 'create_event', { p_payload: baseEvent({
     name: 'Tuesday Americano', organizer_role: 'organizing_and_playing', starts_at: isoIn(3),
     entrance_fee_enabled: true, entrance_fee_amount: 5, entrance_fee_method: 'cash',
     invitees: [{ invitee_id: id('pedro'), name: null, email: null, phone: null }],
   }) });
   for (const k of ['alex', 'joao', 'sofia']) await rpc(jwt(k), 'join_event', { p_event_id: e1 }); // confirmed (4 incl maria)
-  await rpc(jwt('bruno'), 'join_event', { p_event_id: e1 }); // waiting_list (cap 4)
+  await rpc(jwt('bruno'), 'join_event', { p_event_id: e1 }); // confirmed as stand-by (cap 4 + 2 stand-by)
   console.log(`  E1 scheduled americano = ${e1}`);
 
   // E2 — scheduled team event, organizer Maria; teams formed; pending partner request to Alex

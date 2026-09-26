@@ -59,9 +59,9 @@ describe('08 partner requests', () => {
 
   it('a team-spec event routes a new player to partner selection', async () => {
     // E12 "Duo Selection" is team-spec and carries NO invitations, so joao
-    // arrives with nothing to accept. On E2 "Team Cup" he is auto-invited, and
-    // accepting leaves him "You're going" with a Leave CTA and no partner
-    // prompt — which is why this needed its own fixture rather than E2.
+    // arrives with nothing to accept (true of every public group event since
+    // migration 0112). It stays a separate fixture from E2, whose roster the
+    // inbox tests above change.
     await switchUser('joao');
     await tabTo('Home');
     await tap({ text: /find event/i });

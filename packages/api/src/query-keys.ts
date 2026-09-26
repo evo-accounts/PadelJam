@@ -29,7 +29,11 @@ export const qk = {
   eventCreatableGroups: (communityId: string) => ['my-groups', 'event-creatable', communityId] as const,
   events: (groupId: string) => ['group', groupId, 'events'] as const,
   communityEvents: (communityId: string) => ['community', communityId, 'events'] as const,
-  myEvents: (filter: 'all' | 'organizing' | 'going') => ['my-events', filter] as const,
+  /** Prefix of every My Events list: invalidating it refreshes every tab, past or not. */
+  myEventsAll: ['my-events'] as const,
+  myEvents: (filter: 'all' | 'organizing' | 'going' | 'pending', includePast = false) =>
+    (includePast ? (['my-events', filter, 'past'] as const) : (['my-events', filter] as const)),
+  eventInvitedPlayers: (id: string) => ['event', id, 'invited-players'] as const,
   event: (id: string) => ['event', id] as const,
   eventParticipants: (id: string) => ['event', id, 'participants'] as const,
   eventInvitations: (id: string) => ['event', id, 'invitations'] as const,

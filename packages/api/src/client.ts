@@ -19,6 +19,8 @@ const KNOWN = [
   'event_full', 'leave_deadline_passed', 'already_joined', 'not_invited', 'not_participant',
   'not_on_waiting_list', 'spot_taken',
   'use_team_join', 'not_a_team_event', 'partner_unavailable', 'request_stale', 'gender_required',
+  // 0112: a mixed event's half for the caller's gender is full (claim_waitlist_spot).
+  'gender_full',
   'setup_incomplete', 'mixed_unbalanced', 'mixed_gender_missing', 'round_not_scored', 'round_exists', 'event_not_scheduled',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
   'recurring_events', 'not_cancellable', 'invalid_scope', 'not_editable', 'standby_below_roster', 'series_inactive', 'courts_below_roster', 'not_retryable',

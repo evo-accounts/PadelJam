@@ -45,6 +45,20 @@ export const useEventRealtime = (eventId: string) => {
         { event: '*', schema: 'public', table: 'partner_requests', filter },
         () => {
           qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+          qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
+        },
+      )
+      // Filtered Postgres Changes never deliver DELETEs (the old row carries only its primary key,
+      // so the event_id filter cannot match), and a withdrawn request or a leaver's requests are
+      // deleted (0111). Listen for DELETEs unfiltered: this fires for a deletion on ANY event, which
+      // only costs a refetch of lists that RLS already scopes to the viewer.
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'partner_requests' },
+        () => {
+          qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+          qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
+          qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
         },
       )
       .on(

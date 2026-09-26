@@ -29,7 +29,7 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"f1000001-0000-0000-0000-000000000001","role":"authenticated"}';
 select create_group(:'cid','ECreateGroup','desc',false) as gid \gset
 reset role;
--- member2 is a group member (so they should get an auto-invitation), member is NOT.
+-- member2 is a group member (so they should get an event_created notification), member is NOT.
 insert into group_members (group_id, user_id)
   values (:'gid','f1000003-0000-0000-0000-000000000003') on conflict do nothing;
 select set_config('test.cid', :'cid', false);
@@ -52,16 +52,17 @@ begin
   if not exists (select 1 from event_participants
                  where event_id=v_event and user_id='f1000001-0000-0000-0000-000000000001' and status='confirmed') then
     raise exception using errcode='PT001', message='organizer must be a confirmed participant'; end if;
-  -- auto-invitation exists for the OTHER group member (member2), NOT for the organizer.
-  if not exists (select 1 from event_invitations
-                 where event_id=v_event and invitee_id='f1000003-0000-0000-0000-000000000003' and status='pending') then
-    raise exception using errcode='PT001', message='auto-invitation missing for other group member'; end if;
-  if exists (select 1 from event_invitations where event_id=v_event and invitee_id='f1000001-0000-0000-0000-000000000001') then
-    raise exception using errcode='PT001', message='organizer must not be auto-invited'; end if;
-  -- exactly one invitation (group has 2 members: organizer + member2).
-  if (select count(*) from event_invitations where event_id=v_event) <> 1 then
-    raise exception using errcode='PT001', message='public group event should auto-invite all OTHER group members only'; end if;
-  raise notice 'OK create_event public group: uuid + auto-invitations for other members + organizer confirmed';
+  -- 0112 (decision 5): a public group event invites nobody; the OTHER member (member2) gets an
+  -- event_created notification instead, and the organizer gets none.
+  if exists (select 1 from event_invitations where event_id=v_event) then
+    raise exception using errcode='PT001', message='public group event must not create invitations'; end if;
+  if not exists (select 1 from notifications
+                 where event_id=v_event and user_id='f1000003-0000-0000-0000-000000000003' and type='event_created') then
+    raise exception using errcode='PT001', message='event_created missing for the other group member'; end if;
+  if exists (select 1 from notifications
+             where event_id=v_event and user_id='f1000001-0000-0000-0000-000000000001' and type='event_created') then
+    raise exception using errcode='PT001', message='organizer must not be notified of their own event'; end if;
+  raise notice 'OK create_event public group: uuid + event_created for other members + organizer confirmed';
 end $$;
 reset role;
 

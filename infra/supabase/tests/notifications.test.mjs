@@ -30,7 +30,7 @@ await run('organizer is notified once per player who confirms', async () => {
   const groupId = await groupFor(org);
   const p1 = await user('p1');
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
-  // create_event invites every group member; drop those so players arrive as plain joiners (not invitees).
+  // Public group events carry no invitations since 0112; the delete below is a harmless leftover.
   await del('event_invitations', `event_id=eq.${eventId}`);
   await rpc(p1.jwt, 'join_group', { p_group_id: groupId });
   await rpc(p1.jwt, 'join_event', { p_event_id: eventId });
@@ -46,7 +46,8 @@ await run('organizer playing their own event does not notify themselves', async 
   assert(rows.length === 0, 'no self-notification');
 });
 
-await run('a freed confirmed spot is offered to the first waiter, who claims it', async () => {
+await run('a freed confirmed spot is offered to every waiter at once; the first to claim wins', async () => {
+  // 0112 (decision 4): broadcast, not first-waiter-only. Dedupe is per waiter.
   const org = await user('org3');
   const groupId = await groupFor(org);
   const players = [];
@@ -54,7 +55,6 @@ await run('a freed confirmed spot is offered to the first waiter, who claims it'
   const w1 = await user('w1');
   const w2 = await user('w2');
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
-  await del('event_invitations', `event_id=eq.${eventId}`);
   for (const p of players) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
   await rpc(w1.jwt, 'join_group', { p_group_id: groupId });
   assert((await rpc(w1.jwt, 'join_event', { p_event_id: eventId })) === 'waiting_list', 'w1 waits');
@@ -66,20 +66,23 @@ await run('a freed confirmed spot is offered to the first waiter, who claims it'
   assert(offered.length === 1, `w1 offered once, got ${offered.length}`);
   const [w1part] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${w1.id}&select=id`);
   assert(offered[0].ref_id === w1part.id, 'offer references the waiter participant row');
-  assert((await notifs(w2.id, 'waitlist_spot', eventId)).length === 0, 'w2 not offered');
+  assert((await notifs(w2.id, 'waitlist_spot', eventId)).length === 1, 'w2 offered at the same time');
 
-  // Leaving again before the claim must not duplicate the offer.
+  // Leaving again before anyone claims must not duplicate either standing offer.
   await rpc(players[1].jwt, 'leave_event', { p_event_id: eventId });
   assert((await notifs(w1.id, 'waitlist_spot', eventId)).length === 1, 'still one offer for w1');
+  assert((await notifs(w2.id, 'waitlist_spot', eventId)).length === 1, 'still one offer for w2');
 
-  assert((await rpc(w1.jwt, 'claim_waitlist_spot', { p_event_id: eventId })) === 'confirmed', 'w1 confirmed');
-  const [w1row] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${w1.id}&select=status,waiting_list_position`);
-  assert(w1row.status === 'confirmed' && w1row.waiting_list_position === null, 'w1 row confirmed');
+  // w2 claims first — position does not matter, the first to confirm wins.
+  assert((await rpc(w2.jwt, 'claim_waitlist_spot', { p_event_id: eventId })) === 'confirmed', 'w2 confirmed');
   const [w2row] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${w2.id}&select=status,waiting_list_position`);
-  assert(w2row.status === 'waiting_list' && w2row.waiting_list_position === 1, 'w2 renumbered to 1');
-  // w1's claim freed nothing, but the second leave did: w2 must now hold an offer of their own.
-  assert((await notifs(w2.id, 'waitlist_spot', eventId)).length === 1, 'w2 offered after w1 claimed');
-  const closed = await notifs(w1.id, 'waitlist_spot', eventId);
+  assert(w2row.status === 'confirmed' && w2row.waiting_list_position === null, 'w2 row confirmed');
+  const [w1row] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${w1.id}&select=status,waiting_list_position`);
+  assert(w1row.status === 'waiting_list' && w1row.waiting_list_position === 1, 'w1 still waiting, renumbered to 1');
+  // A spot is still free, so w1's offer still stands (unread, not done) and was not repeated.
+  const w1offers = await notifs(w1.id, 'waitlist_spot', eventId);
+  assert(w1offers.length === 1 && !w1offers[0].cta_done && !w1offers[0].read_at, "w1's offer still stands");
+  const closed = await notifs(w2.id, 'waitlist_spot', eventId);
   assert(closed.length === 1 && closed.every((n) => n.cta_done && n.read_at), 'claim closes the claimant offers server-side');
 });
 
