@@ -55,6 +55,8 @@ export function Step10Invite({ draft, patch, organizerGender }: StepProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   // The guest being corrected (null = adding a new one).
   const [editingKey, setEditingKey] = useState<string | null>(null);
+  // Bumped on each opening, so the dialog's form starts fresh.
+  const [dialogSeq, setDialogSeq] = useState(0);
 
   useEffect(() => {
     const handle = setTimeout(() => setTerm(query.trim()), SEARCH_DEBOUNCE_MS);
@@ -116,6 +118,7 @@ export function Step10Invite({ draft, patch, organizerGender }: StepProps) {
       return;
     }
     setEditingKey(key);
+    setDialogSeq((n) => n + 1);
     setDialogOpen(true);
   };
 
@@ -301,6 +304,7 @@ export function Step10Invite({ draft, patch, organizerGender }: StepProps) {
 
       <GuestDialog
         open={dialogOpen}
+        formKey={dialogSeq}
         onClose={() => setDialogOpen(false)}
         mixed={mixed}
         room={dialogRoom}

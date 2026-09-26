@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useT } from '@padel/i18n';
 import { guestBlocker, type RosterRoom } from '@padel/utils';
 import { Button } from '@/components/ui/button';
@@ -17,11 +17,12 @@ type Gender = 'male' | 'female';
  * (UX-GLOB-02 on web). A guest is a name — and, on a mixed event, a gender — for someone with no
  * access to the app; saving adds them straight to the step's confirmed list. Validated on Save
  * (UX-GLOB-06), and refused here when they would not fit, so the organizer learns it now rather
- * than from `create_event`. The form stays mounted (so closing animates with its content); a key
- * bumped on each opening resets its fields.
+ * than from `create_event`. The form stays mounted (so closing animates with its content); the
+ * caller bumps `formKey` on each opening, which resets its fields.
  */
 export function GuestDialog({
   open,
+  formKey,
   onClose,
   mixed,
   room,
@@ -29,6 +30,8 @@ export function GuestDialog({
   onSave,
 }: {
   open: boolean;
+  /** Changed by the caller on each opening: the form starts from `initial` (or empty) every time. */
+  formKey: number;
   onClose: () => void;
   mixed: boolean;
   /** The roster WITHOUT the guest being edited, so re-saving them is not refused as one too many. */
@@ -38,16 +41,11 @@ export function GuestDialog({
   onSave: (guest: GuestInput) => void;
 }) {
   const { t } = useT('event');
-  const [opening, setOpening] = useState(0);
-  // A new key per opening: the form starts from `initial` (or empty) every time.
-  useEffect(() => {
-    if (open) setOpening((n) => n + 1);
-  }, [open]);
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? null : onClose())}>
       <DialogContent className="sm:max-w-md" aria-describedby="guest-note" data-testid="guest-dialog">
         <GuestForm
-          key={opening}
+          key={formKey}
           mixed={mixed}
           room={room}
           initial={initial}
