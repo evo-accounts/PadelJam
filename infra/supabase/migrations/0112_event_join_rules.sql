@@ -48,6 +48,15 @@
 -- screens and the organizer team tools see nothing new. On claim the two rows are confirmed, a
 -- confirmed event_teams row is created and pair_participant_id is cleared. If either player leaves
 -- (leave_event or leave_waiting_list) the other loses their place too, as a confirmed partner does.
+-- If one half goes any OTHER way (organizer removal, organizer_mark_confirmed, an organizer team
+-- assignment, account deletion), a trigger returns the other half to 'interested', out of the queue,
+-- so no half-pair is ever stranded on the list. Only waiting PAIRS queue ahead of a new pair.
+--
+-- Review of #213: newcomers queued while a spot is free are offered it (every path that adds or
+-- removes a waiter calls the idempotent notify_waitlist_spot); a pair never demotes a confirmed
+-- player into the queue (event_full); a removed player cannot re-enter through an incoming request;
+-- explicit invitations to non-members of a public event's group are left alone; 'to_invited' on a
+-- public group event leaves a group member with no invitation.
 --
 -- Every redefined function is its latest body (0111 for accept_event_invitation, choose_partner,
 -- request_partner, accept_partner_request, withdraw_partner_request, leave_event,
@@ -158,23 +167,25 @@ revoke execute on function _notify_event_created(uuid) from public, anon, authen
 
 -- B10: what a player's invitation becomes when they leave (or lose their spot). Private event: back
 -- to pending (created when p_create — a dropped partner always had one, the organizer never did).
--- Public group event: there are no invitations any more, so a leftover one is deleted.
+-- Public group event: a group member's invitation is a leftover of the old auto-invite and is
+-- deleted (they see Join); an explicit invitation to a non-member goes back to pending.
 create or replace function _reset_invitation_after_leave(p_event_id uuid, p_user uuid, p_create boolean)
 returns void language plpgsql security definer set search_path = public as $$
 declare v_ev events%rowtype;
 begin
   select * into v_ev from events where id = p_event_id;
   if v_ev.id is null or p_user is null then return; end if;
-  if v_ev.is_private then
-    if exists (select 1 from event_invitations where event_id = p_event_id and invitee_id = p_user) then
-      update event_invitations set status = 'pending', responded_at = null
-        where event_id = p_event_id and invitee_id = p_user;
-    elsif p_create then
-      insert into event_invitations (event_id, invitee_id, status, invited_by)
-        values (p_event_id, p_user, 'pending', v_ev.organizer_id);
-    end if;
-  elsif v_ev.group_id is not null then
+  -- On a public group event only a GROUP MEMBER's invitation is a leftover of the old auto-invite;
+  -- an explicit invitation to someone outside the group is kept and reset like a private one.
+  if not v_ev.is_private and v_ev.group_id is not null
+     and exists (select 1 from group_members gm where gm.group_id = v_ev.group_id and gm.user_id = p_user) then
     delete from event_invitations where event_id = p_event_id and invitee_id = p_user;
+  elsif exists (select 1 from event_invitations where event_id = p_event_id and invitee_id = p_user) then
+    update event_invitations set status = 'pending', responded_at = null
+      where event_id = p_event_id and invitee_id = p_user;
+  elsif p_create and v_ev.is_private then
+    insert into event_invitations (event_id, invitee_id, status, invited_by)
+      values (p_event_id, p_user, 'pending', v_ev.organizer_id);
   end if;
 end; $$;
 revoke execute on function _reset_invitation_after_leave(uuid, uuid, boolean) from public, anon, authenticated;
@@ -214,6 +225,35 @@ language sql security definer set search_path = public as $$
     from ranked where ep.id = ranked.id and ep.waiting_list_position <> ranked.rn;
 $$;
 revoke execute on function _renumber_waiting_list(uuid) from public, anon, authenticated;
+
+-- D6 (review): a waiting pair never loses half silently. When one half is deleted (organizer removal,
+-- account deletion, leave) or stops waiting other than by claiming together (organizer_mark_confirmed,
+-- an organizer team assignment via _reconcile_team), the other half goes back to 'interested' — out of
+-- the queue, free to pair again — both links are cleared and the queue is renumbered. A pair's claim
+-- confirms both rows in one statement, so by the time these AFTER ROW triggers run the partner is no
+-- longer waiting and nothing happens. leave_event / leave_waiting_list drop the partner themselves
+-- (decision 1) before this can matter.
+create or replace function _unpair_waiting_partner() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update event_participants
+    set status = 'interested', waiting_list_position = null, pair_participant_id = null
+    where id = OLD.pair_participant_id and status = 'waiting_list';
+  if TG_OP = 'UPDATE' and NEW.pair_participant_id is not null then
+    update event_participants set pair_participant_id = null where id = NEW.id;
+  end if;
+  perform _renumber_waiting_list(OLD.event_id);
+  return null;
+end; $$;
+revoke execute on function _unpair_waiting_partner() from public, anon, authenticated;
+drop trigger if exists trg_unpair_waiting_partner_del on event_participants;
+create trigger trg_unpair_waiting_partner_del after delete on event_participants
+  for each row when (OLD.pair_participant_id is not null)
+  execute function _unpair_waiting_partner();
+drop trigger if exists trg_unpair_waiting_partner_upd on event_participants;
+create trigger trg_unpair_waiting_partner_upd after update of status on event_participants
+  for each row when (OLD.pair_participant_id is not null and NEW.status <> 'waiting_list')
+  execute function _unpair_waiting_partner();
 
 -- ---------------------------------------------------------------------------------------------
 -- D4: notify_waitlist_spot (0093 body) — broadcast instead of first-waiter-only
@@ -296,6 +336,8 @@ begin
   end if;
   update event_invitations set status='accepted', responded_at=now()
     where event_id=p_event_id and invitee_id=v_user and status='pending';
+  -- NEW (review): a newcomer queued by B8 while a spot is free is offered it like everyone else.
+  if v_status = 'waiting_list' then perform notify_waitlist_spot(p_event_id, null); end if;
   return v_status;
 end; $$;
 
@@ -367,6 +409,8 @@ begin
   end if;
   update event_invitations set status='accepted', responded_at=now()
     where event_id=p_event_id and invitee_id=v_user and status='pending';
+  -- NEW (review): a newcomer queued by B8 while a spot is free is offered it like everyone else.
+  if v_status = 'waiting_list' then perform notify_waitlist_spot(p_event_id, null); end if;
   return v_status;
 end; $$;
 
@@ -470,7 +514,12 @@ begin
   -- NEW (D6 + B8): no room for two, or someone already queued → the pair waits together
   -- (was: raise event_full).
   if v_confirmed + 2 > v_cap
-     or exists (select 1 from event_participants where event_id=p_event_id and status='waiting_list') then
+     or exists (select 1 from event_participants where event_id=p_event_id and status='waiting_list'
+                  and pair_participant_id is not null) then                          -- only pairs can claim
+    -- NEW (review): never demote a confirmed player (the organizer who plays) into the queue.
+    if exists (select 1 from event_participants where event_id=p_event_id
+                 and user_id in (v_user, p_partner_user) and status='confirmed') then
+      raise exception 'event_full' using errcode='P0001'; end if;
     v_status := 'waiting_list';
     select coalesce(max(waiting_list_position),0) into v_pos from event_participants
       where event_id=p_event_id and status='waiting_list';
@@ -509,6 +558,7 @@ begin
   update partner_requests set status='declined', responded_at=now(), closed_by_system=true   -- NEW (R2)
     where event_id=p_event_id and status='pending'
       and (requester_id in (v_user, p_partner_user) or target_id in (v_user, p_partner_user));
+  if v_status = 'waiting_list' then perform notify_waitlist_spot(p_event_id, null); end if;   -- NEW
   return v_status;                                                                    -- NEW
 end; $$;
 revoke execute on function choose_partner(uuid, uuid) from public, anon, authenticated;
@@ -568,6 +618,9 @@ begin
   select * into v_ev from events where id = v_req.event_id and deleted_at is null;
   if v_ev.id is null then raise exception 'event_not_found' using errcode='P0001'; end if;
   perform _assert_can_confirm(v_req.event_id);
+  -- NEW (review): a player removed from the event cannot walk back in through an old request.
+  if not _may_enter_team_flow(v_req.event_id, v_user) then
+    raise exception 'forbidden' using errcode='P0001'; end if;
 
   perform pg_advisory_xact_lock(hashtextextended('event_roster:'||v_req.event_id::text, 0));
   if _is_paired_or_waiting(v_req.event_id, v_user) then
@@ -595,7 +648,12 @@ begin
 
   -- NEW (D6 + B8): as choose_partner — no room for two, or a queue → the pair waits together.
   if v_confirmed + 2 > v_cap
-     or exists (select 1 from event_participants where event_id=v_req.event_id and status='waiting_list') then
+     or exists (select 1 from event_participants where event_id=v_req.event_id and status='waiting_list'
+                  and pair_participant_id is not null) then                          -- only pairs can claim
+    -- NEW (review): never demote a confirmed player (the organizer who plays) into the queue.
+    if exists (select 1 from event_participants where event_id=v_req.event_id
+                 and user_id in (v_req.requester_id, v_req.target_id) and status='confirmed') then
+      raise exception 'event_full' using errcode='P0001'; end if;
     v_status := 'waiting_list';
     select coalesce(max(waiting_list_position),0) into v_pos from event_participants
       where event_id=v_req.event_id and status='waiting_list';
@@ -630,6 +688,7 @@ begin
 
   update event_invitations set status='accepted', responded_at=now()
     where event_id=v_req.event_id and invitee_id in (v_req.requester_id, v_req.target_id) and status='pending';
+  if v_status = 'waiting_list' then perform notify_waitlist_spot(v_req.event_id, null); end if;   -- NEW
   return v_status;                                                                    -- NEW
 end; $$;
 revoke execute on function accept_partner_request(uuid) from public, anon, authenticated;
@@ -694,6 +753,9 @@ begin
   end if;
 
   delete from partner_requests where event_id=p_event_id and requester_id=v_user and status='pending';
+  -- NEW (review): requests waiting for the leaver close too (system close: they may be re-asked).
+  update partner_requests set status='declined', responded_at=now(), closed_by_system=true
+    where event_id=p_event_id and target_id=v_user and status='pending';
 
   delete from event_participants where id = v_pid;
   perform _reset_invitation_after_leave(p_event_id, v_user, false);                  -- NEW (B10)
@@ -719,6 +781,7 @@ begin
   delete from event_participants where id = v_pid;
   perform _reset_invitation_after_leave(p_event_id, v_user, false);                  -- NEW (B10)
   perform _renumber_waiting_list(p_event_id);
+  perform notify_waitlist_spot(p_event_id, null);                                     -- NEW (idempotent)
 end; $$;
 
 -- ---------------------------------------------------------------------------------------------
@@ -744,8 +807,17 @@ begin
   -- NEW (R6): as leave_event (B4) — the removed player's asks cannot re-confirm them later.
   if v_target_user is not null then
     delete from partner_requests where event_id=v_event and requester_id=v_target_user and status='pending';
+    -- NEW (review): and the requests waiting for them, so no accept can bring them back.
+    update partner_requests set status='declined', responded_at=now(), closed_by_system=true
+      where event_id=v_event and target_id=v_target_user and status='pending';
   end if;
-  if p_mode = 'to_invited' then
+  -- NEW (D5, review): on a public group event a group member holds no invitation, so 'to_invited'
+  -- leaves them with none (they see Join), exactly like 'from_event'.
+  if p_mode = 'to_invited' and v_target_user is not null
+     and exists (select 1 from events e join group_members gm on gm.group_id = e.group_id
+                 where e.id = v_event and not e.is_private and gm.user_id = v_target_user) then
+    delete from event_invitations where event_id=v_event and invitee_id=v_target_user;
+  elsif p_mode = 'to_invited' then
     if v_target_user is not null then
       if exists (select 1 from event_invitations where event_id=v_event and invitee_id=v_target_user) then
         update event_invitations set status='pending', responded_at=null
@@ -763,7 +835,7 @@ begin
   insert into event_activity (event_id, actor_id, action, detail)
   values (v_event, v_user, 'removed', jsonb_build_object('target_name', v_target_name, 'mode', p_mode));
   perform _renumber_waiting_list(v_event);                                            -- NEW (a removed waiter left a gap)
-  if v_was_confirmed then perform notify_waitlist_spot(v_event, v_user); end if;
+  perform notify_waitlist_spot(v_event, v_user);                                      -- NEW (was: only when confirmed; idempotent)
 end; $$;
 
 -- ---------------------------------------------------------------------------------------------
@@ -1110,23 +1182,45 @@ revoke execute on function event_invited_players(uuid) from public, anon, authen
 grant execute on function event_invited_players(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------------------------
--- One-off (D5): public group events carry no invitations. Delete the PENDING ones on scheduled
--- events (answered ones are history and stay). Their unanswered `event_invite` notifications would
--- now offer a Join CTA that calls accept_event_invitation → invitation_not_found, so they become
--- `event_created` notifications: same event, no CTA, and the event screen shows Join.
+-- One-off (D5): public group events carry no invitations for group members. Delete the PENDING
+-- ones on scheduled events (answered ones are history and stay). Only GROUP MEMBERS' invitations:
+-- an explicit invitation to someone outside the group (or a manual email/phone invitee) is kept.
+-- Their unanswered `event_invite` notifications would now offer a Join CTA that calls
+-- accept_event_invitation → invitation_not_found, so they become `event_created` notifications:
+-- same event, no CTA, and the event screen shows Join.
+--
+-- Hosted, before pasting — how many rows this will delete:
+--   select count(*) from event_invitations i join events e on e.id = i.event_id
+--   where i.status = 'pending' and i.invitee_id is not null
+--     and e.group_id is not null and e.is_private = false and e.status = 'scheduled' and e.deleted_at is null
+--     and exists (select 1 from group_members gm where gm.group_id = e.group_id and gm.user_id = i.invitee_id);
+--
+-- Kept as an internal function (revoked from the API) so the rule is testable.
 -- ---------------------------------------------------------------------------------------------
-with gone as (
-  delete from event_invitations i
-  using events e
-  where e.id = i.event_id and i.status = 'pending'
-    and e.group_id is not null and e.is_private = false
-    and e.status = 'scheduled' and e.deleted_at is null
-  returning i.event_id, i.invitee_id
-)
-update notifications n set type = 'event_created'
-from gone
-where n.event_id = gone.event_id and n.user_id = gone.invitee_id
-  and n.type = 'event_invite' and not n.cta_done;
+create or replace function _cleanup_public_event_invitations() returns int
+language plpgsql security definer set search_path = public as $$
+declare v_n int;
+begin
+  with gone as (
+    delete from event_invitations i
+    using events e
+    where e.id = i.event_id and i.status = 'pending' and i.invitee_id is not null
+      and e.group_id is not null and e.is_private = false
+      and e.status = 'scheduled' and e.deleted_at is null
+      and exists (select 1 from group_members gm where gm.group_id = e.group_id and gm.user_id = i.invitee_id)
+    returning i.event_id, i.invitee_id
+  ), conv as (
+    update notifications n set type = 'event_created'
+    from gone
+    where n.event_id = gone.event_id and n.user_id = gone.invitee_id
+      and n.type = 'event_invite' and not n.cta_done
+    returning n.id
+  )
+  select count(*) into v_n from gone;
+  return v_n;
+end; $$;
+revoke execute on function _cleanup_public_event_invitations() from public, anon, authenticated;
+select _cleanup_public_event_invitations();
 
 -- Self-check so a partial paste into the hosted SQL editor cannot silently leave a helper open.
 do $$
@@ -1137,7 +1231,8 @@ begin
   where p.pronamespace = 'public'::regnamespace
     and p.proname in ('_mixed_gender_full','_has_waiters','_waiter_can_claim','_may_enter_team_flow',
                       '_notify_event_created','_reset_invitation_after_leave','_drop_partner',
-                      '_renumber_waiting_list','notify_waitlist_spot')
+                      '_renumber_waiting_list','notify_waitlist_spot','_unpair_waiting_partner',
+                      '_cleanup_public_event_invitations')
     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
   if v_open is not null then
     raise exception 'internal helpers still executable by anon/authenticated: %', v_open;

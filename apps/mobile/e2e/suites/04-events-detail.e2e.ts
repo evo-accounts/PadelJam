@@ -74,10 +74,9 @@ describe('04 event detail & membership', () => {
 
   it('a full event waitlists a member holding no invitation', async () => {
     const m = manifest();
-    // E9 "Waitlist Only" is at capacity and carries NO invitations. E7 "Full
-    // House" is deliberately the same shape WITH them, where the viewer gets
-    // Accept/Decline instead — which is why this test could not use it: the CTA
-    // depended on invitation state as well as capacity.
+    // E9 "Waitlist Only" is at capacity and carries NO invitations (no public
+    // group event does since 0112). E7 "Full House" keeps its stand-by spots, so
+    // a joiner there lands confirmed as stand-by rather than on the list.
     await openAnyEvent(/waitlist only/i);
     // The CTA tracks capacity honestly, and E9 disables standby to reach this
     // state: event_capacity() is `num_courts * 4 + (allow_standby ?
@@ -107,9 +106,9 @@ describe('04 event detail & membership', () => {
 
   it('an event inside the join cutoff shows joining closed', async () => {
     // E10 starts in ~3h (inside the 6h cutoff) and carries no invitations, so a
-    // plain group member sees the cutoff copy rather than Accept/Decline — on E6
-    // every g1 member is auto-invited and gets the invitation CTA instead. alex
-    // organizes E10, so view it as joao.
+    // plain group member sees the cutoff copy rather than Accept/Decline (public
+    // group events carry no invitations since migration 0112). alex organizes
+    // E10, so view it as joao.
     await switchUser('joao');
     await openAnyEvent(/cutoff no invites/i);
     await scrollUntilVisible({ text: /joining closed/i }, { maxSwipes: 6 });
@@ -120,8 +119,9 @@ describe('04 event detail & membership', () => {
 
   it('an invitee can accept an invitation', async () => {
     const m = manifest();
-    // NOT E6: inside the join cutoff the app shows "Joining closed" even to an
-    // invitee, so use E5 (a week out) where sofia holds an auto-invite.
+    // NOT a cutoff event: inside the join cutoff the app shows "Joining closed"
+    // even to an invitee, so use E5 (a week out), where the seed has alex invite
+    // sofia explicitly (public events are no longer auto-invited, 0112).
     await switchUser('sofia');
     await openAnyEvent(/weekly friday social/i);
     await scrollUntilVisible({ text: /accept/i }, { maxSwipes: 8 });

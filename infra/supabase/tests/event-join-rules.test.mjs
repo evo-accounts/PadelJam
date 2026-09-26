@@ -80,14 +80,16 @@ await run('B8: a newcomer queues behind waiters even when a spot is free (join a
   // First-come: the LAST in the queue claims it.
   assert((await rpc(us[6].jwt, 'claim_waitlist_spot', { p_event_id: ev })) === 'confirmed', 'any waiter may claim');
   await expectError(() => rpc(us[4].jwt, 'claim_waitlist_spot', { p_event_id: ev }), 'spot_taken');
-  // Only us[4] was waiting when the spot freed, so only us[4] was offered it. With the event full
-  // again that offer is stale: marked read (not done), so the next spot re-notifies.
-  const stale = await notifs(us[4], 'waitlist_spot', ev);
-  assert(stale.length === 1 && stale[0].read_at && !stale[0].cta_done, 'stale offer marked read, not done');
-  assert((await notifs(us[5], 'waitlist_spot', ev)).length === 0, 'us[5] queued after the spot freed: no offer');
+  // Every waiter was offered the free spot — us[4] when it freed, and us[5] / us[6] the moment B8
+  // queued them next to it (review: a newcomer queued while a spot is free is offered it too). With
+  // the event full again the unclaimed offers are stale: marked read (not done), so the next spot
+  // re-notifies.
+  for (const u of [us[4], us[5]]) {
+    const n = await notifs(u, 'waitlist_spot', ev);
+    assert(n.length === 1 && n[0].read_at && !n[0].cta_done, 'stale offer marked read, not done');
+  }
   await rpc(us[1].jwt, 'leave_event', { p_event_id: ev });
-  assert((await notifs(us[4], 'waitlist_spot', ev)).length === 2, 'a fresh offer for the next spot');
-  assert((await notifs(us[5], 'waitlist_spot', ev)).length === 1, 'and every other waiter is offered it too');
+  for (const u of [us[4], us[5]]) assert((await notifs(u, 'waitlist_spot', ev)).length === 2, 'a fresh offer for the next spot');
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -405,6 +407,94 @@ await run('R6: an organizer removal withdraws the removed player\'s pending asks
 });
 
 // ---------------------------------------------------------------------------------------------
+// Review of #213
+// ---------------------------------------------------------------------------------------------
+
+await run('orphans: when one half of a waiting pair goes, the other is released, not stranded', async () => {
+  const p = [];
+  for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) p.push(await user(`orph-${i}`));
+  const org = await user('orph-org');
+  const ev = await privateEvent(org, p, { specification: 'team' });
+  await rpc(p[0].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[1].id });
+  await rpc(p[2].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[3].id });
+  assert((await rpc(p[4].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[5].id })) === 'waiting_list', 'pair A waits');
+  assert((await rpc(p[6].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[7].id })) === 'waiting_list', 'pair B waits');
+
+  // Organizer removes one half of pair A.
+  await rpc(org.jwt, 'organizer_remove_participant', { p_participant_id: (await part(ev, p[4])).id, p_mode: 'from_event' });
+  const r5 = await part(ev, p[5]);
+  assert(r5.status === 'interested' && r5.pair_participant_id === null && r5.waiting_list_position === null, 'other half back to interested');
+  assert((await part(ev, p[6])).waiting_list_position === 1 && (await part(ev, p[7])).waiting_list_position === 2, 'queue renumbered');
+
+  // Organizer confirms one half of pair B.
+  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: (await part(ev, p[6])).id });
+  const [r6, r7] = [await part(ev, p[6]), await part(ev, p[7])];
+  assert(r6.status === 'confirmed' && r6.pair_participant_id === null, 'confirmed half unlinked');
+  assert(r7.status === 'interested' && r7.pair_participant_id === null, 'other half back to interested');
+
+  // Nobody is left half-queued, so the event is not frozen: free spots go to the next pair.
+  await rpc(org.jwt, 'organizer_remove_participant', { p_participant_id: r6.id, p_mode: 'from_event' });
+  await rpc(p[0].jwt, 'leave_event', { p_event_id: ev }); // p0 + p1 leave: two spots free
+  assert((await rpc(p[8].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[9].id })) === 'confirmed', 'next pair confirms');
+  assert((await rpc(p[5].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[7].id })) === 'waiting_list', 'released halves can pair again');
+});
+
+await run('a pair never demotes a confirmed player into the queue', async () => {
+  const p = [];
+  for (const i of [0, 1, 2, 3, 4]) p.push(await user(`nodem-${i}`));
+  const org = await user('nodem-org');
+  const ev = await privateEvent(org, p, { specification: 'team', organizer_role: 'organizing_and_playing' });
+  await rpc(p[0].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[1].id }); // 3 confirmed
+  assert((await rpc(p[2].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[3].id })) === 'waiting_list', 'no room for two');
+  await expectError(() => rpc(org.jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[4].id }), 'event_full');
+  assert((await part(ev, org)).status === 'confirmed', 'organizer keeps the spot');
+});
+
+await run('a removed player cannot re-enter by accepting an incoming request', async () => {
+  const [org, a, x, y] = [await user('rm-org'), await user('rm-a'), await user('rm-x'), await user('rm-y')];
+  const ev = await privateEvent(org, [a, x, y], { specification: 'team' });
+  await rpc(x.jwt, 'request_partner', { p_event_id: ev, p_targets: [y.id] });   // x is interested
+  await rpc(a.jwt, 'request_partner', { p_event_id: ev, p_targets: [x.id] });   // a asks x
+  await rpc(org.jwt, 'organizer_remove_participant', { p_participant_id: (await part(ev, x)).id, p_mode: 'from_event' });
+  const q = await requestRow(ev, a, x);
+  assert(q.status === 'declined' && q.closed_by_system, 'the incoming request is closed by the system');
+  await expectError(() => rpc(x.jwt, 'accept_partner_request', { p_request_id: q.id }), 'request_not_found');
+  // Even a request that slipped through stays shut: x is neither invited nor a participant any more.
+  const [late] = await insert('partner_requests', { event_id: ev, requester_id: y.id, target_id: x.id, status: 'pending' });
+  await expectError(() => rpc(x.jwt, 'accept_partner_request', { p_request_id: late.id }), 'forbidden');
+  assert((await part(ev, x)) === null, 'x stays out');
+});
+
+await run("'to_invited' on a public group event leaves a group member with no invitation", async () => {
+  const [a] = [await user('ti-a')];
+  const { admin, groupId } = await publicGroup('ti', [a]);
+  const ev = await rpc(admin.jwt, 'create_event', { p_payload: base(groupId) });
+  await rpc(a.jwt, 'join_event', { p_event_id: ev });
+  await rpc(admin.jwt, 'organizer_remove_participant', { p_participant_id: (await part(ev, a)).id, p_mode: 'to_invited' });
+  assert((await invitation(ev, a)) === null, 'no invitation recreated');
+});
+
+await run('the public-event clean-up spares explicit invitations to non-members', async () => {
+  const [member, outsider] = [await user('cl-m'), await user('cl-out')];
+  const { admin, groupId } = await publicGroup('cl', [member]);
+  const ev = await rpc(admin.jwt, 'create_event', { p_payload: base(groupId) });
+  // What a pre-0112 auto-invite left behind for a member, plus explicit invitations to an outsider
+  // and to a manual contact.
+  const [inv] = await insert('event_invitations', { event_id: ev, invitee_id: member.id, invited_by: admin.id, status: 'pending' });
+  await insert('notifications', { user_id: member.id, type: 'event_invite', actor_id: admin.id, event_id: ev, ref_id: inv.id });
+  await rpc(admin.jwt, 'invite_to_event', {
+    p_event_id: ev,
+    p_invitees: [{ invitee_id: outsider.id, name: null, email: null, phone: null }, { name: 'Manual', email: 'm@example.test', phone: null }],
+  });
+  await rpc(null, '_cleanup_public_event_invitations', {});
+  assert((await invitation(ev, member)) === null, "the member's leftover invitation is gone");
+  assert((await invitation(ev, outsider))?.status === 'pending', "the outsider's explicit invitation stays");
+  assert((await sel('event_invitations', `event_id=eq.${ev}&invitee_name=eq.Manual&select=id`)).length === 1, 'manual invitee stays');
+  assert((await notifs(member, 'event_invite', ev)).length === 0 && (await notifs(member, 'event_created', ev)).length === 1,
+    'the dead invite notification became event_created');
+});
+
+// ---------------------------------------------------------------------------------------------
 // Grants
 // ---------------------------------------------------------------------------------------------
 
@@ -421,6 +511,7 @@ await run('internal helpers are closed to the API; the new RPCs are open to sign
     ['_drop_partner', { p_event_id: Z, p_partner_pid: Z, p_leaver: Z }],
     ['_renumber_waiting_list', { p_event_id: Z }],
     ['notify_waitlist_spot', { p_event_id: Z, p_actor: null }],
+    ['_cleanup_public_event_invitations', {}],
   ];
   for (const [fn, args] of internal) await expectError(() => rpc(someone.jwt, fn, args), '42501');
   await expectError(() => rpc(someone.jwt, 'event_invited_players', { p_event_id: Z }), 'event_not_found');
