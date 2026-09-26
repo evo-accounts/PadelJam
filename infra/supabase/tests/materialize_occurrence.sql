@@ -87,8 +87,8 @@ begin
   perform set_config('role','postgres',true);
   select starts_at, name, num_courts, status into v_start, v_name, v_courts, v_status
     from events where id = new1;
-  if v_start <> (select starts_at + interval '7 days' from events where id = ev) then
-    raise exception using errcode='PT001', message='new occurrence starts_at should be source +7 days';
+  if v_start <> (select _series_slot(starts_at, '18:00'::time, 1) from events where id = ev) then
+    raise exception using errcode='PT001', message='new occurrence starts_at should be the next week at the series start_time (0117)';
   end if;
   if v_name <> 'MatEv' or v_courts <> 2 or v_status <> 'scheduled' then
     raise exception using errcode='PT001', message='new occurrence should copy name/num_courts and be scheduled';
@@ -114,7 +114,7 @@ begin
     raise exception using errcode='PT001', message='second call should return the same occurrence id';
   end if;
   perform set_config('role','postgres',true);
-  if (select count(*) from events where series_id = s and starts_at = (select starts_at + interval '7 days' from events where id = ev) and deleted_at is null) <> 1 then
+  if (select count(*) from events where series_id = s and starts_at = (select _series_slot(starts_at, '18:00'::time, 1) from events where id = ev) and deleted_at is null) <> 1 then
     raise exception using errcode='PT001', message='idempotent re-call must not create a duplicate occurrence';
   end if;
   raise notice 'OK idempotent: re-call returns same id, single row';

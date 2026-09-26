@@ -26,7 +26,8 @@
 --   * last slot   = the latest starts_at of ANY event in the series, soft-deleted included, so an
 --                   occurrence the organizer deleted is never re-created.
 --   * source      = the latest non-deleted event (its settings, courts and invitations are copied).
---   * next slot   = last slot + 7 days, advanced week by week while it is not in the future. A
+--   * next slot   = _series_slot(last slot, start_time, k) for the smallest k >= 1 that is in the
+--                   future (see Time zone). A
 --                   series that fell behind (hosted before pg_cron is enabled, or paused and resumed)
 --                   picks up at its next future slot on the same weekly grid — it never back-fills
 --                   past weeks and never sends one catch-up occurrence per hourly run.
@@ -35,14 +36,19 @@
 --   nothing. Each series runs in its own sub-block: one failing series logs a WARNING and the rest go
 --   on. Returns the number of occurrences created.
 --
--- Time zone — UNCHANGED semantics, written down. event_series.start_time/day_of_week are Lisbon
---   wall-clock values but nothing reads them after create_event: every occurrence is the previous
---   one's starts_at + interval '7 days' (0079). For a timestamptz that interval is applied in the
---   SESSION time zone; PostgREST and pg_cron sessions on Supabase are UTC, so it is +168 h and the
---   Lisbon wall-clock start shifts by one hour across a DST change (19:00 → 20:00 in late March,
---   → 18:00 in late October). The scheduler keeps exactly that arithmetic so it agrees with the
---   organizer path slot for slot. Anchoring occurrences on start_time in Europe/Lisbon is a
---   follow-up, not a silent change here.
+-- Time zone — CHANGED (DST fix). Before: every occurrence was the previous one's starts_at +
+--   interval '7 days' (0079), applied in the session time zone — UTC for PostgREST and pg_cron on
+--   Supabase — so +168 h, and a 19:00 Lisbon series moved to 20:00 after the last Sunday of March and
+--   to 18:00 after the last Sunday of October. Now both the organizer path and the scheduler use
+--   _series_slot: take the previous occurrence's LOCAL date in Europe/Lisbon, add 7·k days, put the
+--   series' start_time on it, and convert that Lisbon wall-clock time back to timestamptz. The result
+--   no longer depends on the session time zone. Europe/Lisbon is the app's time zone: the codebase
+--   has no time-zone constant or column (communities, groups and venues carry none), and
+--   event_series.start_time is the organizer's device-local 'HH:MM' from the wizard. It is written in
+--   _series_slot only. Consequence: an occurrence always opens at the series' start_time, even when
+--   the organizer moved the previous one to another hour (the date still follows it). A start_time
+--   inside the spring-forward gap resolves the way Postgres resolves a non-existent local time
+--   (one hour later). day_of_week is still not read — the date follows the previous occurrence.
 --
 -- Plan caps. recurring_events is enforced when a SERIES is inserted (0045 trigger) and on every plan
 --   downgrade (0104). Materialising creates an event, never a series, so there is nothing to check.
@@ -62,8 +68,19 @@
 begin;
 
 -- ---------------------------------------------------------------------------------------------
+-- _series_slot: the k-th weekly slot after p_last, at p_start_time in the app's time zone.
+-- ---------------------------------------------------------------------------------------------
+create or replace function _series_slot(p_last timestamptz, p_start_time time, p_weeks int)
+returns timestamptz
+language sql stable set search_path = public as $$
+  select (((p_last at time zone 'Europe/Lisbon')::date + 7 * p_weeks) + p_start_time)
+         at time zone 'Europe/Lisbon'
+$$;
+revoke execute on function _series_slot(timestamptz, time, int) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------------------------
 -- _materialize_next: the body of materialize_occurrence (0112), minus the caller checks.
--- p_target null = the source's slot + 7 days (the organizer path).
+-- p_target null = the week after the source, at the series' start_time (the organizer path).
 -- ---------------------------------------------------------------------------------------------
 create or replace function _materialize_next(p_after_event_id uuid, p_actor uuid, p_target timestamptz default null)
 returns uuid
@@ -82,7 +99,10 @@ begin
   -- NEW: one materialisation per series at a time (the scheduler and the organizer RPC).
   perform pg_advisory_xact_lock(hashtextextended('series_materialize:' || v_src.series_id::text, 0));
 
-  v_target := coalesce(p_target, v_src.starts_at + interval '7 days');
+  -- NEW (DST fix): was v_src.starts_at + interval '7 days'.
+  v_target := coalesce(p_target,
+                       _series_slot(v_src.starts_at,
+                                    (select start_time from event_series where id = v_src.series_id), 1));
 
   -- Idempotent open: if the slot already exists, return it instead of inserting.
   select id into v_existing from events
@@ -175,10 +195,11 @@ declare
   v_last     timestamptz;
   v_source   uuid;
   v_target   timestamptz;
+  v_weeks    int;
   v_created  int := 0;
 begin
   for v_s in
-    select es.id, es.organizer_id, es.invite_lead_days
+    select es.id, es.organizer_id, es.invite_lead_days, es.start_time
       from event_series es
       join groups g on g.id = es.group_id and g.archived_at is null
       join profiles p on p.id = es.organizer_id and p.deleted_at is null
@@ -195,10 +216,12 @@ begin
        order by starts_at desc, created_at desc limit 1;
       continue when v_last is null or v_source is null;
 
-      -- Next slot on the weekly grid that is still in the future (same +7 days arithmetic as 0079).
-      v_target := v_last + interval '7 days';
+      -- Next weekly slot (Lisbon wall-clock, see _series_slot) that is still in the future.
+      v_weeks := 1;
+      v_target := _series_slot(v_last, v_s.start_time, v_weeks);
       while v_target <= now() loop
-        v_target := v_target + interval '7 days';
+        v_weeks := v_weeks + 1;
+        v_target := _series_slot(v_last, v_s.start_time, v_weeks);
       end loop;
 
       continue when now() < v_target - make_interval(days => v_s.invite_lead_days);
@@ -283,6 +306,15 @@ grant execute on function duplicate_event(uuid, jsonb) to authenticated;
 -- ---------------------------------------------------------------------------------------------
 do $$
 begin
+  if has_function_privilege('anon', 'public._series_slot(timestamptz, time, int)', 'execute')
+     or has_function_privilege('authenticated', 'public._series_slot(timestamptz, time, int)', 'execute') then
+    raise exception '0117: _series_slot is executable by anon/authenticated';
+  end if;
+  -- 19:00 Lisbon stays 19:00 across both DST changes (WEST = UTC+1, WET = UTC+0).
+  if _series_slot('2026-10-21 18:00+00', '19:00', 1) <> '2026-10-28 19:00+00'::timestamptz
+     or _series_slot('2027-03-24 19:00+00', '19:00', 1) <> '2027-03-31 18:00+00'::timestamptz then
+    raise exception '0117: _series_slot does not keep the Lisbon wall-clock time across DST';
+  end if;
   if has_function_privilege('anon', 'public._materialize_next(uuid, uuid, timestamptz)', 'execute')
      or has_function_privilege('authenticated', 'public._materialize_next(uuid, uuid, timestamptz)', 'execute') then
     raise exception '0117: _materialize_next is executable by anon/authenticated';
