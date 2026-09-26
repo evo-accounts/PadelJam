@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { useT } from '@padel/i18n';
 import {
   useNotifications,
@@ -36,12 +37,17 @@ export default function NotificationsPage() {
         </div>
       </div>
 
+      {/* UX-JEVT-12: the pending count and a chevron — this row opens the Partner Requests list. */}
       <Link
         href="/app/notifications/partner-requests"
-        className="flex items-center justify-between rounded-lg border px-4 py-3 hover:bg-muted/50"
+        className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 hover:bg-muted/50"
+        data-testid="notifications-partner-requests"
       >
         <span className="text-sm font-medium">{t('partnerRequests')}</span>
-        <span className="text-sm text-primary">{t('pendingCount', { count: pending })}</span>
+        <span className="flex items-center gap-2">
+          <span className="text-sm text-primary">{t('pendingCount', { count: pending })}</span>
+          <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+        </span>
       </Link>
 
       {list.isLoading ? (

@@ -4,6 +4,10 @@
  * `@padel/utils`, the same table mobile reads. A waiter offered a free spot (`claim`, decision 4)
  * gets "Leave waiting list" next to a primary "Confirm spot". Leaving is never here: it lives in the ⋯ menu, and
  * past the 12h deadline it opens the contact-the-organizer dialog instead (UX-JEVT-05).
+ *
+ * Team events (UX-JEVT-09/13): "Join" (`team_entry`), an invitee's "Accept" and the organizer's
+ * "Join as a player" all call `onTeamJoin`, which opens the Team Event dialog; a player looking for
+ * a partner (`interested`) gets the interested line and "Edit response".
  */
 import Link from 'next/link';
 import { useT } from '@padel/i18n';
@@ -21,8 +25,10 @@ export function EventCTA({
   organizerWaiting,
   organizerCanClaim,
   canJoinAsPlayer,
+  organizerInterested,
   scheduled,
   countdownMs,
+  teamCountdown,
   inviter,
   busy,
   error,
@@ -31,6 +37,8 @@ export function EventCTA({
   onClaim,
   onAccept,
   onDecline,
+  onTeamJoin,
+  onEditResponse,
 }: {
   bottom: BottomState;
   eventId: string;
@@ -43,10 +51,14 @@ export function EventCTA({
   organizerCanClaim: boolean;
   /** Organizer only: not playing, and joining is still open. */
   canJoinAsPlayer: boolean;
+  /** Organizer only: they play, and are still looking for a partner (UX-JEVT-13). */
+  organizerInterested: boolean;
   /** Organizer only: the event is still scheduled (Start, Edit and joining apply). */
   scheduled: boolean;
   /** Time left to the join cut-off, for the countdown. */
   countdownMs: number;
+  /** A team event's "Join" shows the countdown too (`team_entry` carries no flag of its own). */
+  teamCountdown: boolean;
   inviter: PersonLite | null;
   busy: boolean;
   error: string | null;
@@ -56,9 +68,12 @@ export function EventCTA({
   onClaim: () => void;
   onAccept: () => void;
   onDecline: () => void;
+  /** Team events: open the Team Event dialog (UX-JEVT-09). */
+  onTeamJoin: () => void;
+  /** An interested player's "Edit response" (UX-JEVT-13). */
+  onEditResponse: () => void;
 }) {
   const { t } = useT('event');
-  const partnerHref = `/app/event/${eventId}/partner-requests`;
   const errLine = error ? (
     <p className="text-sm text-destructive" role="alert">
       {error}
@@ -98,15 +113,19 @@ export function EventCTA({
               </Button>
             ) : null}
             {canJoinAsPlayer ? (
-              isTeam ? (
-                <Button asChild variant="outline">
-                  <Link href={partnerHref}>{t('joinAsPlayerCta')}</Link>
-                </Button>
-              ) : (
-                <Button variant="outline" disabled={busy} onClick={onJoin}>
-                  {t('joinAsPlayerCta')}
-                </Button>
-              )
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={isTeam ? onTeamJoin : onJoin}
+                data-testid="event-join-as-player"
+              >
+                {t('joinAsPlayerCta')}
+              </Button>
+            ) : null}
+            {organizerInterested ? (
+              <Button variant="outline" disabled={busy} onClick={onEditResponse} data-testid="event-edit-response">
+                {t('editResponseCta')}
+              </Button>
             ) : null}
             {/* An organizer who tried to play on a full event is waiting like anyone else. */}
             {organizerWaiting && organizerCanClaim ? (
@@ -204,12 +223,30 @@ export function EventCTA({
       );
       break;
     case 'team_entry':
-    case 'interested':
-      // M5 / W3 (UX-JEVT-09..14) redesign the team flow; this only re-homes the existing entry.
+      // UX-JEVT-09: "Join" like any event; whether you have a partner is the next question.
       body = (
-        <Button asChild className="w-full">
-          <Link href={partnerHref}>{t('teamJoinCta')}</Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          {teamCountdown ? (
+            <p className="flex-1 text-sm font-medium text-primary" data-testid="event-join-countdown">
+              {t('joinCountdown', { time: formatCountdown(countdownMs) })}
+            </p>
+          ) : null}
+          <Button className="flex-1" disabled={busy} onClick={onTeamJoin} data-testid="event-team-join">
+            {t('joinCta')}
+          </Button>
+        </div>
+      );
+      break;
+    case 'interested':
+      body = (
+        <div className="flex flex-col gap-2">
+          <p className="text-center text-sm text-muted-foreground" data-testid="event-interested-line">
+            {t('interestedLine')}
+          </p>
+          <Button className="w-full" disabled={busy} onClick={onEditResponse} data-testid="event-edit-response">
+            {t('editResponseCta')}
+          </Button>
+        </div>
       );
       break;
     case 'closed':
