@@ -23,8 +23,8 @@ import {
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { Redirect, useLocalSearchParams, type Href } from 'expo-router';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -65,6 +65,9 @@ export default function NeedPartnerScreen() {
   // The row being sent / withdrawn, so only its button spins.
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [finishing, setFinishing] = useState<'confirm' | 'others' | null>(null);
+  // Set once the invitation is answered here, so a second tap before the invitations refetch does
+  // not try to accept it again.
+  const accepted = useRef(false);
 
   const looking = lookingForPartner(candidates.data ?? []);
   const rows = filterByName(looking, query);
@@ -73,8 +76,14 @@ export default function NeedPartnerScreen() {
   const fail = (e: unknown) => banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
 
   const ensureAccepted = async () => {
-    if (!pendingInvite) return;
-    await accept.mutateAsync({ eventId: id, groupId: event?.group_id ?? null });
+    if (!pendingInvite || accepted.current) return;
+    try {
+      await accept.mutateAsync({ eventId: id, groupId: event?.group_id ?? null });
+    } catch (e) {
+      // Already answered (a second tap, another device): nothing left to accept, carry on.
+      if (!(e instanceof Error && e.message === 'invitation_not_found')) throw e;
+    }
+    accepted.current = true;
   };
 
   const onToggle = async (targetId: string) => {
@@ -161,6 +170,11 @@ export default function NeedPartnerScreen() {
   }
 
   const busy = finishing != null || rowBusy != null;
+  // Nothing to finish while the list failed to load: the retry is the only action.
+  const barDisabled = busy || candidates.isError;
+
+  // Reached for an event that is not a team event (a stale link): there is no partner to find.
+  if (event != null && event.specification !== 'team') return <Redirect href={`/event/${id}` as Href} />;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -190,7 +204,7 @@ export default function NeedPartnerScreen() {
           label={t('confirmCta')}
           fullWidth
           loading={finishing === 'confirm'}
-          disabled={busy}
+          disabled={barDisabled}
           onPress={() => void onFinish('confirm')}
           testID="need-partner-confirm"
         />
@@ -199,7 +213,7 @@ export default function NeedPartnerScreen() {
           variant="outline"
           fullWidth
           loading={finishing === 'others'}
-          disabled={busy}
+          disabled={barDisabled}
           onPress={() => void onFinish('others')}
           testID="need-partner-let-others"
         />

@@ -322,6 +322,9 @@ export default function EventDetailScreen() {
   // UX-JEVT-13. Leave cancels every request the player sent (leave_event, 0111/0112).
   const onEditChoice = async (c: EditChoice) => {
     if (c !== 'leave') return onTeamChoice(c);
+    // The organizer never gets here past the deadline (the row is hidden — canLeave), but never
+    // send them to contact themselves either way.
+    if (leaveLocked && isOrganizer) return banner.show(t('leave_deadline_passed'));
     if (leaveLocked) return setLockedSheetOpen(true);
     const ok = await confirm({
       title: t('leaveConfirmTitle'),
@@ -785,6 +788,7 @@ export default function EventDetailScreen() {
         visible={editSheetOpen}
         onClose={() => setEditSheetOpen(false)}
         onChoose={(c) => void onEditChoice(c)}
+        canLeave={leaveOffered}
       />
     </SafeAreaView>
   );

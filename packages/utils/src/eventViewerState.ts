@@ -65,13 +65,17 @@ export function bottomState(v: ViewerInput): BottomState {
       // The claim closes with joining (claim_waitlist_spot refuses event_closed past the cut-off).
       return v.claimable && !v.joinClosed ? { kind: 'claim' } : { kind: 'waiting_list' };
     }
-    if (v.me.status === 'interested') return { kind: 'interested' };
+    // Past the cut-off an interested player can no longer pair (every pairing RPC refuses
+    // event_closed), so "Edit response" would only lead to errors.
+    if (v.me.status === 'interested') return v.joinClosed ? { kind: 'closed' } : { kind: 'interested' };
     // Explicit, so a status this table does not know never strips the viewer of every action.
     if (v.me.status === 'confirmed') return { kind: 'going' };
   }
   // Below: no roster row, or an 'invited' one — a lone team occupant placed by the organizer. Either
   // way they hold no spot and enter like anyone else (decision 1: a partner who stays goes back to
-  // the team entry state with Join).
+  // the team entry state with Join). Such a row may still sit alone in an event_teams slot; 0113
+  // makes the pairing RPCs clear that lone slot and has _is_paired_or_waiting count only full
+  // teams, so Join → choose_partner / request_partner works for them rather than already_joined.
   if (v.joinClosed) return { kind: 'closed' };
   if (v.hasInvite) return { kind: 'invited' };
   if (v.specification === 'team') return { kind: 'team_entry' };

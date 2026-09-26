@@ -90,18 +90,31 @@ export function TeamEventSheet(props: { visible: boolean; onClose: () => void; o
   );
 }
 
-/** UX-JEVT-13: "Edit response" for a player marked interested. */
-export function EditResponseSheet(props: { visible: boolean; onClose: () => void; onChoose: (c: EditChoice) => void }) {
+/**
+ * UX-JEVT-13: "Edit response" for a player marked interested. `canLeave` is false for an organizer
+ * past the leave deadline — they remove themselves from Manage (organizer override), as in the ⋯
+ * sheet, rather than being sent to contact themselves.
+ */
+export function EditResponseSheet({
+  canLeave = true,
+  ...props
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onChoose: (c: EditChoice) => void;
+  canLeave?: boolean;
+}) {
   const { t } = useT('event');
+  const rows: Row<EditChoice>[] = [
+    { key: 'have', label: t('foundPartnerRow'), testID: 'edit-response-have' },
+    { key: 'need', label: t('needPartnerTitle'), testID: 'edit-response-need' },
+  ];
+  if (canLeave) rows.push({ key: 'leave', label: t('leaveCta'), destructive: true, testID: 'edit-response-leave' });
   return (
     <ChoiceSheet<EditChoice>
       {...props}
       title={t('editResponseCta')}
-      rows={[
-        { key: 'have', label: t('foundPartnerRow'), testID: 'edit-response-have' },
-        { key: 'need', label: t('needPartnerTitle'), testID: 'edit-response-need' },
-        { key: 'leave', label: t('leaveCta'), destructive: true, testID: 'edit-response-leave' },
-      ]}
+      rows={rows}
       testID="edit-response-sheet"
     />
   );
@@ -115,12 +128,15 @@ export function GuestPartnerSheet({
   visible,
   onClose,
   onSave,
+  onDismissed,
   saving,
   error,
 }: {
   visible: boolean;
   onClose: () => void;
   onSave: (name: string) => void;
+  /** Fires once the sheet has finished closing — navigate from here, never from `onSave`. */
+  onDismissed?: () => void;
   saving: boolean;
   error: string | null;
 }) {
@@ -131,7 +147,10 @@ export function GuestPartnerSheet({
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      onDismissed={() => setName('')}
+      onDismissed={() => {
+        setName('');
+        onDismissed?.();
+      }}
       title={t('guestPartnerTitle')}
       testID="guest-partner-sheet"
     >

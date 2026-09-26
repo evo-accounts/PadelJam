@@ -14,7 +14,7 @@ import { useChooseGuestPartner, useChoosePartner, useEventPartnerCandidates } fr
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -65,6 +65,9 @@ export default function HavePartnerScreen() {
   const [picked, setPicked] = useState<string | null>(null);
   const [guestOpen, setGuestOpen] = useState(false);
   const [guestError, setGuestError] = useState<string | null>(null);
+  // A guest pairing's outcome, acted on once the sheet has finished closing: navigating while its
+  // Modal is still dismissing races it (the same reason TeamSheets reports choices on dismiss).
+  const guestResult = useRef<'confirmed' | 'waiting_list' | null>(null);
 
   const all = candidates.data ?? [];
   const rows = filterByName(all, query);
@@ -93,9 +96,8 @@ export default function HavePartnerScreen() {
   const onSaveGuest = async (name: string) => {
     setGuestError(null);
     try {
-      const result = await chooseGuest.mutateAsync({ name });
+      guestResult.current = await chooseGuest.mutateAsync({ name });
       setGuestOpen(false);
-      done(result);
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';
       if (code === 'invalid_guest_name') setGuestError(t(code));
@@ -104,6 +106,12 @@ export default function HavePartnerScreen() {
         banner.show(t(code));
       }
     }
+  };
+
+  const onGuestDismissed = () => {
+    const result = guestResult.current;
+    guestResult.current = null;
+    if (result != null) done(result);
   };
 
   const openGuest = () => {
@@ -197,6 +205,7 @@ export default function HavePartnerScreen() {
         visible={guestOpen}
         onClose={() => setGuestOpen(false)}
         onSave={(name) => void onSaveGuest(name)}
+        onDismissed={onGuestDismissed}
         saving={chooseGuest.isPending}
         error={guestError}
       />

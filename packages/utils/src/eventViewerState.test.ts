@@ -66,6 +66,10 @@ describe('bottomState', () => {
     expect(bottomState({ ...base, specification: 'team', me: { status: 'interested', is_standby: false } })).toEqual({
       kind: 'interested',
     });
+    // Past the cut-off neither can pair any more.
+    expect(
+      bottomState({ ...base, specification: 'team', joinClosed: true, me: { status: 'interested', is_standby: false } }),
+    ).toEqual({ kind: 'closed' });
     // Past the cut-off the lone occupant can no longer pair.
     expect(
       bottomState({ ...base, specification: 'team', joinClosed: true, me: { status: 'invited', is_standby: false } }),
