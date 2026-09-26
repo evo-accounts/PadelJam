@@ -1,7 +1,6 @@
-import { defaultStart } from '@padel/utils';
+import { defaultStart, type StepKey } from '@padel/utils';
 
 import type { EventDraft } from './draft';
-import type { StepKey } from './visibleSteps';
 
 /**
  * Standalone events (no group) must be private — enforced by the schema. A newly picked group
