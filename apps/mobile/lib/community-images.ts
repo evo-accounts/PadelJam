@@ -1,3 +1,5 @@
+import { VENUE_IMAGES_BUCKET } from '@padel/api';
+
 import { supabase } from './supabase';
 
 const COVER_BUCKET = 'community-covers';
@@ -47,4 +49,10 @@ export function avatarUrl(path: string | null | undefined): string | null {
   if (!path) return null;
   if (/^https?:\/\//.test(path)) return path;
   return supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+/** Public URL for a registry venue image (`venue-images`, migration 0114), or null. */
+export function venueImageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  return supabase.storage.from(VENUE_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl;
 }

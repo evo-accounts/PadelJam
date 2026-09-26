@@ -84,6 +84,7 @@ export const qk = {
   venues: ['venues'] as const,
   searchVenues: (q: string, all = false) => ['venues', 'search', q, all] as const,
   adminVenues: (q: string) => ['venues', 'admin', q] as const,
+  venueRegistry: (q: string) => ['venues', 'registry', q] as const,
   venue: (id: string) => ['venues', 'detail', id] as const,
   venueCourts: (id: string) => ['venues', 'detail', id, 'courts'] as const,
   isSuperAdmin: (uid: string) => ['super-admin', uid] as const,

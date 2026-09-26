@@ -32,6 +32,18 @@ export type EventDraft = {
   scoringValue: number | null;
   manualLocationName?: string;
   manualLocationAddress?: string;
+  /**
+   * How the Location step was answered (UX-CEVT-06), wizard-only: a venue from the registry, a
+   * venue typed in for this event, or no location. Undefined until one is chosen — the step then
+   * opens on the registry list. Which form Location shows follows it, not `hasLocation`.
+   */
+  locationMode?: 'registry' | 'manual' | 'none';
+  /**
+   * A manual venue's optional court names, one per court (blank = unnamed). Not sent yet:
+   * `events.manual_court_names` arrives with migration 0113 and `buildCreateEventPayload` does
+   * not carry it until then.
+   */
+  manualCourtNames?: string[];
   venueId?: string;
   locationLat?: number;
   locationLng?: number;
@@ -69,7 +81,8 @@ export const defaultDraft: EventDraft = {
   scoringValue: null,
   hasLocation: false,
   numCourts: 1,
-  durationMinutes: 90,
+  // Decision 9: 60 is the default duration (was 90).
+  durationMinutes: 60,
   allowStandby: false,
   isPrivate: false,
   entranceFee: { enabled: false },
@@ -98,6 +111,8 @@ export type WizardStepProps = {
   clearError?: (key: string) => void;
 };
 
+export type AdvanceBy = 'tap' | 'button';
+
 export type WizardStep = {
   key: StepKey;
   titleKey: string;
@@ -105,11 +120,22 @@ export type WizardStep = {
   /**
    * `tap`: a single choice from a list; the card advances and the step has no primary button.
    * `button`: more than one value to set; a primary button is fixed at the bottom.
+   * A function when it depends on the draft: Location is a tap list until the organizer opens
+   * the manual venue form, which has fields and therefore a button.
    */
-  advanceBy: 'tap' | 'button';
-  /** Replaces the fixed bottom area on a tap step that still needs one (Group's "Continue without group"). */
+  advanceBy: AdvanceBy | ((d: EventDraft) => AdvanceBy);
+  /**
+   * The fixed bottom area's own content. On a tap step it replaces the (absent) primary button —
+   * Group's "Continue without group", Location's "Do not want to add a location". On a button
+   * step it sits above the primary button and is fixed with it — Date's summary box.
+   */
   Footer?: React.ComponentType<WizardStepProps>;
   /** Pure: the failing field keys for this step, or [] when the step is complete. */
   validate: (d: EventDraft) => string[];
   isValid: (d: EventDraft) => boolean;
 };
+
+/** `step.advanceBy` for this draft. */
+export function advanceByFor(step: Pick<WizardStep, 'advanceBy'>, d: EventDraft): AdvanceBy {
+  return typeof step.advanceBy === 'function' ? step.advanceBy(d) : step.advanceBy;
+}

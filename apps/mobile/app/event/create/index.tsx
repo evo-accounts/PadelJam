@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
+import { advanceByFor } from '@/components/event/wizard/draft';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -125,8 +126,9 @@ function CreateEventWizard() {
       specification,
       scoringMode,
       scoringValue: draft.scoringValue,
-      manualLocationName: draft.manualLocationName,
-      manualLocationAddress: draft.manualLocationAddress,
+      // A manual venue's name is optional (UX-CEVT-06): blank is no name, not an empty one.
+      manualLocationName: draft.manualLocationName?.trim() || undefined,
+      manualLocationAddress: draft.manualLocationAddress?.trim() || undefined,
       venueId: draft.venueId,
       locationLat,
       locationLng,
@@ -149,6 +151,8 @@ function CreateEventWizard() {
       // Interim (0113): manual entries become guests by name until M3 rebuilds the invite step.
       ...(skipsInvite(draft) ? {} : splitWizardInvitees(draft.invitees)),
       courtIds: draft.courtIds,
+      // TODO(0113): send draft.manualCourtNames once `buildCreateEventPayload` carries
+      // `manual_court_names` — until then a manual venue's court names stay in the draft only.
     };
 
     setSubmitting(true);
@@ -229,6 +233,8 @@ function CreateEventWizard() {
           style={styles.flex}
           contentContainerStyle={styles.inner}
           keyboardShouldPersistTaps="handled"
+          // The fixed footer rides up with the keyboard; dragging the list puts both away.
+          keyboardDismissMode="on-drag"
         >
           {/* One title for every step, naming what is being set (UX-CEVT-01). */}
           <Text variant="title" tone="default" accessibilityRole="header" style={styles.title}>
@@ -236,29 +242,33 @@ function CreateEventWizard() {
           </Text>
           <step.Component {...stepProps} />
         </ScrollView>
-      </KeyboardAvoidingView>
 
-      {/*
-        Multi-value steps keep a primary button fixed at the bottom. A single-choice
-        step advances on the tap itself and has none — unless it brings its own
-        bottom area (Group's "Continue without group").
-      */}
-      {step.advanceBy === 'button' ? (
-        <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
-          <Button
-            label={isLast ? t('finish') : t('next')}
-            onPress={onPrimary}
-            loading={submitting}
-            style={styles.primaryBtn}
-          />
-        </View>
-      ) : Footer ? (
-        <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
-          <Footer {...stepProps} />
-        </View>
-      ) : (
-        <View style={{ height: insets.bottom }} />
-      )}
+        {/*
+          Multi-value steps keep a primary button fixed at the bottom. A single-choice
+          step advances on the tap itself and has none — unless it brings its own
+          bottom area (Group's "Continue without group"). Inside the KeyboardAvoidingView,
+          so the button rides up with the keyboard instead of hiding under it (the manual
+          venue form's fields are typed with Next still in reach).
+        */}
+        {advanceByFor(step, draft) === 'button' ? (
+          <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
+            {/* A button step's own fixed content sits above the button (Date's summary). */}
+            {Footer ? <Footer {...stepProps} /> : null}
+            <Button
+              label={isLast ? t('finish') : t('next')}
+              onPress={onPrimary}
+              loading={submitting}
+              style={styles.primaryBtn}
+            />
+          </View>
+        ) : Footer ? (
+          <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
+            <Footer {...stepProps} />
+          </View>
+        ) : (
+          <View style={{ height: insets.bottom }} />
+        )}
+      </KeyboardAvoidingView>
       {planCommunityId ? (
         <UpgradePrompt
           visible={showUpgrade}

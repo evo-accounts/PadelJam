@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { query, queryAll, snapshot, type AxElement } from '../driver/a11y';
-import { scrollUntilVisible, tap, typeText } from '../driver/actions';
+import { keyboardTop, query, queryAll, snapshot, type AxElement } from '../driver/a11y';
+import { clearText, dismissKeyboard, pressReturn, scrollUntilVisible, swipe, tap, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { loginAs, tabTo } from '../driver/flows';
@@ -17,6 +17,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * no Invite players step, so it is nine steps long; a standalone event keeps all ten.
  *
  * Group, Format and Players are tap-to-advance: the card IS the answer, and there is no Next.
+ * Location is too, until the manual venue form is opened (UX-CEVT-06). Courts follows the
+ * registry venue picked (UX-CEVT-07); Date is four cards over a fixed summary (UX-CEVT-08).
  */
 describe('05 event create wizard', () => {
   beforeAll(async () => {
@@ -42,33 +44,25 @@ describe('05 event create wizard', () => {
     await onStep(title);
   };
 
-  /**
-   * Push the start time a few hours out before leaving the Date step.
-   *
-   * The picker pre-fills the NEXT WHOLE HOUR, which can be seconds away, and
-   * `my_events` only returns rows with `starts_at >= now()`. So an event created
-   * at 16:59:5x for 17:00:00 drops out of the organizer's list the instant the
-   * clock ticks over — it is not late, it is simply no longer "upcoming" and
-   * nothing has marked it in_progress yet.
-   *
-   * That is exactly how this suite failed on run 34377160736: created just
-   * before 17:00, asserted at 17:00:34, filtered out by the RPC. It passes at
-   * every other minute of the hour, which is what made it look like a flake.
-   */
-  const pushStartTimeOut = async () => {
-    const INCREASE_HOUR = 'Increase hour'; // DateTimePicker's accessibilityLabel, `event` namespace
-    if (!query(await snapshot(), { label: INCREASE_HOUR })) {
-      throw new Error(
-        `date step: no "${INCREASE_HOUR}" control — the picker's accessibility label changed, ` +
-          'so the start time is back to defaulting to the next whole hour and this suite is ' +
-          'flaky again near the top of the hour.',
-      );
-    }
-    for (let i = 0; i < 3; i += 1) {
-      await tap({ label: INCREASE_HOUR });
-      await sleep(250);
-    }
+  /** YYYY-MM-DD of the day `offset` days from today, in local time — the day scroller's testIDs. */
+  const dayId = (offset: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `date-day-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
+
+  /** The venue search's return key is Search, which submits and blurs the field. */
+  const hideSearchKeyboard = async () => {
+    await pressReturn();
+    await sleep(600);
+    if (keyboardTop(await snapshot()) != null) await dismissKeyboard();
+    expect(keyboardTop(await snapshot()), 'the keyboard is away').toBeNull();
+  };
+
+  /** The summary's "when" line — the only text with a HH:MM–HH:MM range on the Date step. */
+  const summaryText = (tree: AxElement[]) =>
+    query(tree, { text: /\d{2}:\d{2}–\d{2}:\d{2}/, type: 'StaticText' })?.AXLabel ?? '';
 
   it('opens on Group: a progress bar, no step counter, no Next, and your groups (B14)', async () => {
     await tabTo('Home');
@@ -125,10 +119,85 @@ describe('05 event create wizard', () => {
     await nextTo(/^location$/i);
   });
 
-  it('walks Location → Courts → Date → Preferences → Details', async () => {
-    await nextTo(/^courts$/i); // no location at all keeps the Courts step
+  it('Location opens on the venue registry: search, Add manually, venue cards, and a fixed "no location"', async () => {
+    await expectVisible({ id: 'venue-search' }, { timeout: 10_000 });
+    await expectVisible({ id: 'venue-add-manually' });
+    await expectVisible({ id: 'venue-no-location' });
+    // The seeded registry venue, as a card with its address and number of courts.
+    await expectVisible({ text: /lisbon padel arena/i, type: 'Button' }, { timeout: 15_000 });
+    const card = query(await snapshot(), { text: /lisbon padel arena/i, type: 'Button' });
+    expect(card?.AXLabel ?? '', 'the card names the courts').toMatch(/2 courts/i);
+    expect(hasNext(await snapshot()), 'the registry list is tap-to-advance: no Next').toBe(false);
+  });
+
+  it('a search with no hits says "Location not found" and offers the manual form', async () => {
+    await typeText({ id: 'venue-search' }, 'zzqxnowhere');
+    await expectVisible({ text: /location not found/i }, { timeout: 10_000 });
+    // Put the keyboard away with its Search key, as a person would. With it up, the empty
+    // state's button sits in the keyboard's suggestion bar (y 539, above the first key row the
+    // driver measures): runs 36230787990 and 36244200178 delivered the tap to the keyboard window,
+    // and a tap on a caption did not dismiss it either.
+    await hideSearchKeyboard();
+    await scrollUntilVisible({ text: /^add manually$/i, type: 'Button' }, { maxSwipes: 3 });
+    await tap({ text: /^add manually$/i, type: 'Button' });
+    // The manual venue form: its note, its fields, and a Next that wants an address.
+    await expectVisible({ text: /this event only/i }, { timeout: 5_000 });
+    await expectVisible({ id: 'manual-venue-address' });
+    await dismissKeyboard();
+    await tap({ text: /^next$/i, type: 'Button' });
+    await sleep(900);
+    await onStep(/^location$/i, 2_000); // no address → still here
+    await expectVisible({ text: /enter the address/i });
+    await scrollUntilVisible({ id: 'venue-back-to-list' }, { maxSwipes: 5 });
+    await tap({ id: 'venue-back-to-list' });
+    await expectVisible({ id: 'venue-search' }, { timeout: 5_000 });
+    await clearText({ id: 'venue-search' }, 15);
+    await hideSearchKeyboard();
+  });
+
+  it('picking a registry venue advances to Courts, where its courts can be ticked', async () => {
+    await tap({ text: /lisbon padel arena/i, type: 'Button' }, { timeout: 15_000 });
+    await onStep(/^courts$/i);
+    await expectVisible({ id: 'courts-mode-select' }, { timeout: 10_000 });
+    await tap({ id: 'courts-mode-select' });
+    await expectVisible({ text: /doesn't reserve them/i }, { timeout: 5_000 });
+    // "Select courts" with nothing ticked is flagged on Next.
+    await tap({ text: /^next$/i, type: 'Button' });
+    await sleep(900);
+    await onStep(/^courts$/i, 2_000);
+    await expectVisible({ text: /select at least one court/i });
+    // A checkbox carries its state as AXValue, which the text matcher appends to the label
+    // ("Court 1 0"), so the pattern is anchored at the start only.
+    await tap({ text: /^court 1\b/i, type: 'Button' });
+    await tap({ text: /^court 2\b/i, type: 'Button' });
+    // Two courts → eight players.
+    // A Text's testID does not reach the tree (only accessible elements carry one): match the copy.
+    await expectVisible({ text: /^capacity: 8 players/i }, { timeout: 5_000 });
     await nextTo(/^date$/i);
-    await pushStartTimeOut();
+  });
+
+  it('Date: day scroller, period tabs with start times, duration presets + custom, and a live summary', async () => {
+    // Tomorrow, so the start is never in the past whatever the clock says.
+    await tap({ id: dayId(1) });
+    await tap({ id: 'time-period-evening' });
+    await tap({ id: 'time-slot-19:00' });
+    await sleep(300);
+    expect(summaryText(await snapshot()), 'default duration is 60').toMatch(/19:00–20:00/);
+    // The Duration card starts under the fixed summary + Next footer; scroll the cards up so
+    // its chips are clear of it (the tree still lists covered chips at their layout position).
+    await swipe('up');
+    await sleep(700);
+    await tap({ id: 'duration-90' });
+    await sleep(300);
+    expect(summaryText(await snapshot())).toMatch(/19:00–20:30/);
+    await tap({ id: 'duration-custom' });
+    await expectVisible({ id: 'custom-duration-input' }, { timeout: 5_000 });
+    await typeText({ id: 'custom-duration-input' }, '75');
+    await tap({ id: 'custom-duration-save' });
+    await sleep(600);
+    expect(summaryText(await snapshot())).toMatch(/19:00–20:15/);
+    // No steppers any more.
+    expect(query(await snapshot(), { label: 'Increase hour' })).toBeUndefined();
     await nextTo(/^preferences$/i);
     await nextTo(/^details$/i);
   });
@@ -150,17 +219,31 @@ describe('05 event create wizard', () => {
       () =>
         select(
           'events',
-          `name=eq.${encodeURIComponent(name)}&select=id,organizer_id,scoring_mode,scoring_value,group_id`,
+          `name=eq.${encodeURIComponent(name)}&select=id,organizer_id,scoring_mode,scoring_value,group_id,venue_id,num_courts,duration_minutes`,
         ),
       (r) => (r as unknown[]).length === 1,
       { label: 'event row created', timeoutMs: 30_000 },
     );
     const created = (
-      rows as { organizer_id: string; scoring_mode: string; scoring_value: number | null; group_id: string | null }[]
+      rows as {
+        id: string;
+        organizer_id: string;
+        scoring_mode: string;
+        scoring_value: number | null;
+        group_id: string | null;
+        venue_id: string | null;
+        num_courts: number;
+        duration_minutes: number;
+      }[]
     )[0]!;
     if (created.organizer_id !== m.users.alex) throw new Error('organizer_id is not the creating user');
     expect(created.group_id, 'continued without a group').toBeNull();
     expect([created.scoring_mode, created.scoring_value], 'Points defaults to 32 (B16)').toEqual(['points', 32]);
+    const [venue] = await select<{ id: string }[]>('venues', `name=eq.${encodeURIComponent('Lisbon Padel Arena')}&select=id`);
+    expect(created.venue_id, 'the registry venue').toBe(venue?.id);
+    expect([created.num_courts, created.duration_minutes], 'two ticked courts, custom 75 min').toEqual([2, 75]);
+    const courts = await select<unknown[]>('event_courts', `event_id=eq.${created.id}&select=court_id`);
+    expect(courts, 'the ticked courts are stored').toHaveLength(2);
     // And it surfaces in the organizer's own list.
     await tabTo('Events');
     await tap({ text: /organizing/i });
