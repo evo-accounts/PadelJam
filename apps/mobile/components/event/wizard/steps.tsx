@@ -50,7 +50,8 @@ export const STEPS: WizardStep[] = [
   step('date', 'step7Title', Step7Schedule, validateStep7, 'button', DateSummaryFooter),
   step('preferences', 'step8Title', Step8Preferences, validateStep8),
   step('details', 'step9Title', Step9Details, validateStep9),
-  step('invite', 'step10Title', Step10Invite, validateStep10),
+  // "Create event", and "I will invite later" under it — the event with nobody invited yet.
+  { ...step('invite', 'step10Title', Step10Invite, validateStep10), laterKey: 'inviteLater' },
 ];
 
 export function stepByKey(key: StepKey): WizardStep {

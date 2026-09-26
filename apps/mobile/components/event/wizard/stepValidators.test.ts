@@ -99,6 +99,41 @@ describe('wizard step validators', () => {
     ).toEqual([]);
   });
 
+  it('step8 checks the extra spots (1–20) only while stand-by is on', () => {
+    expect(validateStep8({ ...defaultDraft, allowStandby: false, standbySpots: 99 })).toEqual([]);
+    expect(validateStep8({ ...defaultDraft, allowStandby: true, standbySpots: 4 })).toEqual([]);
+    expect(validateStep8({ ...defaultDraft, allowStandby: true, standbySpots: 21 })).toEqual(['standbySpots']);
+    expect(validateStep8({ ...defaultDraft, allowStandby: true, standbySpots: undefined })).toEqual(['standbySpots']);
+  });
+
+  it('step8 wants the MB WAY number when MB WAY is the method', () => {
+    const mba: EventDraft = { ...defaultDraft, entranceFee: { enabled: true, amount: 5, method: 'mba' } };
+    expect(validateStep8(mba)).toEqual(['feeMbaNumber']);
+    expect(validateStep8({ ...mba, entranceFee: { ...mba.entranceFee, mbaNumber: '912345678' } })).toEqual([]);
+  });
+
+  it('step10 flags guests that no longer fit (courts lowered after adding them)', () => {
+    const guests = Array.from({ length: 4 }, (_, i) => ({ key: String(i), name: `G${i}` }));
+    const d: EventDraft = { ...defaultDraft, specification: 'classic', numCourts: 1, guests };
+    // 4 spots: the playing organizer + 4 guests is one too many.
+    expect(validateStep10(d)).toEqual(['guests']);
+    expect(validateStep10({ ...d, organizerRole: 'organizing_only' })).toEqual([]);
+  });
+
+  it('step10 checks a mixed event per gender, counting the organizer', () => {
+    const d: EventDraft = {
+      ...defaultDraft,
+      specification: 'mixed',
+      numCourts: 1,
+      guests: [
+        { key: 'a', name: 'A', gender: 'male' },
+        { key: 'b', name: 'B', gender: 'male' },
+      ],
+    };
+    expect(validateStep10(d, { organizerGender: 'female' })).toEqual([]);
+    expect(validateStep10(d, { organizerGender: 'male' })).toEqual(['guests']);
+  });
+
   it('step9 requires a non-blank name', () => {
     expect(validateStep9({ ...defaultDraft, name: '' })).toEqual(['name']);
     expect(validateStep9({ ...defaultDraft, name: '   ' })).toEqual(['name']);

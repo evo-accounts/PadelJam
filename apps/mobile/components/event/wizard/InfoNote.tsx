@@ -1,23 +1,39 @@
 import { SymbolView } from 'expo-symbols';
 import { StyleSheet, View } from 'react-native';
 
-import { colors, radius, space } from '../../../theme';
+import { colors, palette, radius, space } from '../../../theme';
 import { Text } from '../../ui';
 
 /**
  * An inline "good to know" box inside a wizard step — the manual venue's "this event only" note,
  * the "selecting courts does not book them" note. Not the transient top `Banner`: this stays put
  * next to what it explains. The icon is decorative; the sentence is read as one element.
+ *
+ * `warning` is for a consequence the organizer should weigh — a private group event leaving the
+ * group ranking, a roster that no longer fits (UX-CEVT-09, UX-CEVT-11).
  */
-export function InfoNote({ text, testID }: { text: string; testID?: string }) {
+export function InfoNote({
+  text,
+  tone = 'info',
+  testID,
+}: {
+  text: string;
+  tone?: 'info' | 'warning';
+  testID?: string;
+}) {
+  const warning = tone === 'warning';
   return (
     // Deliberately NOT an `accessible` grouping View: non-button accessible Views have left later
     // screens' buttons reporting as AXGenericElement in the E2E tree. The Text is the element.
-    <View style={styles.box}>
+    <View style={[styles.box, warning && styles.warning]}>
       <SymbolView
-        name={{ ios: 'info.circle', android: 'info', web: 'info' } as never}
+        name={
+          (warning
+            ? { ios: 'exclamationmark.triangle', android: 'warning', web: 'warning' }
+            : { ios: 'info.circle', android: 'info', web: 'info' }) as never
+        }
         size={18}
-        tintColor={colors.info}
+        tintColor={warning ? colors.warningStrong : colors.info}
         accessibilityElementsHidden
         importantForAccessibility="no"
       />
@@ -39,5 +55,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  warning: { backgroundColor: palette.yellow[100], borderColor: colors.warning },
   text: { flex: 1 },
 });

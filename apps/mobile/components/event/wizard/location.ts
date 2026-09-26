@@ -96,3 +96,25 @@ export function setCourtSelection(d: EventDraft, select: boolean): Partial<Event
   if (select) return d.courtIds ? {} : { courtIds: [] };
   return { courtIds: undefined, numCourts: clampCourts(d.numCourts) };
 }
+
+/** `events.manual_court_names` allows 1–40 characters a court (0113). */
+export const COURT_NAME_MAX = 40;
+
+/**
+ * A manual venue's court names as `create_event` takes them (0113): exactly `numCourts` entries,
+ * each trimmed to 1–40 characters, or nothing at all. The draft pads with '' and can be shorter
+ * than the count (growing the count leaves the new courts unnamed), so: every name blank → send
+ * nothing; otherwise each blank takes the default label (`fallback(n)`, 1-based — "Court 2").
+ * A registry venue names its courts itself, so it never sends any.
+ */
+export function normalizeCourtNames(
+  d: Pick<EventDraft, 'manualCourtNames' | 'numCourts' | 'venueId'>,
+  fallback: (n: number) => string,
+): string[] | undefined {
+  if (d.venueId) return undefined;
+  const names = Array.from({ length: Math.max(0, d.numCourts) }, (_, i) =>
+    (d.manualCourtNames?.[i] ?? '').trim().slice(0, COURT_NAME_MAX),
+  );
+  if (names.every((n) => n.length === 0)) return undefined;
+  return names.map((n, i) => n || fallback(i + 1).trim().slice(0, COURT_NAME_MAX));
+}

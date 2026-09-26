@@ -11,10 +11,24 @@ import type { PickedImage } from '@/lib/storage';
 
 import type { StepKey } from '@padel/utils';
 
-/** A platform user (invitee_id) or, interim until M3, a manual entry sent as a guest (0113). */
+/**
+ * A platform player picked on Invite players (UX-CEVT-11). Only `invitee_id` is sent; the name and
+ * photo ride along so the step can show who is picked without refetching them.
+ */
 export type EventInvitee = {
-  invitee_id?: string;
-  name?: string;
+  invitee_id: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+};
+
+/**
+ * A guest (decision 7): someone with no access to the app, added by name — plus a gender on a mixed
+ * event — and confirmed for this event only. `key` is wizard-only, so two guests with the same
+ * name can still be told apart and removed one at a time.
+ */
+export type EventGuestDraft = {
+  key: string;
+  name: string;
   gender?: 'male' | 'female';
 };
 
@@ -39,9 +53,8 @@ export type EventDraft = {
    */
   locationMode?: 'registry' | 'manual' | 'none';
   /**
-   * A manual venue's optional court names, one per court (blank = unnamed). Not sent yet:
-   * `events.manual_court_names` arrives with migration 0113 and `buildCreateEventPayload` does
-   * not carry it until then.
+   * A manual venue's optional court names, one per court (blank = unnamed). Sent as
+   * `manual_court_names` (0113) by `courtNamesForPayload`, which names the blanks.
    */
   manualCourtNames?: string[];
   venueId?: string;
@@ -73,6 +86,8 @@ export type EventDraft = {
     inviteLeadDays: 3 | 5 | 7;
   };
   invitees?: EventInvitee[];
+  /** Guests, confirmed on creation (0113 `guests`). */
+  guests?: EventGuestDraft[];
   courtIds?: string[];
 };
 
@@ -113,6 +128,8 @@ export type WizardStepProps = {
 
 export type AdvanceBy = 'tap' | 'button';
 
+export type ValidateEnv = { organizerGender?: string | null };
+
 export type WizardStep = {
   key: StepKey;
   titleKey: string;
@@ -130,8 +147,17 @@ export type WizardStep = {
    * step it sits above the primary button and is fixed with it — Date's summary box.
    */
   Footer?: React.ComponentType<WizardStepProps>;
-  /** Pure: the failing field keys for this step, or [] when the step is complete. */
-  validate: (d: EventDraft) => string[];
+  /**
+   * A secondary action under the primary button, on the last step only: Invite players' "I will
+   * invite later", which creates the event without its invitees and guests (UX-CEVT-11).
+   */
+  laterKey?: string;
+  /**
+   * Pure: the failing field keys for this step, or [] when the step is complete. `env` carries what
+   * the draft does not hold — the organizer's own gender, which Invite players needs to check a
+   * mixed event's roster still fits.
+   */
+  validate: (d: EventDraft, env?: ValidateEnv) => string[];
   isValid: (d: EventDraft) => boolean;
 };
 
