@@ -19,6 +19,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * Group, Format and Players are tap-to-advance: the card IS the answer, and there is no Next.
  * Location is too, until the manual venue form is opened (UX-CEVT-06). Courts follows the
  * registry venue picked (UX-CEVT-07); Date is four cards over a fixed summary (UX-CEVT-08).
+ * Preferences is cards whose toggles open their own values (UX-CEVT-09); Details uses the shared
+ * image picker (UX-CEVT-10); Invite players searches platform players and adds guests (UX-CEVT-11).
  */
 describe('05 event create wizard', () => {
   beforeAll(async () => {
@@ -199,20 +201,91 @@ describe('05 event create wizard', () => {
     // No steppers any more.
     expect(query(await snapshot(), { label: 'Increase hour' })).toBeUndefined();
     await nextTo(/^preferences$/i);
+  });
+
+  it('Preferences: cards per section, and each toggle opens its values inside its card (UX-CEVT-09)', async () => {
+    for (const heading of [/^game details$/i, /^invite details$/i]) {
+      await expectVisible({ text: heading, type: 'Heading' }, { timeout: 5_000 });
+    }
+    // No group: private is on, locked, and says why.
+    await expectVisible({ id: 'pref-private-always' });
+    await expectVisible({ text: /independent events are always private/i });
+    // Stand-by opens an extra spots counter at 4 (decision 9).
+    await tap({ id: 'pref-standby-switch' });
+    await expectVisible({ text: /increase extra spots/i, type: 'Button' }, { timeout: 5_000 });
+    expect(query(await snapshot(), { text: /^4$/ }), 'extra spots default to 4').toBeDefined();
+    // The fee opens payment tabs + amount; MB WAY adds the number field.
+    await tap({ id: 'pref-fee-switch' });
+    await expectVisible({ text: /^cash$/i, type: 'Button' }, { timeout: 5_000 });
+    await expectVisible({ text: /^at club$/i, type: 'Button' });
+    await tap({ text: /^mb way$/i, type: 'Button' });
+    await expectVisible({ id: 'pref-fee-mba-number' }, { timeout: 5_000 });
+    // Amount and number missing → Next stays here.
+    await dismissKeyboard();
+    await tap({ text: /^next$/i, type: 'Button' });
+    await sleep(900);
+    await onStep(/^preferences$/i, 2_000);
+    await scrollUntilVisible({ id: 'pref-fee-switch' }, { direction: 'up', maxSwipes: 5 });
+    await tap({ id: 'pref-fee-switch' });
+    await sleep(300);
+    expect(query(await snapshot(), { id: 'pref-fee-amount' }), 'fee off: its fields go').toBeUndefined();
+    await scrollUntilVisible({ text: /^organizing and playing/i }, { maxSwipes: 5 });
+    await expectVisible({ text: /^permissions$/i, type: 'Heading' });
     await nextTo(/^details$/i);
   });
 
-  it('blocks Next on Details until an event name is entered', async () => {
+  it('Details: the shared image picker, and Next blocked until an event name is entered', async () => {
+    await expectVisible({ text: /add image: cover photo/i, type: 'Button' }, { timeout: 5_000 });
     await tap({ text: /^next$/i, type: 'Button' });
     await sleep(1200);
     await onStep(/^details$/i, 2_000);
   });
 
+  let eventName = '';
+
+  it('Invite players: people you follow, spots left, and "I will invite later" (UX-CEVT-11)', async () => {
+    const m = manifest();
+    eventName = `E2E Wizard ${Date.now() % 100000}`;
+    await typeText({ text: /saturday americano/i, type: 'TextField' }, eventName);
+    await dismissKeyboard();
+    await nextTo(/^invite players$/i);
+    await expectVisible({ id: 'invite-search' }, { timeout: 10_000 });
+    await expectVisible({ id: 'invite-add-manually' });
+    await expectVisible({ id: 'event-wizard-later' });
+    // 2 courts + 4 extra spots, less the organizer (organizing and playing).
+    const cap = query(await snapshot(), { id: 'invite-capacity' });
+    expect(`${cap?.AXLabel ?? ''} ${cap?.AXValue ?? ''}`).toMatch(/11 spots left/i);
+    // Before typing: the people alex follows.
+    await expectVisible({ id: `invite-row-${m.users.maria}` }, { timeout: 15_000 });
+    // Ticked here; the invitation itself is checked in the database once the event exists.
+    await tap({ id: `invite-row-${m.users.maria}` });
+    await sleep(300);
+  });
+
+  it('a search with no hits offers "Add manually"; a guest lands on the confirmed list', async () => {
+    await typeText({ id: 'invite-search' }, 'zzqxnobody');
+    await expectVisible({ text: /no players found/i }, { timeout: 10_000 });
+    const ctas = queryAll(await snapshot(), { text: /add manually/i, type: 'Button' });
+    expect(ctas.length, 'top-right + the empty state CTA').toBeGreaterThanOrEqual(2);
+    await clearText({ id: 'invite-search' }, 12);
+    await dismissKeyboard();
+    await tap({ id: 'invite-add-manually' });
+    await expectVisible({ text: /confirmed for this event only/i }, { timeout: 5_000 });
+    // Validated on Save.
+    await tap({ id: 'guest-save' });
+    await expectVisible({ text: /enter the player's name/i }, { timeout: 5_000 });
+    await typeText({ id: 'guest-name' }, 'Rui Guest');
+    await dismissKeyboard();
+    await tap({ id: 'guest-save' });
+    await expectVisible({ text: /^confirmed \(1\)$/i }, { timeout: 5_000 });
+    await expectVisible({ text: /^rui guest/i });
+    const cap = query(await snapshot(), { id: 'invite-capacity' });
+    expect(`${cap?.AXLabel ?? ''} ${cap?.AXValue ?? ''}`, 'the guest takes a spot').toMatch(/10 spots left/i);
+  });
+
   it('creates the event end to end', async () => {
     const m = manifest();
-    const name = `E2E Wizard ${Date.now() % 100000}`;
-    await typeText({ text: /saturday americano/i, type: 'TextField' }, name);
-    await nextTo(/^invite players$/i);
+    const name = eventName;
     await scrollUntilVisible({ text: /^create event$/i, type: 'Button' }, { maxSwipes: 5 });
     await tap({ text: /^create event$/i, type: 'Button' });
     const rows = await pollUntil(
@@ -244,6 +317,22 @@ describe('05 event create wizard', () => {
     expect([created.num_courts, created.duration_minutes], 'two ticked courts, custom 75 min').toEqual([2, 75]);
     const courts = await select<unknown[]>('event_courts', `event_id=eq.${created.id}&select=court_id`);
     expect(courts, 'the ticked courts are stored').toHaveLength(2);
+    const [prefs] = await select<{ allow_standby: boolean; standby_spots: number | null; entrance_fee_enabled: boolean }[]>(
+      'events',
+      `id=eq.${created.id}&select=allow_standby,standby_spots,entrance_fee_enabled`,
+    );
+    expect(prefs, 'stand-by on with 4 extra spots; the fee switched back off').toEqual({
+      allow_standby: true,
+      standby_spots: 4,
+      entrance_fee_enabled: false,
+    });
+    const invited = await select<{ invitee_id: string }[]>('event_invitations', `event_id=eq.${created.id}&select=invitee_id`);
+    expect(invited.map((i) => i.invitee_id), 'the followed player picked on Invite players').toEqual([m.users.maria]);
+    const guests = await select<{ guest_name: string; status: string }[]>(
+      'event_participants',
+      `event_id=eq.${created.id}&user_id=is.null&select=guest_name,status`,
+    );
+    expect(guests, 'the guest is confirmed').toEqual([{ guest_name: 'Rui Guest', status: 'confirmed' }]);
     // And it surfaces in the organizer's own list.
     await tabTo('Events');
     await tap({ text: /organizing/i });
