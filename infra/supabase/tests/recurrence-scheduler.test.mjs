@@ -7,7 +7,7 @@
 //
 // The function sweeps EVERY active series on the stack, including other files' — so every assertion
 // here is about this file's own series, never about the returned count alone.
-import { user, rpc, anonRpc, sel, insert, patch, expectError, assert, run } from './lib.mjs';
+import { user, rpc, anonRpc, sel, insert, patch, del, expectError, assert, run } from './lib.mjs';
 
 const DAY = 864e5;
 const at = (ms) => new Date(Date.now() + ms).toISOString();
@@ -54,8 +54,8 @@ const notifs = (u, type, ev) => sel('notifications', `user_id=eq.${u.id}&type=eq
 const moveTo = (ev, iso) => patch('events', `id=eq.${ev}`, { starts_at: iso });
 const sameInstant = (a, b) => new Date(a).getTime() === new Date(b).getTime();
 
-// Europe/Lisbon wall-clock helpers. Every series here starts at 19:00 Lisbon (series() above), and
-// 0117 opens each occurrence at that wall-clock time on the date one week (k weeks) later.
+// Europe/Lisbon wall-clock helpers. Every source occurrence here is moved to 19:00 Lisbon, and 0117
+// opens each next occurrence at the same Lisbon wall-clock time one week (k weeks) later.
 const fmtDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon', year: 'numeric', month: '2-digit', day: '2-digit' });
 const fmtHM = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Lisbon', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const lisbonDate = (t) => fmtDate.format(new Date(t)); // 'YYYY-MM-DD'
@@ -203,16 +203,21 @@ await run('a series that fell behind picks up at its next future slot, once', as
   const gap = daysBetween(lisbonDate(last), lisbonDate(occ[1].starts_at));
   assert(new Date(occ[1].starts_at).getTime() > Date.now(), 'in the future');
   assert(gap >= 21 && gap % 7 === 0, `on the weekly grid (${gap} days after the last one)`);
-  assert(lisbonHM(occ[1].starts_at) === '19:00', 'at the series start time, Lisbon');
+  assert(lisbonHM(occ[1].starts_at) === '19:00', 'at the same Lisbon wall-clock time');
 });
 
 await run('a due private series copies its invitations as pending and sends event_invite', async () => {
-  const [a, b, c] = [await user('rs-priv-a'), await user('rs-priv-b'), await user('rs-priv-c')];
+  const [a, b, c, d, e] = [await user('rs-priv-a'), await user('rs-priv-b'), await user('rs-priv-c'),
+    await user('rs-priv-d'), await user('rs-priv-e')];
   const { admin, groupId } = await group('rs-priv', [a, b, c]);
   const ev = await rpc(admin.jwt, 'create_event', {
-    p_payload: base(groupId, { is_private: true, series: series(7), invitees: [{ invitee_id: a.id }, { invitee_id: b.id }] }),
+    p_payload: base(groupId, { is_private: true, series: series(7),
+      invitees: [a, b, d, e].map((u) => ({ invitee_id: u.id })) }),
   });
   await rpc(a.jwt, 'accept_event_invitation', { p_event_id: ev });
+  // d declined last week; e has since deleted their account. Neither is invited again.
+  await patch('event_invitations', `event_id=eq.${ev}&invitee_id=eq.${d.id}`, { status: 'declined' });
+  await patch('profiles', `id=eq.${e.id}`, { deleted_at: new Date().toISOString() });
   await moveTo(ev, slotBefore(2 * H));
   const { series_id } = await eventRow(ev);
   await sweep();
@@ -221,7 +226,9 @@ await run('a due private series copies its invitations as pending and sends even
   const next = occ[1].id;
   const inv = await sel('event_invitations', `event_id=eq.${next}&select=invitee_id,status,invited_by`);
   assert(inv.length === 2 && inv.every((i) => i.status === 'pending' && i.invited_by === admin.id),
-    'both invitations copied as pending, from the organizer');
+    `a and b copied as pending, from the organizer (got ${inv.length})`);
+  assert(!inv.some((i) => i.invitee_id === d.id), 'a declined invitation is not copied');
+  assert(!inv.some((i) => i.invitee_id === e.id), 'a deleted account is not invited');
   assert((await notifs(a, 'event_invite', next)).length === 1, 'a gets event_invite (even after accepting last week)');
   assert((await notifs(b, 'event_invite', next)).length === 1, 'b gets event_invite');
   assert((await notifs(c, 'event_created', next)).length === 0, 'the rest of the group is not told');
@@ -244,6 +251,70 @@ await run('DST: a 19:00 Lisbon series stays 19:00 across the last Sundays of Oct
   const mar2 = await rpc(admin.jwt, 'materialize_occurrence', { p_after_event_id: mar });
   assert(sameInstant((await eventRow(mar2)).starts_at, '2027-03-31T18:00:00Z'), 'Wed 31 Mar at 19:00 WEST (was 20:00 with +168 h)');
   assert(lisbonHM((await eventRow(mar2)).starts_at) === '19:00', 'Lisbon wall clock 19:00');
+});
+
+/** A registry venue with two courts (venues are service-role writes). */
+async function venue(admin) {
+  const [v] = await insert('venues', { name: `Venue ${tag()}`, address: 'Lisbon', created_by: admin.id });
+  const cs = await insert('courts', [{ venue_id: v.id, name: 'C1', sort_order: 1 }, { venue_id: v.id, name: 'C2', sort_order: 2 }]);
+  return { id: v.id, courts: cs.map((c) => c.id) };
+}
+const atVenue = (v) => ({ venue_id: v.id, manual_location_name: null, manual_location_address: null, num_courts: 2, court_ids: v.courts });
+const courtIds = (ev) => sel('event_courts', `event_id=eq.${ev}&select=court_id`).then((r) => r.map((c) => c.court_id).sort());
+
+await run('registry venue: event_courts carry over to the occurrence and to a duplicate (public group copy)', async () => {
+  const [a] = [await user('rs-ven-a')];
+  const { admin, groupId } = await group('rs-ven', [a]);
+  const v = await venue(admin);
+  const ev = await rpc(admin.jwt, 'create_event', { p_payload: base(groupId, { series: series(7), ...atVenue(v) }) });
+  await moveTo(ev, slotBefore(2 * H));
+  const { series_id } = await eventRow(ev);
+  await sweep();
+  const occ = await occurrences(series_id);
+  assert(occ.length === 2, 'occurrence opened');
+  assert(JSON.stringify(await courtIds(occ[1].id)) === JSON.stringify([...v.courts].sort()), 'occurrence has the same courts');
+
+  const dup = await rpc(admin.jwt, 'duplicate_event', { p_event_id: occ[1].id, p_overrides: { starts_at: at(20 * DAY) } });
+  const dupRow = (await sel('events', `id=eq.${dup}&select=series_id,venue_id`))[0];
+  assert(dupRow.series_id === null, 'a duplicate is a one-off (series_id null)');
+  assert(dupRow.venue_id === v.id, 'same venue');
+  assert(JSON.stringify(await courtIds(dup)) === JSON.stringify([...v.courts].sort()), 'duplicate has the same courts');
+  assert((await sel('event_invitations', `event_id=eq.${dup}&select=id`)).length === 0, 'public copy: no invitations');
+  assert((await notifs(a, 'event_created', dup)).length === 1, 'public copy: the group is told');
+  // The duplicate does not re-anchor the series.
+  assert((await occurrences(series_id)).length === 2, 'the series is unchanged by the duplicate');
+});
+
+await run('a soft-deleted venue: the sweep skips the series, the organizer paths raise venue_not_found', async () => {
+  const { admin, groupId } = await group('rs-vdel', []);
+  const v = await venue(admin);
+  const ev = await rpc(admin.jwt, 'create_event', { p_payload: base(groupId, { series: series(7), ...atVenue(v) }) });
+  await moveTo(ev, slotBefore(2 * H));
+  const { series_id } = await eventRow(ev);
+  await patch('venues', `id=eq.${v.id}`, { deleted_at: new Date().toISOString() });
+  await sweep();
+  assert((await occurrences(series_id)).length === 1, 'skipped (a WARNING is logged)');
+  await expectError(() => rpc(admin.jwt, 'materialize_occurrence', { p_after_event_id: ev }), 'venue_not_found');
+  await expectError(() => rpc(admin.jwt, 'duplicate_event', { p_event_id: ev, p_overrides: {} }), 'venue_not_found');
+});
+
+await run('an organizer who left the group, or deleted their account, no longer runs the series', async () => {
+  const { admin, groupId } = await group('rs-left', []);
+  const ev = await rpc(admin.jwt, 'create_event', { p_payload: base(groupId, { series: series(7) }) });
+  await moveTo(ev, slotBefore(2 * H));
+  const { series_id } = await eventRow(ev);
+  await del('group_members', `group_id=eq.${groupId}&user_id=eq.${admin.id}`);
+  await sweep();
+  assert((await occurrences(series_id)).length === 1, 'removed organizer: skipped');
+  await expectError(() => rpc(admin.jwt, 'materialize_occurrence', { p_after_event_id: ev }), 'forbidden');
+
+  const other = await group('rs-gone', []);
+  const ev2 = await rpc(other.admin.jwt, 'create_event', { p_payload: base(other.groupId, { series: series(7) }) });
+  await moveTo(ev2, slotBefore(2 * H));
+  const s2 = (await eventRow(ev2)).series_id;
+  await patch('profiles', `id=eq.${other.admin.id}`, { deleted_at: new Date().toISOString() });
+  await sweep();
+  assert((await occurrences(s2)).length === 1, 'deleted organizer: skipped');
 });
 
 await run('duplicate_event copies manual_court_names', async () => {
