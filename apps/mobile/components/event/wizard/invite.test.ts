@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { defaultDraft, type EventDraft } from './draft';
-import { addGuest, draftRoster, invitePayload, removeGuest, togglePlayer } from './invite';
+import { addGuest, draftRoster, guestIssue, invitePayload, removeGuest, togglePlayer, updateGuest } from './invite';
 
 const maria = { id: 'u-maria', full_name: 'Maria', avatar_url: null };
 
@@ -57,5 +57,24 @@ describe('invitePayload', () => {
 
   it('omits empty lists', () => {
     expect(invitePayload({ ...d, invitees: [], guests: [] })).toEqual({ invitees: undefined, guests: undefined });
+  });
+});
+
+describe('guest fixes after going back', () => {
+  it('updateGuest sets a missing gender in place', () => {
+    const list = [{ key: 'a', name: 'A' }, { key: 'b', name: 'B' }];
+    expect(updateGuest(list, 'a', { name: ' A ', gender: 'female' }, true)).toEqual([
+      { key: 'a', name: 'A', gender: 'female' },
+      { key: 'b', name: 'B' },
+    ]);
+  });
+
+  it('guestIssue names what is wrong: team, then gender, then capacity', () => {
+    const d: EventDraft = { ...defaultDraft, numCourts: 1, guests: [{ key: 'a', name: 'A' }] };
+    expect(guestIssue({ ...d, specification: 'classic' })).toBeNull();
+    expect(guestIssue({ ...d, specification: 'team' })).toBe('team');
+    expect(guestIssue({ ...d, specification: 'mixed' }, 'male')).toBe('gender');
+    const five = Array.from({ length: 5 }, (_, i) => ({ key: String(i), name: `G${i}` }));
+    expect(guestIssue({ ...d, specification: 'classic', guests: five })).toBe('capacity');
   });
 });

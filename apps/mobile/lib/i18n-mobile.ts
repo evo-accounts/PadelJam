@@ -2156,6 +2156,13 @@ const mobileEvent = {
     guestEventFull: 'O evento está cheio — não há vagas para mais convidados.',
     guestNote: 'O jogador é criado e confirmado apenas para este evento, não tem histórico e não aparece em nenhum ranking. Usa só para alguém sem acesso à app que não o terá antes do evento.',
     guestSave: 'Guardar',
+    privateRankingWarningEdit: 'Os eventos privados não contam para o ranking do grupo. Só participam os jogadores convidados, não o grupo inteiro.',
+    guestSheetEditTitle: 'Editar jogador',
+    inviteTeamGuestNote: 'Num evento de equipas, quem não tem a app entra como parceiro de um jogador.',
+    inviteGuestGenderMissing: 'Este evento agora é misto: indica o género dos convidados assinalados (toca no nome).',
+    inviteTeamGuestsRemove: 'Os eventos de equipas não aceitam convidados aqui — remove-os; podem entrar como parceiros de um jogador.',
+    inviteGuestSetGender: 'Indica o género',
+    inviteShowMore: 'Mostrar mais',
 
     // --- Error codes (mapPgError + schema validation) ---
     invalid_event_config: 'A configuração do evento é inválida. Revê as tuas escolhas.',
@@ -2791,6 +2798,13 @@ const mobileEvent = {
     guestEventFull: 'O evento está cheio — não há vagas para mais convidados.',
     guestNote: 'O jogador é criado e confirmado só para este evento, não tem histórico e não aparece em nenhum ranking. Use apenas para alguém sem acesso ao app que não o terá antes do evento.',
     guestSave: 'Salvar',
+    privateRankingWarningEdit: 'Eventos privados não contam para o ranking do grupo. Só participam os jogadores convidados, não o grupo inteiro.',
+    guestSheetEditTitle: 'Editar jogador',
+    inviteTeamGuestNote: 'Em um evento de equipes, quem não tem o app entra como parceiro de um jogador.',
+    inviteGuestGenderMissing: 'Este evento agora é misto: informe o gênero dos convidados marcados (toque no nome).',
+    inviteTeamGuestsRemove: 'Eventos de equipes não aceitam convidados aqui — remova-os; eles podem entrar como parceiros de um jogador.',
+    inviteGuestSetGender: 'Informe o gênero',
+    inviteShowMore: 'Mostrar mais',
 
     // --- Error codes (mapPgError + schema validation) ---
     invalid_event_config: 'A configuração do evento é inválida. Revise suas escolhas.',
@@ -3426,6 +3440,13 @@ const mobileEvent = {
     guestEventFull: 'The event is full — there is no room for more guests.',
     guestNote: 'The player is created and confirmed for this event only, carries no history and appears in no ranking. Only use it for someone with no access to the app who won\'t have it before the event.',
     guestSave: 'Save',
+    privateRankingWarningEdit: 'Private events don\'t count toward the group ranking. Only invited players take part, not the whole group.',
+    guestSheetEditTitle: 'Edit player',
+    inviteTeamGuestNote: 'On a team event, someone without the app joins as a player\'s partner.',
+    inviteGuestGenderMissing: 'This event is now mixed: set the gender of the marked guests (tap their name).',
+    inviteTeamGuestsRemove: 'Team events take no guests here — remove them; they can join as a player\'s partner.',
+    inviteGuestSetGender: 'Set gender',
+    inviteShowMore: 'Show more',
 
     // --- Error codes (mapPgError + schema validation) ---
     invalid_event_config: 'The event configuration is invalid. Please review your choices.',

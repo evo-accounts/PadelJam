@@ -20,17 +20,24 @@ export function GuestSheet({
   onClose,
   mixed,
   room,
+  initial,
   onSave,
 }: {
   visible: boolean;
   onClose: () => void;
   mixed: boolean;
+  /** The roster WITHOUT the guest being edited, so re-saving them is not refused as one too many. */
   room: RosterRoom;
+  /**
+   * An existing guest being corrected — typically a missing gender after the event became mixed.
+   * The caller remounts the sheet (a `key`) per guest, so the fields start from these values.
+   */
+  initial?: { name: string; gender?: Gender };
   onSave: (guest: { name: string; gender?: Gender }) => void;
 }) {
   const { t } = useT('event');
-  const [name, setName] = useState('');
-  const [gender, setGender] = useState<Gender | ''>('');
+  const [name, setName] = useState(initial?.name ?? '');
+  const [gender, setGender] = useState<Gender | ''>(initial?.gender ?? '');
   const [errors, setErrors] = useState<string[]>([]);
 
   // Each opening starts empty: whatever was typed goes when the sheet closes or saves.
@@ -58,7 +65,7 @@ export function GuestSheet({
   };
 
   return (
-    <BottomSheet visible={visible} onClose={close} title={t('guestSheetTitle')} testID="guest-sheet">
+    <BottomSheet visible={visible} onClose={close} title={initial ? t('guestSheetEditTitle') : t('guestSheetTitle')} testID="guest-sheet">
       <View style={styles.body}>
         <Field
           label={t('guestNameLabel')}

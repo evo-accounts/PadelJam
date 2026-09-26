@@ -7,13 +7,12 @@ import {
   DURATION_MIN,
   MINUTES_MAX,
   MINUTES_MIN,
-  rosterOverflows,
   STANDBY_MAX,
   STANDBY_MIN,
 } from '@padel/utils';
 
 import type { EventDraft, ValidateEnv } from './draft';
-import { draftRoster } from './invite';
+import { guestIssue } from './invite';
 
 /**
  * Pure per-step validators (UX-GLOB-06). Each returns the failing field keys for
@@ -87,8 +86,9 @@ export const validateStep9 = (d: EventDraft): string[] => (d.name.trim().length 
 
 /**
  * Invite players: adding a guest is refused when it would not fit, but the organizer can still go
- * back and lower the courts, stand-by or their own role afterwards. Caught here, on the tap,
- * rather than as `event_full` / `gender_full` from `create_event`.
+ * back and change the format, courts, stand-by or their own role afterwards — a guest with no
+ * gender on an event that became mixed, guests on one that became a team event, a roster that no
+ * longer fits. Caught here, on the tap, rather than as an error from `create_event`.
  */
 export const validateStep10 = (d: EventDraft, env?: ValidateEnv): string[] =>
-  rosterOverflows(draftRoster(d, env?.organizerGender)) ? ['guests'] : [];
+  guestIssue(d, env?.organizerGender) ? ['guests'] : [];

@@ -50,7 +50,14 @@ function CreateEventWizard() {
   const uid = useSession().session?.user.id;
   const confirm = useConfirm();
   // Which button started the create, so only that one spins: the primary, or "I will invite later".
-  const [submitting, setSubmitting] = useState<'primary' | 'later' | null>(null);
+  const [submitting, setSubmittingState] = useState<'primary' | 'later' | null>(null);
+  // State lags a render behind, so a fast double tap could start two creates. The ref flips
+  // synchronously; every place that ends a submission clears both through `setSubmitting`.
+  const inFlight = useRef(false);
+  const setSubmitting = (mode: 'primary' | 'later' | null) => {
+    inFlight.current = mode != null;
+    setSubmittingState(mode);
+  };
   // Invite players checks a mixed event's roster against the organizer's own gender.
   const { data: me } = useMyProfile();
   const [stepErrors, setStepErrors] = useState<string[]>([]);
@@ -102,7 +109,7 @@ function CreateEventWizard() {
   const finalize = async (mode: 'primary' | 'later' = 'primary') => {
     const { eventType, specification, scoringMode, startsAt } = draft;
     if (!eventType || !specification || !scoringMode || !startsAt) return;
-    if (submitting) return;
+    if (inFlight.current) return;
     setSubmitting(mode);
 
     let thumbnailPath = draft.thumbnailPath;
@@ -182,7 +189,16 @@ function CreateEventWizard() {
         return;
       }
       // Failure is a banner (UX-GLOB-06); a code with no copy of its own reads as the generic one.
-      banner.show(t(code, { defaultValue: t('unknown_error') }));
+      // A capacity refusal caused by a guest reads as one, not as "your gender" (0113 raises the
+      // same codes as the join RPCs).
+      const hadGuests = (input.guests?.length ?? 0) > 0;
+      const message =
+        hadGuests && code === 'gender_full'
+          ? t('guestGenderFull')
+          : hadGuests && code === 'event_full'
+            ? t('guestEventFull')
+            : t(code, { defaultValue: t('unknown_error') });
+      banner.show(message);
       setSubmitting(null);
     }
   };

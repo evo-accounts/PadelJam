@@ -134,6 +134,26 @@ describe('wizard step validators', () => {
     expect(validateStep10(d, { organizerGender: 'male' })).toEqual(['guests']);
   });
 
+  it('step10 flags a guest without a gender once the event is mixed', () => {
+    const d: EventDraft = {
+      ...defaultDraft,
+      specification: 'classic',
+      numCourts: 2,
+      guests: [{ key: 'a', name: 'A' }],
+    };
+    expect(validateStep10(d)).toEqual([]);
+    expect(validateStep10({ ...d, specification: 'mixed' }, { organizerGender: 'male' })).toEqual(['guests']);
+    expect(
+      validateStep10({ ...d, specification: 'mixed', guests: [{ key: 'a', name: 'A', gender: 'female' }] }, { organizerGender: 'male' }),
+    ).toEqual([]);
+  });
+
+  it('step10 flags wizard guests on a team event', () => {
+    const d: EventDraft = { ...defaultDraft, specification: 'team', numCourts: 2, guests: [{ key: 'a', name: 'A' }] };
+    expect(validateStep10(d)).toEqual(['guests']);
+    expect(validateStep10({ ...d, guests: [] })).toEqual([]);
+  });
+
   it('step9 requires a non-blank name', () => {
     expect(validateStep9({ ...defaultDraft, name: '' })).toEqual(['name']);
     expect(validateStep9({ ...defaultDraft, name: '   ' })).toEqual(['name']);

@@ -1,7 +1,7 @@
 import { useFollowing, useGroupMembers, useMyProfile, useSearchProfiles } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { guestBlocker, rosterOverflows } from '@padel/utils';
+import { guestBlocker } from '@padel/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
@@ -10,7 +10,16 @@ import { avatarUrl } from '@/lib/community-images';
 import type { WizardStepProps } from '../draft';
 import { GuestSheet } from '../GuestSheet';
 import { InfoNote } from '../InfoNote';
-import { addGuest, draftRoster, type PickablePlayer, removeGuest, togglePlayer } from '../invite';
+import {
+  addGuest,
+  draftRoster,
+  guestIssue,
+  guestsAllowed,
+  type PickablePlayer,
+  removeGuest,
+  togglePlayer,
+  updateGuest,
+} from '../invite';
 import { colors, space } from '../../../../theme';
 import {
   Avatar,
@@ -36,6 +45,11 @@ const SEARCH_DEBOUNCE_MS = 300;
  *             access to the app; they are confirmed on creation and listed here, removable until then.
  *   Capacity  the spots left after the organizer (when playing) and the guests. Adding a guest who
  *             would not fit is refused with a banner, not left to fail at create.
+ *   Fix-ups   going back can leave guests that no longer work — no gender on an event that became
+ *             mixed (tap the row to set it), guests on a team event, a roster over capacity. One
+ *             warning says which, and Create is blocked until it is fixed.
+ *   Team      no "+ Add manually" (product default): a lone guest cannot hold a team spot without
+ *             a pair, so guests join team events as a player's partner (UX-JEVT-10).
  *
  * The wizard's footer carries "Create event" and, under it, "I will invite later".
  */
@@ -47,6 +61,9 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
   const [query, setQuery] = useState('');
   const [term, setTerm] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
+  // The guest being corrected (null = adding a new one); `sheetSeq` remounts the sheet per opening.
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [sheetSeq, setSheetSeq] = useState(0);
 
   useEffect(() => {
     const handle = setTimeout(() => setTerm(query.trim()), SEARCH_DEBOUNCE_MS);
@@ -55,13 +72,25 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
 
   const mixed = draft.specification === 'mixed';
   const groupId = draft.groupId;
+  const canAddGuests = guestsAllowed(draft);
   const room = draftRoster(draft, me?.gender);
-  const overflow = rosterOverflows(room) || !!errors?.includes('guests');
+  const issue = guestIssue(draft, me?.gender) ?? (errors?.includes('guests') ? 'capacity' : null);
+  const editing = editingKey ? (draft.guests ?? []).find((g) => g.key === editingKey) : undefined;
+  // Re-saving the guest being edited must not count them twice.
+  const sheetRoom = editing
+    ? draftRoster({ ...draft, guests: (draft.guests ?? []).filter((g) => g.key !== editing.key) }, me?.gender)
+    : room;
 
   // The list before anything is typed: a private group event invites from its group; anything
   // else starts from the people you follow.
   const { data: members, isLoading: membersLoading } = useGroupMembers(groupId);
-  const { data: following, isLoading: followingLoading } = useFollowing(groupId ? undefined : uid);
+  const {
+    data: following,
+    isLoading: followingLoading,
+    hasNextPage: moreFollowing,
+    fetchNextPage: fetchMoreFollowing,
+    isFetchingNextPage: fetchingMoreFollowing,
+  } = useFollowing(groupId ? undefined : uid);
   const { data: found, isFetching: searching } = useSearchProfiles(term);
 
   const invitees = useMemo(() => draft.invitees ?? [], [draft.invitees]);
@@ -99,12 +128,14 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
 
   const loading = term ? searching : groupId ? membersLoading : followingLoading;
 
-  const openSheet = () => {
+  const openSheet = (key: string | null = null) => {
     // A full event takes no more guests: say so now instead of opening a sheet that cannot save.
-    if (guestBlocker(room) === 'event_full') {
+    if (key == null && guestBlocker(room) === 'event_full') {
       banner.show(t('guestEventFull'));
       return;
     }
+    setEditingKey(key);
+    setSheetSeq((n) => n + 1);
     setSheetOpen(true);
   };
 
@@ -122,16 +153,30 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
         <Text variant="caption" tone="muted" style={styles.spots} testID="invite-capacity">
           {spotsLine}
         </Text>
-        <Button
-          label={t('inviteAddManually')}
-          variant="ghost"
-          size="sm"
-          onPress={openSheet}
-          testID="invite-add-manually"
-        />
+        {canAddGuests ? (
+          <Button
+            label={t('inviteAddManually')}
+            variant="ghost"
+            size="sm"
+            onPress={() => openSheet()}
+            testID="invite-add-manually"
+          />
+        ) : null}
       </View>
 
-      {overflow ? <InfoNote tone="warning" text={t('inviteOverCapacity')} testID="invite-over-capacity" /> : null}
+      {!canAddGuests ? (
+        <Text variant="caption" tone="muted" testID="invite-team-guest-note">
+          {t('inviteTeamGuestNote')}
+        </Text>
+      ) : null}
+
+      {issue === 'capacity' ? (
+        <InfoNote tone="warning" text={t('inviteOverCapacity')} testID="invite-over-capacity" />
+      ) : issue === 'gender' ? (
+        <InfoNote tone="warning" text={t('inviteGuestGenderMissing')} testID="invite-guest-gender-missing" />
+      ) : issue === 'team' ? (
+        <InfoNote tone="warning" text={t('inviteTeamGuestsRemove')} testID="invite-team-guests" />
+      ) : null}
 
       <SearchInput
         value={query}
@@ -147,15 +192,23 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
           <Text variant="label" tone="muted" accessibilityRole="header">
             {t('inviteConfirmedTitle', { count: guests.length })}
           </Text>
-          {guests.map((g, i) => (
+          {guests.map((g, i) => {
+            // On a mixed event a guest with no gender is marked, and the row reopens the sheet.
+            const needsGender = mixed && !g.gender;
+            return (
             <ListRow
               key={g.key}
               title={g.name}
               subtitle={
-                g.gender
-                  ? `${t('inviteGuestTag')} · ${t(g.gender === 'male' ? 'genderMale' : 'genderFemale')}`
-                  : t('inviteGuestTag')
+                needsGender
+                  ? `${t('inviteGuestTag')} · ${t('inviteGuestSetGender')}`
+                  : g.gender
+                    ? `${t('inviteGuestTag')} · ${g.gender === 'male' ? t('genderMale') : t('genderFemale')}`
+                    : t('inviteGuestTag')
               }
+              subtitleTone={needsGender ? 'destructive' : 'muted'}
+              onPress={mixed ? () => openSheet(g.key) : undefined}
+              testID={`invite-guest-row-${i}`}
               variant="plain"
               leading={<Avatar name={g.name} size="md" decorative />}
               trailingInteractive
@@ -173,7 +226,8 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
                 />
               }
             />
-          ))}
+            );
+          })}
         </View>
       ) : null}
 
@@ -191,7 +245,7 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
               icon={emptyIcon('magnifyingglass')}
               title={t('inviteNoResultsTitle')}
               body={t('inviteNoResultsBody')}
-              action={{ label: t('inviteAddManually'), onPress: openSheet }}
+              action={canAddGuests ? { label: t('inviteAddManually'), onPress: () => openSheet() } : undefined}
               testID="empty-invite-search"
             />
           ) : (
@@ -213,6 +267,7 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
                 title={name}
                 variant="plain"
                 onPress={toggle}
+                selected={checked}
                 leading={
                   <Avatar uri={avatarUrl(p.avatar_url)} name={name} colourKey={p.id} size="md" decorative />
                 }
@@ -229,16 +284,33 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
             );
           })
         )}
+        {/* The step is one scroll view, so the followed list pages on a tap rather than on scroll. */}
+        {!term && !groupId && moreFollowing ? (
+          <Button
+            label={t('inviteShowMore')}
+            variant="ghost"
+            size="sm"
+            loading={fetchingMoreFollowing}
+            onPress={() => void fetchMoreFollowing()}
+            testID="invite-show-more"
+          />
+        ) : null}
       </View>
 
       <GuestSheet
+        key={`${editingKey ?? 'new'}-${sheetSeq}`}
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
         mixed={mixed}
-        room={room}
+        room={sheetRoom}
+        initial={editing ? { name: editing.name, gender: editing.gender } : undefined}
         onSave={(guest) => {
-          const key = `${Date.now()}-${guests.length}`;
-          patch({ guests: addGuest(draft.guests, guest, key, mixed) });
+          if (editing) {
+            patch({ guests: updateGuest(draft.guests, editing.key, guest, mixed) });
+          } else {
+            patch({ guests: addGuest(draft.guests, guest, `${Date.now()}-${guests.length}`, mixed) });
+          }
+          clearError?.('guests');
           setSheetOpen(false);
         }}
       />

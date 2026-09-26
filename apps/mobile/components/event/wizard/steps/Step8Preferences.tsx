@@ -42,9 +42,16 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
  * "I am…". Every value a toggle enables (the extra spots, the fee's method, amount and MB WAY
  * number) opens inside that toggle's card rather than as a loose field below it.
  *
- * Also reused by `event/[id]/edit.tsx`, which passes no `errors`.
+ * Also reused by `event/[id]/edit.tsx` (`context="edit"`), where there is no "last step" to invite
+ * from, so the private warning drops that sentence.
  */
-export function Step8Preferences({ draft, patch, errors, clearError }: WizardStepProps) {
+export function Step8Preferences({
+  draft,
+  patch,
+  errors,
+  clearError,
+  context = 'wizard',
+}: WizardStepProps & { context?: 'wizard' | 'edit' }) {
   const { t } = useT('event');
   const { t: tc } = useT('common');
 
@@ -101,7 +108,11 @@ export function Step8Preferences({ draft, patch, errors, clearError }: WizardSte
               {t('privateAlwaysStandalone')}
             </Text>
           ) : draft.isPrivate ? (
-            <InfoNote tone="warning" text={t('privateRankingWarning')} testID="pref-private-warning" />
+            <InfoNote
+              tone="warning"
+              text={context === 'edit' ? t('privateRankingWarningEdit') : t('privateRankingWarning')}
+              testID="pref-private-warning"
+            />
           ) : null}
         </Card>
 
