@@ -402,7 +402,7 @@ export default function EventDetailScreen() {
     case 'invited':
       bottomArea = (
         <View style={styles.col}>
-          <View style={styles.inviterRow} accessible testID="event-inviter">
+          <View style={styles.inviterRow} testID="event-inviter">
             {inviter ? (
               <Avatar
                 uri={avatarUrl(inviter.avatar_url)}

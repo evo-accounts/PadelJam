@@ -65,12 +65,16 @@ export function PlayersCard({
   );
 }
 
-/** Courts / Scoring / Fee, side by side. Read-only for everyone, the organizer included. */
+/**
+ * Courts / Scoring / Fee, side by side. Read-only for everyone, the organizer included.
+ * Each widget's label and value are read as two Texts rather than grouped into one accessible
+ * View — see StateBanner for why this page avoids accessible non-button Views.
+ */
 export function InfoWidgets({ items }: { items: { label: string; value: string }[] }) {
   return (
     <View style={styles.widgets}>
       {items.map((w) => (
-        <View key={w.label} style={styles.widget} accessible accessibilityLabel={`${w.label}: ${w.value}`}>
+        <View key={w.label} style={styles.widget}>
           <Text variant="hint" tone="muted" numberOfLines={1}>
             {w.label}
           </Text>
@@ -138,12 +142,14 @@ export function StateBanner({ state }: { state: Exclude<BannerState, null> }) {
   const { t } = useT('event');
   const waiting = state === 'waiting_list';
   return (
-    <View
-      style={[styles.banner, waiting ? styles.bannerWaiting : styles.bannerGoing]}
-      accessible
-      accessibilityRole="summary"
-      testID={`event-banner-${state}`}
-    >
+    // A plain View whose Texts are read one by one — deliberately NOT `accessible` with a role.
+    // On #210's E2E runs, after this page unmounted, the NEXT screen's buttons (sign-in's
+    // Continue, a tab) came back from idb as `AXGenericElement` while still carrying the Button
+    // trait, so `{ type: 'Button' }` selectors stopped matching. Fabric recycles native views
+    // between screens, and the suspected source is the one thing new on this page: accessible,
+    // non-button Views (this banner with role "summary", the widgets, the inviter row) — the old
+    // page had none. Keeping them non-accessible keeps that pool clean.
+    <View style={[styles.banner, waiting ? styles.bannerWaiting : styles.bannerGoing]} testID={`event-banner-${state}`}>
       <Text variant="bodyStrong">
         {state === 'going' ? t('goingBanner') : state === 'standby' ? t('standbyBadge') : t('waitlistBannerTitle')}
       </Text>
