@@ -357,11 +357,14 @@ export const useMyEvents = (filter: MyEventsFilter, includePast = false) => {
     enabled: !!uid,
     initialPageParam: 0,
     queryFn: async ({ pageParam: offset }) => {
+      // p_include_past is sent only when set: a build that always sends it cannot find the
+      // three-argument my_events of a database without 0112 (PGRST202), and every events list
+      // goes blank — exactly what the E2E run did, since it runs on the unmigrated local stack.
       const { data, error } = await db.rpc('my_events', {
         p_filter: filter,
         p_limit: MY_EVENTS_PAGE_SIZE,
         p_offset: offset as number,
-        p_include_past: includePast,
+        ...(includePast ? { p_include_past: true } : {}),
       });
       if (error) throw error;
       return data ?? [];
