@@ -60,7 +60,9 @@ describe('03 home & tabs', () => {
     await swipe('down');
     await swipe('down');
     await toggleSwitch({ id: 'events-show-past' });
-    await tap({ text: /^all$/i, type: 'Button' });
+    // No `type: 'Button'` here: after the other segments were tapped, run 36235775381 read the
+    // "All" segment as AXGenericElement (traits still Button) — the Fabric stale-role effect.
+    await tap({ text: /^all$/i });
   });
 
   it('explore shows all four rails and see-all paginates events', async () => {

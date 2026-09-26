@@ -156,7 +156,12 @@ describe('04 event detail & membership', () => {
         ` insert into event_participants (event_id, user_id, status, waiting_list_position)` +
         ` values ('${m.events.e9}', '${m.users.alex}', 'waiting_list', 1);`,
     );
-    await openAnyEvent(/waitlist only/i);
+    // Through the Events tab, not Find Event: Explore leaves out events the viewer is already on
+    // (run 36235775381 scrolled Find Event for it in vain). Going includes the waiting list since
+    // 0112, and the card says so.
+    await tabTo('Events');
+    await scrollUntilVisible({ text: /waitlist only.*waiting list/i }, { maxSwipes: 8 });
+    await openMyEvent(/waitlist only/i);
     await expectVisible({ text: /you are on the waiting list/i }, { timeout: 15_000 });
     await expectVisible({ text: /it goes to whoever confirms first/i }, { timeout: 15_000 });
     await tap({ text: /^confirm spot$/i, type: 'Button' });
