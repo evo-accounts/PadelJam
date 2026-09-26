@@ -14,7 +14,6 @@
  */
 import {
   useIncomingPartnerRequests,
-  usePartnerRequestEvents,
   useRespondToRequest,
   type IncomingPartnerRequest,
 } from '@padel/api';
@@ -24,7 +23,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';
 import { eventSubtitle } from '@/lib/eventFormat';
-import { eventPlace } from '@/lib/eventLocation';
 import { requestSections } from '@/lib/eventPartners';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors, space } from '../../theme';
@@ -51,8 +49,6 @@ export default function PartnerRequestsScreen() {
 
   const rows = list.data ?? [];
   const sections = requestSections(rows);
-  const eventIds = sections.flatMap((s) => (s.kind === 'event' ? [s.eventId] : []));
-  const { data: events } = usePartnerRequestEvents(eventIds);
 
   const errorText = (e: unknown) => {
     const code = e instanceof Error ? e.message : 'unknown_error';
@@ -177,16 +173,18 @@ export default function PartnerRequestsScreen() {
           </View>
         );
       }
-      const ev = events?.find((e) => e.id === s.eventId);
+      // incoming_partner_requests carries the event's date and place on every event row (0113).
+      const ev = s.requests[0]!;
+      const placeName = ev.venue_name ?? ev.manual_location_name ?? ev.manual_location_address;
       return (
         <View key={s.eventId} style={styles.section}>
           <View style={styles.heading}>
             <Text variant="sectionTitle" accessibilityRole="header">
               {s.eventName}
             </Text>
-            {ev ? (
+            {ev.starts_at ? (
               <Text variant="caption" tone="muted">
-                {eventSubtitle(ev.starts_at, eventPlace(ev)?.name, i18n.language)}
+                {eventSubtitle(ev.starts_at, placeName, i18n.language)}
               </Text>
             ) : null}
           </View>

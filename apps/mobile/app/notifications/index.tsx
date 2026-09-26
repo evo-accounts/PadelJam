@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors, space } from '../../theme';
 import {
+  Badge,
   Button,
   EmptyState,
   emptyIcon,
@@ -161,8 +162,12 @@ export default function NotificationsScreen() {
               subtitle={ctaError?.id === item.id ? ctaErrorMessage(ctaError.code) : undefined}
               subtitleTone={ctaError?.id === item.id ? 'destructive' : 'muted'}
               highlighted={!item.read_at}
+              // UX-JEVT-12: a partner invitation stands out in the list too, and opens the Partner
+              // Requests screen (notificationRoute, 0113) where it is answered.
               trailing={
-                CTA_TYPES.has(item.type) ? (
+                item.type === 'partner_request' ? (
+                  <Badge label={t('partnerRequestBadge')} tone="primary" />
+                ) : CTA_TYPES.has(item.type) ? (
                   item.cta_done ? (
                     <Text variant="hint" tone="success">{ctaDoneLabel(t, item.type)}</Text>
                   ) : (
@@ -185,7 +190,11 @@ export default function NotificationsScreen() {
               // CTA button carries its own label; repeating it here would announce
               // the word twice on a row that already reads as one element.
               trailingLabel={
-                CTA_TYPES.has(item.type) && item.cta_done ? ctaDoneLabel(t, item.type) : undefined
+                item.type === 'partner_request'
+                  ? t('partnerRequestBadge')
+                  : CTA_TYPES.has(item.type) && item.cta_done
+                    ? ctaDoneLabel(t, item.type)
+                    : undefined
               }
               onPress={() => onRowPress(item)}
             />

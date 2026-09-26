@@ -61,6 +61,8 @@ describe('08 team events & partner requests', () => {
     if ((pending as unknown[]).length === 0) throw new Error('seed left no pending request for alex');
     await tap({ label: 'Notifications', type: 'Button' });
     await expectVisible({ text: /partner requests/i }, { timeout: 20_000 });
+    // The request is also a notification of its own (partner_request, 0113), tagged in the list.
+    await expectVisible({ text: /wants to partner with you in team cup/i }, { timeout: 20_000 });
   });
 
   it('opens the partner-requests inbox, grouped by event', async () => {

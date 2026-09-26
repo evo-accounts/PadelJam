@@ -8,14 +8,11 @@
  * other request is closed by the server. "Confirm" and "Let others invite me" end in the same
  * state — the viewer is interested, holding no spot — and return to the event.
  *
- * A private-event invitee who has not answered yet accepts the invitation first: on a team event
- * `accept_event_invitation` only marks them interested (it never confirms anyone), and doing it
- * here keeps their invitation from lingering as pending while they look.
+ * A private-event invitee who has not answered yet needs nothing extra: `request_partner` accepts
+ * the caller's own pending invitation (0113), as `choose_partner` does.
  */
 import {
-  useAcceptEventInvitation,
   useEvent,
-  useEventInvitations,
   useEventPartnerCandidates,
   usePartnerRequests,
   useRequestPartner,
@@ -24,7 +21,7 @@ import {
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { Redirect, useLocalSearchParams, type Href } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -53,11 +50,9 @@ export default function NeedPartnerScreen() {
   const uid = useSession().session?.user.id;
 
   const { data: event } = useEvent(id);
-  const { data: invitations } = useEventInvitations(id);
   const candidates = useEventPartnerCandidates(id);
   const { data: requests } = usePartnerRequests(id);
 
-  const accept = useAcceptEventInvitation();
   const request = useRequestPartner(id);
   const withdraw = useWithdrawPartnerRequest(id);
 
@@ -65,26 +60,11 @@ export default function NeedPartnerScreen() {
   // The row being sent / withdrawn, so only its button spins.
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [finishing, setFinishing] = useState<'confirm' | 'others' | null>(null);
-  // Set once the invitation is answered here, so a second tap before the invitations refetch does
-  // not try to accept it again.
-  const accepted = useRef(false);
 
   const looking = lookingForPartner(candidates.data ?? []);
   const rows = filterByName(looking, query);
-  const pendingInvite = (invitations ?? []).some((i) => i.invitee_id === uid && i.status === 'pending');
 
   const fail = (e: unknown) => banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
-
-  const ensureAccepted = async () => {
-    if (!pendingInvite || accepted.current) return;
-    try {
-      await accept.mutateAsync({ eventId: id, groupId: event?.group_id ?? null });
-    } catch (e) {
-      // Already answered (a second tap, another device): nothing left to accept, carry on.
-      if (!(e instanceof Error && e.message === 'invitation_not_found')) throw e;
-    }
-    accepted.current = true;
-  };
 
   const onToggle = async (targetId: string) => {
     if (rowBusy != null) return;
@@ -94,7 +74,6 @@ export default function NeedPartnerScreen() {
       if (sent) {
         await withdraw.mutateAsync(sent.id);
       } else {
-        await ensureAccepted();
         await request.mutateAsync([targetId]);
       }
     } catch (e) {
@@ -107,7 +86,6 @@ export default function NeedPartnerScreen() {
   const onFinish = async (kind: 'confirm' | 'others') => {
     setFinishing(kind);
     try {
-      await ensureAccepted();
       // An empty list lists the viewer as looking without asking anyone (idempotent when they
       // already are).
       await request.mutateAsync([]);
