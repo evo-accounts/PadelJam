@@ -2,6 +2,7 @@ import {
   useExploreEvents,
   useExploreGroups,
   useMyEvents,
+  useMyEventStatuses,
   useMyGroups,
   useMyProfile,
 } from '@padel/api';
@@ -29,7 +30,9 @@ const QUICK_ACTIONS = [
 export default function HomeScreen() {
   const { t } = useT('home');
   const router = useRouter();
+  // 'going' includes the waiting list and interested since 0112; the card labels those.
   const myEvents = useMyEvents('going');
+  const { data: myStatuses } = useMyEventStatuses();
   const myGroups = useMyGroups();
   const profile = useMyProfile();
 
@@ -99,6 +102,7 @@ export default function HomeScreen() {
                   key={e.id}
                   event={e as never}
                   orientation="vertical"
+                  viewerStatus={myStatuses?.[e.id]}
                   onPress={() => router.push(`/event/${e.id}` as never)}
                 />
               ))}

@@ -6,9 +6,9 @@
  * reads `bottom` for the bottom area and `banner` for the strip under the header; everything else
  * (the ⋯ sheet, the body) is the same in every state.
  *
- * Deliberately NOT here yet (M4b, needs migration 0112): the Pending tab, the waiting-list
- * broadcast/claim CTA, and newcomers queueing behind waiters. Team-event entry and the
- * `interested` state belong to M5; they are routed but not redesigned.
+ * The waiting-list claim (decision 4) is here: `canClaimWaitlistSpot` mirrors the server's
+ * `_waiter_can_claim` (migration 0112) so "Confirm spot" appears exactly when the claim can succeed.
+ * Team-event entry and the `interested` state belong to M5; they are routed but not redesigned.
  */
 
 export type BottomState =
@@ -24,6 +24,8 @@ export type BottomState =
   | { kind: 'full' }
   /** On the waiting list: a secondary "Leave waiting list". */
   | { kind: 'waiting_list' }
+  /** On the waiting list AND a spot is free for the viewer: primary "Confirm spot" (decision 4). */
+  | { kind: 'claim' }
   /** Confirmed (or standby): nothing — leaving lives in the ⋯ sheet. */
   | { kind: 'going' }
   /** Team event, not in yet: the existing partner flow entry (M5 redesigns it). */
@@ -46,6 +48,8 @@ export type ViewerInput = {
   full: boolean;
   /** `showJoinCountdown(joinCutoffMs, now)`. */
   countdown: boolean;
+  /** `canClaimWaitlistSpot(...)` — only read while the viewer is on the waiting list. */
+  claimable?: boolean;
 };
 
 export function bottomState(v: ViewerInput): BottomState {
@@ -55,7 +59,10 @@ export function bottomState(v: ViewerInput): BottomState {
   if (v.isOrganizer) return { kind: 'organizer' };
   if (v.status !== 'scheduled') return { kind: 'closed' };
   if (v.me) {
-    if (v.me.status === 'waiting_list') return { kind: 'waiting_list' };
+    if (v.me.status === 'waiting_list') {
+      // The claim closes with joining (claim_waitlist_spot refuses event_closed past the cut-off).
+      return v.claimable && !v.joinClosed ? { kind: 'claim' } : { kind: 'waiting_list' };
+    }
     // 'invited' is a lone team occupant whose partner left or who was placed by the organizer
     // (decision 1): they hold no spot and re-enter through the team flow, like 'interested'.
     if (v.me.status === 'interested' || v.me.status === 'invited') return { kind: 'interested' };
@@ -91,4 +98,47 @@ export function canLeave(
   if (status !== 'scheduled' || me == null) return false;
   if (me.status !== 'confirmed' && me.status !== 'interested' && me.status !== 'invited') return false;
   return !(isOrganizer && leaveLocked);
+}
+
+export type ClaimParticipant = {
+  id: string;
+  status: string;
+  guest_gender?: string | null;
+  pair_participant_id?: string | null;
+  profiles?: { gender?: string | null } | null;
+};
+
+/**
+ * Could the viewer claim a spot from the waiting list right now? The client twin of
+ * `_waiter_can_claim` (0112), so the button appears for exactly the waiters the server notifies:
+ *   team  — only a waiting PAIR claims, and it needs two free spots;
+ *   mixed — the viewer's gender must be known and their half (capacity / 2) not full;
+ *   else  — one free spot.
+ * Free spots are the total capacity (regular + stand-by) minus every confirmed row, as the server
+ * counts them. The server still decides: a lost race answers spot_taken / gender_full.
+ */
+export function canClaimWaitlistSpot(
+  specification: string,
+  capacity: number,
+  participants: readonly ClaimParticipant[],
+  me: ClaimParticipant | null,
+): boolean {
+  if (me == null || me.status !== 'waiting_list') return false;
+  const confirmed = participants.filter((p) => p.status === 'confirmed');
+  const free = capacity - confirmed.length;
+  if (specification === 'team') {
+    const partner = participants.find((p) => p.id === me.pair_participant_id);
+    return partner != null && partner.status === 'waiting_list' && free >= 2;
+  }
+  if (specification === 'mixed') {
+    const gender = genderOf(me);
+    if (gender == null || free < 1) return false;
+    const sameGender = confirmed.filter((p) => genderOf(p) === gender).length;
+    return sameGender < Math.floor(capacity / 2);
+  }
+  return free >= 1;
+}
+
+function genderOf(p: ClaimParticipant): string | null {
+  return p.profiles?.gender ?? p.guest_gender ?? null;
 }
