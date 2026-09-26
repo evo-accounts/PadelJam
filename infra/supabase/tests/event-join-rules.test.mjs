@@ -481,7 +481,7 @@ await run('the public-event clean-up spares explicit invitations to non-members'
   // What a pre-0112 auto-invite left behind for a member, plus explicit invitations to an outsider
   // and to a manual contact.
   const [inv] = await insert('event_invitations', { event_id: ev, invitee_id: member.id, invited_by: admin.id, status: 'pending' });
-  await insert('notifications', { user_id: member.id, type: 'event_invite', actor_id: admin.id, event_id: ev, ref_id: inv.id });
+  const [dead] = await insert('notifications', { user_id: member.id, type: 'event_invite', actor_id: admin.id, event_id: ev, ref_id: inv.id });
   await rpc(admin.jwt, 'invite_to_event', {
     p_event_id: ev,
     p_invitees: [{ invitee_id: outsider.id, name: null, email: null, phone: null }, { name: 'Manual', email: 'm@example.test', phone: null }],
@@ -490,7 +490,9 @@ await run('the public-event clean-up spares explicit invitations to non-members'
   assert((await invitation(ev, member)) === null, "the member's leftover invitation is gone");
   assert((await invitation(ev, outsider))?.status === 'pending', "the outsider's explicit invitation stays");
   assert((await sel('event_invitations', `event_id=eq.${ev}&invitee_name=eq.Manual&select=id`)).length === 1, 'manual invitee stays');
-  assert((await notifs(member, 'event_invite', ev)).length === 0 && (await notifs(member, 'event_created', ev)).length === 1,
+  // (The member also holds the event_created that create_event sent; check the converted row itself.)
+  const [converted] = await sel('notifications', `id=eq.${dead.id}&select=type`);
+  assert((await notifs(member, 'event_invite', ev)).length === 0 && converted.type === 'event_created',
     'the dead invite notification became event_created');
 });
 
