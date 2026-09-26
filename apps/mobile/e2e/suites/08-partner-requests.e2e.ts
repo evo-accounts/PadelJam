@@ -62,7 +62,8 @@ describe('08 team events & partner requests', () => {
     await tap({ label: 'Notifications', type: 'Button' });
     await expectVisible({ text: /partner requests/i }, { timeout: 20_000 });
     // The request is also a notification of its own (partner_request, 0113), tagged in the list.
-    await expectVisible({ text: /wants to partner with you in team cup/i }, { timeout: 20_000 });
+    // Seeded before the later fixtures' activity, so it sits further down the list.
+    await scrollUntilVisible({ text: /wants to partner with you in team cup/i }, { maxSwipes: 10 });
   });
 
   it('opens the partner-requests inbox, grouped by event', async () => {
@@ -97,8 +98,13 @@ describe('08 team events & partner requests', () => {
       (rows) => (rows as unknown[]).length >= 2, // sofia+bruno from the seed, plus the new pair
       { label: 'team row created', timeoutMs: 20_000 },
     );
-    // Answered requests leave the list: nothing else was pending, so the standard empty state.
-    await expectVisible({ id: 'empty-partner-requests' }, { timeout: 15_000 });
+    // The answered request leaves the list, and with it the event's section. (alex also administers
+    // a community with pending join requests, which stay in their own section.)
+    await pollUntil(
+      async () => query(await snapshot(), { text: /^team cup$/i }) ?? null,
+      (el) => el == null,
+      { label: 'Team Cup section gone', timeoutMs: 15_000 },
+    );
   });
 
   it('a team event reads "Join" and opens the Team Event sheet; a guest partner confirms the pair', async () => {
