@@ -121,7 +121,7 @@ describe('08 team events & partner requests', () => {
     await expectVisible({ text: /you are going/i }, { timeout: 15_000 });
     await expectVisible({ text: /rui guest/i });
     await tap({ text: /^close$/i, type: 'Button' });
-    await expectVisible({ id: 'event-banner-going' }, { timeout: 15_000 });
+    await expectVisible({ text: /^you are going$/i }, { timeout: 15_000 });
   });
 
   it('"I need a partner" → "Let others invite me" marks the player interested', async () => {
@@ -164,6 +164,6 @@ describe('08 team events & partner requests', () => {
     await expectVisible({ text: /you are going/i }, { timeout: 15_000 });
     await expectVisible({ text: /joão pereira/i });
     await tap({ text: /^close$/i, type: 'Button' });
-    await expectVisible({ id: 'event-banner-going' }, { timeout: 15_000 });
+    await expectVisible({ text: /^you are going$/i }, { timeout: 15_000 });
   });
 });
