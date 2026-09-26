@@ -44,7 +44,8 @@
 --       (0112 bodies), request_partner and choose_guest_partner release a lone slot first.
 --
 --   Partner requests  request_partner notifies each target (new type `partner_request`) and
---       answers the caller's own pending invitation; incoming_partner_requests (0098) also returns
+--       answers the caller's own pending invitation; the notification is marked read and done
+--       whenever its request stops being pending (trigger); incoming_partner_requests (0098) also returns
 --       the event's starts_at and venue / manual location name and address.
 --
 -- Guests and ranking/history — verified, nothing to change: every group_event_results writer
@@ -766,6 +767,26 @@ begin
   end loop;
 end; $$;
 
+-- A partner_request notification is settled with its request: accepted, declined, withdrawn,
+-- or closed by the system (a pair formed, a leave, an organizer removal) marks it read and done,
+-- so it never lingers with nothing left to answer. One trigger covers every path, present and
+-- future. A re-opened request (request_partner) sends a fresh notification.
+create or replace function _settle_partner_request_notification() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update notifications set cta_done = true, read_at = coalesce(read_at, now())
+    where type = 'partner_request' and ref_id = OLD.id and not cta_done;
+  return null;
+end; $$;
+revoke execute on function _settle_partner_request_notification() from public, anon, authenticated;
+drop trigger if exists trg_settle_partner_request_notification_upd on partner_requests;
+create trigger trg_settle_partner_request_notification_upd after update of status on partner_requests
+  for each row when (OLD.status = 'pending' and NEW.status <> 'pending')
+  execute function _settle_partner_request_notification();
+drop trigger if exists trg_settle_partner_request_notification_del on partner_requests;
+create trigger trg_settle_partner_request_notification_del after delete on partner_requests
+  for each row execute function _settle_partner_request_notification();
+
 -- incoming_partner_requests (0098 body) + the event's date and location, so the requests screen
 -- needs no second query. Explicit columns; null on community rows.
 drop function if exists incoming_partner_requests();
@@ -846,6 +867,9 @@ begin
   if has_function_privilege('anon', 'public._events_reset_manual_court_names()', 'execute')
      or has_function_privilege('authenticated', 'public._events_reset_manual_court_names()', 'execute') then
     raise exception '_events_reset_manual_court_names is executable by anon/authenticated';
+  end if;
+  if has_function_privilege('authenticated', 'public._settle_partner_request_notification()', 'execute') then
+    raise exception '_settle_partner_request_notification executable by authenticated';
   end if;
   if has_function_privilege('anon', 'public._release_lone_slot(uuid, uuid)', 'execute')
      or has_function_privilege('authenticated', 'public._release_lone_slot(uuid, uuid)', 'execute')

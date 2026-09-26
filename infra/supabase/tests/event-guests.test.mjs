@@ -403,3 +403,32 @@ await run('a lone team-slot occupant is not "already joined" and can pair again'
   const full = (await teams(ev2)).filter((t) => t.player_a_id && t.player_b_id);
   assert(full.length === 2 && full.every((t) => t.is_confirmed), 'two confirmed full teams');
 });
+
+await run('a partner_request notification is settled with its request, however it ends', async () => {
+  const [org, a, b, c, d, e] = [await user('prs-org'), await user('prs-a'), await user('prs-b'), await user('prs-c'), await user('prs-d'), await user('prs-e')];
+  const ev = await create(org, { specification: 'team', num_courts: 2, invitees: invitees(a, b, c, d, e) });
+  const note = async (to, from) =>
+    (await sel('notifications', `user_id=eq.${to.id}&type=eq.partner_request&event_id=eq.${ev}&actor_id=eq.${from.id}&select=read_at,cta_done&order=created_at.desc`))[0];
+  const settled = (n) => n && n.cta_done === true && n.read_at !== null;
+  const reqId = async (from, to) =>
+    (await sel('partner_requests', `event_id=eq.${ev}&requester_id=eq.${from.id}&target_id=eq.${to.id}&select=id`))[0].id;
+
+  // a asks b, c and d. b accepts; the pair forming closes a→c and a→d by the system.
+  await rpc(a.jwt, 'request_partner', { p_event_id: ev, p_targets: [b.id, c.id, d.id] });
+  assert(!settled(await note(b, a)), 'open while pending');
+  await rpc(b.jwt, 'accept_partner_request', { p_request_id: await reqId(a, b) });
+  assert(settled(await note(b, a)), 'accepted → settled');
+  assert(settled(await note(c, a)) && settled(await note(d, a)), 'closed by the system → settled');
+
+  // Declined, and withdrawn.
+  await rpc(c.jwt, 'request_partner', { p_event_id: ev, p_targets: [d.id, e.id] });
+  await rpc(d.jwt, 'decline_partner_request', { p_request_id: await reqId(c, d) });
+  assert(settled(await note(d, c)), 'declined → settled');
+  await rpc(c.jwt, 'withdraw_partner_request', { p_request_id: await reqId(c, e) });
+  assert(settled(await note(e, c)), 'withdrawn → settled');
+
+  // Leaving takes the leaver's pending asks with them.
+  await rpc(d.jwt, 'request_partner', { p_event_id: ev, p_targets: [e.id] });
+  await rpc(d.jwt, 'leave_event', { p_event_id: ev });
+  assert(settled(await note(e, d)), 'requester left → settled');
+});
