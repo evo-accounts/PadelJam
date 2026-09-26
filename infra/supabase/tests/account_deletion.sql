@@ -20,6 +20,9 @@ begin
 
   perform soft_delete_account();
 
+  -- Back to postgres for the assertions: migration 0115 revokes SELECT on profiles.phone from
+  -- `authenticated`, so the anonymized phone is only checkable as the owner.
+  perform set_config('role', 'postgres', true);
   if not exists (select 1 from profiles where id = uid
       and full_name = 'Deleted user' and deleted_at is not null
       and email = 'deleted+' || uid::text || '@deleted.invalid'
