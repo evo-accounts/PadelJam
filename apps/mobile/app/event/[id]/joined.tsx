@@ -4,6 +4,7 @@
  * which now shows the "You are going" banner.
  */
 import { useEvent } from '@padel/api';
+import { eventPlace, mapsQuery } from '@padel/utils';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -12,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { addToCalendar } from '@/lib/eventCalendar';
 import { eventSubtitle } from '@/lib/eventFormat';
-import { eventPlace, mapsQuery } from '@/lib/eventLocation';
 import { EventThumb } from '../../../components/event/EventThumb';
 import { colors, space } from '../../../theme';
 import { Button, Text, useBanner } from '../../../components/ui';
