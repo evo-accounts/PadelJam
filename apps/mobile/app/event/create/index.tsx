@@ -1,7 +1,7 @@
-import { type CreateEventInput, useCommunityMembers, useCreateEvent } from '@padel/api';
+import { type CreateEventInput, useCommunityMembers, useCreateEvent, useMyProfile } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { geocodeQuery, skipsInvite, splitWizardInvitees } from '@padel/utils';
+import { geocodeQuery } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import {
@@ -16,6 +16,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { CreateEventProvider, useEventWizard } from '@/components/event/wizard/CreateEventContext';
 import { advanceByFor } from '@/components/event/wizard/draft';
+import { invitePayload } from '@/components/event/wizard/invite';
+import { normalizeCourtNames } from '@/components/event/wizard/location';
 import { geocodeAddress } from '@/lib/geocode';
 import { uploadCommunityImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -47,7 +49,17 @@ function CreateEventWizard() {
   const create = useCreateEvent();
   const uid = useSession().session?.user.id;
   const confirm = useConfirm();
-  const [submitting, setSubmitting] = useState(false);
+  // Which button started the create, so only that one spins: the primary, or "I will invite later".
+  const [submitting, setSubmittingState] = useState<'primary' | 'later' | null>(null);
+  // State lags a render behind, so a fast double tap could start two creates. The ref flips
+  // synchronously; every place that ends a submission clears both through `setSubmitting`.
+  const inFlight = useRef(false);
+  const setSubmitting = (mode: 'primary' | 'later' | null) => {
+    inFlight.current = mode != null;
+    setSubmittingState(mode);
+  };
+  // Invite players checks a mixed event's roster against the organizer's own gender.
+  const { data: me } = useMyProfile();
   const [stepErrors, setStepErrors] = useState<string[]>([]);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
@@ -94,9 +106,11 @@ function CreateEventWizard() {
     router.back();
   };
 
-  const finalize = async () => {
+  const finalize = async (mode: 'primary' | 'later' = 'primary') => {
     const { eventType, specification, scoringMode, startsAt } = draft;
     if (!eventType || !specification || !scoringMode || !startsAt) return;
+    if (inFlight.current) return;
+    setSubmitting(mode);
 
     let thumbnailPath = draft.thumbnailPath;
     if (draft.thumbnail && uid) {
@@ -110,6 +124,7 @@ function CreateEventWizard() {
         );
       } catch {
         banner.show(t('unknown_error'));
+        setSubmitting(null);
         return;
       }
     }
@@ -146,16 +161,14 @@ function CreateEventWizard() {
       description: draft.description,
       thumbnailPath,
       series: draft.series,
-      // A path without Invite players sends none — even ones picked before the path changed
-      // (e.g. the event was made public afterwards). Public group events invite nobody (decision 5).
-      // Interim (0113): manual entries become guests by name until M3 rebuilds the invite step.
-      ...(skipsInvite(draft) ? {} : splitWizardInvitees(draft.invitees)),
+      // Platform players are invited, guests confirmed (UX-CEVT-11). None when the path has no
+      // Invite players step (a public group event, decision 5) or on "I will invite later".
+      ...invitePayload(draft, { later: mode === 'later' }),
       courtIds: draft.courtIds,
-      // TODO(0113): send draft.manualCourtNames once `buildCreateEventPayload` carries
-      // `manual_court_names` — until then a manual venue's court names stay in the draft only.
+      // A manual venue's court names (0113): all or nothing, blanks named "Court N".
+      manualCourtNames: normalizeCourtNames(draft, (number) => t('courtNamePlaceholder', { number })),
     };
 
-    setSubmitting(true);
     try {
       await create.mutateAsync(input);
       // TODO(Phase 6): route to /event/${id} once the detail screen exists
@@ -172,11 +185,21 @@ function CreateEventWizard() {
         // necessarily someone who can change the plan. UpgradePrompt gets canManage
         // and offers "OK" instead of "See plans" to a non-admin.
         setShowUpgrade(true);
-        setSubmitting(false);
+        setSubmitting(null);
         return;
       }
-      banner.show(t(code));
-      setSubmitting(false);
+      // Failure is a banner (UX-GLOB-06); a code with no copy of its own reads as the generic one.
+      // A capacity refusal caused by a guest reads as one, not as "your gender" (0113 raises the
+      // same codes as the join RPCs).
+      const hadGuests = (input.guests?.length ?? 0) > 0;
+      const message =
+        hadGuests && code === 'gender_full'
+          ? t('guestGenderFull')
+          : hadGuests && code === 'event_full'
+            ? t('guestEventFull')
+            : t(code, { defaultValue: t('unknown_error') });
+      banner.show(message);
+      setSubmitting(null);
     }
   };
 
@@ -186,7 +209,7 @@ function CreateEventWizard() {
   const onPrimary = () => {
     // A double tap on Next would otherwise answer (or submit) the step it just opened.
     if (Date.now() - lastAdvanceAt.current < ADVANCE_GUARD_MS) return;
-    const failing = step.validate(draft);
+    const failing = step.validate(draft, { organizerGender: me?.gender });
     if (failing.length) {
       setStepErrors(failing);
       banner.show(tc('missingInformation'));
@@ -257,9 +280,23 @@ function CreateEventWizard() {
             <Button
               label={isLast ? t('finish') : t('next')}
               onPress={onPrimary}
-              loading={submitting}
+              loading={submitting === 'primary'}
               style={styles.primaryBtn}
             />
+            {/* Invite players' "I will invite later": the event, with nobody invited yet. */}
+            {isLast && step.laterKey ? (
+              <Button
+                label={t(step.laterKey)}
+                variant="ghost"
+                onPress={() => {
+                  setStepErrors([]);
+                  void finalize('later');
+                }}
+                loading={submitting === 'later'}
+                style={styles.laterBtn}
+                testID="event-wizard-later"
+              />
+            ) : null}
           </View>
         ) : Footer ? (
           <View style={[styles.footer, { paddingBottom: insets.bottom + space[3] }]}>
@@ -296,4 +333,5 @@ const styles = StyleSheet.create({
   },
   // Back is the TopBar's ‹; the primary button owns the whole row.
   primaryBtn: { width: '100%' },
+  laterBtn: { width: '100%', marginTop: space[2] },
 });

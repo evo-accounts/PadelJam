@@ -21,3 +21,4 @@ export * from './ics';
 export * from './eventPlayers';
 export * from './event-schedule';
 export * from './eventPartners';
+export * from './event-roster';

@@ -5,6 +5,7 @@ import {
   backToVenueList,
   chooseVenue,
   noLocation,
+  normalizeCourtNames,
   openManualVenue,
   setCourtSelection,
   setManualCourtCount,
@@ -85,5 +86,31 @@ describe('venue courts (UX-CEVT-07)', () => {
   it('"Have not reserved yet" drops the selection and keeps the count', () => {
     const d = { ...defaultDraft, courtIds: ['a', 'b'], numCourts: 2 };
     expect(setCourtSelection(d, false)).toEqual({ courtIds: undefined, numCourts: 2 });
+  });
+});
+
+describe('normalizeCourtNames (0113 manual_court_names)', () => {
+  const court = (n: number) => `Court ${n}`;
+
+  it('sends nothing when no court was named', () => {
+    expect(normalizeCourtNames({ numCourts: 3, manualCourtNames: undefined }, court)).toBeUndefined();
+    expect(normalizeCourtNames({ numCourts: 2, manualCourtNames: ['', '  '] }, court)).toBeUndefined();
+  });
+
+  it('always sends one name a court: blanks and missing tail entries take the default label', () => {
+    expect(normalizeCourtNames({ numCourts: 3, manualCourtNames: [' Centre ', ''] }, court)).toEqual([
+      'Centre',
+      'Court 2',
+      'Court 3',
+    ]);
+  });
+
+  it('drops names beyond the court count and trims each to 40 characters', () => {
+    const long = 'x'.repeat(50);
+    expect(normalizeCourtNames({ numCourts: 1, manualCourtNames: [long, 'Extra'] }, court)).toEqual(['x'.repeat(40)]);
+  });
+
+  it('a registry venue never sends names', () => {
+    expect(normalizeCourtNames({ numCourts: 1, venueId: 'v1', manualCourtNames: ['A'] }, court)).toBeUndefined();
   });
 });
