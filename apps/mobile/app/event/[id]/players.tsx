@@ -104,7 +104,7 @@ export default function EventPlayersScreen() {
   } else if (tab === 'waiting') {
     body = tabs.waiting.map((entry) =>
       entry.players.length > 1 ? (
-        <View key={entry.key} style={styles.pair} accessible={false}>
+        <View key={entry.key} style={styles.pair}>
           {entry.players.map(renderRow)}
         </View>
       ) : (
