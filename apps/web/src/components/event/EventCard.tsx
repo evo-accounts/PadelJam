@@ -5,6 +5,7 @@ import { eventStatusKey, type MyEventStatus } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { eventWhen } from './EventDetailParts';
 import { EventThumb } from './EventThumb';
 
 export interface EventCardEvent {
@@ -36,12 +37,8 @@ export function EventCard({
   viewerStatus?: MyEventStatus;
 }) {
   const { t, i18n } = useT('event');
-  const when = event.starts_at
-    ? new Date(event.starts_at).toLocaleString(i18n.language, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      })
-    : null;
+  // The same 24h `Sat, 3 Oct · 19:00` as the event page, never the locale's 12h "7:00 PM".
+  const when = event.starts_at ? eventWhen(event.starts_at, i18n.language) : null;
   const where =
     event.venue?.name ?? event.manual_location_name ?? event.location_text ?? t('locationTbd');
   const status = eventStatusKey(event.status, event.starts_at);

@@ -32,6 +32,7 @@ import {
   useJoinEvent,
   useLeaveEvent,
   useLeaveWaitingList,
+  useMyProfile,
   useStartEvent,
   useEnsureChannel,
   useMaterializeOccurrence,
@@ -46,6 +47,7 @@ import {
   canLeave,
   eventPlace,
   formatCountdown,
+  joinWaitlistReason,
   mapsQuery,
   participationState,
   showJoinCountdown,
@@ -122,6 +124,8 @@ export default function EventDetailScreen() {
   const { data: invitationsData } = useEventInvitations(id);
   const { data: teamsData } = useEventTeams(id);
   const { data: series } = useEventSeries(id);
+  // Only a mixed event reads it: the viewer's own gender decides whose waiters queue ahead of them.
+  const { data: myProfile } = useMyProfile();
 
   const joinEvent = useJoinEvent();
   const leaveEvent = useLeaveEvent();
@@ -253,6 +257,9 @@ export default function EventDetailScreen() {
     status === 'scheduled' &&
     !joinClosed &&
     canClaimWaitlistSpot(event.specification, ps.totalCapacity, participants, me);
+  // Decision 4: while anyone who could take the spot is waiting, a newcomer's Join queues behind
+  // them — so the bottom area says "Join waiting list" then too, not only when the event is full.
+  const waitlistReason = joinWaitlistReason(event.specification, ps.totalCapacity, participants, myProfile?.gender);
   const bottom = bottomState({
     status,
     specification: event.specification,
@@ -260,7 +267,8 @@ export default function EventDetailScreen() {
     me,
     hasInvite: myInvite != null,
     joinClosed,
-    full: ps.totalIn >= ps.totalCapacity,
+    full: waitlistReason != null,
+    waitersAhead: waitlistReason === 'waiters',
     countdown: showJoinCountdown(joinCutoffMs, nowMs),
     claimable,
   });
@@ -287,7 +295,9 @@ export default function EventDetailScreen() {
   const onJoin = () =>
     run(async () => {
       const result = await joinEvent.mutateAsync({ eventId: id, groupId: event.group_id });
+      // A Join the server queued (full, or others waiting) says so rather than nothing.
       if (result === 'confirmed') openJoined();
+      else if (result === 'waiting_list') banner.show(t('joinedWaitlistToast'), 'success');
     });
   // A team invitation is answered by setting a team (B9): the chosen path does the confirming.
   const onAccept = () => {
@@ -298,6 +308,7 @@ export default function EventDetailScreen() {
     void run(async () => {
       const result = await acceptInvitation.mutateAsync({ eventId: id, groupId: event.group_id });
       if (result === 'confirmed') openJoined();
+      else if (result === 'waiting_list') banner.show(t('joinedWaitlistToast'), 'success');
     });
   };
   const onDecline = () => run(() => declineInvitation.mutateAsync());
@@ -404,7 +415,12 @@ export default function EventDetailScreen() {
                     destructive: true,
                     confirm: {
                       title: t('leaveConfirmTitle'),
-                      body: t('leaveConfirmBody'),
+                      // Decision 1: on a team event the partner loses their spot too, and is told.
+                      body: t(
+                        event.specification === 'team' && me?.status === 'confirmed'
+                          ? 'leaveTeamConfirmBody'
+                          : 'leaveConfirmBody',
+                      ),
                       confirmLabel: t('leaveConfirmCta'),
                     },
                   },
@@ -545,7 +561,7 @@ export default function EventDetailScreen() {
       bottomArea = (
         <View style={styles.row}>
           <Text variant="label" tone="muted" style={styles.flex}>
-            {t('noSpotsLine')}
+            {t(bottom.waitersAhead ? 'waitersAheadLine' : 'noSpotsLine')}
           </Text>
           <Button label={t('waitlistCta')} loading={busy} onPress={onJoin} style={styles.flex} />
         </View>

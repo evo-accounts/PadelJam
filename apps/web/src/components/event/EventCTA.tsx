@@ -184,7 +184,9 @@ export function EventCTA({
     case 'full':
       body = (
         <div className="flex items-center gap-3">
-          <p className="flex-1 text-sm text-muted-foreground">{t('noSpotsLine')}</p>
+          <p className="flex-1 text-sm text-muted-foreground">
+            {t(bottom.waitersAhead ? 'waitersAheadLine' : 'noSpotsLine')}
+          </p>
           <Button className="flex-1" disabled={busy} onClick={onJoin} data-testid="event-join-waitlist">
             {t('waitlistCta')}
           </Button>

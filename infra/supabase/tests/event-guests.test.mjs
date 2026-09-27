@@ -425,10 +425,11 @@ await run('a partner_request notification is settled with its request, however i
   await rpc(d.jwt, 'decline_partner_request', { p_request_id: await reqId(c, d) });
   assert(settled(await note(d, c)), 'declined → settled');
   await rpc(c.jwt, 'withdraw_partner_request', { p_request_id: await reqId(c, e) });
-  assert(settled(await note(e, c)), 'withdrawn → settled');
+  // 0118: a withdrawn ask the target never read is deleted, not settled (no double notification).
+  assert((await note(e, c)) === undefined, 'withdrawn → gone');
 
   // Leaving takes the leaver's pending asks with them.
   await rpc(d.jwt, 'request_partner', { p_event_id: ev, p_targets: [e.id] });
   await rpc(d.jwt, 'leave_event', { p_event_id: ev });
-  assert(settled(await note(e, d)), 'requester left → settled');
+  assert((await note(e, d)) === undefined, 'requester left → gone (0118)');
 });
