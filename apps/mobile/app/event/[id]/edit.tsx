@@ -1,19 +1,20 @@
 import { updateEventSchema, useEvent, useUpdateEvent } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { geocodeQuery } from '@padel/utils';
+import { DURATION_MAX, DURATION_MIN, geocodeQuery } from '@padel/utils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
+import { EventLocationFields } from '@/components/event/EventLocationFields';
+import { CourtCounter } from '@/components/event/wizard/CourtCounter';
 import { DateTimePicker } from '@/components/event/wizard/DateTimePicker';
 import type { EventDraft } from '@/components/event/wizard/draft';
 import { Stepper } from '@/components/event/wizard/Stepper';
 import { Step4Scoring } from '@/components/event/wizard/steps/Step4Scoring';
-import { Step5Location } from '@/components/event/wizard/steps/Step5Location';
-import { Step6Courts } from '@/components/event/wizard/steps/Step6Courts';
+import { validateStep8 } from '@/components/event/wizard/stepValidators';
 import { Step8Preferences } from '@/components/event/wizard/steps/Step8Preferences';
 import { geocodeAddress } from '@/lib/geocode';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
@@ -44,6 +45,8 @@ export default function EditEventScreen() {
   const [picked, setPicked] = useState<PickedImage | null>(null);
   const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } = useFieldErrors<EditEventFieldKey>();
   const [busy, setBusy] = useState(false);
+  // Preferences' own failing fields (fee amount / MB WAY number / extra spots), from validateStep8.
+  const [prefErrors, setPrefErrors] = useState<string[]>([]);
 
   // Seed the draft once from the event row (covers every field the reused steps read).
   const seeded = useMemo<EventDraft | null>(() => {
@@ -110,12 +113,15 @@ export default function EditEventScreen() {
 
   const onSave = () => {
     const errors = validateEditEvent({ name: d.name });
-    if (Object.keys(errors).length) {
+    const prefs = validateStep8(d);
+    if (Object.keys(errors).length || prefs.length) {
       setFieldErrors(errors);
+      setPrefErrors(prefs);
       banner.show(tc('missingInformation'));
       return;
     }
     setFieldErrors({});
+    setPrefErrors([]);
     setBusy(true);
     void (async () => {
       try {
@@ -196,8 +202,9 @@ export default function EditEventScreen() {
           label={t('durationLabel')}
           value={d.durationMinutes}
           onChange={(durationMinutes) => patch({ durationMinutes })}
-          min={30}
-          max={240}
+          // The wizard's range (decision 9): an event created with 15 or 300 minutes stays editable.
+          min={DURATION_MIN}
+          max={DURATION_MAX}
           step={15}
         />
 
@@ -206,15 +213,22 @@ export default function EditEventScreen() {
         <Text variant="label" tone="muted" style={styles.section}>{t('scoringLabel')}</Text>
         <Step4Scoring draft={d} patch={patch} />
         <Text variant="label" tone="muted" style={styles.section}>{t('step8Title')}</Text>
-        <Step8Preferences draft={d} patch={patch} />
+        <Step8Preferences
+          draft={d}
+          patch={patch}
+          context="edit"
+          errors={prefErrors}
+          clearError={(key) => setPrefErrors((prev) => prev.filter((k) => k !== key))}
+        />
 
         {/* Location */}
         <Text variant="label" tone="muted" style={styles.section}>{t('editLocationSection')}</Text>
-        <Step5Location draft={d} patch={patch} />
+        <EventLocationFields draft={d} patch={patch} />
 
         {/* Courts */}
         <Text variant="label" tone="muted" style={styles.section}>{t('editCourtsSection')}</Text>
-        <Step6Courts draft={d} patch={patch} />
+        <CourtCounter value={d.numCourts} onChange={(numCourts) => patch({ numCourts })} />
+        <Text variant="caption" tone="muted">{t('capacityHint', { count: d.numCourts * 4 })}</Text>
 
         {/* Thumbnail */}
         <Text variant="label" tone="muted" style={styles.section}>{t('editThumbnailSection')}</Text>
@@ -223,6 +237,11 @@ export default function EditEventScreen() {
           variant="cover"
           uri={picked?.uri ?? existingThumbUrl}
           onPress={onPickThumbnail}
+          // Clearing both the new pick and the stored path sends thumbnail_path null to update_event.
+          onRemove={() => {
+            setPicked(null);
+            patch({ thumbnailPath: undefined });
+          }}
           disabled={busy}
         />
 

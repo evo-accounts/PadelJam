@@ -1,10 +1,11 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
 import { useDb } from '../client';
 import { qk } from '../query-keys';
 import type { VenueSearchRow } from '../events/queries';
 
 export const ADMIN_VENUES_PAGE_SIZE = 50;
+export const VENUE_REGISTRY_PAGE_SIZE = 30;
 
 export type VenueCourt = { id: string; name: string; sort_order: number };
 export type VenueDetail = {
@@ -88,5 +89,31 @@ export const useVenueCourts = (venueId: string | null | undefined) => {
       if (error) throw error;
       return data ?? [];
     },
+  });
+};
+
+/**
+ * The registry as the create-event Location step lists it (UX-CEVT-06): every live venue,
+ * alphabetical, paged; the query narrows it. Keeps the previous results on screen while a new
+ * search loads, so the list does not flash empty between keystrokes.
+ */
+export const useVenueRegistry = (query: string) => {
+  const db = useDb();
+  const term = query.trim();
+  return useInfiniteQuery({
+    queryKey: qk.venueRegistry(term),
+    initialPageParam: 0,
+    placeholderData: keepPreviousData,
+    queryFn: async ({ pageParam: offset }): Promise<VenueSearchRow[]> => {
+      const { data, error } = await db.rpc('search_venues', {
+        p_query: term,
+        p_limit: VENUE_REGISTRY_PAGE_SIZE,
+        p_offset: offset as number,
+      });
+      if (error) throw error;
+      return (data ?? []) as VenueSearchRow[];
+    },
+    getNextPageParam: (lastPage: unknown[], allPages: unknown[][]) =>
+      lastPage.length < VENUE_REGISTRY_PAGE_SIZE ? undefined : allPages.length * VENUE_REGISTRY_PAGE_SIZE,
   });
 };

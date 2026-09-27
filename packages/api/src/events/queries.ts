@@ -74,7 +74,20 @@ export const useCanCreateEvent = (groupId: string | null | undefined) => {
 
 export type EventDetail = Tables<'events'> & {
   venue: { name: string; address: string | null } | null;
+  /**
+   * Read from the event row's own FK, not from the participant list: an organizer who only
+   * organizes has no participant row and used to vanish from the event page (B17). Explicit
+   * columns — never `*`, which would carry `phone`.
+   */
+  organizer: { id: string; full_name: string | null; avatar_url: string | null } | null;
+  /** Null for an event without a group, or when RLS hides the group from this viewer. */
+  group: { id: string; name: string } | null;
 };
+
+export const EVENT_DETAIL_SELECT =
+  '*, venue:venues(name, address), ' +
+  'organizer:profiles!events_organizer_id_fkey(id, full_name, avatar_url), ' +
+  'group:groups!events_group_id_fkey(id, name)';
 
 export const useEvent = (id: string) => {
   const db = useDb();
@@ -85,7 +98,7 @@ export const useEvent = (id: string) => {
       // filters the row) rather than throwing — the no-access UI relies on this.
       const { data, error } = await db
         .from('events')
-        .select('*, venue:venues(name, address)')
+        .select(EVENT_DETAIL_SELECT)
         .eq('id', id)
         .maybeSingle()
         .returns<EventDetail>();
@@ -122,6 +135,8 @@ export const useEventParticipants = (id: string) => {
             guest_name: string | null;
             guest_gender: string | null;
             invited_by: string | null;
+            /** The other half of a waiting PAIR on a team event (0112); null otherwise. */
+            pair_participant_id: string | null;
             profiles: ParticipantProfileEmbed;
           }[]
         >();
@@ -138,8 +153,12 @@ export const useEventInvitations = (id: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('event_invitations')
+        // Both FKs to profiles are named: invitee_id and invited_by. The inviter is what the
+        // invited state shows (UX-JEVT-03) — it is often the organizer, who may not play, so it
+        // cannot be looked up among the participants.
         .select(
-          '*, invitee:profiles!event_invitations_invitee_id_fkey(id, full_name, avatar_url)',
+          '*, invitee:profiles!event_invitations_invitee_id_fkey(id, full_name, avatar_url), ' +
+            'inviter:profiles!event_invitations_invited_by_fkey(id, full_name, avatar_url)',
         )
         .eq('event_id', id)
         .eq('status', 'pending')
@@ -156,6 +175,7 @@ export const useEventInvitations = (id: string) => {
             invited_at: string;
             responded_at: string | null;
             invitee: ProfileEmbed;
+            inviter: ProfileEmbed;
           }[]
         >();
       if (error) throw error;
@@ -349,12 +369,16 @@ export const useEventPartnerCandidates = (eventId: string) => {
 export type MyEventsFilter = 'all' | 'organizing' | 'going' | 'pending';
 const MY_EVENTS_PAGE_SIZE = 20;
 
-export const useMyEvents = (filter: MyEventsFilter, includePast = false) => {
+export const useMyEvents = (
+  filter: MyEventsFilter,
+  includePast = false,
+  { enabled = true }: { enabled?: boolean } = {},
+) => {
   const db = useDb();
   const uid = useSession().session?.user.id;
   return useInfiniteQuery({
     queryKey: qk.myEvents(filter, includePast),
-    enabled: !!uid,
+    enabled: !!uid && enabled,
     initialPageParam: 0,
     queryFn: async ({ pageParam: offset }) => {
       // p_include_past is sent only when set: a build that always sends it cannot find the
@@ -371,6 +395,34 @@ export const useMyEvents = (filter: MyEventsFilter, includePast = false) => {
     },
     getNextPageParam: (lastPage: unknown[], allPages: unknown[][]) =>
       lastPage.length < MY_EVENTS_PAGE_SIZE ? undefined : allPages.length * MY_EVENTS_PAGE_SIZE,
+  });
+};
+
+/**
+ * The viewer's own roster status on the events where it is not simply "confirmed" — the waiting
+ * list or interested (a team player without a partner). Since 0112 the Going tab and Home's next
+ * events include those events, so the cards label them rather than read as a held spot.
+ * Keyed under the My Events prefix, so every mutation that refreshes the lists refreshes this too.
+ */
+export type MyEventStatus = 'waiting_list' | 'interested';
+
+export const useMyEventStatuses = () => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.myEventStatuses,
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('event_participants')
+        .select('event_id, status')
+        .eq('user_id', uid!)
+        .in('status', ['waiting_list', 'interested']);
+      if (error) throw error;
+      const byEvent: Record<string, MyEventStatus> = {};
+      for (const row of data ?? []) byEvent[row.event_id] = row.status as MyEventStatus;
+      return byEvent;
+    },
   });
 };
 

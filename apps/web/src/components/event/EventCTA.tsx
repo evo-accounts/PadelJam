@@ -1,174 +1,271 @@
 'use client';
+/**
+ * The event page's bottom area (UX-JEVT-03/04) — what it shows is decided by `bottomState` in
+ * `@padel/utils`, the same table mobile reads. A waiter offered a free spot (`claim`, decision 4)
+ * gets "Leave waiting list" next to a primary "Confirm spot". Leaving is never here: it lives in the ⋯ menu, and
+ * past the 12h deadline it opens the contact-the-organizer dialog instead (UX-JEVT-05).
+ *
+ * Team events (UX-JEVT-09/13): "Join" (`team_entry`), an invitee's "Accept" and the organizer's
+ * "Join as a player" all call `onTeamJoin`, which opens the Team Event dialog; a player looking for
+ * a partner (`interested`) gets the interested line and "Edit response".
+ */
 import Link from 'next/link';
 import { useT } from '@padel/i18n';
-import { formatCountdown } from '@padel/utils';
-import type { ParticipationState } from '@padel/utils';
+import { formatCountdown, type BottomState } from '@padel/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-
-interface CTAEvent {
-  id: string;
-  status: string;
-  specification: string;
-  starts_at: string | null;
-}
-type Part = { user_id: string | null; status: string; is_standby: boolean; waiting_list_position: number | null };
-type Inv = { invitee_id: string | null; invited_by: string };
+import { avatarUrl } from '@/lib/upload';
+import type { PersonLite } from './EventDetailParts';
 
 export function EventCTA({
-  event,
-  state,
-  nowMs,
-  inviterName,
+  bottom,
+  eventId,
+  isTeam,
+  organizerPlaying,
+  organizerWaiting,
+  organizerCanClaim,
+  canJoinAsPlayer,
+  organizerInterested,
+  scheduled,
+  countdownMs,
+  teamCountdown,
+  inviter,
   busy,
   error,
   onJoin,
-  onLeave,
   onLeaveWaitlist,
+  onClaim,
   onAccept,
   onDecline,
+  onTeamJoin,
+  onEditResponse,
 }: {
-  event: CTAEvent;
-  state: ParticipationState<Part, Inv>;
-  nowMs: number;
-  inviterName: string | null;
+  bottom: BottomState;
+  eventId: string;
+  isTeam: boolean;
+  /** Organizer only: they also hold a player's place. */
+  organizerPlaying: boolean;
+  /** Organizer only: they tried to play on a full event and are on its waiting list. */
+  organizerWaiting: boolean;
+  /** Organizer only: waiting, and a spot is free for them — "Confirm spot" (decision 4). */
+  organizerCanClaim: boolean;
+  /** Organizer only: not playing, and joining is still open. */
+  canJoinAsPlayer: boolean;
+  /** Organizer only: they play, and are still looking for a partner (UX-JEVT-13). */
+  organizerInterested: boolean;
+  /** Organizer only: the event is still scheduled (Start, Edit and joining apply). */
+  scheduled: boolean;
+  /** Time left to the join cut-off, for the countdown. */
+  countdownMs: number;
+  /** A team event's "Join" shows the countdown too (`team_entry` carries no flag of its own). */
+  teamCountdown: boolean;
+  inviter: PersonLite | null;
   busy: boolean;
   error: string | null;
   onJoin: () => void;
-  onLeave: () => void;
   onLeaveWaitlist: () => void;
+  /** Take the free spot from the waiting list (decision 4). */
+  onClaim: () => void;
   onAccept: () => void;
   onDecline: () => void;
+  /** Team events: open the Team Event dialog (UX-JEVT-09). */
+  onTeamJoin: () => void;
+  /** An interested player's "Edit response" (UX-JEVT-13). */
+  onEditResponse: () => void;
 }) {
   const { t } = useT('event');
-  const { me, myInvite, isOrganizer, totalIn, totalCapacity, joinClosed, leaveLocked, joinCutoffMs } = state;
-  const isTeam = event.specification === 'team';
-  const partnerHref = `/app/event/${event.id}/partner-requests`;
-
-  if (event.status !== 'scheduled') {
-    return (
-      <div className="flex flex-col gap-2">
-        <Button asChild className="w-full sm:w-auto">
-          <Link href={`/app/event/${event.id}/live`}>
-            {event.status === 'completed' ? t('viewResultsCta') : t('viewMatchesCta')}
-          </Link>
-        </Button>
-      </div>
-    );
-  }
-
-  const leaveHint = Number.isFinite(state.leaveCutoffMs) ? (
-    <p className="text-xs text-muted-foreground">
-      {t('leaveByHint', { when: new Date(state.leaveCutoffMs).toLocaleString() })}
+  const errLine = error ? (
+    <p className="text-sm text-destructive" role="alert">
+      {error}
     </p>
   ) : null;
-  const errLine = error ? <p className="text-sm text-destructive">{error}</p> : null;
 
-  if (isOrganizer) {
-    return (
-      <div className="flex flex-col items-start gap-2">
-        <Badge variant="secondary">{me ? t('organizerPlayingBadge') : t('organizerBadge')}</Badge>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href={`/app/event/${event.id}/live`}>{t('startCta')}</Link>
+  let body: React.ReactNode = null;
+  switch (bottom.kind) {
+    case 'live':
+      body = (
+        <Button asChild className="w-full">
+          <Link href={`/app/event/${eventId}/live`}>
+            {bottom.completed ? t('viewResultsCta') : t('viewMatchesCta')}
+          </Link>
         </Button>
-        <Button asChild variant="outline" className="w-full sm:w-auto">
-          <Link href={`/app/event/${event.id}/manage`}>{t('manageCta')}</Link>
-        </Button>
-        {me == null && !joinClosed ? (
-          isTeam ? (
+      );
+      break;
+    case 'organizer':
+      // UX-MEVT-01 owns this area; unchanged here except that leaving moved into ⋯.
+      body = (
+        <div className="flex flex-col gap-2">
+          <p className="text-center text-sm font-medium">
+            {organizerPlaying ? t('organizerPlayingBadge') : t('organizerBadge')}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {scheduled ? (
+              <Button asChild>
+                <Link href={`/app/event/${eventId}/live`}>{t('startCta')}</Link>
+              </Button>
+            ) : null}
             <Button asChild variant="outline">
-              <Link href={partnerHref}>{t('joinAsPlayerCta')}</Link>
+              <Link href={`/app/event/${eventId}/manage`}>{t('manageCta')}</Link>
             </Button>
-          ) : (
-            <Button variant="outline" disabled={busy} onClick={onJoin}>
-              {t('joinAsPlayerCta')}
-            </Button>
-          )
-        ) : null}
-        {me != null && !leaveLocked ? (
-          <>
-            <Button variant="outline" disabled={busy} onClick={onLeave}>
-              {t('leaveAsPlayerCta')}
-            </Button>
-            {leaveHint}
-          </>
-        ) : null}
-        {errLine}
-      </div>
-    );
-  }
-
-  if (me) {
-    if (me.status === 'waiting_list') {
-      return (
-        <div className="flex flex-col items-start gap-2">
-          <Badge variant="secondary">{t('waitlistBadge', { pos: me.waiting_list_position ?? 0 })}</Badge>
-          <Button variant="outline" disabled={busy} onClick={onLeaveWaitlist}>
-            {t('leaveWaitlistCta')}
-          </Button>
-          {errLine}
+            {scheduled ? (
+              <Button asChild variant="outline">
+                <Link href={`/app/event/${eventId}/edit`}>{t('editTitle')}</Link>
+              </Button>
+            ) : null}
+            {canJoinAsPlayer ? (
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={isTeam ? onTeamJoin : onJoin}
+                data-testid="event-join-as-player"
+              >
+                {t('joinAsPlayerCta')}
+              </Button>
+            ) : null}
+            {organizerInterested ? (
+              <Button variant="outline" disabled={busy} onClick={onEditResponse} data-testid="event-edit-response">
+                {t('editResponseCta')}
+              </Button>
+            ) : null}
+            {/* An organizer who tried to play on a full event is waiting like anyone else. */}
+            {organizerWaiting && organizerCanClaim ? (
+              <Button disabled={busy} onClick={onClaim} data-testid="event-confirm-spot">
+                {t('confirmSpotCta')}
+              </Button>
+            ) : null}
+            {organizerWaiting ? (
+              <Button variant="outline" disabled={busy} onClick={onLeaveWaitlist}>
+                {t('leaveWaitlistCta')}
+              </Button>
+            ) : null}
+          </div>
         </div>
       );
-    }
-    return (
-      <div className="flex flex-col items-start gap-2">
-        <Badge variant="secondary">{me.is_standby ? t('standbyBadge') : t('goingBadge')}</Badge>
-        {leaveLocked ? (
-          <p className="text-sm text-muted-foreground">{t('leaveLockedBody')}</p>
-        ) : (
-          <>
-            <Button variant="outline" disabled={busy} onClick={onLeave}>
-              {t('leaveCta')}
+      break;
+    case 'invited':
+      body = (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2" data-testid="event-inviter">
+            {inviter ? (
+              <Avatar className="size-8">
+                <AvatarImage src={avatarUrl(inviter.avatar_url) ?? undefined} alt="" />
+                <AvatarFallback className="text-xs">{(inviter.full_name ?? '?').slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+            ) : null}
+            <p className="flex-1 font-medium">
+              {inviter?.full_name ? t('invitedBanner', { name: inviter.full_name }) : t('invitedBannerGeneric')}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" disabled={busy} onClick={onDecline} data-testid="event-decline">
+              {t('declineCta')}
             </Button>
-            {leaveHint}
-          </>
-        )}
-        {errLine}
-      </div>
-    );
-  }
-
-  if (myInvite) {
-    if (joinClosed) return <p className="text-sm text-muted-foreground">{t('joiningClosed')}</p>;
-    return (
-      <div className="flex flex-col items-start gap-2">
-        <Badge variant="secondary">
-          {inviterName ? t('invitedBanner', { name: inviterName }) : t('invitedBannerGeneric')}
-        </Badge>
-        <div className="flex gap-2">
-          <Button variant="outline" disabled={busy} onClick={onDecline}>
-            {t('declineCta')}
-          </Button>
-          <Button disabled={busy} onClick={onAccept}>
-            {t('acceptCta')}
+            <Button disabled={busy} onClick={onAccept} data-testid="event-accept">
+              {t('acceptCta')}
+            </Button>
+          </div>
+        </div>
+      );
+      break;
+    case 'open':
+      body = (
+        <div className="flex items-center gap-3">
+          {bottom.countdown ? (
+            <p className="flex-1 text-sm font-medium text-primary" data-testid="event-join-countdown">
+              {t('joinCountdown', { time: formatCountdown(countdownMs) })}
+            </p>
+          ) : null}
+          <Button className="flex-1" disabled={busy} onClick={onJoin} data-testid="event-join">
+            {t('joinCta')}
           </Button>
         </div>
-        {errLine}
-      </div>
-    );
+      );
+      break;
+    case 'full':
+      body = (
+        <div className="flex items-center gap-3">
+          <p className="flex-1 text-sm text-muted-foreground">
+            {t(bottom.waitersAhead ? 'waitersAheadLine' : 'noSpotsLine')}
+          </p>
+          <Button className="flex-1" disabled={busy} onClick={onJoin} data-testid="event-join-waitlist">
+            {t('waitlistCta')}
+          </Button>
+        </div>
+      );
+      break;
+    case 'waiting_list':
+      body = (
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={busy}
+          onClick={onLeaveWaitlist}
+          data-testid="event-leave-waitlist"
+        >
+          {t('leaveWaitlistCta')}
+        </Button>
+      );
+      break;
+    case 'claim':
+      // A spot is free and every waiter was told at once: the first to confirm takes it.
+      body = (
+        <div className="flex flex-col gap-3">
+          <p className="text-center text-sm font-medium text-primary" data-testid="event-spot-open">
+            {t('spotOpenLine')}
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button variant="outline" disabled={busy} onClick={onLeaveWaitlist} data-testid="event-leave-waitlist">
+              {t('leaveWaitlistCta')}
+            </Button>
+            <Button disabled={busy} onClick={onClaim} data-testid="event-confirm-spot">
+              {t('confirmSpotCta')}
+            </Button>
+          </div>
+        </div>
+      );
+      break;
+    case 'team_entry':
+      // UX-JEVT-09: "Join" like any event; whether you have a partner is the next question.
+      body = (
+        <div className="flex items-center gap-3">
+          {teamCountdown ? (
+            <p className="flex-1 text-sm font-medium text-primary" data-testid="event-join-countdown">
+              {t('joinCountdown', { time: formatCountdown(countdownMs) })}
+            </p>
+          ) : null}
+          <Button className="flex-1" disabled={busy} onClick={onTeamJoin} data-testid="event-team-join">
+            {t('joinCta')}
+          </Button>
+        </div>
+      );
+      break;
+    case 'interested':
+      body = (
+        <div className="flex flex-col gap-2">
+          <p className="text-center text-sm text-muted-foreground" data-testid="event-interested-line">
+            {t('interestedLine')}
+          </p>
+          <Button className="w-full" disabled={busy} onClick={onEditResponse} data-testid="event-edit-response">
+            {t('editResponseCta')}
+          </Button>
+        </div>
+      );
+      break;
+    case 'closed':
+      body = <p className="py-2 text-center text-sm text-muted-foreground">{t('eventClosedLine')}</p>;
+      break;
+    case 'going':
+      body = null;
+      break;
   }
 
-  if (joinClosed) return <p className="text-sm text-muted-foreground">{t('joiningClosed')}</p>;
-  if (isTeam) {
-    return (
-      <div className="flex flex-col items-start gap-2">
-        <Button asChild>
-          <Link href={partnerHref}>{t('teamJoinCta')}</Link>
-        </Button>
-      </div>
-    );
-  }
-  const joinLabel = totalIn >= totalCapacity ? t('waitlistCta') : t('joinCta');
+  if (body == null && errLine == null) return null;
   return (
-    <div className="flex flex-col items-start gap-2">
-      {Number.isFinite(joinCutoffMs) ? (
-        <p className="text-xs text-muted-foreground">
-          {t('joinCountdown', { time: formatCountdown(joinCutoffMs - nowMs) })}
-        </p>
-      ) : null}
-      <Button disabled={busy} onClick={onJoin}>
-        {joinLabel}
-      </Button>
+    <div
+      className="sticky bottom-0 z-10 -mx-4 mt-auto flex flex-col gap-2 border-t bg-card px-4 pt-3 pb-4 sm:-mx-6 sm:px-6"
+      data-testid="event-bottom-area"
+    >
+      {body}
       {errLine}
     </div>
   );

@@ -28,7 +28,7 @@ export function DateTimePicker({
   value?: string;
   onChange: (iso: string) => void;
 }) {
-  const { t } = useT('event');
+  const { t, i18n } = useT('event');
 
   const [working, setWorking] = useState<Date>(() => {
     if (value) {
@@ -124,7 +124,7 @@ export function DateTimePicker({
               accessibilityState={{ selected }}
             >
               <Text style={[styles.dayWeekday, selected && styles.dayTextSelected]}>
-                {day.toLocaleDateString('en', { weekday: 'short' })}
+                {day.toLocaleDateString(i18n.language, { weekday: 'short' })}
               </Text>
               <Text style={[styles.dayNumber, selected && styles.dayTextSelected]}>
                 {day.getDate()}

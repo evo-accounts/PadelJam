@@ -20,6 +20,14 @@ declare v constant uuid := 'fa000001-0000-0000-0000-000000000001';   -- viewer
   d_near double precision; d_far double precision; d_nullarg double precision;
   v_rows uuid[];
 begin
+  -- Precondition, not an assertion: PostGIS lives in `public` here, and the mobile E2E wipe
+  -- (apps/mobile/e2e/fixtures/seed.ts, wipeDb) truncates every public table it does not list —
+  -- spatial_ref_sys included. Without SRID 4326 every geography st_distance fails, so say so
+  -- instead of surfacing "Cannot find SRID" from inside viewer_distance_m.
+  if not exists (select 1 from spatial_ref_sys where srid = 4326) then
+    raise exception using errcode='PT002', message='spatial_ref_sys has no SRID 4326 (emptied by the E2E wipe?)',
+      hint='Restore it from the PostGIS spatial_ref_sys.sql, or supabase db reset.'; end if;
+
   -- Viewer's home location = Lisbon.
   update profiles set location_point = st_setsrid(st_makepoint(-9.14, 38.72), 4326)::geography where id = v;
 
@@ -58,9 +66,12 @@ begin
     raise exception using errcode='PT001', message=format('distance order wrong near=%s far=%s', d_near, d_far); end if;
 
   -- explore_events (as viewer): near first, far second, null-coord last — despite null being soonest.
+  -- Only the relative order of THIS test's three events is asserted: a stack holding seed/E2E data
+  -- has other visible events (null-coord ones that start sooner would take slot 3 outright).
   perform set_config('role','authenticated',true);
   select array_agg((event).id order by ord) into v_rows
-    from (select event, row_number() over () as ord from explore_events(10, 0)) s;
+    from (select event, row_number() over () as ord from explore_events(1000, 0)) s
+   where (event).id in (e_near, e_far, e_null);
   if v_rows[1] <> e_near or v_rows[2] <> e_far or v_rows[3] <> e_null then
     raise exception using errcode='PT001', message=format('explore order wrong: %s (want near,far,null = %s,%s,%s)', v_rows, e_near, e_far, e_null); end if;
 

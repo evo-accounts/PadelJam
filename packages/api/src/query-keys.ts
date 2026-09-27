@@ -33,6 +33,8 @@ export const qk = {
   myEventsAll: ['my-events'] as const,
   myEvents: (filter: 'all' | 'organizing' | 'going' | 'pending', includePast = false) =>
     (includePast ? (['my-events', filter, 'past'] as const) : (['my-events', filter] as const)),
+  /** The viewer's waiting-list / interested rows — under the prefix, refreshed with the lists. */
+  myEventStatuses: ['my-events', 'statuses'] as const,
   eventInvitedPlayers: (id: string) => ['event', id, 'invited-players'] as const,
   event: (id: string) => ['event', id] as const,
   eventParticipants: (id: string) => ['event', id, 'participants'] as const,
@@ -82,6 +84,7 @@ export const qk = {
   venues: ['venues'] as const,
   searchVenues: (q: string, all = false) => ['venues', 'search', q, all] as const,
   adminVenues: (q: string) => ['venues', 'admin', q] as const,
+  venueRegistry: (q: string) => ['venues', 'registry', q] as const,
   venue: (id: string) => ['venues', 'detail', id] as const,
   venueCourts: (id: string) => ['venues', 'detail', id, 'courts'] as const,
   isSuperAdmin: (uid: string) => ['super-admin', uid] as const,

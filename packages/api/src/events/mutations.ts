@@ -131,6 +131,8 @@ export const useJoinEvent = () => {
       const { data, error } = await db.rpc('join_event', { p_event_id: input.eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
       await logActivity(db, input.eventId, 'joined', { status: data });
+      // 'confirmed' or 'waiting_list' — the caller shows "You are in" only for the former.
+      return data;
     },
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.event(input.eventId) });
@@ -152,6 +154,9 @@ export const useLeaveEvent = () => {
       await logActivity(db, input.eventId, 'left');
     },
     onSuccess: (_data, input) => {
+      // leave_event withdraws the leaver's sent partner requests and closes the ones sent to them.
+      qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
+      qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
       qc.invalidateQueries({ queryKey: qk.event(input.eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(input.eventId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(input.eventId) });
@@ -181,6 +186,11 @@ export const useLeaveWaitingList = (eventId: string) => {
 // Partner selection (team / mixed events)
 // ---------------------------------------------------------------------------
 
+/**
+ * "I need a partner" (UX-JEVT-11): marks the caller interested and asks each target (0112). An empty
+ * list is "Let others invite me" — listed as looking, no request sent. Errors: already_joined
+ * (paired or waiting), forbidden, event_closed.
+ */
 export const useRequestPartner = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
@@ -192,23 +202,46 @@ export const useRequestPartner = (eventId: string) => {
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
-      qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
-    },
+    // The caller becomes 'interested' (a roster row, the event page's banner, the Going tab), so
+    // this refreshes what a pairing does and not just the request lists. Returned, so the
+    // mutation settles only once the lists are fresh: an Invited → withdraw tap right after needs
+    // the new request's id.
+    onSuccess: () => invalidatePairing(qc, eventId),
+    onError: (e) => refetchCandidatesOnStale(qc, eventId, e),
   });
 };
 
-/** Everything a pairing (or a waiting pair's claim) can change on one event. */
-function invalidatePairing(qc: ReturnType<typeof useQueryClient>, eventId: string) {
-  qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
-  qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
-  qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests });
-  qc.invalidateQueries({ queryKey: qk.partnerRequestSummary });
-  qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
-  qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
-  qc.invalidateQueries({ queryKey: qk.event(eventId) });
+/**
+ * Everything a pairing (or a waiting pair's claim) can change on one event. Resolves once the
+ * active queries have refetched — return it from `onSuccess` so `mutateAsync` waits for it.
+ */
+function invalidatePairing(qc: ReturnType<typeof useQueryClient>, eventId: string): Promise<unknown> {
   invalidateMyEvents(qc);
+  return Promise.all([
+    qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) }),
+    qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) }),
+    qc.invalidateQueries({ queryKey: qk.incomingPartnerRequests }),
+    qc.invalidateQueries({ queryKey: qk.partnerRequestSummary }),
+    qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) }),
+    qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) }),
+    // choose_partner / accept_partner_request accept both players' pending invitations.
+    qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) }),
+    qc.invalidateQueries({ queryKey: qk.eventInvitedPlayers(eventId) }),
+    qc.invalidateQueries({ queryKey: qk.event(eventId) }),
+  ]);
+}
+
+/**
+ * A pick that went stale under the caller — the partner paired or left (partner_unavailable), the
+ * caller is already in (already_joined), or the request target stopped looking (request_stale):
+ * refetch the candidate and request lists so the page stops offering it.
+ */
+function refetchCandidatesOnStale(qc: ReturnType<typeof useQueryClient>, eventId: string, e: unknown) {
+  const code = e instanceof Error ? e.message : '';
+  if (code === 'partner_unavailable' || code === 'already_joined' || code === 'request_stale') {
+    qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
+    qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
+  }
 }
 
 /**
@@ -240,6 +273,7 @@ export const useChoosePartner = (eventId: string) => {
       return data as 'confirmed' | 'waiting_list';
     },
     onSuccess: () => invalidatePairing(qc, eventId),
+    onError: (e) => refetchCandidatesOnStale(qc, eventId, e),
   });
 };
 
@@ -263,6 +297,7 @@ export const useChooseGuestPartner = (eventId: string) => {
       return data as 'confirmed' | 'waiting_list';
     },
     onSuccess: () => invalidatePairing(qc, eventId),
+    onError: (e) => refetchCandidatesOnStale(qc, eventId, e),
   });
 };
 
@@ -334,10 +369,12 @@ export const useWithdrawPartnerRequest = (eventId: string) => {
       const { error } = await db.rpc('withdraw_partner_request', { p_request_id: requestId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) });
-      qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) });
-    },
+    // Returned: the Invite button must not reappear before the request list has dropped the row.
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: qk.partnerRequests(eventId) }),
+        qc.invalidateQueries({ queryKey: qk.partnerCandidates(eventId) }),
+      ]),
     onError: (e) => refetchRequestsOnStale(qc, eventId, e),
   });
 };
@@ -371,8 +408,11 @@ export const useAcceptEventInvitation = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { eventId: string; groupId: string | null }) => {
-      const { error } = await db.rpc('accept_event_invitation', { p_event_id: input.eventId });
+      const { data, error } = await db.rpc('accept_event_invitation', { p_event_id: input.eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      // The participant status the acceptance produced ('confirmed', 'waiting_list', or
+      // 'interested' on a team event).
+      return data;
     },
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: qk.event(input.eventId) });

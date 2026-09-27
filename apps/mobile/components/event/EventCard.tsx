@@ -2,7 +2,9 @@ import { eventStatusKey, useGroupEvents } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, palette } from '../../theme';
-import { Card } from '../../components/ui';
+import { Badge, Card } from '../../components/ui';
+import { eventWhen } from '../../lib/eventFormat';
+import { EventThumb } from './EventThumb';
 
 /** The element type of the group-events hook data: the `events` table Row. */
 type EventRow = NonNullable<ReturnType<typeof useGroupEvents>['data']>[number];
@@ -12,17 +14,18 @@ function cap(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-/** Format an ISO timestamp like `Sat 14 Jun · 18:00`. */
-function formatWhen(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' });
-  const time = d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return `${date} · ${time}`;
-}
 
 /**
- * A tappable card summarising one event: name, format meta, date/time and a
- * status badge. Presentational — the caller supplies the row and an onPress.
+ * A tappable card summarising one event: thumbnail (or an icon placeholder), name, format meta,
+ * date/time and — only when it says something — a status badge. Presentational — the caller
+ * supplies the row and an onPress.
+ *
+ * No badge for an upcoming event (UX-JEVT-01): every listed event is upcoming, so "Upcoming" said
+ * nothing. Starting now / Live / Completed still carry meaning and keep theirs.
+ *
+ * `viewerStatus` labels an event the viewer holds no spot in yet — on the waiting list, or
+ * interested (a team player without a partner). Since migration 0112 those events are listed under
+ * Going and in Home's next events, and without a label they would read as a held spot.
  *
  * Two arrangements of the same content (UX-GLOB-09): `vertical` is a fixed-width
  * card for a horizontally scrolling rail (image on top, text below); `horizontal`
@@ -35,13 +38,15 @@ export function EventCard({
   onPress,
   orientation = 'horizontal',
   railWidth = 260,
+  viewerStatus,
 }: {
   event: EventRow & { distance_m?: number | null };
   onPress: () => void;
+  viewerStatus?: 'waiting_list' | 'interested';
   orientation?: 'vertical' | 'horizontal';
   railWidth?: number;
 }) {
-  const { t } = useT('event');
+  const { t, i18n } = useT('event');
   const { t: td } = useT('discovery');
 
   const typeLabel = t(`type${cap(event.event_type)}Label`);
@@ -64,7 +69,7 @@ export function EventCard({
         ? styled.badgeStarting
         : status === 'statusCompleted'
           ? styled.badgeDone
-          : styled.badgeScheduled;
+          : null;
   const badgeTextStyle =
     status === 'statusInProgress'
       ? styled.badgeTextLive
@@ -72,15 +77,16 @@ export function EventCard({
         ? styled.badgeTextStarting
         : status === 'statusCompleted'
           ? styled.badgeTextDone
-          : styled.badgeTextScheduled;
+          : null;
 
-  const badge = (
-    <View style={[styled.badge, badgeStyle]}>
-      <Text style={[styled.badgeText, badgeTextStyle]} numberOfLines={1}>
-        {t(status)}
-      </Text>
-    </View>
-  );
+  const badge =
+    status === 'statusScheduled' ? null : (
+      <View style={[styled.badge, badgeStyle]}>
+        <Text style={[styled.badgeText, badgeTextStyle]} numberOfLines={1}>
+          {t(status)}
+        </Text>
+      </View>
+    );
   const meta = (
     <Text style={styled.meta} numberOfLines={1}>
       {`${typeLabel} · ${specLabel}`}
@@ -88,9 +94,16 @@ export function EventCard({
   );
   const when = (
     <Text style={styled.when} numberOfLines={1}>
-      {formatWhen(event.starts_at)}
+      {eventWhen(event.starts_at, i18n.language)}
     </Text>
   );
+  const viewerBadge = viewerStatus ? (
+    <Badge
+      label={viewerStatus === 'waiting_list' ? t('cardWaitingList') : t('cardInterested')}
+      tone={viewerStatus === 'waiting_list' ? 'warning' : 'info'}
+      testID={`event-card-status-${event.id}`}
+    />
+  ) : null;
   const distanceText = distance ? <Text style={styled.distance}>{distance}</Text> : null;
 
   if (orientation === 'vertical') {
@@ -101,7 +114,7 @@ export function EventCard({
         onPress={onPress}
         testID={`event-card-${event.id}`}
       >
-        <View style={styled.thumbTop} />
+        <EventThumb path={event.thumbnail_path} shape="rail" />
         <View style={styled.bodyVertical}>
           <Text style={styled.name} numberOfLines={2}>
             {event.name}
@@ -109,6 +122,7 @@ export function EventCard({
           {meta}
           {when}
           {distanceText}
+          {viewerBadge}
           {badge}
         </View>
       </Card>
@@ -117,7 +131,7 @@ export function EventCard({
 
   return (
     <Card padding="none" style={styled.card} onPress={onPress} testID={`event-card-${event.id}`}>
-      <View style={styled.thumb} />
+      <EventThumb path={event.thumbnail_path} shape="row" />
       <View style={styled.body}>
         <Text style={styled.name} numberOfLines={1}>
           {event.name}
@@ -125,6 +139,7 @@ export function EventCard({
         {meta}
         {when}
         {distanceText}
+        {viewerBadge}
       </View>
       {badge}
       <Text style={styled.chevron} accessibilityElementsHidden importantForAccessibility="no">
@@ -152,8 +167,6 @@ const styled = StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
-  thumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.muted },
-  thumbTop: { height: 96, backgroundColor: colors.muted },
   body: { flex: 1, gap: 4 },
   bodyVertical: { padding: 12, gap: 4, alignItems: 'flex-start' },
   name: { fontSize: 16, fontWeight: '700', color: colors.foreground },
@@ -162,8 +175,6 @@ const styled = StyleSheet.create({
   distance: { fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
   badge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontSize: 11, fontWeight: '700' },
-  badgeScheduled: { backgroundColor: palette.purple[100] },
-  badgeTextScheduled: { color: colors.primary },
   badgeStarting: { backgroundColor: palette.yellow[100] },
   badgeTextStarting: { color: palette.yellow[800] },
   badgeLive: { backgroundColor: palette.green[100] },

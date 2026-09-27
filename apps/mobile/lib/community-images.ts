@@ -1,9 +1,12 @@
+import { VENUE_IMAGES_BUCKET } from '@padel/api';
+
 import { supabase } from './supabase';
 
 const COVER_BUCKET = 'community-covers';
 const THUMBNAIL_BUCKET = 'community-thumbnails';
 const AVATAR_BUCKET = 'avatars';
 const POST_IMAGE_BUCKET = 'community-post-images';
+const EVENT_THUMBNAIL_BUCKET = 'event-thumbnails';
 
 /**
  * Signed URL (1h) for a private post image, or null when no path is set. The
@@ -31,6 +34,12 @@ export function thumbnailUrl(path: string | null | undefined): string | null {
   return supabase.storage.from(THUMBNAIL_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
+/** Public URL for an event thumbnail (`events.thumbnail_path`), or null when none is set. */
+export function eventThumbnailUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  return supabase.storage.from(EVENT_THUMBNAIL_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
 /**
  * Resolve a profile avatar. `avatar_url` may already be an absolute URL (e.g. from
  * an OAuth provider) — pass it through; otherwise treat it as a storage path in the
@@ -40,4 +49,10 @@ export function avatarUrl(path: string | null | undefined): string | null {
   if (!path) return null;
   if (/^https?:\/\//.test(path)) return path;
   return supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+/** Public URL for a registry venue image (`venue-images`, migration 0114), or null. */
+export function venueImageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  return supabase.storage.from(VENUE_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl;
 }

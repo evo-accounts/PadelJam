@@ -91,6 +91,44 @@ Defaults taken (object at plan review):
 | B17 | Organizer who only organizes is invisible on the event page (organizer is read from participants) | detail:193 | M4 |
 | B18 | Web join countdown is frozen at mount | web `page.tsx:54` | W2 |
 
+## Status (2026-09-27) — as shipped
+
+Migrations are 0111, 0112, 0113, 0114 (0116 folded in), 0115 and 0117. Mobile shipped as M1–M5 (M4 in two
+parts), web as W1–W5 (the web split differs from the plan's W1–W4 below).
+
+| Step | What | PR | State |
+|------|------|----|-------|
+| 0 | Audit transcription + this plan | #206 | merged |
+| 0111 | Roster integrity (B1–B6) | #207 | merged |
+| 0112 | Join rules — waitlist broadcast, no invites on public events, mixed capacity, waiting pairs, `partner_left`, `my_events` Pending/past, `event_invited_players` (D1, D4–D6, D8, D14; B7, B8, B10) | #213 | merged |
+| 0113 | Guests + manual court names; manual email/phone invitee removed (D7, B12) | #215 | merged |
+| 0114 | Venue registry + super-admin (`platform_admins`, `is_super_admin()`, `venue-images`, soft delete) — **0116 folded in**; ships with the web super-admin venues screens | #212 | merged |
+| 0115 | Phone privacy — column grants on `profiles` exclude `phone` (D2, B11) | #209 | merged |
+| 0117 | Recurrence scheduler — hourly `pg_cron` `materialize-due-occurrences`, Lisbon wall-clock anchoring, duplicate is a one-off (D10, B15) | #217 | merged |
+| 0118 | Browser-pass fixes — withdrawn partner request removes its unread notification, no duplicate `partner_request`; Join shows the waiting-list state while others wait; team leave copy | #229 | merged |
+| M1 | Mobile wizard shell + steps 1–4 (UX-CEVT-01..05, B14, B16) | #208 | merged |
+| M2 | Mobile steps 5–8 — location, courts, date (UX-CEVT-06..08) | #218 | merged |
+| M3 | Mobile steps 9–10 — preferences, details, invite + guests (UX-CEVT-09..11) | #221 | merged |
+| M4a | Mobile event page, ⋯ actions, invited/join/leave (UX-JEVT-01..07 part 1, B13, B17) | #210 | merged |
+| M4b | Mobile events tabs, past toggle, player list, waiting-list claim (UX-JEVT-01/04/08 part 2) | #216 | merged |
+| M5 | Mobile team events (UX-JEVT-09..14, B6, B9) | #220 | merged |
+| W1 | Web wizard shell + steps 1–4 (UX-CEVT-01..05) | #211 | merged |
+| W2 | Web event page, ⋯ actions, invited/join/leave (UX-JEVT-01..07 part 1, B18) | #214 | merged |
+| W3a | Web events tabs, player list, waiting-list claim | #225 | merged |
+| W3b | Web team events | #226 | merged |
+| W4 | Web wizard steps 5–8 | #227 | merged |
+| W5 | Web wizard steps 9–10 | #228 | merged |
+| 8 | Requirements amended (`create-event.md` v1.3, `join-manage-event.md` v1.4) + this status and hand-off | #223 | merged |
+
+**Decisions taken during implementation** (documented in the Requirements):
+
+- Team events hide the wizard's "Add manually" — a guest joins a team event only as a player's partner.
+- Web shows the plan's recurring-event cap through the `UpgradePrompt` dialog.
+- "You are in" is a dialog on web and a full card screen on mobile.
+- An organizer whose partner left sees "Join as a player" (both apps).
+
+The original sequence below is kept as planned; the table above is authoritative for what shipped.
+
 ## PR sequence
 
 Migrations are 0111–0115 and 0117 (0116 was folded into 0114). Every PR touching `apps/mobile/**`, `packages/**` or `infra/**` queues the ~37-min
@@ -173,7 +211,60 @@ interested banner + Edit response sheet; partner-left state.
 
 **8 — docs.** Amend `Requirements/create-event.md` and `join-manage-event.md` to the decisions above
 (EV-04, EV-20, EV-26, Steps 4/6/8/10, JM-01, JM-03, JM-08, JM-17, JM-22, JM-28, §3.10), and hand over the
-hosted paste list 0111–0115 + 0117 + `pg_cron` toggle.
+hosted paste list 0111–0115 + 0117 + `pg_cron` toggle. **Done** — see the status table and the hosted hand-off.
+
+## Hosted hand-off
+
+The account cannot `db push`; the product owner pastes each file into the dashboard SQL editor, in this order,
+and records each one in `supabase_migrations.schema_migrations` after it succeeds.
+
+1. **0111** `0111_event_roster_integrity.sql`.
+2. **0112** `0112_event_join_rules.sql`. **First** run its pre-paste count (how many pending public-event
+   invitations it deletes and converts to `event_created`):
+   ```sql
+   select count(*) from event_invitations i join events e on e.id = i.event_id
+   where i.status = 'pending' and i.invitee_id is not null
+     and e.group_id is not null and e.is_private = false and e.status = 'scheduled' and e.deleted_at is null
+     and exists (select 1 from group_members gm where gm.group_id = e.group_id and gm.user_id = i.invitee_id);
+   ```
+3. **0113** `0113_event_guests.sql`.
+4. **0114** `0114_venue_registry_super_admin.sql` (0116 is folded in; there is no 0116 file). Then add the
+   first platform admin:
+   ```sql
+   insert into platform_admins (user_id) select id from profiles where email = '<admin email>' on conflict do nothing;
+   ```
+5. **0115** `0115_profiles_phone_privacy.sql` — **only after a TestFlight build containing #209 is live.**
+   Older builds `select` `profiles.phone` (and `select('*')`), which fails once the column is revoked.
+6. **0117** `0117_recurrence_scheduler.sql` — **enable `pg_cron` first** (Dashboard → Database → Extensions →
+   `pg_cron`). Then verify:
+   ```sql
+   select jobname, schedule from cron.job where jobname = 'materialize-due-occurrences';
+   ```
+   If 0117 was pasted before `pg_cron` was on, it only printed a NOTICE: enable the extension and re-run the
+   file's final `cron.schedule` block. **After 0117, verify the cron job** with the query above (one row,
+   schedule `5 * * * *`); optionally run `select public.materialize_due_occurrences();` once.
+7. **0118** `0118_partner_request_notification_withdraw.sql` — after 0117. Redefines `request_partner` and the
+   partner-request notification trigger function from 0113; ends with a self-check.
+
+Record each after it succeeds:
+```sql
+insert into supabase_migrations.schema_migrations (version, name)
+values ('0111', 'event_roster_integrity') on conflict do nothing;  -- repeat per file
+```
+
+**New native module:** `expo-calendar` (Add to calendar) needs a new EAS build — an OTA update cannot ship
+it. Cut the build before (or together with) the 0115 gate above.
+
+## Open items
+
+- **Web browser pass** — #227 and #228 were walked in a browser (the #228 walk found and fixed web event-thumbnail
+  uploads being refused by storage RLS — `upsert: true` without a select policy — which had failed silently on main
+  and on hosted); #214, #225 and #226 were walked on 2026-09-27 — no blocking bugs; its four findings shipped in #229
+  (0118). Not exercisable locally: opening the organizer chat (local Stream token), the native share sheet.
+- **`profiles.email` exposure** — 0115 hides `phone` only; `email` is still readable by other signed-in users.
+  Follow-up offered to the product owner.
+- **Client UPDATE on `phone` / `email`** — the column grants still let a client update those columns on its own
+  row directly, outside the auth flows. Follow-up offered to the product owner.
 
 ## Out of scope / follow-ups
 

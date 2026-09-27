@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 
 export type GroupComposerValues = {
   name: string;
@@ -63,7 +64,6 @@ export function GroupComposer({
   const [removed, setRemoved] = useState(false);
   const [nameMissing, setNameMissing] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     return () => {
@@ -82,7 +82,6 @@ export function GroupComposer({
   const removeThumbnail = () => {
     pick(null);
     setRemoved(true);
-    if (fileRef.current) fileRef.current.value = '';
   };
 
   const shown = preview ?? (removed ? null : (initial?.thumbnailUrl ?? null));
@@ -143,35 +142,15 @@ export function GroupComposer({
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="group-thumbnail">{t('thumbnailLabel')}</Label>
-        <div className="flex items-center gap-4">
-          {shown ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={shown} alt="" className="size-16 rounded-lg object-cover" />
-          ) : (
-            <div className="size-16 rounded-lg bg-muted" aria-hidden />
-          )}
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" disabled={submitting} onClick={() => fileRef.current?.click()}>
-              {shown ? t('changeImageCta') : t('uploadImageCta')}
-            </Button>
-            {shown ? (
-              <Button type="button" variant="ghost" size="sm" disabled={submitting} onClick={removeThumbnail}>
-                {t('removeImageCta')}
-              </Button>
-            ) : null}
-          </div>
-          <input
-            id="group-thumbnail"
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(e) => pick(e.target.files?.[0] ?? null)}
-          />
-        </div>
-      </div>
+      <ImagePickerRow
+        id="group-thumbnail"
+        label={t('thumbnailLabel')}
+        previewUrl={shown}
+        onPick={pick}
+        onRemove={removeThumbnail}
+        disabled={submitting}
+        labels={{ upload: t('uploadImageCta'), change: t('changeImageCta'), remove: t('removeImageCta') }}
+      />
 
       {/* UX-GRP-01: the privacy toggle inside a card, its line saying what it means. */}
       <div className="flex items-center gap-3 rounded-lg border p-4">

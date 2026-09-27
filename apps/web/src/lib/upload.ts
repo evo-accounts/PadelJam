@@ -30,7 +30,10 @@ export async function uploadCommunityImage(
   if (file.size > 5 * 1024 * 1024) throw new Error('image_too_large');
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
   const path = `${communityId}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true, contentType: file.type });
+  // A fresh random path never collides, so no upsert: an upsert is INSERT … ON CONFLICT DO UPDATE,
+  // which RLS also checks against SELECT, and `event-thumbnails` (0080) has no select policy — every
+  // web event thumbnail upload was refused. Mobile uploads with `upsert: false` too.
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type });
   if (error) throw error;
   return path;
 }

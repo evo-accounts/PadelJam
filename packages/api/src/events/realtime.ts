@@ -4,10 +4,17 @@ import { useDb } from '../client';
 import { qk } from '../query-keys';
 import { uniqueChannelTopic } from '../realtime-channel';
 
-export const useEventRealtime = (eventId: string) => {
+/**
+ * Keeps one event's queries live. `enabled: false` holds no channel at all — the mobile event page
+ * passes its focus state, so while the live screen is pushed on top (and subscribes itself) the
+ * page underneath does not hold a second channel for the same event. The channel is removed on
+ * unmount and whenever `enabled` or the event changes.
+ */
+export const useEventRealtime = (eventId: string, { enabled = true }: { enabled?: boolean } = {}) => {
   const db = useDb();
   const qc = useQueryClient();
   useEffect(() => {
+    if (!enabled || !eventId) return;
     const filter = 'event_id=eq.' + eventId;
     const ch = db
       .channel(uniqueChannelTopic('event:' + eventId))
@@ -15,6 +22,25 @@ export const useEventRealtime = (eventId: string) => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'event_participants', filter },
         () => {
+          qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+          qc.invalidateQueries({ queryKey: qk.event(eventId) });
+        },
+      )
+      // A player leaving (leave_event, leave_waiting_list, an organizer removal) DELETEs their row,
+      // and a filtered subscription never delivers DELETEs (see partner_requests below). Without
+      // this a freed spot would not reach the waiting list's "Confirm spot" (decision 4).
+      //
+      // Unfiltered, it fires for a deletion on ANY event, so it is narrowed client-side: the old
+      // record carries the primary key (event_participants keeps REPLICA IDENTITY default), and a
+      // row that is not in this event's cached roster is someone else's event — nothing to refetch.
+      // With no cached roster we cannot tell, so we refetch.
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'event_participants' },
+        (payload) => {
+          const deletedId = (payload.old as { id?: string } | null)?.id;
+          const cached = qc.getQueryData<{ id: string }[]>(qk.eventParticipants(eventId));
+          if (cached && deletedId && !cached.some((p) => p.id === deletedId)) return;
           qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
           qc.invalidateQueries({ queryKey: qk.event(eventId) });
         },
@@ -98,5 +124,5 @@ export const useEventRealtime = (eventId: string) => {
     return () => {
       db.removeChannel(ch);
     };
-  }, [db, qc, eventId]);
+  }, [db, qc, eventId, enabled]);
 };

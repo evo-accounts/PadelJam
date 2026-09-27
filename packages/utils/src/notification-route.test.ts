@@ -18,6 +18,12 @@ describe('notificationRoute', () => {
     expect(notificationRoute({ type: 'partner_request', event_id: 'e1' })).toBe('/notifications/partner-requests');
   });
 
+  // 0112: both carry the event AND its group; the row must open the event, not the group.
+  it('opens the event for an event_created or partner_left notification', () => {
+    expect(notificationRoute({ type: 'event_created', event_id: 'e1', group_id: 'g1' })).toBe('/event/e1');
+    expect(notificationRoute({ type: 'partner_left', event_id: 'e1', group_id: 'g1' })).toBe('/event/e1');
+  });
+
   it('prefers event over group over community', () => {
     expect(notificationRoute({ event_id: 'e1', group_id: 'g1', community_id: 'c1' })).toBe('/event/e1');
   });

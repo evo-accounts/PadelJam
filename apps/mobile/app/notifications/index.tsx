@@ -13,11 +13,12 @@ import { notificationRoute } from '@padel/utils';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, StyleSheet } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGoBack } from '@/lib/useGoBack';
-import { colors } from '../../theme';
+import { colors, space } from '../../theme';
 import {
+  Badge,
   Button,
   EmptyState,
   emptyIcon,
@@ -109,8 +110,12 @@ export default function NotificationsScreen() {
         <ListRow
           variant="card"
           title={t('partnerRequests')}
+          // UX-JEVT-12: the pending count and a chevron — this row opens the Partner Requests list.
           trailing={
-            <Text variant="hint" tone="muted">{t('pendingCount', { count: pending })}</Text>
+            <View style={styles.pendingTrailing}>
+              <Text variant="hint" tone="muted">{t('pendingCount', { count: pending })}</Text>
+              <Text variant="body" tone="muted">›</Text>
+            </View>
           }
           trailingLabel={t('pendingCount', { count: pending })}
           onPress={() => router.push('/notifications/partner-requests' as never)}
@@ -157,8 +162,12 @@ export default function NotificationsScreen() {
               subtitle={ctaError?.id === item.id ? ctaErrorMessage(ctaError.code) : undefined}
               subtitleTone={ctaError?.id === item.id ? 'destructive' : 'muted'}
               highlighted={!item.read_at}
+              // UX-JEVT-12: a partner invitation stands out in the list too, and opens the Partner
+              // Requests screen (notificationRoute, 0113) where it is answered.
               trailing={
-                CTA_TYPES.has(item.type) ? (
+                item.type === 'partner_request' ? (
+                  <Badge label={t('partnerRequestBadge')} tone="primary" />
+                ) : CTA_TYPES.has(item.type) ? (
                   item.cta_done ? (
                     <Text variant="hint" tone="success">{ctaDoneLabel(t, item.type)}</Text>
                   ) : (
@@ -181,7 +190,11 @@ export default function NotificationsScreen() {
               // CTA button carries its own label; repeating it here would announce
               // the word twice on a row that already reads as one element.
               trailingLabel={
-                CTA_TYPES.has(item.type) && item.cta_done ? ctaDoneLabel(t, item.type) : undefined
+                item.type === 'partner_request'
+                  ? t('partnerRequestBadge')
+                  : CTA_TYPES.has(item.type) && item.cta_done
+                    ? ctaDoneLabel(t, item.type)
+                    : undefined
               }
               onPress={() => onRowPress(item)}
             />
@@ -194,4 +207,5 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  pendingTrailing: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
 });
