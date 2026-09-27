@@ -43,6 +43,8 @@ export type CheckboxProps = {
   onChange: (next: boolean) => void;
   label?: string;
   error?: string | null;
+  /** Greys the box out and ignores presses (announced as disabled). */
+  disabled?: boolean;
   /** Needed when the box carries no `label` — it has no text to borrow a name from. */
   accessibilityLabel?: string;
   testID?: string;
@@ -65,6 +67,7 @@ export function Checkbox({
   label,
   error,
   accessibilityLabel,
+  disabled,
   testID,
   style,
 }: CheckboxProps) {
@@ -73,12 +76,13 @@ export function Checkbox({
   return (
     <View style={style}>
       <Pressable
-        style={styles.row}
+        style={[styles.row, disabled && styles.disabled]}
         onPress={() => onChange(!checked)}
+        disabled={disabled}
         accessibilityRole="checkbox"
         // What assistive tech and the E2E harness read to know the box is
         // ticked — the purple fill alone conveys nothing to either.
-        accessibilityState={{ checked }}
+        accessibilityState={{ checked, disabled: !!disabled }}
         accessibilityLabel={accessibilityLabel ?? label}
         hitSlop={HIT_SLOP}
         testID={testID}
@@ -119,5 +123,6 @@ const styles = StyleSheet.create({
   boxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
   boxInvalid: { borderColor: colors.destructive },
   label: { flex: 1 },
+  disabled: { opacity: 0.5 },
   message: { marginTop: space[1] },
 });

@@ -12,7 +12,7 @@ import {
   setManualCourtName,
   toggleCourt,
 } from './location';
-import { isManualVenue, visibleStepKeys } from '@padel/utils';
+import { COURTS_MAX, isManualVenue, visibleStepKeys } from '@padel/utils';
 
 const apply = (d: EventDraft, p: Partial<EventDraft>): EventDraft => ({ ...d, ...p });
 const venue = { id: 'v1', name: 'Club', address: 'Rua 1' };
@@ -81,6 +81,13 @@ describe('venue courts (UX-CEVT-07)', () => {
     expect([d.courtIds, d.numCourts]).toEqual([['a', 'b'], 2]);
     d = apply(d, toggleCourt(d, 'a'));
     expect([d.courtIds, d.numCourts]).toEqual([['b'], 1]);
+  });
+
+  it('refuses a court past COURTS_MAX but still unticks one', () => {
+    const ids = Array.from({ length: COURTS_MAX }, (_, i) => `c${i}`);
+    const d = { ...defaultDraft, courtIds: ids, numCourts: COURTS_MAX };
+    expect(toggleCourt(d, 'one-more')).toEqual({});
+    expect(toggleCourt(d, 'c0')).toEqual({ courtIds: ids.slice(1), numCourts: COURTS_MAX - 1 });
   });
 
   it('"Have not reserved yet" drops the selection and keeps the count', () => {

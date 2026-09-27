@@ -5,11 +5,14 @@ import {
   DURATION_MAX,
   DURATION_MIN,
   draftToCreateInput,
+  STANDBY_MAX,
+  STANDBY_MIN,
   timeOf,
   type StepKey,
   type WizardSeries,
 } from '@padel/utils';
 
+import { invitePayload } from './invite-logic';
 import type { WebWizardDraft } from './types';
 
 /**
@@ -165,17 +168,41 @@ export function dateErrors(d: WebWizardDraft, nowMs: number): string[] {
   return errors;
 }
 
+/**
+ * Preferences (UX-CEVT-09): the values a toggle opens are checked only while it is on — stand-by's
+ * extra spots (1–20), and the fee's amount, method and, for MB WAY, the number to pay.
+ */
+export function preferencesErrors(d: WebWizardDraft): string[] {
+  const errors: string[] = [];
+  if (d.allowStandby) {
+    const n = d.standbySpots;
+    if (!(n != null && Number.isInteger(n) && n >= STANDBY_MIN && n <= STANDBY_MAX)) errors.push('standbySpots');
+  }
+  const fee = d.entranceFee;
+  if (!fee.enabled) return errors;
+  if (!(fee.amount != null && fee.amount > 0)) errors.push('feeAmount');
+  if (!fee.method) errors.push('feeMethod');
+  if (fee.method === 'mba' && !(fee.mbaNumber ?? '').trim()) errors.push('feeMbaNumber');
+  return errors;
+}
+
+/** Details (UX-CEVT-10): the name is the one required field. */
+export const detailsErrors = (d: WebWizardDraft): string[] => (d.name.trim().length > 0 ? [] : ['name']);
+
 // --- Submit -------------------------------------------------------------------------------------
 
 /**
  * The create input for this draft: the shared builder, with a manual venue's blank name or
- * address sent as none, a registry venue's ticked courts, and a manual venue's court names.
+ * address sent as none, a registry venue's ticked courts, a manual venue's court names, and the
+ * invite half — platform players invited, guests confirmed; none on a path without Invite players
+ * (a public group event, decision 5) or on "I will invite later" (`later`).
  * The web has no geocoder, so the event's point is left empty.
  */
 export function webCreateInput(
   d: WebWizardDraft,
   thumbnailPath: string | undefined,
   courtNamePlaceholder: (number: number) => string,
+  opts: { later?: boolean } = {},
 ): Record<string, unknown> {
   const base = draftToCreateInput(
     {
@@ -189,5 +216,6 @@ export function webCreateInput(
     ...base,
     courtIds: d.venueId && d.courtIds && d.courtIds.length > 0 ? d.courtIds : undefined,
     manualCourtNames: manualCourtNamesPayload(d, courtNamePlaceholder),
+    ...invitePayload(d, opts),
   };
 }
