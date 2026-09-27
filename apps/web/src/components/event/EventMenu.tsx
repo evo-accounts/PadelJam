@@ -3,7 +3,8 @@
  * The event page's ⋯ menu (UX-JEVT-06): Share, Add to calendar, and — only for a player holding a
  * place — Leave event (UX-JEVT-05). Web's twin of mobile's ⋯ sheet, as a dropdown plus the dialogs
  * its Leave row opens:
- *   - within the 12h deadline, a confirmation that the player may lose their spot;
+ *   - within the 12h deadline, a confirmation that the player may lose their spot — on a team
+ *     event, that their partner loses theirs too and is told (decision 1);
  *   - after it, the organizer card with Chat (a 1:1 conversation, created on demand) instead of
  *     asking anything. No "Call" (decision 2).
  */
@@ -24,6 +25,7 @@ export type EventMenuDialog = 'leave' | 'leaveLocked' | null;
 
 export function EventMenu({
   canLeave,
+  teamLeave = false,
   leaveLocked,
   organizer,
   busy,
@@ -35,6 +37,8 @@ export function EventMenu({
   onChatOrganizer,
 }: {
   canLeave: boolean;
+  /** A paired team player: leaving takes the partner's spot too (decision 1). */
+  teamLeave?: boolean;
   leaveLocked: boolean;
   organizer: PersonLite | null;
   busy: boolean;
@@ -82,7 +86,7 @@ export function EventMenu({
         open={dialog === 'leave'}
         onClose={close}
         title={t('leaveConfirmTitle')}
-        body={t('leaveConfirmBody')}
+        body={t(teamLeave ? 'leaveTeamConfirmBody' : 'leaveConfirmBody')}
         confirmLabel={t('leaveConfirmCta')}
         cancelLabel={t('cancel')}
         destructive

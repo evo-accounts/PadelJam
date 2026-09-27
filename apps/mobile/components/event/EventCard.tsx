@@ -3,6 +3,7 @@ import { useT } from '@padel/i18n';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, palette } from '../../theme';
 import { Badge, Card } from '../../components/ui';
+import { eventWhen } from '../../lib/eventFormat';
 import { EventThumb } from './EventThumb';
 
 /** The element type of the group-events hook data: the `events` table Row. */
@@ -13,13 +14,6 @@ function cap(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-/** Format an ISO timestamp like `Sat 14 Jun · 18:00`. */
-function formatWhen(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' });
-  const time = d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return `${date} · ${time}`;
-}
 
 /**
  * A tappable card summarising one event: thumbnail (or an icon placeholder), name, format meta,
@@ -52,7 +46,7 @@ export function EventCard({
   orientation?: 'vertical' | 'horizontal';
   railWidth?: number;
 }) {
-  const { t } = useT('event');
+  const { t, i18n } = useT('event');
   const { t: td } = useT('discovery');
 
   const typeLabel = t(`type${cap(event.event_type)}Label`);
@@ -100,7 +94,7 @@ export function EventCard({
   );
   const when = (
     <Text style={styled.when} numberOfLines={1}>
-      {formatWhen(event.starts_at)}
+      {eventWhen(event.starts_at, i18n.language)}
     </Text>
   );
   const viewerBadge = viewerStatus ? (

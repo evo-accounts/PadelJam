@@ -22,8 +22,11 @@ export type BottomState =
   | { kind: 'invited' }
   /** Open for joining: Join, with the countdown on the left only inside its 24h window. */
   | { kind: 'open'; countdown: boolean }
-  /** Every spot taken: "No more spots available" + Join waiting list. */
-  | { kind: 'full' }
+  /**
+   * A Join would be queued: "No more spots available" (or, with spots free but others already
+   * waiting — `waitersAhead` — "Others are already waiting") + Join waiting list (decision 4).
+   */
+  | { kind: 'full'; waitersAhead: boolean }
   /** On the waiting list: a secondary "Leave waiting list". */
   | { kind: 'waiting_list' }
   /** On the waiting list AND a spot is free for the viewer: primary "Confirm spot" (decision 4). */
@@ -46,8 +49,13 @@ export type ViewerInput = {
   me: { status: string; is_standby: boolean } | null;
   hasInvite: boolean;
   joinClosed: boolean;
-  /** Confirmed + standby players have reached the total capacity (regular + standby spots). */
+  /**
+   * A Join by this viewer would land on the waiting list: `joinWaitlistReason(...) != null` — capacity
+   * reached, or someone already waiting ahead of them (decision 4).
+   */
   full: boolean;
+  /** `joinWaitlistReason(...) === 'waiters'`: spots are free, but others are already waiting. */
+  waitersAhead?: boolean;
   /** `showJoinCountdown(joinCutoffMs, now)`. */
   countdown: boolean;
   /** `canClaimWaitlistSpot(...)` — only read while the viewer is on the waiting list. */
@@ -79,7 +87,7 @@ export function bottomState(v: ViewerInput): BottomState {
   if (v.joinClosed) return { kind: 'closed' };
   if (v.hasInvite) return { kind: 'invited' };
   if (v.specification === 'team') return { kind: 'team_entry' };
-  if (v.full) return { kind: 'full' };
+  if (v.full) return { kind: 'full', waitersAhead: v.waitersAhead === true };
   return { kind: 'open', countdown: v.countdown };
 }
 
@@ -150,6 +158,46 @@ export function canClaimWaitlistSpot(
     return sameGender < Math.floor(capacity / 2);
   }
   return free >= 1;
+}
+
+/** Why a Join would land on the waiting list: no room, or room but others already waiting. */
+export type JoinWaitlistReason = 'capacity' | 'waiters' | null;
+
+/**
+ * Would a Join by a viewer who holds no spot land on the waiting list, and why? The client twin of
+ * the waiting-list branch of `join_event` / `choose_partner` (migration 0112), so the bottom area
+ * says "Join waiting list" exactly when the server would queue the viewer rather than confirm them:
+ *   every event — the confirmed players have reached the total capacity (regular + stand-by);
+ *   classic     — anyone is waiting (decision 4: newcomers queue behind waiters, `_has_waiters`);
+ *   mixed       — the viewer's half is full (`capacity`), or a waiter of the viewer's gender exists
+ *                 (a woman waiting cannot take a man's spot). With no known gender every waiter
+ *                 counts, as `_has_waiters(event, null)` does (the server answers gender_required);
+ *   team        — no room for two (`capacity`), or a waiting PAIR exists (only pairs claim). This
+ *                 branch mirrors the server, but `bottomState` routes team events to `team_entry`
+ *                 before it reads `full`, so the team answer does not change the bottom area today.
+ *
+ * Same RLS blind spot as `canClaimWaitlistSpot`: a hidden row is not counted, so the label can say
+ * "Join" when the server queues — the Join result then shows the waiting-list feedback.
+ */
+export function joinWaitlistReason(
+  specification: string,
+  capacity: number,
+  participants: readonly ClaimParticipant[],
+  viewerGender: string | null | undefined,
+): JoinWaitlistReason {
+  const confirmed = participants.filter((p) => p.status === 'confirmed');
+  const waiting = participants.filter((p) => p.status === 'waiting_list');
+  if (confirmed.length >= capacity) return 'capacity';
+  if (specification === 'team') {
+    if (confirmed.length + 2 > capacity) return 'capacity';
+    return waiting.some((p) => p.pair_participant_id != null) ? 'waiters' : null;
+  }
+  if (specification === 'mixed' && viewerGender != null) {
+    const sameGender = confirmed.filter((p) => genderOf(p) === viewerGender).length;
+    if (sameGender >= Math.floor(capacity / 2)) return 'capacity';
+    return waiting.some((p) => genderOf(p) === viewerGender) ? 'waiters' : null;
+  }
+  return waiting.length > 0 ? 'waiters' : null;
 }
 
 function genderOf(p: ClaimParticipant): string | null {

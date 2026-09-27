@@ -31,6 +31,7 @@ import {
   canClaimWaitlistSpot,
   canLeave,
   eventPlace,
+  joinWaitlistReason,
   participationState,
   showJoinCountdown,
 } from '@padel/utils';
@@ -48,6 +49,7 @@ import {
   useJoinEvent,
   useLeaveEvent,
   useLeaveWaitingList,
+  useMyProfile,
 } from '@padel/api';
 import { EventCTA } from '@/components/event/EventCTA';
 import {
@@ -88,6 +90,8 @@ export default function EventDetailPage() {
   const participants = useEventParticipants(id);
   const invitations = useEventInvitations(id);
   const result = useEventResultSummary(id);
+  // Only a mixed event reads it: the viewer's own gender decides whose waiters queue ahead of them.
+  const myProfile = useMyProfile();
 
   const joinEvent = useJoinEvent();
   const leaveEvent = useLeaveEvent();
@@ -107,6 +111,7 @@ export default function EventDetailPage() {
   const [teamOpen, setTeamOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [leaveInterestedOpen, setLeaveInterestedOpen] = useState(false);
+  const [leavePairWaitlistOpen, setLeavePairWaitlistOpen] = useState(false);
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
   // A failed request is not "no access": RLS answers a hidden event with no row (data === null),
@@ -136,6 +141,14 @@ export default function EventDetailPage() {
   // it is offered it and the first to confirm wins. Mirrors the server's _waiter_can_claim.
   const claimable =
     status === 'scheduled' && !joinClosed && canClaimWaitlistSpot(e.specification, ps.totalCapacity, parts, me);
+  // Decision 4: while anyone who could take the spot is waiting, a newcomer's Join queues behind
+  // them — so the bottom area says "Join waiting list" then too, not only when the event is full.
+  // A mixed event needs the viewer's gender: until the profile arrives, answer nothing rather than
+  // a wrong "Join waiting list" from counting every waiter.
+  const waitlistReason =
+    e.specification === 'mixed' && myProfile.isLoading
+      ? null
+      : joinWaitlistReason(e.specification, ps.totalCapacity, parts, myProfile.data?.gender);
   const bottom = bottomState({
     status,
     specification: e.specification,
@@ -143,7 +156,8 @@ export default function EventDetailPage() {
     me,
     hasInvite: myInvite != null,
     joinClosed,
-    full: ps.totalIn >= ps.totalCapacity,
+    full: waitlistReason != null,
+    waitersAhead: waitlistReason === 'waiters',
     countdown: showJoinCountdown(joinCutoffMs, nowMs),
     claimable,
   });
@@ -196,7 +210,9 @@ export default function EventDetailPage() {
   const onJoin = () =>
     run(async () => {
       const r = await joinEvent.mutateAsync({ eventId: id, groupId });
+      // A Join the server queued (full, or others waiting) says so rather than nothing.
       if (r === 'confirmed') setJoinedOpen(true);
+      else if (r === 'waiting_list') toast(t('joinedWaitlistToast'));
     });
   // A team invitation is answered by setting a team (B9): the chosen path does the confirming.
   const onAccept = () => {
@@ -207,6 +223,7 @@ export default function EventDetailPage() {
     void run(async () => {
       const r = await acceptInvite.mutateAsync({ eventId: id, groupId });
       if (r === 'confirmed') setJoinedOpen(true);
+      else if (r === 'waiting_list') toast(t('joinedWaitlistToast'));
     });
   };
   const onTeamChoice = (c: TeamChoice) =>
@@ -221,7 +238,12 @@ export default function EventDetailPage() {
     setLeaveInterestedOpen(true);
   };
   const onDecline = () => run(() => declineInvite.mutateAsync());
-  const onLeaveWaitlist = () => run(() => leaveWaitlist.mutateAsync());
+  // A waiting PAIR leaves together (leave_waiting_list drops the partner, 0112): confirm first.
+  const leaveWaitlistNow = () => run(() => leaveWaitlist.mutateAsync());
+  const onLeaveWaitlist = () => {
+    if (me?.pair_participant_id != null) return setLeavePairWaitlistOpen(true);
+    void leaveWaitlistNow();
+  };
   // spot_taken (someone confirmed first), gender_full (mixed: the free spot is in the other half),
   // not_on_waiting_list and event_closed come back as the error line via `run`. On a claim,
   // use_team_join means the viewer's waiting partner is gone (only a pair claims a team spot), so
@@ -298,6 +320,7 @@ export default function EventDetailPage() {
         <BackButton fallbackHref="/app/events" label={t('back')} />
         <EventMenu
           canLeave={leaveOffered}
+          teamLeave={isTeam && me?.status === 'confirmed'}
           leaveLocked={leaveLocked}
           organizer={organizer}
           busy={busy}
@@ -398,7 +421,7 @@ export default function EventDetailPage() {
         busy={busy}
         error={ctaError}
         onJoin={() => void onJoin()}
-        onLeaveWaitlist={() => void onLeaveWaitlist()}
+        onLeaveWaitlist={onLeaveWaitlist}
         onClaim={() => void onClaim()}
         onAccept={() => void onAccept()}
         onDecline={() => void onDecline()}
@@ -423,6 +446,20 @@ export default function EventDetailPage() {
         destructive
         busy={busy}
         onConfirm={onLeave}
+      />
+      <GroupConfirm
+        open={leavePairWaitlistOpen}
+        onClose={() => setLeavePairWaitlistOpen(false)}
+        title={t('leaveWaitlistCta')}
+        body={t('leaveTeamConfirmBody')}
+        confirmLabel={t('leaveWaitlistCta')}
+        cancelLabel={t('cancel')}
+        destructive
+        busy={busy}
+        onConfirm={() => {
+          setLeavePairWaitlistOpen(false);
+          void leaveWaitlistNow();
+        }}
       />
 
       <JoinedDialog
