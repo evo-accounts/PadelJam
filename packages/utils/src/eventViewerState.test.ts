@@ -5,7 +5,6 @@ import {
   bottomState,
   canClaimWaitlistSpot,
   canLeave,
-  joinGoesToWaitlist,
   joinWaitlistReason,
   type ClaimParticipant,
   type ViewerInput,
@@ -229,7 +228,7 @@ describe('canClaimWaitlistSpot', () => {
   });
 });
 
-describe('joinGoesToWaitlist (decision 4: newcomers queue behind waiters)', () => {
+describe('joinWaitlistReason (decision 4: newcomers queue behind waiters)', () => {
   const confirmed = (id: string, gender: string | null = null): ClaimParticipant => ({
     id,
     status: 'confirmed',
@@ -244,18 +243,18 @@ describe('joinGoesToWaitlist (decision 4: newcomers queue behind waiters)', () =
   const three = [confirmed('a'), confirmed('b'), confirmed('c')];
 
   it('is false on an event with room and nobody waiting', () => {
-    expect(joinGoesToWaitlist('classic', 4, three, null)).toBe(false);
-    expect(joinGoesToWaitlist('classic', 4, [], null)).toBe(false);
+    expect(joinWaitlistReason('classic', 4, three, null)).toBeNull();
+    expect(joinWaitlistReason('classic', 4, [], null)).toBeNull();
   });
 
   it('is true once the confirmed players reach the total capacity', () => {
-    expect(joinGoesToWaitlist('classic', 4, [...three, confirmed('d')], null)).toBe(true);
+    expect(joinWaitlistReason('classic', 4, [...three, confirmed('d')], null)).not.toBeNull();
     // Stand-by spots are part of the capacity passed in.
-    expect(joinGoesToWaitlist('classic', 6, [...three, confirmed('d')], null)).toBe(false);
+    expect(joinWaitlistReason('classic', 6, [...three, confirmed('d')], null)).toBeNull();
   });
 
   it('is true while anyone waits, even with a spot free (the browser-pass bug)', () => {
-    expect(joinGoesToWaitlist('classic', 4, [...three, waiter('w')], null)).toBe(true);
+    expect(joinWaitlistReason('classic', 4, [...three, waiter('w')], null)).not.toBeNull();
   });
 
   it('names the reason: capacity first, then waiters ahead', () => {
@@ -269,46 +268,46 @@ describe('joinGoesToWaitlist (decision 4: newcomers queue behind waiters)', () =
   it('ignores rows that hold no place and wait for nothing', () => {
     const invited: ClaimParticipant = { id: 'i', status: 'invited' };
     const interested: ClaimParticipant = { id: 'n', status: 'interested' };
-    expect(joinGoesToWaitlist('classic', 4, [...three, invited, interested], null)).toBe(false);
+    expect(joinWaitlistReason('classic', 4, [...three, invited, interested], null)).toBeNull();
   });
 
   describe('mixed', () => {
     it('counts only waiters of the viewer\'s gender', () => {
       const parts = [confirmed('m1', 'male'), confirmed('w1', 'female'), waiter('w2', 'female')];
-      expect(joinGoesToWaitlist('mixed', 8, parts, 'male')).toBe(false);
-      expect(joinGoesToWaitlist('mixed', 8, parts, 'female')).toBe(true);
+      expect(joinWaitlistReason('mixed', 8, parts, 'male')).toBeNull();
+      expect(joinWaitlistReason('mixed', 8, parts, 'female')).not.toBeNull();
     });
 
     it('counts a guest waiter by their guest gender', () => {
       const guest: ClaimParticipant = { id: 'g', status: 'waiting_list', guest_gender: 'male', profiles: null };
-      expect(joinGoesToWaitlist('mixed', 8, [guest], 'male')).toBe(true);
+      expect(joinWaitlistReason('mixed', 8, [guest], 'male')).not.toBeNull();
     });
 
     it('is true when the viewer\'s half is full although the event is not', () => {
       const men = [confirmed('m1', 'male'), confirmed('m2', 'male')];
-      expect(joinGoesToWaitlist('mixed', 4, men, 'male')).toBe(true);
-      expect(joinGoesToWaitlist('mixed', 4, men, 'female')).toBe(false);
+      expect(joinWaitlistReason('mixed', 4, men, 'male')).not.toBeNull();
+      expect(joinWaitlistReason('mixed', 4, men, 'female')).toBeNull();
     });
 
     it('counts every waiter when the viewer\'s gender is unknown', () => {
-      expect(joinGoesToWaitlist('mixed', 8, [waiter('w', 'female')], null)).toBe(true);
-      expect(joinGoesToWaitlist('mixed', 8, [confirmed('m1', 'male')], undefined)).toBe(false);
+      expect(joinWaitlistReason('mixed', 8, [waiter('w', 'female')], null)).not.toBeNull();
+      expect(joinWaitlistReason('mixed', 8, [confirmed('m1', 'male')], undefined)).toBeNull();
     });
   });
 
   describe('team', () => {
     it('is true when a waiting pair exists', () => {
       const parts = [confirmed('x'), waiter('a', null, 'b'), waiter('b', null, 'a')];
-      expect(joinGoesToWaitlist('team', 8, parts, null)).toBe(true);
+      expect(joinWaitlistReason('team', 8, parts, null)).not.toBeNull();
     });
 
     it('ignores a lone waiter (only pairs can claim a team spot)', () => {
-      expect(joinGoesToWaitlist('team', 8, [confirmed('x'), waiter('l')], null)).toBe(false);
+      expect(joinWaitlistReason('team', 8, [confirmed('x'), waiter('l')], null)).toBeNull();
     });
 
     it('is true when there is no room for two', () => {
-      expect(joinGoesToWaitlist('team', 4, three, null)).toBe(true);
-      expect(joinGoesToWaitlist('team', 4, [confirmed('x'), confirmed('y')], null)).toBe(false);
+      expect(joinWaitlistReason('team', 4, three, null)).not.toBeNull();
+      expect(joinWaitlistReason('team', 4, [confirmed('x'), confirmed('y')], null)).toBeNull();
     });
   });
 });

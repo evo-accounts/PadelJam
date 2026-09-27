@@ -125,7 +125,7 @@ export default function EventDetailScreen() {
   const { data: teamsData } = useEventTeams(id);
   const { data: series } = useEventSeries(id);
   // Only a mixed event reads it: the viewer's own gender decides whose waiters queue ahead of them.
-  const { data: myProfile } = useMyProfile();
+  const { data: myProfile, isLoading: myProfileLoading } = useMyProfile();
 
   const joinEvent = useJoinEvent();
   const leaveEvent = useLeaveEvent();
@@ -259,7 +259,12 @@ export default function EventDetailScreen() {
     canClaimWaitlistSpot(event.specification, ps.totalCapacity, participants, me);
   // Decision 4: while anyone who could take the spot is waiting, a newcomer's Join queues behind
   // them — so the bottom area says "Join waiting list" then too, not only when the event is full.
-  const waitlistReason = joinWaitlistReason(event.specification, ps.totalCapacity, participants, myProfile?.gender);
+  // A mixed event needs the viewer's gender: until the profile arrives, answer nothing rather than
+  // a wrong "Join waiting list" from counting every waiter.
+  const waitlistReason =
+    event.specification === 'mixed' && myProfileLoading
+      ? null
+      : joinWaitlistReason(event.specification, ps.totalCapacity, participants, myProfile?.gender);
   const bottom = bottomState({
     status,
     specification: event.specification,
@@ -312,7 +317,19 @@ export default function EventDetailScreen() {
     });
   };
   const onDecline = () => run(() => declineInvitation.mutateAsync());
-  const onLeaveWaitlist = () => run(() => leaveWaitingList.mutateAsync());
+  // A waiting PAIR leaves together (leave_waiting_list drops the partner, 0112): confirm first.
+  const onLeaveWaitlist = async () => {
+    if (me?.pair_participant_id != null) {
+      const ok = await confirm({
+        title: t('leaveWaitlistCta'),
+        body: t('leaveTeamConfirmBody'),
+        confirmLabel: t('leaveWaitlistCta'),
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    await run(() => leaveWaitingList.mutateAsync());
+  };
   // spot_taken (someone confirmed first), gender_full (mixed: the free spot is in the other half)
   // and use_team_join (a team waiter whose pair broke up) come back as banners via `fail`.
   // On a claim, use_team_join means the viewer's waiting partner is gone (only a pair claims a

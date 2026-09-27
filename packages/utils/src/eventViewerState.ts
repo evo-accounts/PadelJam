@@ -50,7 +50,7 @@ export type ViewerInput = {
   hasInvite: boolean;
   joinClosed: boolean;
   /**
-   * A Join by this viewer would land on the waiting list: `joinGoesToWaitlist(...)` — capacity
+   * A Join by this viewer would land on the waiting list: `joinWaitlistReason(...) != null` — capacity
    * reached, or someone already waiting ahead of them (decision 4).
    */
   full: boolean;
@@ -172,7 +172,9 @@ export type JoinWaitlistReason = 'capacity' | 'waiters' | null;
  *   mixed       — the viewer's half is full (`capacity`), or a waiter of the viewer's gender exists
  *                 (a woman waiting cannot take a man's spot). With no known gender every waiter
  *                 counts, as `_has_waiters(event, null)` does (the server answers gender_required);
- *   team        — no room for two (`capacity`), or a waiting PAIR exists (only pairs claim).
+ *   team        — no room for two (`capacity`), or a waiting PAIR exists (only pairs claim). This
+ *                 branch mirrors the server, but `bottomState` routes team events to `team_entry`
+ *                 before it reads `full`, so the team answer does not change the bottom area today.
  *
  * Same RLS blind spot as `canClaimWaitlistSpot`: a hidden row is not counted, so the label can say
  * "Join" when the server queues — the Join result then shows the waiting-list feedback.
@@ -196,16 +198,6 @@ export function joinWaitlistReason(
     return waiting.some((p) => genderOf(p) === viewerGender) ? 'waiters' : null;
   }
   return waiting.length > 0 ? 'waiters' : null;
-}
-
-/** `joinWaitlistReason(...) != null` — the `full` input of `bottomState`. */
-export function joinGoesToWaitlist(
-  specification: string,
-  capacity: number,
-  participants: readonly ClaimParticipant[],
-  viewerGender: string | null | undefined,
-): boolean {
-  return joinWaitlistReason(specification, capacity, participants, viewerGender) != null;
 }
 
 function genderOf(p: ClaimParticipant): string | null {
