@@ -116,7 +116,7 @@ parts), web as W1–W5 (the web split differs from the plan's W1–W4 below).
 | W3a | Web events tabs, player list, waiting-list claim | #225 | merged |
 | W3b | Web team events | #226 | merged |
 | W4 | Web wizard steps 5–8 | #227 | merged |
-| W5 | Web wizard steps 9–10 | #228 | open (merges next) |
+| W5 | Web wizard steps 9–10 | #228 | merged |
 | 8 | Requirements amended (`create-event.md` v1.3, `join-manage-event.md` v1.4) + this status and hand-off | #223 | open |
 
 **Decisions taken during implementation** (documented in the Requirements):
@@ -254,8 +254,9 @@ it. Cut the build before (or together with) the 0115 gate above.
 
 ## Open items
 
-- **Web browser pass** — a combined manual browser pass over #214, #225, #226 and #228 has not been done yet;
-  do it once #228 merges.
+- **Web browser pass** — #227 and #228 were walked in a browser (the #228 walk found and fixed web event-thumbnail
+  uploads being refused by storage RLS — `upsert: true` without a select policy — which had failed silently on main
+  and on hosted); #214, #225 and #226 still need a manual pass.
 - **`profiles.email` exposure** — 0115 hides `phone` only; `email` is still readable by other signed-in users.
   Follow-up offered to the product owner.
 - **Client UPDATE on `phone` / `email`** — the column grants still let a client update those columns on its own
