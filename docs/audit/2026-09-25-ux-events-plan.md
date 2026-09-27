@@ -105,6 +105,7 @@ parts), web as W1–W5 (the web split differs from the plan's W1–W4 below).
 | 0114 | Venue registry + super-admin (`platform_admins`, `is_super_admin()`, `venue-images`, soft delete) — **0116 folded in**; ships with the web super-admin venues screens | #212 | merged |
 | 0115 | Phone privacy — column grants on `profiles` exclude `phone` (D2, B11) | #209 | merged |
 | 0117 | Recurrence scheduler — hourly `pg_cron` `materialize-due-occurrences`, Lisbon wall-clock anchoring, duplicate is a one-off (D10, B15) | #217 | merged |
+| 0118 | Browser-pass fixes — withdrawn partner request removes its unread notification, no duplicate `partner_request`; Join shows the waiting-list state while others wait; team leave copy | #229 | merged |
 | M1 | Mobile wizard shell + steps 1–4 (UX-CEVT-01..05, B14, B16) | #208 | merged |
 | M2 | Mobile steps 5–8 — location, courts, date (UX-CEVT-06..08) | #218 | merged |
 | M3 | Mobile steps 9–10 — preferences, details, invite + guests (UX-CEVT-09..11) | #221 | merged |
@@ -117,7 +118,7 @@ parts), web as W1–W5 (the web split differs from the plan's W1–W4 below).
 | W3b | Web team events | #226 | merged |
 | W4 | Web wizard steps 5–8 | #227 | merged |
 | W5 | Web wizard steps 9–10 | #228 | merged |
-| 8 | Requirements amended (`create-event.md` v1.3, `join-manage-event.md` v1.4) + this status and hand-off | #223 | open |
+| 8 | Requirements amended (`create-event.md` v1.3, `join-manage-event.md` v1.4) + this status and hand-off | #223 | merged |
 
 **Decisions taken during implementation** (documented in the Requirements):
 
@@ -242,6 +243,8 @@ and records each one in `supabase_migrations.schema_migrations` after it succeed
    If 0117 was pasted before `pg_cron` was on, it only printed a NOTICE: enable the extension and re-run the
    file's final `cron.schedule` block. **After 0117, verify the cron job** with the query above (one row,
    schedule `5 * * * *`); optionally run `select public.materialize_due_occurrences();` once.
+7. **0118** `0118_partner_request_notification_withdraw.sql` — after 0117. Redefines `request_partner` and the
+   partner-request notification trigger function from 0113; ends with a self-check.
 
 Record each after it succeeds:
 ```sql
@@ -256,7 +259,8 @@ it. Cut the build before (or together with) the 0115 gate above.
 
 - **Web browser pass** — #227 and #228 were walked in a browser (the #228 walk found and fixed web event-thumbnail
   uploads being refused by storage RLS — `upsert: true` without a select policy — which had failed silently on main
-  and on hosted); #214, #225 and #226 still need a manual pass.
+  and on hosted); #214, #225 and #226 were walked on 2026-09-27 — no blocking bugs; its four findings shipped in #229
+  (0118). Not exercisable locally: opening the organizer chat (local Stream token), the native share sheet.
 - **`profiles.email` exposure** — 0115 hides `phone` only; `email` is still readable by other signed-in users.
   Follow-up offered to the product owner.
 - **Client UPDATE on `phone` / `email`** — the column grants still let a client update those columns on its own
