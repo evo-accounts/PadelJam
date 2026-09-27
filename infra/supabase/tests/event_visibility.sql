@@ -3,6 +3,9 @@
 -- visible to a group member, hidden from a community member not in the group. A private event's
 -- participants/matches are invisible to an outsider (count 0).
 -- 'PT001' = "expected behaviour did not hold" sentinel (distinct from RLS's silent row-filtering).
+-- The community is request_to_join on purpose: since 0100 a PUBLIC community's open groups and
+-- non-private group events are readable by any signed-in user, which would bypass the group-member
+-- branch tested here. That public branch is covered by public-community-read.test.mjs.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
   ('f2000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','evown@x.com'),
@@ -17,7 +20,7 @@ insert into profiles (id, email, phone, full_name) values
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"f2000001-0000-0000-0000-000000000001","role":"authenticated"}';
-select create_community_with_personal_tenant('EVisC','club','PT','public') as cid \gset
+select create_community_with_personal_tenant('EVisC','club','PT','request_to_join') as cid \gset
 reset role;
 insert into community_subscriptions (community_id, plan_id)
   select id, 'basic' from communities where name='EVisC' order by created_at desc limit 1
