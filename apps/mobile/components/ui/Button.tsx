@@ -86,7 +86,10 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         {
-          minHeight: metrics.height,
+          // `height`, not `minHeight`: the sizes are fixed in the design, and a
+          // row's default `alignItems: stretch` otherwise grows an xs button to
+          // the height of its tallest sibling. The label is one line, so it fits.
+          height: metrics.height,
           paddingHorizontal: metrics.paddingX,
           gap: metrics.gap,
           borderRadius: metrics.radius,
