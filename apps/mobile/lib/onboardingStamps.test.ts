@@ -4,38 +4,33 @@ import type { TypedClient } from '@padel/auth';
 import { markNotificationsPrompted, markOnboarded, onStampFailure, stampWithRetry } from './onboardingStamps';
 
 function fakeDb(rpcError: { code: string } | null) {
-  const eq = vi.fn(async () => ({ error: null }));
-  const update = vi.fn(() => ({ eq }));
-  const from = vi.fn(() => ({ update }));
+  const from = vi.fn();
   const rpc = vi.fn(async () => ({ data: rpcError ? null : '2026-09-28T12:00:00Z', error: rpcError }));
-  return { db: { rpc, from } as unknown as TypedClient, rpc, from, update, eq };
+  return { db: { rpc, from } as unknown as TypedClient, rpc, from };
 }
 
 describe('onboarding stamps (migration 0120)', () => {
   it('stamps through the server RPC and never writes the column itself', async () => {
     const f = fakeDb(null);
-    expect(await markOnboarded(f.db, 'u1')).toEqual({ error: null });
+    expect(await markOnboarded(f.db)).toEqual({ error: null });
     expect(f.rpc).toHaveBeenCalledWith('mark_onboarded');
     expect(f.from).not.toHaveBeenCalled();
 
     const g = fakeDb(null);
-    await markNotificationsPrompted(g.db, 'u1');
+    await markNotificationsPrompted(g.db);
     expect(g.rpc).toHaveBeenCalledWith('mark_notifications_prompted');
     expect(g.from).not.toHaveBeenCalled();
   });
 
-  it('falls back to the direct write only while the RPC does not exist yet (PGRST202)', async () => {
-    const f = fakeDb({ code: 'PGRST202' });
-    expect(await markOnboarded(f.db, 'u1')).toEqual({ error: null });
-    expect(f.from).toHaveBeenCalledWith('profiles');
-    expect(f.update).toHaveBeenCalledWith({ onboarded_at: expect.any(String) });
-    expect(f.eq).toHaveBeenCalledWith('id', 'u1');
-  });
+  it('surfaces an RPC error (including a missing function) without writing the column', async () => {
+    const missing = { code: 'PGRST202' };
+    const m = fakeDb(missing);
+    expect(await markOnboarded(m.db)).toEqual({ error: missing });
+    expect(m.from).not.toHaveBeenCalled();
 
-  it('surfaces any other RPC error without a fallback write', async () => {
     const err = { code: '42501' };
     const f = fakeDb(err);
-    expect(await markNotificationsPrompted(f.db, 'u1')).toEqual({ error: err });
+    expect(await markNotificationsPrompted(f.db)).toEqual({ error: err });
     expect(f.from).not.toHaveBeenCalled();
   });
 });
@@ -48,7 +43,7 @@ describe('stampWithRetry', () => {
     const mark = vi.fn(async () => ({ error: null }));
     expect(await stampWithRetry(session('u1'), mark)).toBe(true);
     expect(mark).toHaveBeenCalledTimes(1);
-    expect(mark).toHaveBeenCalledWith(expect.anything(), 'u1');
+    expect(mark).toHaveBeenCalledWith(expect.anything());
   });
 
   it('retries once, and reports the second result', async () => {
