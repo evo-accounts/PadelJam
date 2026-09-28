@@ -16,7 +16,7 @@
 export type BottomState =
   /** in_progress / completed: the live screen or results. */
   | { kind: 'live'; completed: boolean }
-  /** The organizer's own actions (Manage, Start, Join as a player) — UX-MEVT-01, unchanged. */
+  /** The organizer's own actions: Start event from the scheduled time and their player states (UX-MEVT-01). */
   | { kind: 'organizer' }
   /** A pending invitation: inviter + Decline / Accept (UX-JEVT-03). */
   | { kind: 'invited' }

@@ -1,8 +1,11 @@
+import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
 import { backGesture, clearText, scrollUntilVisible, tap, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
+import { CONFIG } from '../driver/config';
+import { screenshot } from '../driver/sim';
 import { loginAs, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
@@ -15,6 +18,9 @@ import { manifest, resetDb } from '../fixtures/seed';
  * asserted in the database rather than from the screen alone.
  */
 describe('06 event manage (organizer)', () => {
+  // Review captures of the dashboard and its sheets (UX-MEVT-03..20), like suite 00's gallery.
+  const shot = (file: string) => screenshot(join(CONFIG.artifactsDir, 'manage-event', file));
+
   beforeAll(async () => {
     await resetDb('full');
     await freshInstall();
@@ -42,6 +48,7 @@ describe('06 event manage (organizer)', () => {
     // Format / modality / group are read-only chips (UX-MEVT-09); the cards carry their values.
     const name = query(await snapshot(), { id: 'manage-name' });
     expect(name?.AXLabel ?? '', 'the Event name card names the event').toMatch(/weekly friday social/i);
+    await shot('01-dashboard.png');
     await tap({ id: 'manage-confirmed' });
     await expectVisible({ text: /^manage players$/i }, { timeout: 20_000 });
     // The roster must actually render names (regression guard for the PGRST201 embed bug that
@@ -57,6 +64,7 @@ describe('06 event manage (organizer)', () => {
     // Still on E5's dashboard.
     await tap({ id: 'manage-name' });
     await expectVisible({ id: 'sheet-general-save' }, { timeout: 15_000 });
+    await shot('02-general-info.png');
     await clearText({ id: 'general-name' }, 40);
     await typeText({ id: 'general-name' }, 'Weekly Friday Social Plus');
     await tap({ id: 'sheet-general-save' });
@@ -83,6 +91,7 @@ describe('06 event manage (organizer)', () => {
     await scrollUntilVisible({ id: 'manage-duplicate' }, { maxSwipes: 10 });
     await tap({ id: 'manage-duplicate' });
     await expectVisible({ id: 'sheet-duplicate-save' }, { timeout: 15_000 });
+    await shot('03-duplicate.png');
     await tap({ id: 'sheet-duplicate-save' });
     const rows = await pollUntil(
       () => select('events', `organizer_id=eq.${m.users.alex}&select=id,name,starts_at`),
@@ -103,6 +112,7 @@ describe('06 event manage (organizer)', () => {
     await scrollUntilVisible({ id: 'manage-cancel' }, { maxSwipes: 10 });
     await tap({ id: 'manage-cancel' });
     await expectVisible({ text: /^cancel event$/i, type: 'Heading' }, { timeout: 15_000 });
+    await shot('04-cancel.png');
     await tap({ id: 'sheet-cancel-save' });
     await pollUntil(
       () => select('events', `id=eq.${m.events.e6}&select=status`),
