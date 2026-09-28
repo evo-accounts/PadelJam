@@ -58,7 +58,7 @@ export function RosterRow({
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm">⋯</Button>
+          <Button variant="tertiary" size="sm">⋯</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {p.status !== 'confirmed' ? (

@@ -68,4 +68,7 @@ const styles = StyleSheet.create({
   label: type.label,
   caption: type.caption,
   hint: type.hint,
+  buttonXs: type.buttonXs,
+  button: type.button,
+  buttonLg: type.buttonLg,
 });

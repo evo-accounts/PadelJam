@@ -90,7 +90,7 @@ export function TeamSetup({ eventId, canStart, starting, onStart }: TeamSetupPro
         </Avatar>
         <span className="min-w-0 flex-1 truncate text-sm">{name}</span>
         <Button
-          variant="ghost"
+          variant="tertiary"
           size="sm"
           onClick={() => run(() => removeFromTeam.mutateAsync({ participantId: player.id, targetName: name }))}
         >
@@ -105,7 +105,7 @@ export function TeamSetup({ eventId, canStart, starting, onStart }: TeamSetupPro
     return (
       <Dialog open={openSlot === key} onOpenChange={(o) => setOpenSlot(o ? key : null)}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="w-full justify-start text-muted-foreground">
+          <Button variant="secondary" size="sm" className="w-full justify-start text-muted-foreground">
             {t('teamSlotEmpty')}
           </Button>
         </DialogTrigger>

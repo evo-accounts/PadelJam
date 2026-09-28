@@ -83,7 +83,7 @@ export default function ManageMembersPage() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label={t('manage')}>
+                  <Button variant="tertiary" size="icon" aria-label={t('manage')}>
                     ⋮
                   </Button>
                 </DropdownMenuTrigger>

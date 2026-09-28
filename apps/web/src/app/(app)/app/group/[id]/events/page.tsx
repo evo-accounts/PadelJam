@@ -54,7 +54,7 @@ export default function GroupEventsPage() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
       <GroupPageTitle title={t('eventsTitle')} fallbackHref={`/app/group/${id}`} subtitle={group?.name} />
       {mayCreate && group ? (
-        <Button asChild variant="outline" className="self-start" data-testid="group-events-create">
+        <Button asChild variant="secondary" className="self-start" data-testid="group-events-create">
           <Link href={`/app/community/${group.community_id}/event-create?groupId=${id}`}>
             {t('groupEventsEmptyCta')}
           </Link>

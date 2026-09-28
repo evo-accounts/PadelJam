@@ -32,7 +32,7 @@ function EventList({ filter, includePast }: { filter: MyEventsFilter; includePas
     return (
       <div className="flex flex-col items-start gap-2" role="alert" data-testid={`events-error-${filter}`}>
         <p className="text-sm text-muted-foreground">{t('loadError')}</p>
-        <Button variant="outline" size="sm" onClick={() => void q.refetch()}>
+        <Button variant="secondary" size="sm" onClick={() => void q.refetch()}>
           {t('retryCta')}
         </Button>
       </div>
@@ -53,7 +53,7 @@ function EventList({ filter, includePast }: { filter: MyEventsFilter; includePas
       ))}
       {q.hasNextPage ? (
         <Button
-          variant="outline"
+          variant="secondary"
           className="self-center"
           disabled={q.isFetchingNextPage}
           onClick={() => q.fetchNextPage()}

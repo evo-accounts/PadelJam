@@ -158,7 +158,7 @@ export function EventLocationFields({
 
       <Button
         label={geocoding ? t('locating') : t('findLocationCta')}
-        variant="outline"
+        variant="secondary"
         fullWidth
         loading={geocoding}
         onPress={() => void runGeocode(geocodeQuery({ name: draft.manualLocationName, address: draft.manualLocationAddress }))}
@@ -167,7 +167,7 @@ export function EventLocationFields({
 
       <Button
         label={locating ? t('locating') : t('useMyLocation')}
-        variant="outline"
+        variant="secondary"
         fullWidth
         loading={locating}
         onPress={useMyLocation}

@@ -76,7 +76,7 @@ function VenueList({ draft, patch, advance, focusOnMount }: ViewProps) {
     body = (
       <div role="alert" className="flex flex-col items-start gap-2 rounded-lg border p-4" data-testid="venue-list-error">
         <p className="text-sm font-medium">{t('venueListErrorTitle')}</p>
-        <Button type="button" variant="outline" size="sm" onClick={() => void venues.refetch()}>
+        <Button type="button" variant="secondary" size="sm" onClick={() => void venues.refetch()}>
           {t('venueRetry')}
         </Button>
       </div>
@@ -117,7 +117,7 @@ function VenueList({ draft, patch, advance, focusOnMount }: ViewProps) {
         {venues.hasNextPage ? (
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             disabled={venues.isFetchingNextPage}
             aria-busy={venues.isFetchingNextPage || undefined}
             onClick={() => void venues.fetchNextPage()}
@@ -150,7 +150,7 @@ function VenueList({ draft, patch, advance, focusOnMount }: ViewProps) {
       </div>
       <Button
         type="button"
-        variant="ghost"
+        variant="tertiary"
         className="-mt-2 self-start"
         onClick={manual}
         data-testid="venue-add-manually"
@@ -233,7 +233,7 @@ function ManualVenueForm({ draft, patch, flagged, focusOnMount }: ViewProps) {
 
       <Button
         type="button"
-        variant="ghost"
+        variant="tertiary"
         className="self-start"
         onClick={() => patch(backToVenueList())}
         data-testid="venue-back-to-list"
@@ -251,7 +251,7 @@ export function NoLocationFooter({ draft, advance }: StepProps) {
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="secondary"
       className="w-full"
       onClick={() => advance(noLocation())}
       data-testid="venue-no-location"

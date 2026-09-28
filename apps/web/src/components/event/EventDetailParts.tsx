@@ -285,7 +285,7 @@ export function JoinedDialog({
           <Button onClick={onCalendar} data-testid="event-joined-calendar">
             {t('addToCalendarAction')}
           </Button>
-          <Button variant="outline" onClick={onClose} data-testid="event-joined-close">
+          <Button variant="secondary" onClick={onClose} data-testid="event-joined-close">
             {t('closeCta')}
           </Button>
         </div>
@@ -303,7 +303,7 @@ export function EventNoAccess() {
   return (
     <div className="flex min-h-[70vh] flex-col" data-testid="event-no-access">
       <div className="flex justify-end px-4 py-3">
-        <Button asChild variant="ghost" size="icon" aria-label={t('closeCta')}>
+        <Button asChild variant="tertiary" size="icon" aria-label={t('closeCta')}>
           <Link href="/app">
             <X />
           </Link>

@@ -42,7 +42,7 @@ export function GroupConfirm({
         <AlertDialogFooter>
           {cancelLabel ? <AlertDialogCancel disabled={busy}>{cancelLabel}</AlertDialogCancel> : null}
           <AlertDialogAction
-            variant={destructive ? 'destructive' : 'default'}
+            variant={destructive ? 'destructive' : 'primary'}
             disabled={busy}
             onClick={(e) => {
               // Stay open until the action settles, so a failure is not a dialog that vanished.

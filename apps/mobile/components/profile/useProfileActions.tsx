@@ -91,7 +91,7 @@ export function useProfileActions({ onBlocked }: { onBlocked?: (id: string) => v
               });
             }}
           />
-          <Button variant="ghost" fullWidth label={t('cancel')} onPress={() => setBlockOpen(false)} />
+          <Button variant="tertiary" fullWidth label={t('cancel')} onPress={() => setBlockOpen(false)} />
         </View>
       </BottomSheet>
 

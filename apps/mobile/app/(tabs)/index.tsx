@@ -147,7 +147,7 @@ function SectionHeader({
   return (
     <View style={styles.sectionHeader}>
       <Text variant="heading" style={styles.sectionTitle}>{title}</Text>
-      <Button label={t('seeAll')} variant="ghost" size="sm" onPress={onSeeAll} />
+      <Button label={t('seeAll')} variant="tertiary" size="sm" onPress={onSeeAll} />
     </View>
   );
 }

@@ -188,7 +188,7 @@ export default function BlastScreen() {
           />
           <Button
             label={t('blastCustomizeTitle')}
-            variant="outline"
+            variant="secondary"
             fullWidth
             onPress={() => setShowUpgrade(true)}
             testID="blast-customize-upgrade-cta"
@@ -247,7 +247,7 @@ export default function BlastScreen() {
                 {deliveries?.[b.id]?.status === 'failed' ? (
                   <Button
                     label={retrying === b.id ? t('blastSendCta') : t('retryBlastCta')}
-                    variant="ghost"
+                    variant="tertiary"
                     size="sm"
                     loading={retrying === b.id}
                     onPress={() => {

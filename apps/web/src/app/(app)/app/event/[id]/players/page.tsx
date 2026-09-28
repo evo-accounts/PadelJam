@@ -113,7 +113,7 @@ export default function EventPlayersPage() {
       <div className="flex flex-col items-center gap-3 p-8 text-center" role="alert" data-testid="event-players-error">
         <p className="text-sm text-muted-foreground">{t('loadError')}</p>
         <Button
-          variant="outline"
+          variant="secondary"
           onClick={() => {
             void event.refetch();
             void participants.refetch();

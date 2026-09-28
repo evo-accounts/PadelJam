@@ -122,7 +122,7 @@ export default function CreateCommunityPage() {
     return (
       <div className="p-6 max-w-md space-y-4">
         <p className="text-sm text-muted-foreground">{t('notAllowed')}</p>
-        <Button asChild variant="outline">
+        <Button asChild variant="secondary">
           <Link href="/app/community">{t('title')}</Link>
         </Button>
       </div>

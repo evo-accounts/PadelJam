@@ -39,7 +39,7 @@ export function Stepper({
       <div className="flex items-center gap-3">
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="icon"
           aria-label={decreaseLabel}
           aria-controls={`${id}-count`}
@@ -62,7 +62,7 @@ export function Stepper({
         </span>
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="icon"
           aria-label={increaseLabel}
           aria-controls={`${id}-count`}

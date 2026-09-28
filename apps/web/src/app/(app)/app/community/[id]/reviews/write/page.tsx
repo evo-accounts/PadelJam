@@ -21,7 +21,7 @@ export default function WriteReviewPage() {
     return (
       <div className="flex flex-col items-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">{t('notAvailable')}</p>
-        <Button asChild variant="outline">
+        <Button asChild variant="secondary">
           <Link href={`/app/community/${id}/reviews`}>{t('reviews')}</Link>
         </Button>
       </div>

@@ -109,7 +109,7 @@ export default function HavePartnerPage() {
         tone="error"
         title={t('loadError')}
         action={
-          <Button variant="outline" onClick={() => void candidates.refetch()}>
+          <Button variant="secondary" onClick={() => void candidates.refetch()}>
             {t('retryCta')}
           </Button>
         }
@@ -195,7 +195,7 @@ export default function HavePartnerPage() {
             className="flex-1"
             data-testid="have-partner-search"
           />
-          <Button variant="ghost" onClick={openGuest} data-testid="have-partner-add-manually">
+          <Button variant="tertiary" onClick={openGuest} data-testid="have-partner-add-manually">
             {t('addManuallyShort')}
           </Button>
         </div>
@@ -212,7 +212,7 @@ export default function HavePartnerPage() {
             >
               {t('confirmCta')}
             </Button>
-            <Button variant="outline" disabled={busy} onClick={back} className="sm:order-1">
+            <Button variant="secondary" disabled={busy} onClick={back} className="sm:order-1">
               {t('cancel')}
             </Button>
           </div>

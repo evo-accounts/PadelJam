@@ -68,7 +68,7 @@ export function BackButton({ fallbackHref, label }: { fallbackHref: string; labe
   const router = useRouter();
   return (
     <Button
-      variant="ghost"
+      variant="tertiary"
       size="icon"
       aria-label={label}
       onClick={() => (window.history.length > 1 ? router.back() : router.push(fallbackHref))}

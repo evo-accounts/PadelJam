@@ -49,7 +49,11 @@ export const text = {
 export const space = {
   0: 0,
   1: 4,
+  // Half steps, for the button's sm padding and md/lg gap (Figma `spacing-1,5`
+  // and `spacing-2,5`). Same as Tailwind's `p-1.5` / `p-2.5`.
+  1.5: 6,
   2: 8,
+  2.5: 10,
   3: 12,
   4: 16,
   5: 20,

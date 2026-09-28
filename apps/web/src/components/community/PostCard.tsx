@@ -109,7 +109,7 @@ function ResultBody({ eventId }: { eventId: string }) {
       )}
 
       {event.data ? (
-        <Button variant="ghost" size="sm" className="self-start" asChild>
+        <Button variant="tertiary" size="sm" className="self-start" asChild>
           <Link href={`/app/event/${eventId}`}>{t('viewEventCta')}</Link>
         </Button>
       ) : null}
@@ -152,14 +152,14 @@ export function PostCard({ post, communityId }: { post: Post; communityId: strin
       </CardContent>
       <CardFooter className="gap-2">
         <Button
-          variant="ghost"
+          variant="tertiary"
           size="sm"
           onClick={() => like.mutate({ postId: post.id, liked: likedByMe })}
         >
           <Heart className={likedByMe ? 'fill-red-500 text-red-500' : ''} />
           {likeCount}
         </Button>
-        <Button variant="ghost" size="sm" asChild>
+        <Button variant="tertiary" size="sm" asChild>
           <Link href={`/app/community/${communityId}/post/${post.id}`}>
             <MessageCircle />
             {commentCount} {t('comments')}

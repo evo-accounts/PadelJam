@@ -93,7 +93,7 @@ export function GroupMembersList({ groupId }: { groupId: string }) {
         aria-label={t('membersSearchPlaceholder')}
       />
       {canInvite && !isArchived ? (
-        <Button asChild variant="outline" className="w-full" data-testid="group-members-invite">
+        <Button asChild variant="secondary" className="w-full" data-testid="group-members-invite">
           <Link href={`/app/group/${groupId}/invite`}>{t('inviteMemberRow')}</Link>
         </Button>
       ) : null}
@@ -103,7 +103,7 @@ export function GroupMembersList({ groupId }: { groupId: string }) {
       ) : people.isError ? (
         <div className="flex flex-col items-center gap-2 p-6 text-center" data-testid="error-group-members">
           <p className="text-sm text-destructive">{t('loadError')}</p>
-          <Button variant="outline" size="sm" onClick={() => void people.refetch()}>
+          <Button variant="secondary" size="sm" onClick={() => void people.refetch()}>
             {tcommon('retry')}
           </Button>
         </div>
@@ -143,7 +143,7 @@ export function GroupMembersList({ groupId }: { groupId: string }) {
                 {manageable(p) ? (
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label={t('memberActionsA11y', { name })}>
+                      <Button variant="tertiary" size="icon" aria-label={t('memberActionsA11y', { name })}>
                         <MoreHorizontal />
                       </Button>
                     </DropdownMenuTrigger>

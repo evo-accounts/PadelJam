@@ -117,7 +117,7 @@ export default function PartnerRequestsScreen() {
           <View style={styles.actions}>
             <Button
               label={t('decline')}
-              variant="outline"
+              variant="secondary"
               size="sm"
               disabled={respond.isPending}
               accessibilityLabel={t('declineFrom', { name })}

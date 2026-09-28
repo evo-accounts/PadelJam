@@ -16,7 +16,7 @@ export function RoundSelector({ rounds, selectedId, onSelect }: RoundSelectorPro
         <Button
           key={r.id}
           size="sm"
-          variant={selectedId === r.id ? 'default' : 'outline'}
+          variant={selectedId === r.id ? 'primary' : 'secondary'}
           onClick={() => onSelect(r.id)}
         >
           {t('roundLabel', { n: r.round_number })}

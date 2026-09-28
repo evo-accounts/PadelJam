@@ -67,7 +67,7 @@ export function ChatShell({ activeCid }: { activeCid?: string }) {
     return (
       <div className="flex flex-col items-start gap-3 p-6">
         <p className="text-sm text-muted-foreground">{t('chatUnavailable')}</p>
-        <Button variant="outline" onClick={() => void tokenQ.refetch()}>
+        <Button variant="secondary" onClick={() => void tokenQ.refetch()}>
           {t('retry')}
         </Button>
       </div>

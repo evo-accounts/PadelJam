@@ -19,7 +19,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: () => (
     <Sheet>
-      <SheetTrigger asChild><Button variant="outline">Filters</Button></SheetTrigger>
+      <SheetTrigger asChild><Button variant="secondary">Filters</Button></SheetTrigger>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Filter events</SheetTitle>

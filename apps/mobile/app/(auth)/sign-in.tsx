@@ -221,7 +221,7 @@ export default function SignInScreen() {
 
           <Button
             label={t('continueWithGoogle')}
-            variant="outline"
+            variant="secondary"
             fullWidth
             loading={busy}
             onPress={onGoogle}
@@ -239,7 +239,7 @@ export default function SignInScreen() {
           ) : (
             <Button
               label={t('continueWithApple')}
-              variant="outline"
+              variant="secondary"
               fullWidth
               loading={busy}
               onPress={onApple}
@@ -249,7 +249,7 @@ export default function SignInScreen() {
 
           <Button
             label={mode === 'phone' ? t('continueWithEmail') : t('continueWithPhone')}
-            variant="outline"
+            variant="secondary"
             fullWidth
             disabled={busy}
             onPress={toggleMode}

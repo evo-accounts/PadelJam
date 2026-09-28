@@ -86,7 +86,7 @@ export default function EventJoinedScreen() {
       </View>
       <View style={styles.actions}>
         <Button label={t('addToCalendarAction')} fullWidth loading={calendarBusy} onPress={() => void onCalendar()} testID="event-joined-calendar" />
-        <Button label={t('closeCta')} variant="outline" fullWidth onPress={close} testID="event-joined-close" />
+        <Button label={t('closeCta')} variant="secondary" fullWidth onPress={close} testID="event-joined-close" />
       </View>
     </SafeAreaView>
   );

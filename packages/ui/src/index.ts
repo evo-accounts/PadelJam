@@ -26,6 +26,10 @@ export {
   type SemanticName,
   type SemanticScheme,
 } from './tokens/semantic.ts';
+export {
+  buttonTone, buttonInvalid, buttonSize, BUTTON_DISABLED_OPACITY, alpha,
+  type ButtonVariant, type ButtonSize, type ButtonTone, type ButtonMetrics,
+} from './tokens/button.ts';
 export { radius, RADIUS_BASE_PX, type Radius, type RadiusName } from './tokens/radius.ts';
 export {
   text, space, weight, SPACE_STEP_PX,

@@ -171,7 +171,7 @@ export default function SettingsScreen() {
             here breaks `switchUser` across seven suites. */}
         <Button
           label={t('logout')}
-          variant="ghost"
+          variant="tertiary"
           fullWidth
           style={styles.logout}
           onPress={onLogout}

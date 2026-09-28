@@ -56,7 +56,7 @@ export default function ProfilePage() {
         actions={
           /* UX-PROF-06: the Edit action goes — "there is no second place to edit the same data".
              Editing lives in Settings now, which this button already reaches. */
-          <Button asChild variant="outline">
+          <Button asChild variant="secondary">
             <Link href="/app/settings">{ts('title')}</Link>
           </Button>
         }

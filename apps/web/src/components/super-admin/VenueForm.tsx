@@ -47,7 +47,7 @@ function Title({ title }: { title: string }) {
   const { t } = useT('superAdmin');
   return (
     <div className="flex items-center gap-3">
-      <Button variant="ghost" size="icon" asChild aria-label={t('back')}>
+      <Button variant="tertiary" size="icon" asChild aria-label={t('back')}>
         <Link href={LIST}>
           <ArrowLeft />
         </Link>
@@ -220,11 +220,11 @@ function VenueFormBody({ venue, courts: initialCourts }: { venue: VenueDetail | 
               </div>
             )}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" disabled={submitting} onClick={() => fileRef.current?.click()}>
+              <Button type="button" variant="secondary" size="sm" disabled={submitting} onClick={() => fileRef.current?.click()}>
                 {shownImage ? t('changeImage') : t('uploadImage')}
               </Button>
               {shownImage ? (
-                <Button type="button" variant="ghost" size="sm" disabled={submitting} onClick={removeImage}>
+                <Button type="button" variant="tertiary" size="sm" disabled={submitting} onClick={removeImage}>
                   {t('removeImage')}
                 </Button>
               ) : null}
@@ -262,7 +262,7 @@ function VenueFormBody({ venue, courts: initialCourts }: { venue: VenueDetail | 
                   />
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="tertiary"
                     size="icon"
                     disabled={submitting || i === 0}
                     aria-label={t('moveUp', { name: label })}
@@ -272,7 +272,7 @@ function VenueFormBody({ venue, courts: initialCourts }: { venue: VenueDetail | 
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="tertiary"
                     size="icon"
                     disabled={submitting || i === courts.length - 1}
                     aria-label={t('moveDown', { name: label })}
@@ -282,7 +282,7 @@ function VenueFormBody({ venue, courts: initialCourts }: { venue: VenueDetail | 
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="tertiary"
                     size="icon"
                     disabled={submitting}
                     aria-label={t('removeCourt', { name: label })}
@@ -294,7 +294,7 @@ function VenueFormBody({ venue, courts: initialCourts }: { venue: VenueDetail | 
               );
             })}
           </ol>
-          <Button type="button" variant="outline" size="sm" className="self-start" disabled={submitting} onClick={addCourt}>
+          <Button type="button" variant="secondary" size="sm" className="self-start" disabled={submitting} onClick={addCourt}>
             <Plus />
             {t('addCourt')}
           </Button>
@@ -312,7 +312,7 @@ function VenueFormBody({ venue, courts: initialCourts }: { venue: VenueDetail | 
         {venue ? (
           <Button
             type="button"
-            variant="ghost"
+            variant="tertiary"
             className="w-full text-destructive"
             disabled={submitting}
             onClick={() => setConfirmDelete(true)}

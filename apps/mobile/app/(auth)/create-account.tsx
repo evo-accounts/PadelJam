@@ -411,7 +411,7 @@ export default function CreateAccountScreen() {
               order otp.tsx and recovery.tsx settled on. */}
           <Button
             label={remaining > 0 ? t('cooldown', { seconds: remaining }) : t('resend')}
-            variant="ghost"
+            variant="tertiary"
             disabled={busy || remaining > 0}
             onPress={resend}
             fullWidth

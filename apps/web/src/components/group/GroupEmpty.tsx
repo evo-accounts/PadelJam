@@ -19,7 +19,7 @@ export function GroupEmpty({
       <p className="text-sm font-medium">{title}</p>
       {body ? <p className="text-sm text-muted-foreground">{body}</p> : null}
       {action ? (
-        <Button asChild variant="outline" size="sm" className="mt-1">
+        <Button asChild variant="secondary" size="sm" className="mt-1">
           <Link href={action.href}>{action.label}</Link>
         </Button>
       ) : null}

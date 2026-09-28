@@ -90,7 +90,7 @@ export default function NeedPartnerPage() {
         tone="error"
         title={t('loadError')}
         action={
-          <Button variant="outline" onClick={() => void candidates.refetch()}>
+          <Button variant="secondary" onClick={() => void candidates.refetch()}>
             {t('retryCta')}
           </Button>
         }
@@ -115,7 +115,7 @@ export default function NeedPartnerPage() {
               <span className="min-w-0 flex-1 truncate text-sm font-medium">{name}</span>
               <Button
                 size="sm"
-                variant={invited ? 'outline' : 'default'}
+                variant={invited ? 'secondary' : 'primary'}
                 disabled={rowBusy != null || finishing}
                 aria-busy={rowBusy === c.id}
                 aria-pressed={invited}
@@ -162,7 +162,7 @@ export default function NeedPartnerPage() {
             {t('confirmCta')}
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             disabled={barDisabled}
             onClick={() => void onFinish()}
             className="sm:order-1"

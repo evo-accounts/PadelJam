@@ -47,10 +47,10 @@ export default function CommunityCreatedPage() {
         <CardContent className="flex flex-col items-center gap-4">
           {url ? <QRCodeSVG value={url} size={200} /> : null}
           <div className="flex w-full gap-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={onShare}>
+            <Button type="button" variant="secondary" className="flex-1" onClick={onShare}>
               {t('share')}
             </Button>
-            <Button type="button" variant="outline" className="flex-1" onClick={onCopy}>
+            <Button type="button" variant="secondary" className="flex-1" onClick={onCopy}>
               {copied ? t('linkCopied') : t('copyLink')}
             </Button>
           </div>
@@ -61,10 +61,10 @@ export default function CommunityCreatedPage() {
         <Button asChild>
           <Link href={`/app/community/${id}`}>{t('viewCommunity')}</Link>
         </Button>
-        <Button variant="outline" disabled>
+        <Button variant="secondary" disabled>
           {t('manage')}
         </Button>
-        <Button variant="outline" disabled>
+        <Button variant="secondary" disabled>
           {t('createEvent')}
         </Button>
       </div>

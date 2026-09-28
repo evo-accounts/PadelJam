@@ -100,7 +100,7 @@ export default function CommunityDetailPage() {
   if (isMember) {
     cta = (
       <Button
-        variant="outline"
+        variant="secondary"
         onClick={() => leave.mutate(id, { onError: () => setErr(t('leaveError')) })}
       >
         {t('leave')}
@@ -122,7 +122,7 @@ export default function CommunityDetailPage() {
     );
   } else {
     cta = (
-      <Button disabled variant="outline">
+      <Button disabled variant="secondary">
         {t('inviteOnly')}
       </Button>
     );
@@ -142,7 +142,7 @@ export default function CommunityDetailPage() {
       ) : null}
       {cta}
       {isAdmin ? (
-        <Button asChild variant="outline">
+        <Button asChild variant="secondary">
           <Link href={`/app/community/${id}/manage`}>{t('manageTitle')}</Link>
         </Button>
       ) : null}
@@ -231,7 +231,7 @@ export default function CommunityDetailPage() {
 
           <TabsContent value="events" className="flex flex-col gap-3 pt-4">
             {isAdmin ? (
-              <Button asChild variant="outline" className="self-start">
+              <Button asChild variant="secondary" className="self-start">
                 <Link href={`/app/community/${id}/event-create`}>{te('newEventCta')}</Link>
               </Button>
             ) : null}
@@ -248,7 +248,7 @@ export default function CommunityDetailPage() {
 
           <TabsContent value="groups" className="flex flex-col gap-3 pt-4">
             {canCreateGroup.data === true ? (
-              <Button asChild variant="outline" className="self-start">
+              <Button asChild variant="secondary" className="self-start">
                 <Link href={`/app/community/${id}/group-create`}>{tg('createCta')}</Link>
               </Button>
             ) : null}

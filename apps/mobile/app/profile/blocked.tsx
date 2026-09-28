@@ -108,7 +108,7 @@ export default function BlockedUsersScreen() {
             trailing={
               <Button
                 size="sm"
-                variant="outline"
+                variant="secondary"
                 label={t('unblock')}
                 loading={unblock.isPending}
                 // Removes the row immediately: `useUnblock` invalidates, and this list is the

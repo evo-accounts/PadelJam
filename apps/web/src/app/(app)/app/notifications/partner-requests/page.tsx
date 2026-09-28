@@ -95,7 +95,7 @@ export default function PartnerRequestsPage() {
         </span>
         <span className="flex shrink-0 gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             disabled={respond.isPending}
             aria-label={t('declineFrom', { name })}
@@ -127,7 +127,7 @@ export default function PartnerRequestsPage() {
         tone="error"
         title={t('requestsError')}
         action={
-          <Button variant="outline" onClick={() => void list.refetch()}>
+          <Button variant="secondary" onClick={() => void list.refetch()}>
             {t('retry', { ns: 'common' })}
           </Button>
         }

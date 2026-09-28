@@ -106,7 +106,7 @@ export function NoGroupFooter({ advance }: WizardStepProps) {
     <View style={styles.footer}>
       <Button
         label={t('noGroupOption')}
-        variant="outline"
+        variant="secondary"
         fullWidth
         onPress={() => void onPress()}
         testID="event-wizard-no-group"

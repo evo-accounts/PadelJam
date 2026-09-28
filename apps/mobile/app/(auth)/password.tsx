@@ -236,7 +236,7 @@ export default function PasswordScreen() {
         <View style={styles.forgotRow}>
           <Button
             label={t('forgotPassword')}
-            variant="ghost"
+            variant="tertiary"
             size="sm"
             disabled={busy}
             onPress={() => router.push('/(auth)/recovery' as never)}

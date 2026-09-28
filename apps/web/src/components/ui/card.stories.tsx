@@ -19,7 +19,7 @@ export const Default: Story = {
         <CardTitle>Clube de Padel do Porto</CardTitle>
         <CardDescription>Tuesday, 19:00 — 2 courts</CardDescription>
         <CardAction>
-          <Button size="sm" variant="outline">Edit</Button>
+          <Button size="sm" variant="secondary">Edit</Button>
         </CardAction>
       </CardHeader>
       <CardContent>

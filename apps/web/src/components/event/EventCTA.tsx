@@ -104,17 +104,17 @@ export function EventCTA({
                 <Link href={`/app/event/${eventId}/live`}>{t('startCta')}</Link>
               </Button>
             ) : null}
-            <Button asChild variant="outline">
+            <Button asChild variant="secondary">
               <Link href={`/app/event/${eventId}/manage`}>{t('manageCta')}</Link>
             </Button>
             {scheduled ? (
-              <Button asChild variant="outline">
+              <Button asChild variant="secondary">
                 <Link href={`/app/event/${eventId}/edit`}>{t('editTitle')}</Link>
               </Button>
             ) : null}
             {canJoinAsPlayer ? (
               <Button
-                variant="outline"
+                variant="secondary"
                 disabled={busy}
                 onClick={isTeam ? onTeamJoin : onJoin}
                 data-testid="event-join-as-player"
@@ -123,7 +123,7 @@ export function EventCTA({
               </Button>
             ) : null}
             {organizerInterested ? (
-              <Button variant="outline" disabled={busy} onClick={onEditResponse} data-testid="event-edit-response">
+              <Button variant="secondary" disabled={busy} onClick={onEditResponse} data-testid="event-edit-response">
                 {t('editResponseCta')}
               </Button>
             ) : null}
@@ -134,7 +134,7 @@ export function EventCTA({
               </Button>
             ) : null}
             {organizerWaiting ? (
-              <Button variant="outline" disabled={busy} onClick={onLeaveWaitlist}>
+              <Button variant="secondary" disabled={busy} onClick={onLeaveWaitlist}>
                 {t('leaveWaitlistCta')}
               </Button>
             ) : null}
@@ -157,7 +157,7 @@ export function EventCTA({
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" disabled={busy} onClick={onDecline} data-testid="event-decline">
+            <Button variant="secondary" disabled={busy} onClick={onDecline} data-testid="event-decline">
               {t('declineCta')}
             </Button>
             <Button disabled={busy} onClick={onAccept} data-testid="event-accept">
@@ -196,7 +196,7 @@ export function EventCTA({
     case 'waiting_list':
       body = (
         <Button
-          variant="outline"
+          variant="secondary"
           className="w-full"
           disabled={busy}
           onClick={onLeaveWaitlist}
@@ -214,7 +214,7 @@ export function EventCTA({
             {t('spotOpenLine')}
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Button variant="outline" disabled={busy} onClick={onLeaveWaitlist} data-testid="event-leave-waitlist">
+            <Button variant="secondary" disabled={busy} onClick={onLeaveWaitlist} data-testid="event-leave-waitlist">
               {t('leaveWaitlistCta')}
             </Button>
             <Button disabled={busy} onClick={onClaim} data-testid="event-confirm-spot">

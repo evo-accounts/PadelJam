@@ -80,7 +80,7 @@ export default function GroupRankingPage() {
         }
         actions={
           rows.length > 0 ? (
-            <Button variant="outline" onClick={() => void onShare()} data-testid="ranking-share">
+            <Button variant="secondary" onClick={() => void onShare()} data-testid="ranking-share">
               {t('shareCta')}
             </Button>
           ) : null
@@ -93,7 +93,7 @@ export default function GroupRankingPage() {
               <Button
                 key={p.value}
                 size="sm"
-                variant={period === p.value ? 'default' : 'outline'}
+                variant={period === p.value ? 'primary' : 'secondary'}
                 aria-pressed={period === p.value}
                 className={cn('rounded-full')}
                 onClick={() => pickPeriod(p.value)}

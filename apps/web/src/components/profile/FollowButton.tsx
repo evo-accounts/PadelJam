@@ -11,7 +11,7 @@ export function FollowButton({
   targetId: string;
   isFollowing: boolean;
   /** `sm` for the follow-list rows, where the control sits beside a name rather than under one. */
-  size?: 'default' | 'sm';
+  size?: 'md' | 'sm';
 }) {
   const { t } = useT('profile');
   const follow = useFollow();
@@ -19,7 +19,7 @@ export function FollowButton({
   const busy = follow.isPending || unfollow.isPending;
   return (
     <Button
-      variant={isFollowing ? 'outline' : 'default'}
+      variant={isFollowing ? 'secondary' : 'primary'}
       size={size}
       disabled={busy}
       onClick={() => (isFollowing ? unfollow.mutate(targetId) : follow.mutate(targetId))}

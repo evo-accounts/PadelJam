@@ -61,7 +61,7 @@ export function BlastHistory({ eventId }: { eventId: string }) {
               <span className="text-sm text-muted-foreground">{status}</span>
               {failed ? (
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   className="mt-2 self-start"
                   disabled={retrying === b.id}

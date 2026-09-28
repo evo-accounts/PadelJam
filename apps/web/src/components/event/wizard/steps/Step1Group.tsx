@@ -35,7 +35,7 @@ export function Step1Group({ communityId, advance }: StepProps) {
     return (
       <div className="flex flex-col items-center gap-2 p-6 text-center" data-testid="event-wizard-groups-error">
         <p className="text-sm text-destructive">{tc('loadError')}</p>
-        <Button variant="outline" size="sm" onClick={() => void groups.refetch()}>
+        <Button variant="secondary" size="sm" onClick={() => void groups.refetch()}>
           {tc('retry')}
         </Button>
       </div>
@@ -87,7 +87,7 @@ export function NoGroupFooter({ advance }: StepProps) {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col gap-2">
-      <Button variant="outline" className="w-full" onClick={() => setOpen(true)} data-testid="event-wizard-no-group">
+      <Button variant="secondary" className="w-full" onClick={() => setOpen(true)} data-testid="event-wizard-no-group">
         {t('noGroupOption')}
       </Button>
       <p className="text-center text-xs text-muted-foreground">{t('noGroupHint')}</p>

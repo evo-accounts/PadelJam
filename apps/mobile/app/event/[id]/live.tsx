@@ -164,7 +164,7 @@ export default function EventLiveScreen() {
           <Text style={styles.noAccessBody}>{t('noAccessBody')}</Text>
           <Button
             label={t('back')}
-            variant="outline"
+            variant="secondary"
             onPress={() => router.back()}
           />
         </View>
@@ -180,7 +180,7 @@ export default function EventLiveScreen() {
           <Text style={styles.noAccessBody}>{t('waitingToStart')}</Text>
           <Button
             label={t('back')}
-            variant="outline"
+            variant="secondary"
             onPress={() => router.back()}
           />
         </View>
@@ -703,7 +703,7 @@ export default function EventLiveScreen() {
           <View style={styles.modalActions}>
             <Button
               label={t('rankingExcludeCta')}
-              variant="outline"
+              variant="secondary"
               disabled={busy}
               onPress={() => onFinish(false)}
             />

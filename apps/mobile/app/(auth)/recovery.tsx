@@ -177,7 +177,7 @@ export default function RecoveryCodeScreen() {
             arrived, and burying it under the CTA is what the audit flagged. */}
         <Button
           label={remaining > 0 ? t('cooldown', { seconds: remaining }) : t('resend')}
-          variant="ghost"
+          variant="tertiary"
           disabled={busy || remaining > 0}
           onPress={resend}
           fullWidth

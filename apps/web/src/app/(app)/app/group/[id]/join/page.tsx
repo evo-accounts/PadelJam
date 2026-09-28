@@ -71,7 +71,7 @@ export default function GroupInvitationPage() {
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 p-6 text-center">
         <h1 className="text-lg font-semibold">{t('noAccessTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('noAccessBody')}</p>
-        <Button variant="outline" asChild>
+        <Button variant="secondary" asChild>
           <Link href="/app/groups">{t('back')}</Link>
         </Button>
       </div>
@@ -166,7 +166,7 @@ export default function GroupInvitationPage() {
         ) : null}
         <div className="flex gap-3">
           <Button
-            variant="outline"
+            variant="secondary"
             className="flex-1"
             disabled={decline.isPending || accept.isPending}
             onClick={() => void onDecline()}

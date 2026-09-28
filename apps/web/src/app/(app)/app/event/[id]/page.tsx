@@ -120,7 +120,7 @@ export default function EventDetailPage() {
     return (
       <div className="flex flex-col items-center gap-3 p-8 text-center" role="alert" data-testid="event-load-error">
         <p className="text-sm text-muted-foreground">{t('loadError')}</p>
-        <Button variant="outline" onClick={() => void event.refetch()}>
+        <Button variant="secondary" onClick={() => void event.refetch()}>
           {t('retryCta')}
         </Button>
       </div>
@@ -387,7 +387,7 @@ export default function EventDetailPage() {
       {/* Only private and group-less events have their own chat (mobile's hasOwnChat); a public
           group event talks in the group's channel. */}
       {(me != null || isOrganizer) && (e.is_private || e.group_id == null) ? (
-        <Button variant="outline" disabled={ensureChannel.isPending} onClick={() => void openEventChat()}>
+        <Button variant="secondary" disabled={ensureChannel.isPending} onClick={() => void openEventChat()}>
           {tc('openChat')}
         </Button>
       ) : null}

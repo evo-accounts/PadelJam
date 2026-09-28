@@ -290,7 +290,7 @@ export default function GroupInviteScreen() {
         />
         <Button
           label={t('cancel')}
-          variant="ghost"
+          variant="tertiary"
           fullWidth
           onPress={() => setConfirming(false)}
           style={styles.sheetButton}

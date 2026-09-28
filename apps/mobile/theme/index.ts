@@ -95,6 +95,11 @@ export const type = {
   label: role(sharedText.sm, sharedWeight.semibold),
   caption: role(sharedText.sm, sharedWeight.normal),
   hint: role(sharedText.xs, sharedWeight.normal),
+  // Button labels are Outfit Medium in the design system, at the size the
+  // button's own metrics pick (packages/ui button.ts) — hence three steps.
+  buttonXs: role(sharedText.xs, sharedWeight.medium),
+  button: role(sharedText.sm, sharedWeight.medium),
+  buttonLg: role(sharedText.base, sharedWeight.medium),
 } as const;
 
 export type TypeRole = keyof typeof type;

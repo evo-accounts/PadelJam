@@ -78,7 +78,7 @@ export function MatchTimer({
             ) : null}
             {currentStatus !== 'idle' ? (
               <Button
-                variant="outline"
+                variant="secondary"
                 disabled={setTimer.isPending}
                 onClick={() => act('reset')}
               >

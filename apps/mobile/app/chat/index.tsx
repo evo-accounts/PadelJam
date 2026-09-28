@@ -83,7 +83,7 @@ export default function ChatListScreen() {
       {tokenQ.isError ? (
         <View style={styles.banner}>
           <Text style={styles.bannerText}>{t('connectError')}</Text>
-          <Button label={t('retry')} variant="ghost" size="sm" onPress={() => tokenQ.refetch()} />
+          <Button label={t('retry')} variant="tertiary" size="sm" onPress={() => tokenQ.refetch()} />
         </View>
       ) : null}
       <ChannelList

@@ -73,7 +73,7 @@ export function ShareResultsModal({
       ) : null}
       <Button
         label={copied ? t('copied') : t('shareExternalCta')}
-        variant="outline"
+        variant="secondary"
         fullWidth
         style={styles.shareButton}
         onPress={onShare}

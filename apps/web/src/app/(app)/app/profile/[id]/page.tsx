@@ -58,7 +58,7 @@ export default function OtherProfilePage() {
         <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 p-6">
           <h1 className="text-xl font-semibold">{blocked.full_name}</h1>
           <Button
-            variant="outline"
+            variant="secondary"
             disabled={unblock.isPending}
             onClick={() => unblock.mutate(id, { onSuccess: () => void q.refetch() })}
           >

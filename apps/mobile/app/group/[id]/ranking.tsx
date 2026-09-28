@@ -88,7 +88,7 @@ export default function GroupRankingScreen() {
       </ScrollView>
       {rows.length > 0 ? (
         <View style={styles.footer}>
-          <Button label={t('shareCta')} fullWidth variant="outline" onPress={onShare} testID="ranking-share" />
+          <Button label={t('shareCta')} fullWidth variant="secondary" onPress={onShare} testID="ranking-share" />
         </View>
       ) : null}
     </SafeAreaView>

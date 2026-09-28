@@ -81,7 +81,7 @@ export function ScoreDialog({ match, open, onOpenChange, onSubmit, submitting }:
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="tertiary" onClick={() => onOpenChange(false)}>
             {t('cancel')}
           </Button>
           <Button disabled={submitting} onClick={() => onSubmit({ sideA, sideB, notPlayed })}>

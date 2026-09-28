@@ -67,7 +67,7 @@ function ChoiceSheet<K extends string>({
         />
       ))}
       <View style={styles.buttons}>
-        <Button label={t('cancel')} variant="ghost" fullWidth onPress={onClose} testID={`${testID}-cancel`} />
+        <Button label={t('cancel')} variant="tertiary" fullWidth onPress={onClose} testID={`${testID}-cancel`} />
       </View>
     </BottomSheet>
   );
@@ -179,7 +179,7 @@ export function GuestPartnerSheet({
           onPress={() => onSave(trimmed)}
           testID="guest-partner-save"
         />
-        <Button label={t('cancel')} variant="ghost" fullWidth onPress={onClose} />
+        <Button label={t('cancel')} variant="tertiary" fullWidth onPress={onClose} />
       </View>
     </BottomSheet>
   );
