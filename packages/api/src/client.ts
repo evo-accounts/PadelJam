@@ -27,6 +27,10 @@ const KNOWN = [
   // (A deleted registry venue raises 'venue_not_found', listed with the 0114 codes below.)
   'invalid_guest_name', 'invalid_court_names',
   'setup_incomplete', 'mixed_unbalanced', 'mixed_gender_missing', 'round_not_scored', 'round_exists', 'event_not_scheduled',
+  // 0121: an organizer roster tool on an event that is no longer scheduled (payments: cancelled),
+  // finish_event on an event that is not in progress, a participant of another event. BEFORE
+  // 'not_editable', which is a substring of 'event_not_editable'.
+  'event_not_editable', 'event_not_in_progress', 'participant_not_found',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
   'recurring_events', 'not_cancellable', 'invalid_scope', 'not_editable', 'standby_below_roster', 'series_inactive', 'courts_below_roster', 'not_retryable',
   // community reviews: gate RPC codes the review screen translates directly

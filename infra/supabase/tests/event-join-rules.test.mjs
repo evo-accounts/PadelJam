@@ -241,11 +241,11 @@ await run('D8: a mixed event splits capacity per gender and asks for a gender', 
   assert((await notifs(m3, 'waitlist_spot', ev)).length === 1 && (await notifs(m4, 'waitlist_spot', ev)).length === 1, 'men waiting offered');
   assert((await rpc(m4.jwt, 'claim_waitlist_spot', { p_event_id: ev })) === 'confirmed', 'm4 claims first');
 
-  // Guests count by guest_gender; the organizer override is unrestricted.
+  // Guests count by guest_gender. Since 0121 (B4) a manual guest respects capacity like any other.
   const guests = await sel('event_participants', `event_id=eq.${ev}&status=eq.confirmed&select=id`);
   assert(guests.length === 4, 'balanced 2 + 2');
-  await rpc(org.jwt, 'add_manual_participant', { p_event_id: ev, p_name: 'Guest Woman', p_gender: 'female' });
-  assert((await sel('event_participants', `event_id=eq.${ev}&status=eq.confirmed&select=id`)).length === 5, 'organizer adds past the cap');
+  await expectError(() => rpc(org.jwt, 'add_manual_participant', { p_event_id: ev, p_name: 'Guest Woman', p_gender: 'female' }), 'event_full');
+  assert((await sel('event_participants', `event_id=eq.${ev}&status=eq.confirmed&select=id`)).length === 4, 'the organizer cannot add past the cap');
 });
 
 // ---------------------------------------------------------------------------------------------
