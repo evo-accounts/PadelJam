@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useRef } from 'react';
 
+import { markOnboarded } from '@/lib/onboardingStamps';
 import { supabase } from '@/lib/supabase';
 import { JammerPlusPaywall } from '../../components/profile/JammerPlusPaywall';
 
@@ -18,12 +19,8 @@ export default function JammerPlusStep() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from('profiles')
-          .update({ onboarded_at: new Date().toISOString() })
-          .eq('id', user.id);
-      }
+      // Stamped server-side (migration 0120): clients no longer write this column.
+      if (user) await markOnboarded(supabase, user.id);
       router.replace('/(tabs)');
     } finally {
       busy.current = false;

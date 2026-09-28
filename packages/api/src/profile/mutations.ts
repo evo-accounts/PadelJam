@@ -101,6 +101,12 @@ export const useUnblock = () => {
   });
 };
 
+/**
+ * Exactly the columns migration 0120 lets `authenticated` UPDATE. Adding a field here without a
+ * matching `grant update (<column>) on public.profiles to authenticated` fails with 42501; the
+ * server-controlled columns (email, phone, consent, deletion, onboarding stamps, location) are
+ * written by SECURITY DEFINER functions or the service role instead.
+ */
 export type UpdateProfileInput = {
   full_name?: string;
   description?: string | null;

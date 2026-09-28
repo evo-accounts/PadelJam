@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { OnboardingStep } from '@/components/OnboardingStep';
+import { markNotificationsPrompted } from '@/lib/onboardingStamps';
 import { registerForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 
@@ -19,12 +20,8 @@ export default function NotificationsStep() {
   const markPrompted = async () => {
     try {
       const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        await supabase
-          .from('profiles')
-          .update({ notifications_prompted_at: new Date().toISOString() })
-          .eq('id', data.user.id);
-      }
+      // Stamped server-side (migration 0120): clients no longer write this column.
+      if (data.user) await markNotificationsPrompted(supabase, data.user.id);
     } catch {
       /* best-effort */
     }
