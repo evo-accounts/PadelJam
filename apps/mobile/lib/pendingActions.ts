@@ -24,8 +24,10 @@ export type PendingActionsInput = {
 
 export function pendingActions(i: PendingActionsInput): PendingAction[] {
   const rows: PendingAction[] = [];
-  const manage = `/event/${i.eventId}/manage`;
-  const edit = `/event/${i.eventId}/edit`;
+  // The roster (and a team event's team builder) is Manage players; the location is Manage Event's
+  // Edit Location & Courts sheet, opened on arrival (UX-MEVT-07).
+  const manage = `/event/${i.eventId}/manage-players`;
+  const locationSheet = `/event/${i.eventId}/manage?sheet=location`;
 
   const missingPlayers = i.numCourts * 4 - i.confirmedCount;
   if (missingPlayers > 0) rows.push({ key: 'addPlayers', count: missingPlayers, href: manage });
@@ -35,7 +37,7 @@ export function pendingActions(i: PendingActionsInput): PendingAction[] {
     if (missingTeams > 0) rows.push({ key: 'setUpTeams', count: missingTeams, href: manage });
   }
 
-  if (!i.hasLocation) rows.push({ key: 'setLocation', count: 0, href: edit });
+  if (!i.hasLocation) rows.push({ key: 'setLocation', count: 0, href: locationSheet });
 
   return rows;
 }

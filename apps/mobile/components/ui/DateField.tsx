@@ -2,9 +2,9 @@
  * A date row that opens the platform picker — for UX-SET-02's date of birth.
  *
  * There was no date input in the app worth reusing. `profile/edit.tsx` asked for a typed
- * `YYYY-MM-DD` and validated it with a regex, and the only date UI anywhere,
- * `components/event/wizard/DateTimePicker.tsx`, is a rolling 30-day-FORWARD chip strip — correct
- * for scheduling a match, structurally incapable of expressing a birthday.
+ * `YYYY-MM-DD` and validated it with a regex, and the only date UI anywhere, the event wizard's
+ * day picker, is a rolling FORWARD strip of days — correct for scheduling a match, structurally
+ * incapable of expressing a birthday.
  *
  * Hence the native module. `maximumDate` is today, because a date of birth cannot be in the
  * future, and that is a constraint worth enforcing in the control rather than in a validator the

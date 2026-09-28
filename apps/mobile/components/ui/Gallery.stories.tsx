@@ -41,6 +41,7 @@ import { TopBar } from './TopBar';
 import { Field } from './Field';
 import { PasswordField } from './PasswordField';
 import { PhoneField } from './PhoneField';
+import { Donut } from './Donut';
 import { ProgressBar } from './ProgressBar';
 import { RadioCardGroup } from './RadioCardGroup';
 import { Rating } from './Rating';
@@ -495,6 +496,19 @@ export function Overview() {
           <ProgressBar value={0.4} testID="gallery-progress-40" />
           <ProgressBar value={8 / 9} testID="gallery-progress-89" />
           <ProgressBar value={1} testID="gallery-progress-100" />
+        </View>
+      </Section>
+
+      {/*
+        The Manage Event dashboard's ratio chart (UX-MEVT-03): a ring filled to value / total with
+        the ratio in its centre. ONE accessibility element — a progressbar named by its label and
+        valued with the ratio.
+      */}
+      <Section title="Donut">
+        <View style={styles.row}>
+          <Donut value={0} total={8} accessibilityLabel="Confirmed" testID="gallery-donut-0" />
+          <Donut value={5} total={8} accessibilityLabel="Confirmed" testID="gallery-donut-5" />
+          <Donut value={8} total={8} accessibilityLabel="Paid" testID="gallery-donut-8" />
         </View>
       </Section>
 

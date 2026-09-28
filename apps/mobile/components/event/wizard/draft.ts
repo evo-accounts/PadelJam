@@ -114,8 +114,9 @@ export type WizardStepProps = {
    * step (UX-CEVT-01) calls this from the card itself — the tap is the answer, so there is no
    * Next button and no selected state left behind.
    *
-   * Absent when a step is reused OUTSIDE the wizard — `event/[id]/edit.tsx` renders Scoring,
-   * Location, Courts and Preferences as sections of one form.
+   * Absent when a step is reused OUTSIDE the wizard — Manage Event's edit sheets (UX-MEVT-05..08)
+   * render Scoring, Preferences and Date one per sheet; the Location sheet passes its own advance
+   * to move from the venue list to the court count.
    */
   advance?: (partial?: Partial<EventDraft>) => void;
   /** The community the wizard was opened from, if any — the Group step lists only its groups. */

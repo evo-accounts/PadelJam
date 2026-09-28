@@ -23,9 +23,21 @@ type Selection = 'select' | 'count';
  *
  * Below, in every case, what the count means: 4 players a court, split per gender on a mixed event.
  */
-export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProps) {
+export function Step6Courts({
+  draft,
+  patch,
+  errors,
+  clearError,
+  context = 'wizard',
+}: WizardStepProps & {
+  /**
+   * `edit`: Manage Event's Edit Location & Courts sheet (UX-MEVT-07) — the count only.
+   * TODO(0122): update_event takes no court_ids, so picking a venue's courts is creation-only.
+   */
+  context?: 'wizard' | 'edit';
+}) {
   const { t } = useT('event');
-  const courts = useVenueCourts(draft.venueId);
+  const courts = useVenueCourts(context === 'edit' ? undefined : draft.venueId);
   const venueCourts = courts.data ?? [];
   const selection: Selection = draft.courtIds ? 'select' : 'count';
   // A failed query shows the error, not the list — even with courts cached from an earlier load —
@@ -52,7 +64,9 @@ export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProp
   );
 
   let top: React.ReactNode;
-  if (draft.venueId && courts.isLoading) {
+  if (context === 'edit') {
+    top = counter;
+  } else if (draft.venueId && courts.isLoading) {
     top = <ActivityIndicator color={colors.foreground} />;
   } else if (draft.venueId && courts.isError) {
     // The count still works without the list, so the counter stays under the error.

@@ -57,7 +57,22 @@ const parseStart = (iso: string | undefined): Date | null => {
  * occurrence's invitation goes out). The summary of when it happens is not here: it is
  * `DateSummaryFooter`, fixed at the bottom with the primary button.
  */
-export function Step7Schedule({ draft, patch, errors, clearError }: WizardStepProps) {
+export function Step7Schedule({
+  draft,
+  patch,
+  errors,
+  clearError,
+  context = 'wizard',
+  recurring = false,
+}: WizardStepProps & {
+  /**
+   * `edit`: Manage Event's Edit Date & Time sheet (UX-MEVT-08). The Repeat every week toggle is
+   * shown read-only there until recurrence editing ships with migration 0123 (M5).
+   */
+  context?: 'wizard' | 'edit';
+  /** Edit only: whether the event belongs to an active weekly series. */
+  recurring?: boolean;
+}) {
   const { t } = useT('event');
   const nowMs = useNow(60_000);
   const now = useMemo(() => new Date(nowMs), [nowMs]);
@@ -140,8 +155,23 @@ export function Step7Schedule({ draft, patch, errors, clearError }: WizardStepPr
         </View>
       </Card>
 
+      {/* TODO(0123, M5): turn recurrence on/off from the sheet (set_event_recurrence). Until then it
+          is shown as it is, and cannot be changed here — never a toggle that does nothing. */}
+      {context === 'edit' && draft.groupId ? (
+        <Card padding="md" style={styles.card}>
+          <SwitchRow
+            label={t('repeatLabel')}
+            description={t('repeatEditLater')}
+            value={recurring}
+            onValueChange={() => undefined}
+            disabled
+            testID="repeat-weekly"
+          />
+        </Card>
+      ) : null}
+
       {/* Recurrence is group-only; a standalone event has nobody to re-invite (plan-capped on create). */}
-      {draft.groupId ? (
+      {context === 'wizard' && draft.groupId ? (
         <Card padding="md" style={styles.card}>
           <SwitchRow
             label={t('repeatLabel')}
