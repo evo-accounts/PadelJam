@@ -156,7 +156,7 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
         {canAddGuests ? (
           <Button
             label={t('inviteAddManually')}
-            variant="ghost"
+            variant="tertiary"
             size="sm"
             onPress={() => openSheet()}
             testID="invite-add-manually"
@@ -215,7 +215,7 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
               trailing={
                 <Button
                   label={t('removeCta')}
-                  variant="ghost"
+                  variant="tertiary"
                   size="sm"
                   accessibilityLabel={t('inviteRemoveGuest', { name: g.name })}
                   onPress={() => {
@@ -288,7 +288,7 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
         {!term && !groupId && moreFollowing ? (
           <Button
             label={t('inviteShowMore')}
-            variant="ghost"
+            variant="tertiary"
             size="sm"
             loading={fetchingMoreFollowing}
             onPress={() => void fetchMoreFollowing()}

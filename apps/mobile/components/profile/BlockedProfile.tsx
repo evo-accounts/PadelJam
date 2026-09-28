@@ -36,7 +36,7 @@ export function BlockedProfile({ blocked, onUnblocked }: { blocked: BlockedBy; o
       <Text variant="title">{blocked.full_name}</Text>
       <Button
         label={t('unblock')}
-        variant="outline"
+        variant="secondary"
         loading={unblock.isPending}
         onPress={() => unblock.mutate(blocked.id, { onSuccess: onUnblocked })}
         testID="unblock-action"

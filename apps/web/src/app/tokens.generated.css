@@ -182,6 +182,62 @@
   --sidebar-ring: #94a3b8;
 }
 
+/* Button tokens (component tier). Light only; see packages/ui button.ts.
+ * Consumed as `bg-(--button-primary-bg)` in components/ui/button.tsx. */
+:root {
+  --button-primary-bg: #2f103d;
+  --button-primary-bg-hover: #3d1d4e;
+  --button-primary-bg-active: #3b0764;
+  --button-primary-fg: #eddeff;
+  --button-primary-focus-border: #94a3b8;
+  --button-primary-focus-ring: rgba(181, 123, 255, 0.15);
+
+  --button-secondary-bg: #f1f5f9;
+  --button-secondary-bg-hover: #e2e8f0;
+  --button-secondary-bg-active: #cbd5e1;
+  --button-secondary-fg: #334155;
+  --button-secondary-focus-border: #94a3b8;
+  --button-secondary-focus-ring: rgba(181, 123, 255, 0.15);
+
+  --button-tertiary-bg: transparent;
+  --button-tertiary-bg-hover: rgba(181, 123, 255, 0.1);
+  --button-tertiary-bg-active: rgba(181, 123, 255, 0.2);
+  --button-tertiary-fg: #b57bff;
+  --button-tertiary-focus-border: #b57bff;
+  --button-tertiary-focus-ring: rgba(181, 123, 255, 0.15);
+
+  --button-info-bg: #0284c7;
+  --button-info-bg-hover: #0ea5e9;
+  --button-info-bg-active: #0369a1;
+  --button-info-fg: #ffffff;
+  --button-info-focus-border: rgba(2, 132, 199, 0.4);
+  --button-info-focus-ring: rgba(2, 132, 199, 0.2);
+
+  --button-success-bg: #5ca281;
+  --button-success-bg-hover: #5ca281;
+  --button-success-bg-active: #457a61;
+  --button-success-fg: #ffffff;
+  --button-success-focus-border: rgba(115, 203, 161, 0.4);
+  --button-success-focus-ring: rgba(115, 203, 161, 0.2);
+
+  --button-warning-bg: #f59e0b;
+  --button-warning-bg-hover: #d97706;
+  --button-warning-bg-active: #b45309;
+  --button-warning-fg: #ffffff;
+  --button-warning-focus-border: rgba(252, 109, 53, 0.4);
+  --button-warning-focus-ring: rgba(252, 109, 53, 0.2);
+
+  --button-destructive-bg: rgba(220, 38, 38, 0.1);
+  --button-destructive-bg-hover: rgba(220, 38, 38, 0.2);
+  --button-destructive-bg-active: rgba(220, 38, 38, 0.3);
+  --button-destructive-fg: #dc2626;
+  --button-destructive-focus-border: rgba(220, 38, 38, 0.4);
+  --button-destructive-focus-ring: rgba(220, 38, 38, 0.2);
+
+  --button-invalid-border: rgba(220, 38, 38, 0.1);
+  --button-invalid-ring: rgba(220, 38, 38, 0.2);
+}
+
 /* Semantic tokens — dark. Defined for fidelity; the app ships light-only and
  * nothing adds the .dark class today. NOTE: --background and --primary are both
  * purple-900 here, carried over from the original export — a primary button

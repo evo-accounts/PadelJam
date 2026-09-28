@@ -29,7 +29,7 @@ export default function EventActivityPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{t('activityTitle')}</h1>
-        <Button asChild variant="ghost">
+        <Button asChild variant="tertiary">
           <Link href={`/app/event/${id}/manage`}>{t('manageTitle')}</Link>
         </Button>
       </div>

@@ -52,12 +52,12 @@ export function ThemeToggle() {
 
   if (!mounted) {
     // Same footprint as the real control, so nothing shifts when it appears.
-    return <Button variant="ghost" size="sm" aria-hidden className="invisible">◐ Theme</Button>;
+    return <Button variant="tertiary" size="sm" aria-hidden className="invisible">◐ Theme</Button>;
   }
 
   return (
     <Button
-      variant="ghost"
+      variant="tertiary"
       size="sm"
       onClick={() => setTheme(next)}
       // The visible label already says the CURRENT mode, so the accessible name

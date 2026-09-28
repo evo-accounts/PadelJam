@@ -93,7 +93,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <SidebarTrigger className="[&_svg]:size-5!" />
           </div>
           <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="icon" asChild aria-label={t('chat')}>
+            <Button variant="tertiary" size="icon" asChild aria-label={t('chat')}>
               <Link href="/app/chat">
                 <MessageCircle />
               </Link>
@@ -101,7 +101,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <NotificationBell />
             <ProfileDropdown
               trigger={
-                <Button variant="ghost" size="icon" className="size-9.5" aria-label={t('nav.profile')}>
+                <Button variant="tertiary" size="icon" className="size-9.5" aria-label={t('nav.profile')}>
                   <Avatar className="size-9.5 rounded-md">
                     <AvatarFallback>PJ</AvatarFallback>
                   </Avatar>

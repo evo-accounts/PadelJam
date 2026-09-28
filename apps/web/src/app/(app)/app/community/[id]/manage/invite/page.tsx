@@ -52,7 +52,7 @@ export default function InvitePage() {
                 </Avatar>
                 <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   disabled={isInvited}
                   onClick={() =>
                     invite.mutate(
@@ -71,7 +71,7 @@ export default function InvitePage() {
 
       {following.hasNextPage ? (
         <Button
-          variant="outline"
+          variant="secondary"
           onClick={() => following.fetchNextPage()}
           disabled={following.isFetchingNextPage}
         >

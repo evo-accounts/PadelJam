@@ -104,7 +104,7 @@ export function FollowList({ userId, kind }: { userId: string; kind: 'followers'
               <View style={styles.rowActions}>
                 <Button
                   size="sm"
-                  variant={item.is_following ? 'outline' : 'primary'}
+                  variant={item.is_following ? 'secondary' : 'primary'}
                   label={item.is_following ? t('kebabUnfollow') : t('kebabFollow')}
                   loading={follow.isPending || unfollow.isPending}
                   onPress={() =>

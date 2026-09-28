@@ -28,7 +28,7 @@ export function CourtCounter({
       <div className="flex items-center gap-4">
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="icon"
           aria-label={t('courtsDecreaseLabel')}
           aria-controls={`${id}-count`}
@@ -48,7 +48,7 @@ export function CourtCounter({
         </span>
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="icon"
           aria-label={t('courtsIncreaseLabel')}
           aria-controls={`${id}-count`}

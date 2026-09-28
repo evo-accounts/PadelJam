@@ -66,7 +66,7 @@ export default function EventLivePage() {
   };
 
   const backLink = (
-    <Button asChild variant="ghost" className="self-start">
+    <Button asChild variant="tertiary" className="self-start">
       <Link href={`/app/event/${id}`}>{t('backToEvent')}</Link>
     </Button>
   );

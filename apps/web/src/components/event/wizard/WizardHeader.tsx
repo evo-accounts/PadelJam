@@ -29,13 +29,13 @@ export function WizardHeader({
         {/* Holds its place when absent, so the title does not jump on the first step. */}
         <div className="size-9 shrink-0">
           {onBack ? (
-            <Button variant="ghost" size="icon" aria-label={tc('back')} onClick={onBack} data-testid="event-wizard-back">
+            <Button variant="tertiary" size="icon" aria-label={tc('back')} onClick={onBack} data-testid="event-wizard-back">
               <ArrowLeft />
             </Button>
           ) : null}
         </div>
         <p className="flex-1 truncate text-center text-sm font-medium text-muted-foreground">{title}</p>
-        <Button variant="ghost" size="icon" aria-label={tc('close')} onClick={onClose} data-testid="event-wizard-close">
+        <Button variant="tertiary" size="icon" aria-label={tc('close')} onClick={onClose} data-testid="event-wizard-close">
           <X />
         </Button>
       </div>

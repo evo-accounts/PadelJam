@@ -71,7 +71,7 @@ export function SheetHost({ children }: { children: ReactNode }) {
               />
               <Button
                 label={req.payload.options.cancelLabel ?? t('cancel')}
-                variant="ghost"
+                variant="tertiary"
                 fullWidth
                 onPress={() => queue.dismiss(req.id)}
                 testID="confirm-sheet-cancel"

@@ -315,7 +315,7 @@ export default function OtpScreen() {
         {/* Directly below the input, ABOVE the primary action — see the docblock. */}
         <Button
           label={remaining > 0 ? t('cooldown', { seconds: remaining }) : t('resend')}
-          variant="ghost"
+          variant="tertiary"
           disabled={busy || remaining > 0}
           onPress={resend}
           fullWidth

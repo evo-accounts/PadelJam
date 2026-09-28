@@ -56,7 +56,7 @@ export function EventMenu({
       {/* Non-modal so the dialogs a row opens are not fighting the menu for focus and pointer. */}
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label={t('moreActionsLabel')} data-testid="event-more">
+          <Button variant="tertiary" size="icon" aria-label={t('moreActionsLabel')} data-testid="event-more">
             <MoreHorizontal />
           </Button>
         </DropdownMenuTrigger>

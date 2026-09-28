@@ -26,7 +26,7 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
         <Link href="/super-admin" className="text-lg font-semibold">
           Padel Jam · {t('title')}
         </Link>
-        <Button variant="ghost" size="sm" asChild>
+        <Button variant="tertiary" size="sm" asChild>
           <Link href="/app">{t('backToApp')}</Link>
         </Button>
       </header>
@@ -36,7 +36,7 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
         ) : isError ? (
           <div role="alert" className="mx-auto flex max-w-xl flex-col items-start gap-2 p-6">
             <p className="text-sm">{t('checkError')}</p>
-            <Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>
+            <Button variant="secondary" size="sm" disabled={isFetching} onClick={() => void refetch()}>
               {t('retry')}
             </Button>
           </div>

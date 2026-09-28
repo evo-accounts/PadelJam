@@ -68,7 +68,7 @@ export default function YourGroupsScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           {canCreate ? (
-            <Button label={t('createCta')} variant="outline" fullWidth onPress={create} testID="your-groups-create" />
+            <Button label={t('createCta')} variant="secondary" fullWidth onPress={create} testID="your-groups-create" />
           ) : null}
           {sections.length === 0 ? (
             <EmptyState

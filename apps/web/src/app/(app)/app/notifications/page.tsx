@@ -28,10 +28,10 @@ export default function NotificationsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{t('title')}</h1>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => markAllRead.mutate()}>
+          <Button variant="tertiary" size="sm" onClick={() => markAllRead.mutate()}>
             {t('markAllRead')}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => clearAll.mutate()}>
+          <Button variant="tertiary" size="sm" onClick={() => clearAll.mutate()}>
             {t('clearAll')}
           </Button>
         </div>
@@ -66,7 +66,7 @@ export default function NotificationsPage() {
 
       {list.hasNextPage ? (
         <Button
-          variant="outline"
+          variant="secondary"
           className="self-center"
           disabled={list.isFetchingNextPage}
           onClick={() => list.fetchNextPage()}

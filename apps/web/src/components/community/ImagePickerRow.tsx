@@ -44,7 +44,7 @@ export function ImagePickerRow({
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             disabled={disabled}
             onClick={() => fileRef.current?.click()}
@@ -55,7 +55,7 @@ export function ImagePickerRow({
           {previewUrl ? (
             <Button
               type="button"
-              variant="ghost"
+              variant="tertiary"
               size="sm"
               disabled={disabled}
               onClick={() => {

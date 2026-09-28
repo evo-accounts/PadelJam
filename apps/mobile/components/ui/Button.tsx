@@ -1,29 +1,42 @@
 /**
- * Button — replaces 278 hand-rolled pressables across 94 files.
+ * Button — the "Custom Button" set in the PJAM Design System Figma file.
  *
- * Those call sites spell the same thing five ways (`button:`, `btn:`, `cta:`,
- * `primaryBtn:`, `submit:`) and each re-derives its own padding, radius and
- * disabled treatment. The variants here are the ones that actually exist in the
- * app today, named for INTENT rather than colour.
+ * Colours and metrics come from `buttonTone` / `buttonSize` in `@padel/ui`,
+ * the same module web's `components/ui/button.tsx` reads through generated CSS
+ * variables, so the two apps cannot drift apart per variant.
+ *
+ * Of the file's six states, mobile renders four: enabled, active (pressed),
+ * disabled and loading. Hover and focus have no touch equivalent, and the
+ * invalid ring is a form-control treatment that no mobile button carries.
  *
  * Accessibility is not optional plumbing: `accessibilityState` is what the E2E
- * harness reads to know a control is busy or disabled, and `minHeight` on every
- * size keeps the tap target at or above the 44pt iOS guideline.
+ * harness reads to know a control is busy or disabled. `xs` (24) and `sm` (32)
+ * are below the 44pt iOS guideline by design — they are for dense rows on the
+ * few screens that call for them, never a screen's main call to action.
  */
 import {
   ActivityIndicator,
   Pressable,
+  // The label needs the tone's own colour, which `Text`'s semantic `tone`s
+  // deliberately cannot express. Role and colour both still come from tokens.
+  Text as RNText,
   StyleSheet,
   View,
   type PressableProps,
   type ViewStyle,
 } from 'react-native';
 
-import { colors, radius, space } from '../../theme';
-import { Text, type TextTone, type TextVariant } from './Text';
+import {
+  BUTTON_DISABLED_OPACITY,
+  buttonSize,
+  buttonTone,
+  type ButtonSize,
+  type ButtonVariant,
+} from '@padel/ui';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+import { type } from '../../theme';
+
+export type { ButtonSize, ButtonVariant };
 
 type Props = Omit<PressableProps, 'style' | 'children'> & {
   label: string;
@@ -32,24 +45,20 @@ type Props = Omit<PressableProps, 'style' | 'children'> & {
   /** Shows a spinner and blocks presses. Distinct from `disabled`: this is transient. */
   loading?: boolean;
   fullWidth?: boolean;
+  /**
+   * Rendered at the size's icon step (12/14/16/24) — size the glyph with
+   * `buttonSize[size].icon` and colour it with `buttonTone[variant].fg`.
+   */
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   style?: ViewStyle;
 };
 
-/** Fill, border and label tone per variant. `ghost` and `outline` are transparent. */
-const variants: Record<ButtonVariant, { bg: string; border: string; tone: TextTone }> = {
-  primary: { bg: colors.primary, border: colors.primary, tone: 'default' },
-  secondary: { bg: colors.secondary, border: colors.secondary, tone: 'default' },
-  outline: { bg: 'transparent', border: colors.border, tone: 'default' },
-  ghost: { bg: 'transparent', border: 'transparent', tone: 'default' },
-  destructive: { bg: colors.destructive, border: colors.destructive, tone: 'inverse' },
-};
-
-const sizes: Record<ButtonSize, { minHeight: number; px: number; text: TextVariant }> = {
-  // 36 is below the 44pt guideline, so `sm` is for dense secondary actions
-  // inside a row — never for a screen's main call to action.
-  sm: { minHeight: 36, px: space[3], text: 'label' },
-  md: { minHeight: 44, px: space[4], text: 'bodyStrong' },
-  lg: { minHeight: 52, px: space[5], text: 'bodyStrong' },
+const labelRole: Record<ButtonSize, keyof typeof type> = {
+  xs: 'buttonXs',
+  sm: 'button',
+  md: 'button',
+  lg: 'buttonLg',
 };
 
 export function Button({
@@ -59,11 +68,13 @@ export function Button({
   loading = false,
   disabled = false,
   fullWidth = false,
+  leftIcon,
+  rightIcon,
   style,
   ...rest
 }: Props) {
-  const v = variants[variant];
-  const s = sizes[size];
+  const tone = buttonTone[variant];
+  const metrics = buttonSize[size];
   const blocked = disabled || loading;
 
   return (
@@ -75,51 +86,49 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         {
-          minHeight: s.minHeight,
-          paddingHorizontal: s.px,
-          backgroundColor: v.bg,
-          borderColor: v.border,
+          minHeight: metrics.height,
+          paddingHorizontal: metrics.paddingX,
+          gap: metrics.gap,
+          borderRadius: metrics.radius,
+          backgroundColor: pressed ? tone.bgActive : tone.bg,
         },
         fullWidth && styles.fullWidth,
-        // Dimming BOTH states through opacity keeps every variant consistent
-        // without inventing a second colour per variant for each state.
-        pressed && styles.pressed,
         blocked && styles.blocked,
         style,
       ]}
       {...rest}
     >
+      {/* The spinner takes the left icon's slot, as in the Figma component, and
+          the label stays mounted so the button keeps its width and its name. */}
       {loading ? (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator
-            size="small"
-            color={variant === 'destructive' ? colors.card : colors.foreground}
-          />
-          {/* The label stays mounted while loading so the button does not
-              change width mid-press, and so assistive tech keeps its name. */}
-          <Text variant={s.text} tone={v.tone}>
-            {label}
-          </Text>
-        </View>
+        <ActivityIndicator size="small" color={tone.fg} style={styles.spinner} />
       ) : (
-        <Text variant={s.text} tone={v.tone}>
-          {label}
-        </Text>
+        leftIcon && <View style={iconBox(metrics.icon)}>{leftIcon}</View>
       )}
+      <RNText style={[type[labelRole[size]], { color: tone.fg }]} numberOfLines={1}>
+        {label}
+      </RNText>
+      {rightIcon && <View style={iconBox(metrics.icon)}>{rightIcon}</View>}
     </Pressable>
   );
 }
 
+const iconBox = (size: number): ViewStyle => ({
+  width: size,
+  height: size,
+  alignItems: 'center',
+  justifyContent: 'center',
+});
+
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.md,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
   },
   fullWidth: { alignSelf: 'stretch' },
-  pressed: { opacity: 0.85 },
-  blocked: { opacity: 0.45 },
-  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  blocked: { opacity: BUTTON_DISABLED_OPACITY },
+  // iOS's "small" indicator is 20pt; Figma's spinner is 12. Scaling keeps the
+  // native control rather than drawing a custom one.
+  spinner: { transform: [{ scale: 0.6 }], width: 12, height: 12 },
 });

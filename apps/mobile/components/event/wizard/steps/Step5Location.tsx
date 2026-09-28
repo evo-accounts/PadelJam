@@ -52,7 +52,7 @@ function VenueList({ draft, patch, advance }: WizardStepProps) {
       <EmptyState
         tone="error"
         title={t('venueListErrorTitle')}
-        action={{ label: t('venueRetry'), onPress: () => void venues.refetch(), variant: 'outline' }}
+        action={{ label: t('venueRetry'), onPress: () => void venues.refetch(), variant: 'secondary' }}
         testID="venue-list-error"
       />
     );
@@ -85,7 +85,7 @@ function VenueList({ draft, patch, advance }: WizardStepProps) {
         {venues.hasNextPage ? (
           <Button
             label={t('venueLoadMore')}
-            variant="outline"
+            variant="secondary"
             loading={venues.isFetchingNextPage}
             onPress={() => void venues.fetchNextPage()}
             testID="venue-load-more"
@@ -105,7 +105,7 @@ function VenueList({ draft, patch, advance }: WizardStepProps) {
       />
       <Button
         label={`+ ${t('addVenueManually')}`}
-        variant="ghost"
+        variant="tertiary"
         onPress={manual}
         style={styles.addManually}
         testID="venue-add-manually"
@@ -169,7 +169,7 @@ function ManualVenueForm({ draft, patch, errors, clearError }: WizardStepProps) 
 
       <Button
         label={t('chooseFromVenueList')}
-        variant="ghost"
+        variant="tertiary"
         onPress={() => patch(backToVenueList())}
         testID="venue-back-to-list"
       />
@@ -184,7 +184,7 @@ export function NoLocationFooter({ draft, advance }: WizardStepProps) {
   return (
     <Button
       label={t('noLocationCta')}
-      variant="outline"
+      variant="secondary"
       fullWidth
       onPress={() => advance(noLocation())}
       testID="venue-no-location"

@@ -112,7 +112,7 @@ export default function EventManagePage() {
       {err ? <p className="text-sm text-destructive">{err}</p> : null}
 
       {feeEnabled ? (
-        <Button variant="outline" className="self-start" onClick={() => run(() => markAllPaid.mutateAsync())}>
+        <Button variant="secondary" className="self-start" onClick={() => run(() => markAllPaid.mutateAsync())}>
           {t('markAllPaidCta')}
         </Button>
       ) : null}
@@ -148,19 +148,19 @@ export default function EventManagePage() {
       <AddManualForm onAdd={(name, gender) => run(() => addManual.mutateAsync({ name, gender }))} />
 
       <Card className="flex flex-col gap-2 p-4">
-        <Button asChild variant="outline">
+        <Button asChild variant="secondary">
           <Link href={`/app/event/${id}/edit`}>{t('editEventCta')}</Link>
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="secondary">
           <Link href={`/app/event/${id}/manage/blast`}>{t('sendBlastCta')}</Link>
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="secondary">
           <Link href={`/app/event/${id}/manage/activity`}>{t('activityLogCta')}</Link>
         </Button>
-        <Button variant="outline" onClick={onExportCsv}>{t('exportCsvCta')}</Button>
-        <Button variant="outline" onClick={() => run(() => emailCsv.mutateAsync())}>{t('emailCsvCta')}</Button>
+        <Button variant="secondary" onClick={onExportCsv}>{t('exportCsvCta')}</Button>
+        <Button variant="secondary" onClick={() => run(() => emailCsv.mutateAsync())}>{t('emailCsvCta')}</Button>
         <Button
-          variant="outline"
+          variant="secondary"
           onClick={() =>
             run(() =>
               dup

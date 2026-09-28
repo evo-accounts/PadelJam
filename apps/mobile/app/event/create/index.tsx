@@ -287,7 +287,7 @@ function CreateEventWizard() {
             {isLast && step.laterKey ? (
               <Button
                 label={t(step.laterKey)}
-                variant="ghost"
+                variant="tertiary"
                 onPress={() => {
                   setStepErrors([]);
                   void finalize('later');

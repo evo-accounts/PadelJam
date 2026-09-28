@@ -45,7 +45,7 @@ function ResultBody({ eventId }: { eventId: string }) {
       )}
       <Button
         label={t('viewEventCta')}
-        variant="ghost"
+        variant="tertiary"
         size="sm"
         onPress={() => router.push(('/event/' + eventId) as never)}
       />

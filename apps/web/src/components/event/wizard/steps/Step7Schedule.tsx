@@ -108,7 +108,7 @@ export function Step7Schedule({ draft, patch, flagged }: StepProps) {
               key={mins}
               type="button"
               size="sm"
-              variant={draft.durationMinutes === mins ? 'default' : 'outline'}
+              variant={draft.durationMinutes === mins ? 'primary' : 'secondary'}
               aria-pressed={draft.durationMinutes === mins}
               onClick={() => update({ durationMinutes: mins })}
               className="rounded-full"
@@ -120,7 +120,7 @@ export function Step7Schedule({ draft, patch, flagged }: StepProps) {
           <Button
             type="button"
             size="sm"
-            variant={custom ? 'default' : 'outline'}
+            variant={custom ? 'primary' : 'secondary'}
             aria-pressed={custom}
             onClick={() => setCustomOpen(true)}
             className="rounded-full"

@@ -89,7 +89,7 @@ export default function EventManageScreen() {
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <View style={styles.guard}>
           <Text variant="sectionTitle" style={styles.guardTitle}>{t('forbidden')}</Text>
-          <Button label={t('back')} variant="outline" onPress={() => router.back()} />
+          <Button label={t('back')} variant="secondary" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
     );
@@ -319,7 +319,7 @@ export default function EventManageScreen() {
           <View style={styles.section}>
             <Button
               label={t('editEventCta')}
-              variant="outline"
+              variant="secondary"
               onPress={() => router.push(`/event/${id}/edit` as never)}
             />
           </View>
@@ -395,7 +395,7 @@ export default function EventManageScreen() {
                   {feeEnabled ? (
                     <Button
                       label={t('markAllPaidCta')}
-                      variant="ghost"
+                      variant="tertiary"
                       size="sm"
                       disabled={busy}
                       onPress={onMarkAllPaid}
@@ -450,7 +450,7 @@ export default function EventManageScreen() {
         <View style={styles.section}>
           <Button
             label={t('activityLogCta')}
-            variant="outline"
+            variant="secondary"
             onPress={() => router.push(`/event/${id}/activity` as never)}
           />
         </View>
@@ -460,7 +460,7 @@ export default function EventManageScreen() {
           <View style={styles.section}>
             <Button
               label={t('sendBlastCta')}
-              variant="outline"
+              variant="secondary"
               onPress={() => router.push(`/event/${id}/blast` as never)}
             />
           </View>
@@ -470,7 +470,7 @@ export default function EventManageScreen() {
         <View style={styles.section}>
           <Button
             label={t('exportCsvCta')}
-            variant="outline"
+            variant="secondary"
             onPress={onExport}
           />
         </View>
@@ -479,7 +479,7 @@ export default function EventManageScreen() {
         <View style={styles.section}>
           <Button
             label={t('duplicateCta')}
-            variant="outline"
+            variant="secondary"
             onPress={onDuplicate}
           />
         </View>

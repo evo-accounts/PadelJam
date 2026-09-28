@@ -189,13 +189,18 @@ export function Overview() {
         <Row>
           <Button label="Primary" variant="primary" />
           <Button label="Secondary" variant="secondary" />
-          <Button label="Outline" variant="outline" />
+          <Button label="Tertiary" variant="tertiary" />
         </Row>
         <Row>
-          <Button label="Ghost" variant="ghost" />
+          <Button label="Info" variant="info" />
+          <Button label="Success" variant="success" />
+          <Button label="Warning" variant="warning" />
+        </Row>
+        <Row>
           <Button label="Destructive" variant="destructive" />
         </Row>
         <Row>
+          <Button label="Extra small" size="xs" />
           <Button label="Small" size="sm" />
           <Button label="Medium" size="md" />
           <Button label="Large" size="lg" />
@@ -597,7 +602,7 @@ function GallerySheetDemo() {
     <View style={{ gap: space[2] }}>
       <Button
         label="Open confirm"
-        variant="outline"
+        variant="secondary"
         onPress={async () =>
           setLast(
             (await confirm({ title: 'Delete this?', body: 'It cannot be undone.', confirmLabel: 'Delete', destructive: true }))
@@ -608,7 +613,7 @@ function GallerySheetDemo() {
       />
       <Button
         label="Open action sheet"
-        variant="outline"
+        variant="secondary"
         onPress={async () =>
           setLast(
             (await show({
@@ -630,7 +635,7 @@ function GallerySheetDemo() {
 
 function GalleryBannerDemo() {
   const banner = useBanner();
-  return <Button label="Show banner" variant="outline" onPress={() => banner.show('Missing information')} />;
+  return <Button label="Show banner" variant="secondary" onPress={() => banner.show('Missing information')} />;
 }
 
 function GallerySignInDemo() {

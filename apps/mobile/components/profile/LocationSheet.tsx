@@ -100,7 +100,7 @@ export function LocationSheet({
           testID="location-confirm"
         />
         <Button
-          variant="outline"
+          variant="secondary"
           fullWidth
           label={t('locationUseCurrent')}
           loading={locating}

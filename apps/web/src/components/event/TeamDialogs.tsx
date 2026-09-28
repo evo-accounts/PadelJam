@@ -74,7 +74,7 @@ function ChoiceDialog<K extends string>({
           ))}
         </div>
         <DialogFooter>
-          <Button variant="ghost" className="w-full" onClick={onClose} data-testid={`${testId}-cancel`}>
+          <Button variant="tertiary" className="w-full" onClick={onClose} data-testid={`${testId}-cancel`}>
             {t('cancel')}
           </Button>
         </DialogFooter>
@@ -183,7 +183,7 @@ export function GuestPartnerDialog({
             </p>
           ) : null}
           <DialogFooter className="mt-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
+            <Button type="button" variant="tertiary" onClick={onClose} disabled={saving}>
               {t('cancel')}
             </Button>
             <Button type="submit" disabled={trimmed.length === 0 || saving} data-testid="guest-partner-save">

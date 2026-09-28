@@ -108,7 +108,7 @@ export function Step4Scoring({ draft, patch, flagged }: StepProps) {
                       key={n}
                       type="button"
                       size="sm"
-                      variant={draft.scoringValue === n ? 'default' : 'outline'}
+                      variant={draft.scoringValue === n ? 'primary' : 'secondary'}
                       aria-pressed={draft.scoringValue === n}
                       onClick={() => patch({ scoringValue: n })}
                       className="min-w-11 rounded-full"
@@ -119,7 +119,7 @@ export function Step4Scoring({ draft, patch, flagged }: StepProps) {
                   <Button
                     type="button"
                     size="sm"
-                    variant={hasCustom ? 'default' : 'outline'}
+                    variant={hasCustom ? 'primary' : 'secondary'}
                     aria-pressed={hasCustom}
                     onClick={() => setCustomOpen(true)}
                     className="rounded-full"

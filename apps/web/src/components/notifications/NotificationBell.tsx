@@ -30,7 +30,7 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label={t('title')}>
+        <Button variant="tertiary" size="icon" className="relative" aria-label={t('title')}>
           <Bell />
           {count > 0 ? (
             <span className="bg-destructive text-destructive-foreground absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-4">

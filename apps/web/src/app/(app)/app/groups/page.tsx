@@ -57,7 +57,7 @@ export default function YourGroupsPage() {
       ) : groups.isError ? (
         <div className="flex flex-col items-center gap-2 p-6 text-center" data-testid="empty-groups">
           <p className="text-sm text-destructive">{t('loadError')}</p>
-          <Button variant="outline" size="sm" onClick={() => void groups.refetch()}>
+          <Button variant="secondary" size="sm" onClick={() => void groups.refetch()}>
             {tcommon('retry')}
           </Button>
         </div>

@@ -175,7 +175,7 @@ export default function HavePartnerScreen() {
             containerStyle={styles.flex}
             testID="have-partner-search"
           />
-          <Button label={t('addManuallyShort')} variant="ghost" size="sm" onPress={openGuest} testID="have-partner-add-manually" />
+          <Button label={t('addManuallyShort')} variant="tertiary" size="sm" onPress={openGuest} testID="have-partner-add-manually" />
         </View>
       </View>
 
@@ -198,7 +198,7 @@ export default function HavePartnerScreen() {
           onPress={() => void onConfirm()}
           testID="have-partner-confirm"
         />
-        <Button label={t('cancel')} variant="outline" fullWidth disabled={busy} onPress={goBack} />
+        <Button label={t('cancel')} variant="secondary" fullWidth disabled={busy} onPress={goBack} />
       </View>
 
       <GuestPartnerSheet

@@ -61,7 +61,7 @@ export function Step6Courts({ draft, patch, errors, clearError }: WizardStepProp
         <EmptyState
           tone="error"
           title={t('venueCourtsErrorTitle')}
-          action={{ label: t('venueRetry'), onPress: () => void courts.refetch(), variant: 'outline' }}
+          action={{ label: t('venueRetry'), onPress: () => void courts.refetch(), variant: 'secondary' }}
           testID="venue-courts-error"
         />
         {counter}

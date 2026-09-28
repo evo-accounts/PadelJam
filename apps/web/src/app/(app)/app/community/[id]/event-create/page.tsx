@@ -412,7 +412,7 @@ export default function EventCreatePage() {
               {/* Invite players' "I will invite later": the event, with nobody invited yet. */}
               {isLast && key === 'invite' ? (
                 <Button
-                  variant="ghost"
+                  variant="tertiary"
                   className="mt-2 w-full"
                   onClick={onLater}
                   disabled={submitting != null}

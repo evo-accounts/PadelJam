@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { RADIUS_BASE_PX, radius } from './radius';
 import { SPACE_STEP_PX, space, text, weight } from './scale';
+import { alpha, buttonSize } from './button';
 import { dark, light } from './semantic';
 import { palette } from './palette';
 
@@ -91,5 +92,18 @@ describe('semantic tokens resolve to real palette values', () => {
       if (value.startsWith('rgba(')) continue; // the two deliberate alpha values
       expect(known, `${token} = ${value} is not in the palette`).toContain(value);
     }
+  });
+});
+
+describe('button tokens', () => {
+  it('alpha() turns a palette hex into rgba', () => {
+    expect(alpha('#b57bff', 0.15)).toBe('rgba(181, 123, 255, 0.15)');
+    expect(alpha('#000000', 1)).toBe('rgba(0, 0, 0, 1)');
+  });
+
+  it('every size is one fixed height, as normalised from the Figma set', () => {
+    expect(Object.fromEntries(Object.entries(buttonSize).map(([k, v]) => [k, v.height]))).toEqual({
+      xs: 24, sm: 32, md: 44, lg: 56,
+    });
   });
 });

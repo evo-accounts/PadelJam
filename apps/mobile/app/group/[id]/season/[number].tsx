@@ -97,7 +97,7 @@ export default function GroupSeasonScreen() {
       </ScrollView>
       {(ranking ?? []).length > 0 ? (
         <View style={styles.footer}>
-          <Button label={t('shareCta')} fullWidth variant={isCompletion ? 'primary' : 'outline'} onPress={onShare} testID="season-share" />
+          <Button label={t('shareCta')} fullWidth variant={isCompletion ? 'primary' : 'secondary'} onPress={onShare} testID="season-share" />
         </View>
       ) : null}
     </SafeAreaView>

@@ -58,7 +58,7 @@ export function TimerTab({ eventId, isOrganizer }: { eventId: string; isOrganize
                 <Button label={t('timerResume')} onPress={() => act('resume')} />
               ) : null}
               {status !== 'idle' ? (
-                <Button label={t('timerReset')} variant="outline" onPress={() => act('reset')} />
+                <Button label={t('timerReset')} variant="secondary" onPress={() => act('reset')} />
               ) : null}
             </>
           )}

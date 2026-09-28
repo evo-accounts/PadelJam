@@ -133,7 +133,7 @@ export default function NeedPartnerScreen() {
           trailing={
             <Button
               label={invited ? t('partnerInvitedCta') : t('partnerInviteCta')}
-              variant={invited ? 'outline' : 'primary'}
+              variant={invited ? 'secondary' : 'primary'}
               size="sm"
               loading={rowBusy === c.id}
               disabled={rowBusy != null && rowBusy !== c.id}
@@ -188,7 +188,7 @@ export default function NeedPartnerScreen() {
         />
         <Button
           label={t('letOthersInviteCta')}
-          variant="outline"
+          variant="secondary"
           fullWidth
           loading={finishing === 'others'}
           disabled={barDisabled}

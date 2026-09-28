@@ -97,7 +97,7 @@ export function PlanSection({ communityId, onLayout }: Props) {
       {view.action === null ? null : view.action === 'downgrade' ? (
         <Button
           label={t('returnToStarter')}
-          variant="outline"
+          variant="secondary"
           fullWidth
           loading={busy}
           onPress={() => void downgrade()}

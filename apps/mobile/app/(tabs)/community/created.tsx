@@ -94,9 +94,9 @@ export default function CommunityCreatedScreen() {
         {/* UX-COMM-02: three square actions side by side, not a stack of
             full-width buttons — they are peers, and none is the next step. */}
         <View style={styles.squares}>
-          <Button variant="outline" label={t('share')} style={styles.square} onPress={onShare} testID="created-share" />
-          <Button variant="outline" label={t('copyLink')} style={styles.square} onPress={() => void onCopy()} testID="created-copy" />
-          <Button variant="outline" label={t('qrCode')} style={styles.square} onPress={() => setQrOpen(true)} testID="created-qr" />
+          <Button variant="secondary" label={t('share')} style={styles.square} onPress={onShare} testID="created-share" />
+          <Button variant="secondary" label={t('copyLink')} style={styles.square} onPress={() => void onCopy()} testID="created-copy" />
+          <Button variant="secondary" label={t('qrCode')} style={styles.square} onPress={() => setQrOpen(true)} testID="created-qr" />
         </View>
 
         <View style={styles.footer}>

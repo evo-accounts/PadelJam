@@ -59,7 +59,7 @@ export function Step6Courts({ draft, patch, flagged }: StepProps) {
       <>
         <div role="alert" className="flex flex-col items-start gap-2 rounded-lg border p-4" data-testid="venue-courts-error">
           <p className="text-sm font-medium">{t('venueCourtsErrorTitle')}</p>
-          <Button type="button" variant="outline" size="sm" onClick={() => void courts.refetch()}>
+          <Button type="button" variant="secondary" size="sm" onClick={() => void courts.refetch()}>
             {t('venueRetry')}
           </Button>
         </div>

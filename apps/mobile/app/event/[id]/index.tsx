@@ -503,7 +503,7 @@ export default function EventDetailScreen() {
               {(me == null || loneTeamOccupant) && !joinClosed ? (
                 <Button
                   label={t('joinAsPlayerCta')}
-                  variant="outline"
+                  variant="secondary"
                   fullWidth
                   loading={busy}
                   onPress={event.specification === 'team' ? () => setTeamSheetOpen(true) : onJoin}
@@ -513,7 +513,7 @@ export default function EventDetailScreen() {
               {me?.status === 'interested' && !joinClosed ? (
                 <Button
                   label={t('editResponseCta')}
-                  variant="outline"
+                  variant="secondary"
                   fullWidth
                   disabled={busy}
                   onPress={() => setEditSheetOpen(true)}
@@ -527,7 +527,7 @@ export default function EventDetailScreen() {
               {me?.status === 'waiting_list' ? (
                 <Button
                   label={t('leaveWaitlistCta')}
-                  variant="outline"
+                  variant="secondary"
                   fullWidth
                   loading={busy}
                   onPress={onLeaveWaitlist}
@@ -556,7 +556,7 @@ export default function EventDetailScreen() {
             </Text>
           </View>
           <View style={styles.row}>
-            <Button label={t('declineCta')} variant="outline" loading={busy} onPress={onDecline} style={styles.flex} />
+            <Button label={t('declineCta')} variant="secondary" loading={busy} onPress={onDecline} style={styles.flex} />
             <Button label={t('acceptCta')} loading={busy} onPress={onAccept} style={styles.flex} />
           </View>
         </View>
@@ -586,7 +586,7 @@ export default function EventDetailScreen() {
       break;
     case 'waiting_list':
       bottomArea = (
-        <Button label={t('leaveWaitlistCta')} variant="outline" fullWidth loading={busy} onPress={onLeaveWaitlist} />
+        <Button label={t('leaveWaitlistCta')} variant="secondary" fullWidth loading={busy} onPress={onLeaveWaitlist} />
       );
       break;
     case 'claim':
@@ -598,7 +598,7 @@ export default function EventDetailScreen() {
           <View style={styles.row}>
             <Button
               label={t('leaveWaitlistCta')}
-              variant="outline"
+              variant="secondary"
               loading={busy}
               onPress={onLeaveWaitlist}
               style={styles.flex}
@@ -792,7 +792,7 @@ export default function EventDetailScreen() {
           <View style={styles.section}>
             <Button
               label={t('openChat', { ns: 'chat' })}
-              variant="outline"
+              variant="secondary"
               fullWidth
               loading={ensureChannel.isPending}
               onPress={openEventChat}

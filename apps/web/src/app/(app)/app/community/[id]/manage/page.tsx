@@ -66,7 +66,7 @@ export default function ManageHubPage() {
       </Card>
 
       <Button
-        variant="outline"
+        variant="secondary"
         disabled={archive.isPending}
         onClick={() => archive.mutate(!archived)}
       >

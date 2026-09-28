@@ -139,7 +139,7 @@ export function Step10Invite({ draft, patch, organizerGender }: StepProps) {
           {spotsLine}
         </p>
         {canAddGuests ? (
-          <Button type="button" variant="ghost" size="sm" onClick={() => openDialog()} data-testid="invite-add-manually">
+          <Button type="button" variant="tertiary" size="sm" onClick={() => openDialog()} data-testid="invite-add-manually">
             {t('inviteAddManually')}
           </Button>
         ) : null}
@@ -216,7 +216,7 @@ export function Step10Invite({ draft, patch, organizerGender }: StepProps) {
                   )}
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="tertiary"
                     size="sm"
                     aria-label={t('inviteRemoveGuest', { name: g.name })}
                     onClick={() => patch({ guests: removeGuest(draft.guests, g.key) })}
@@ -250,7 +250,7 @@ export function Step10Invite({ draft, patch, organizerGender }: StepProps) {
             <p className="text-sm font-medium">{term ? t('inviteNoResultsTitle') : t('inviteNobodyTitle')}</p>
             <p className="text-sm text-muted-foreground">{term ? t('inviteNoResultsBody') : t('inviteNobodyBody')}</p>
             {term && canAddGuests ? (
-              <Button type="button" variant="outline" size="sm" className="mt-1" onClick={() => openDialog()}>
+              <Button type="button" variant="secondary" size="sm" className="mt-1" onClick={() => openDialog()}>
                 {t('inviteAddManually')}
               </Button>
             ) : null}
@@ -291,7 +291,7 @@ export function Step10Invite({ draft, patch, organizerGender }: StepProps) {
         {!term && !groupId && following.hasNextPage ? (
           <Button
             type="button"
-            variant="ghost"
+            variant="tertiary"
             size="sm"
             disabled={following.isFetchingNextPage}
             onClick={() => void following.fetchNextPage()}

@@ -123,7 +123,7 @@ export default function ChangeEmailPage() {
               <Button type="submit" className="w-full" disabled={pending}>
                 {t('save')}
               </Button>
-              <Button type="button" variant="ghost" className="w-full" onClick={onBack} disabled={pending}>
+              <Button type="button" variant="tertiary" className="w-full" onClick={onBack} disabled={pending}>
                 {t('back')}
               </Button>
             </form>

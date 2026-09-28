@@ -118,7 +118,7 @@ export function PostComposer({
         </View>
       ) : (
         <Button
-          variant="outline"
+          variant="secondary"
           label={t('addPhoto')}
           onPress={onPickImage}
           disabled={pending}

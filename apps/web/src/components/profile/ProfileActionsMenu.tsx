@@ -52,7 +52,7 @@ export function ProfileActionsMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label={t('more')}>
+          <Button variant="tertiary" size="icon" aria-label={t('more')}>
             …
           </Button>
         </DropdownMenuTrigger>
@@ -91,7 +91,7 @@ export function ProfileActionsMenu({
             <DialogDescription>{t('blockBody')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBlockOpen(false)}>
+            <Button variant="secondary" onClick={() => setBlockOpen(false)}>
               {t('cancel')}
             </Button>
             <Button

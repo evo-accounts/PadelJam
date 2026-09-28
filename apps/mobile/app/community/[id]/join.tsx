@@ -457,7 +457,7 @@ export default function CommunityPreviewScreen() {
             <View style={styles.pair}>
               <Button
                 label={t('declineInvite')}
-                variant="outline"
+                variant="secondary"
                 style={styles.pairItem}
                 disabled={busy}
                 loading={declineInvitation.isPending}
@@ -482,7 +482,7 @@ export default function CommunityPreviewScreen() {
             */
             <Button
               label={t('requestedCta')}
-              variant="outline"
+              variant="secondary"
               fullWidth
               disabled={busy}
               loading={cancelRequest.isPending}

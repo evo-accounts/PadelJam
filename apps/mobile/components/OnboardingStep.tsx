@@ -64,7 +64,7 @@ export function OnboardingStep({
         ) : (
           <View />
         )}
-        <Button variant="ghost" size="sm" label={t('skip')} onPress={onSkip} />
+        <Button variant="tertiary" size="sm" label={t('skip')} onPress={onSkip} />
       </View>
 
       <ScrollView
