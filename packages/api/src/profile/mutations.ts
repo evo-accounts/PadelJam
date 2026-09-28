@@ -137,6 +137,19 @@ export const useUpdateProfile = () => {
   });
 };
 
+/**
+ * Refetch the Account Settings profile after a GoTrue-side change (email or phone OTP verified).
+ *
+ * Since 0115/0119 `useMyProfile` takes your own email and phone from the auth session, not from
+ * profiles, and nothing else invalidates its query when the session's user changes — so without
+ * this Account Settings kept showing the old address after a successful change.
+ */
+export const useRefreshMyProfile = () => {
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return () => (uid ? qc.invalidateQueries({ queryKey: qk.myProfile(uid) }) : Promise.resolve());
+};
+
 export const useReport = () => {
   const db = useDb();
   const uid = useSession().session?.user.id;

@@ -28,7 +28,8 @@
 --   DELETE: none (soft_delete_account, SECURITY DEFINER). No DELETE policy either.
 --
 -- What changes:
---   * INSERT, UPDATE, DELETE and TRUNCATE on profiles are revoked from anon and authenticated.
+--   * INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES and TRIGGER on profiles are revoked from anon
+--     and authenticated (SELECT stays as 0119 left it).
 --   * authenticated gets UPDATE on the nine user-editable columns only. anon gets no write at all.
 --   * Two SECURITY DEFINER RPCs replace the onboarding writes, stamping now() server-side (no
 --     client-supplied timestamp) and only the first time (coalesce), for the caller's own row.
@@ -49,6 +50,11 @@
 --     and to_regprocedure('public.mark_onboarded()') is not null as has_0120;
 
 revoke insert, update, delete, truncate on public.profiles from anon, authenticated;
+-- REFERENCES (declare a foreign key onto profiles) and TRIGGER (attach a trigger to it) are
+-- Supabase defaults no client uses; neither is reachable through PostgREST, but neither belongs to
+-- a client role either. Deliberately not `revoke all`: that would also drop the column-level SELECT
+-- grant 0119 just set up.
+revoke references, trigger on public.profiles from anon, authenticated;
 
 grant update (
   full_name, avatar_url, description, dominant_hand, court_side, gender, date_of_birth,
@@ -103,7 +109,7 @@ declare
   p   text;
 begin
   foreach r in array array['anon', 'authenticated'] loop
-    foreach p in array array['DELETE', 'TRUNCATE'] loop
+    foreach p in array array['DELETE', 'TRUNCATE', 'TRIGGER'] loop
       if has_table_privilege(r, 'public.profiles', p) then
         raise exception '0120: % still holds % on profiles', r, p;
       end if;
@@ -112,9 +118,11 @@ begin
       select a.attname from pg_attribute a
       where a.attrelid = 'public.profiles'::regclass and a.attnum > 0 and not a.attisdropped
     loop
-      if has_column_privilege(r, 'public.profiles', col, 'INSERT') then
-        raise exception '0120: % can still INSERT profiles.%', r, col;
-      end if;
+      foreach p in array array['INSERT', 'REFERENCES'] loop
+        if has_column_privilege(r, 'public.profiles', col, p) then
+          raise exception '0120: % still holds % on profiles.%', r, p, col;
+        end if;
+      end loop;
       if has_column_privilege(r, 'public.profiles', col, 'UPDATE')
          <> (r = 'authenticated' and col = any (editable)) then
         raise exception '0120: % UPDATE on profiles.% is %, expected %', r, col,

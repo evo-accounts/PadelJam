@@ -158,5 +158,7 @@ await run('mark_onboarded / mark_notifications_prompted stamp the server clock, 
   const [bobAfter] = await sel('profiles', `id=eq.${bob.id}&select=onboarded_at`);
   assert(bobBefore.onboarded_at === bobAfter.onboarded_at, "another user's row is untouched");
 
-  await expectError(() => anon('/rest/v1/rpc/mark_onboarded', { method: 'POST', body: '{}' }), '42501');
+  for (const fn of ['mark_onboarded', 'mark_notifications_prompted']) {
+    await expectError(() => anon(`/rest/v1/rpc/${fn}`, { method: 'POST', body: '{}' }), '42501');
+  }
 });
