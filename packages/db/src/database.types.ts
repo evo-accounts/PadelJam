@@ -3063,6 +3063,8 @@ export type Database = {
       leave_waiting_list: { Args: { p_event_id: string }; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
       mark_all_paid: { Args: { p_event_id: string }; Returns: undefined }
+      mark_notifications_prompted: { Args: never; Returns: string }
+      mark_onboarded: { Args: never; Returns: string }
       mark_paid: {
         Args: { p_paid: boolean; p_participant_id: string }
         Returns: undefined

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { qk } from '../query-keys';
-import { ownPhone } from './queries';
+import { ownEmail, ownPhone } from './queries';
 
 describe('profile query keys', () => {
   it('shapes', () => {
@@ -24,5 +24,16 @@ describe('ownPhone (migration 0115: your own number comes from the auth user)', 
     expect(ownPhone('')).toBeNull();
     expect(ownPhone(undefined)).toBeNull();
     expect(ownPhone(null)).toBeNull();
+  });
+});
+
+describe('ownEmail (migration 0119: your own email comes from the auth user)', () => {
+  it('passes a real address through', () => {
+    expect(ownEmail('ana@example.com')).toBe('ana@example.com');
+  });
+  it("maps GoTrue's empty string (phone-only account) and a missing session to null", () => {
+    expect(ownEmail('')).toBeNull();
+    expect(ownEmail(undefined)).toBeNull();
+    expect(ownEmail(null)).toBeNull();
   });
 });

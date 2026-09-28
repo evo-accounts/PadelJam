@@ -1,37 +1,36 @@
 import { useT } from '@padel/i18n';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { OnboardingStep } from '@/components/OnboardingStep';
+import { markNotificationsPrompted, onStampFailure, stampWithRetry } from '@/lib/onboardingStamps';
 import { registerForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
+import { useBanner } from '../../components/ui';
 
 export default function NotificationsStep() {
   const { t } = useT('onboarding');
   const router = useRouter();
+  const banner = useBanner();
   const [busy, setBusy] = useState(false);
 
-  // Records that the step was PUT to the user, for both Enable and Skip, so
-  // onboardingRoute() can resume past it. Best-effort: failing to write this
-  // must not strand someone in onboarding — the worst case is being asked once
-  // more on the next launch.
-  const markPrompted = async () => {
-    try {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        await supabase
-          .from('profiles')
-          .update({ notifications_prompted_at: new Date().toISOString() })
-          .eq('id', data.user.id);
-      }
-    } catch {
-      /* best-effort */
-    }
-  };
+  const failures = useRef(0);
 
+  // Records that the step was PUT to the user, for both Enable and Skip, so onboardingRoute() can
+  // resume past it. Stamped server-side (migration 0120) with one retry; a failure is surfaced
+  // rather than navigated past silently, but never strands anyone — see onStampFailure.
   const goNext = async () => {
-    await markPrompted();
+    if (await stampWithRetry(supabase, markNotificationsPrompted)) {
+      failures.current = 0;
+    } else {
+      failures.current += 1;
+      if (onStampFailure(failures.current) === 'stay') {
+        banner.show(t('onboardingSaveFailed'));
+        return;
+      }
+      banner.show(t('onboardingSaveFailedContinue'));
+    }
     router.push('/(onboarding)/jammer-plus');
   };
 

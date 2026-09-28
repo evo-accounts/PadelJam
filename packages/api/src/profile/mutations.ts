@@ -101,6 +101,12 @@ export const useUnblock = () => {
   });
 };
 
+/**
+ * Exactly the columns migration 0120 lets `authenticated` UPDATE. Adding a field here without a
+ * matching `grant update (<column>) on public.profiles to authenticated` fails with 42501; the
+ * server-controlled columns (email, phone, consent, deletion, onboarding stamps, location) are
+ * written by SECURITY DEFINER functions or the service role instead.
+ */
 export type UpdateProfileInput = {
   full_name?: string;
   description?: string | null;
@@ -129,6 +135,19 @@ export const useUpdateProfile = () => {
       }
     },
   });
+};
+
+/**
+ * Refetch the Account Settings profile after a GoTrue-side change (email or phone OTP verified).
+ *
+ * Since 0115/0119 `useMyProfile` takes your own email and phone from the auth session, not from
+ * profiles, and nothing else invalidates its query when the session's user changes — so without
+ * this Account Settings kept showing the old address after a successful change.
+ */
+export const useRefreshMyProfile = () => {
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return () => (uid ? qc.invalidateQueries({ queryKey: qk.myProfile(uid) }) : Promise.resolve());
 };
 
 export const useReport = () => {

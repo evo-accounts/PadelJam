@@ -10,7 +10,7 @@ import { user, rpc, req, sel, ANON, BASE_URL, assert, expectError, run } from '.
 
 /** The exact column list `useMyProfile` selects (packages/api/src/profile/queries.ts). */
 const MY_PROFILE_COLUMNS =
-  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text,email';
+  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text';
 
 const asUser = (u, qs) => req(`/rest/v1/profiles?${qs}`, { jwt: u.jwt });
 
@@ -40,7 +40,7 @@ await run('your own phone comes from the auth user, not profiles', async () => {
   await expectError(() => asUser(alice, `id=eq.${alice.id}&select=phone`), '42501');
 
   const [mine] = await asUser(alice, `id=eq.${alice.id}&select=${MY_PROFILE_COLUMNS}`);
-  assert(mine && mine.id === alice.id && mine.email, "useMyProfile's column list still works");
+  assert(mine && mine.id === alice.id && mine.full_name, "useMyProfile's column list still works");
 
   const me = await req('/auth/v1/user', { jwt: alice.jwt });
   const [stored] = await sel('profiles', `id=eq.${alice.id}&select=phone`); // service key
