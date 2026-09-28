@@ -266,8 +266,16 @@ describe('05 event create wizard', () => {
   it('a search with no hits offers "Add manually"; a guest lands on the confirmed list', async () => {
     await typeText({ id: 'invite-search' }, 'zzqxnobody');
     await expectVisible({ text: /no players found/i }, { timeout: 10_000 });
-    const ctas = queryAll(await snapshot(), { text: /add manually/i, type: 'Button' });
-    expect(ctas.length, 'top-right + the empty state CTA').toBeGreaterThanOrEqual(2);
+    // Both CTAs, by id: the top-right one and the empty state's. Not by `type: 'Button'` — the
+    // empty-state button sits behind the pinned footer while the keyboard is up, and Fabric's view
+    // recycling can leave a recycled native view reporting AXGenericElement while its traits still
+    // say Button (see the e2e-generic-element-roles note). VoiceOver announces from the TRAITS, so
+    // the trait is what is asserted.
+    await expectVisible({ id: 'invite-add-manually' });
+    await expectVisible({ id: 'invite-empty-add-manually' }, { timeout: 5_000 });
+    const emptyCta = query(await snapshot(), { id: 'invite-empty-add-manually' });
+    expect(emptyCta?.AXLabel, 'the empty state CTA').toMatch(/add manually/i);
+    expect(emptyCta?.traits ?? [], 'the empty state CTA is a button to VoiceOver').toContain('Button');
     await clearText({ id: 'invite-search' }, 12);
     await dismissKeyboard();
     await tap({ id: 'invite-add-manually' });

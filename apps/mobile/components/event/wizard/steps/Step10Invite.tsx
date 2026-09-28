@@ -245,7 +245,11 @@ export function Step10Invite({ draft, patch, errors, clearError }: WizardStepPro
               icon={emptyIcon('magnifyingglass')}
               title={t('inviteNoResultsTitle')}
               body={t('inviteNoResultsBody')}
-              action={canAddGuests ? { label: t('inviteAddManually'), onPress: () => openSheet() } : undefined}
+              action={
+                canAddGuests
+                  ? { label: t('inviteAddManually'), onPress: () => openSheet(), testID: 'invite-empty-add-manually' }
+                  : undefined
+              }
               testID="empty-invite-search"
             />
           ) : (

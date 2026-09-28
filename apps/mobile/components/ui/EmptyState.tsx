@@ -38,7 +38,7 @@ type Props = {
    * Defaults to a warning triangle when `tone="error"` and no icon is given.
    */
   icon?: React.ReactNode;
-  action?: { label: string; onPress: () => void; variant?: ButtonVariant };
+  action?: { label: string; onPress: () => void; variant?: ButtonVariant; testID?: string };
   style?: ViewStyle;
   testID?: string;
   /**
@@ -87,6 +87,7 @@ export function EmptyState({ title, body, icon, action, style, testID, tone = 'd
           label={action.label}
           onPress={action.onPress}
           variant={action.variant ?? 'primary'}
+          testID={action.testID}
         />
       ) : null}
     </Card>
