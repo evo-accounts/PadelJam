@@ -26,8 +26,12 @@ export const useCreateCommunity = () => {
         p_cover_image_path: input.coverImagePath,
         p_cancellation_rules_enabled: input.rules.enabled,
         p_cancellation_rules_text: input.rules.text,
-        p_location_lat: input.locationPoint?.lat ?? null,
-        p_location_lng: input.locationPoint?.lng ?? null,
+        // Sent only with a point: PostgREST resolves a function by its argument NAMES, so naming
+        // p_location_lat against a database without migration 0128 (the E2E stack before it is
+        // applied, or hosted before the paste) would fail every create, point or not.
+        ...(input.locationPoint
+          ? { p_location_lat: input.locationPoint.lat, p_location_lng: input.locationPoint.lng }
+          : {}),
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
       return data;
