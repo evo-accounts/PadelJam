@@ -11,11 +11,19 @@
  * Every dialog edits a copy of the WHOLE event and saves all of it (`useSaveEvent`), since
  * update_event replaces every editable column. Only date and location changes notify the confirmed
  * players — update_event decides that, not the dialog.
+ *
+ * Recurring events (UX-MEVT-08/22): saving Date & Time, Location & Courts or Preferences first
+ * asks the scope — this occurrence only, or this and upcoming ones (update_event's p_scope) — in
+ * the same dialog, as a second step. Date & Time's "Repeat every week" is a real switch: turning it
+ * off asks for confirmation (the later occurrences are cancelled) before set_event_recurrence
+ * (off); turning it on calls set_event_recurrence (on) after the date is saved, and a plan-cap
+ * refusal (`recurring_events`) hands over to the caller's UpgradePrompt (`onUpgrade`).
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useT } from '@padel/i18n';
 import { stepIsValid, type WizardDraft } from '@padel/utils';
-import type { EventDetail } from '@padel/api';
+import { useSetEventRecurrence, type EventDetail, type UpdateEventScope } from '@padel/api';
+import { DEFAULT_INVITE_LEAD } from '@padel/utils';
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +34,7 @@ import { useNow } from '@/lib/useNow';
 import {
   courtsErrors,
   dateErrors,
+  deriveSeries,
   detailsErrors,
   locationErrors,
   preferencesErrors,
@@ -39,6 +48,7 @@ import { Step8Preferences } from '../wizard/steps/Step8Preferences';
 import type { StepProps, WebWizardDraft } from '../wizard/types';
 import { courtsBelowRoster, draftFromEvent, type ManageDraft } from './eventDraft';
 import { ManageDialog } from './ManageDialog';
+import { RadioCards } from './RadioCards';
 import { useSaveEvent } from './useSaveEvent';
 
 export type EditDialogKind = 'general' | 'preferences' | 'scoring' | 'location' | 'date';
@@ -73,6 +83,11 @@ function validate(kind: EditDialogKind, d: ManageDraft, confirmedMain: number, n
   }
 }
 
+/** The dialogs whose save asks "this occurrence / this and upcoming" on a recurring event. */
+const SCOPED: readonly EditDialogKind[] = ['date', 'location', 'preferences'];
+
+type Step = 'edit' | 'scope' | 'repeatOff';
+
 export function EventEditDialog({
   kind,
   event,
@@ -81,6 +96,7 @@ export function EventEditDialog({
   courtIds,
   onClose,
   onSaved,
+  onUpgrade,
 }: {
   kind: EditDialogKind;
   event: EventDetail;
@@ -91,12 +107,23 @@ export function EventEditDialog({
   courtIds?: string[];
   onClose: () => void;
   onSaved: () => void;
+  /** Turning recurrence on hit the community's recurring-events cap. */
+  onUpgrade?: () => void;
 }) {
   const { t } = useT('event');
   const { t: tc } = useT('common');
   const save = useSaveEvent(event);
+  const setRecurrence = useSetEventRecurrence(event.id);
   const nowMs = useNow(60_000);
-  const [draft, setDraft] = useState<ManageDraft>(() => draftFromEvent(event, courtIds));
+  const [initial] = useState<ManageDraft>(() => {
+    const d = draftFromEvent(event, courtIds);
+    // Date & Time shows the series as its Repeat switch's state (an existing series keeps its lead).
+    if (kind !== 'date' || !recurring) return d;
+    return { ...d, series: deriveSeries(d.startsAt, d.durationMinutes, DEFAULT_INVITE_LEAD) };
+  });
+  const [draft, setDraft] = useState<ManageDraft>(initial);
+  const [step, setStep] = useState<Step>('edit');
+  const [scope, setScope] = useState<UpdateEventScope>('only_this');
   // Stable: Step6Courts runs an effect on it.
   const patch = useCallback((p: Partial<WebWizardDraft>) => setDraft((prev) => ({ ...prev, ...p })), []);
   const [flagged, setFlagged] = useState(false);
@@ -109,7 +136,47 @@ export function EventEditDialog({
     if (thumb) URL.revokeObjectURL(thumb.url);
   }, [thumb]);
 
+  // Date & Time: did the organizer flip Repeat every week, or move the date?
+  const repeatOn = draft.series != null;
+  const repeatChanged = kind === 'date' && draft.groupId != null && repeatOn !== recurring;
+  const dateChanged =
+    kind === 'date' && (draft.startsAt !== initial.startsAt || draft.durationMinutes !== initial.durationMinutes);
+
+  const commit = async (saveScope: UpdateEventScope) => {
+    setMessage(null);
+    setBusy(true);
+    try {
+      if (repeatChanged && !repeatOn) await setRecurrence.mutateAsync({ on: false, groupId: event.group_id });
+      // Flipping Repeat alone saves nothing else; turning it on saves the date first, so the new
+      // series hangs off the date just picked.
+      if (!(repeatChanged && !dateChanged)) {
+        await save(draft, {
+          thumbnail: thumb === undefined ? undefined : (thumb?.file ?? null),
+          courts: kind === 'location' ? { courtName: (number) => t('courtNamePlaceholder', { number }) } : undefined,
+          scope: saveScope,
+        });
+      }
+      if (repeatChanged && repeatOn) {
+        await setRecurrence.mutateAsync({
+          on: true,
+          inviteLeadDays: draft.series?.inviteLeadDays ?? null,
+          groupId: event.group_id,
+        });
+      }
+      onSaved();
+    } catch (e) {
+      const code = e instanceof Error ? e.message : 'unknown_error';
+      if (code === 'recurring_events' && onUpgrade) return onUpgrade();
+      if (code === 'courts_below_roster') setErrors(['courtsBelowRoster']);
+      setStep('edit');
+      setMessage(t(code, { defaultValue: t('unknown_error') }));
+      setBusy(false);
+    }
+  };
+
   const onSave = async () => {
+    if (step === 'scope') return commit(scope);
+    if (step === 'repeatOff') return commit('only_this');
     const failing = validate(kind, draft, confirmedMain, nowMs);
     if (failing.length > 0) {
       setFlagged(true);
@@ -121,19 +188,11 @@ export function EventEditDialog({
     }
     setErrors([]);
     setMessage(null);
-    setBusy(true);
-    try {
-      await save(draft, {
-        thumbnail: thumb === undefined ? undefined : (thumb?.file ?? null),
-        courts: kind === 'location' ? { courtName: (number) => t('courtNamePlaceholder', { number }) } : undefined,
-      });
-      onSaved();
-    } catch (e) {
-      const code = e instanceof Error ? e.message : 'unknown_error';
-      if (code === 'courts_below_roster') setErrors(['courtsBelowRoster']);
-      setMessage(t(code, { defaultValue: t('unknown_error') }));
-      setBusy(false);
-    }
+    if (repeatChanged && !repeatOn) return setStep('repeatOff');
+    // A recurring event asks the scope — except for a Date & Time save that moved nothing.
+    const asks = recurring && SCOPED.includes(kind) && !repeatChanged && (kind !== 'date' || dateChanged);
+    if (asks) return setStep('scope');
+    return commit('only_this');
   };
 
   const stepProps: StepProps = { draft, patch, communityId: '', flagged, nowMs };
@@ -170,19 +229,43 @@ export function EventEditDialog({
       body = (
         <>
           <Step7Schedule {...stepProps} context="edit" recurring={recurring} />
-          {/* TODO(0123, W5): ask "this occurrence / this and upcoming" before saving. */}
-          {recurring ? <p className="text-sm text-muted-foreground">{t('editDateOnlyThis')}</p> : null}
           <DateSummaryFooter {...stepProps} />
         </>
       );
       break;
   }
 
+  if (step === 'scope') {
+    body = (
+      <div className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">{t('editScopeBody')}</p>
+        <RadioCards<UpdateEventScope>
+          label={t('editScopeTitle')}
+          options={[
+            { value: 'only_this', title: t('scopeOnlyThis') },
+            { value: 'this_and_upcoming', title: t('scopeThisAndUpcoming') },
+          ]}
+          value={scope}
+          onChange={setScope}
+          testId="edit-scope"
+        />
+      </div>
+    );
+  } else if (step === 'repeatOff') {
+    body = (
+      <p className="text-sm text-muted-foreground" data-testid="repeat-off-body">
+        {t('repeatOffBody')}
+      </p>
+    );
+  }
+
   return (
     <ManageDialog
-      title={t(TITLE_KEYS[kind])}
-      onClose={onClose}
-      primaryLabel={t('sheetSave')}
+      title={step === 'scope' ? t('editScopeTitle') : step === 'repeatOff' ? t('repeatOffTitle') : t(TITLE_KEYS[kind])}
+      // A second step's Cancel goes back to the edit, not out of the dialog.
+      onClose={step === 'edit' || busy ? onClose : () => setStep('edit')}
+      primaryLabel={step === 'repeatOff' ? t('repeatOffConfirm') : t('sheetSave')}
+      destructive={step === 'repeatOff'}
       onPrimary={() => void onSave()}
       busy={busy}
       error={message}

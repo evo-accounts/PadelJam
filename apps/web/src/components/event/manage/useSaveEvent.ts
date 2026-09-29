@@ -8,6 +8,7 @@ import {
   updateEventSchema,
   useDb,
   type EventDetail,
+  type UpdateEventScope,
 } from '@padel/api';
 import { uploadCommunityImage } from '@/lib/upload';
 
@@ -46,6 +47,8 @@ export function useEventCourts(eventId: string) {
  *
  * `thumbnail`: a newly picked file (uploaded first), or `null` when the image was removed.
  * `courts`: Edit Location & Courts only — also sends the courts (see `updateValues`).
+ * `scope`: a recurring event's answer to "this occurrence only / this and upcoming" (UX-MEVT-08/22,
+ * update_event's p_scope, 0123); omitted = only this one.
  *
  * The RPC is called here rather than through `useUpdateEvent` because `updateEventSchema` does not
  * carry `manual_court_names` yet (added with PR #241); the payload is otherwise the shared builder's.
@@ -55,11 +58,17 @@ export function useSaveEvent(event: EventDetail) {
   const db = useDb();
   const qc = useQueryClient();
   const mutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) => {
-      const { error } = await db.rpc('update_event', { p_event_id: event.id, p_payload: payload as Json });
+    mutationFn: async ({ payload, scope }: { payload: Record<string, unknown>; scope: UpdateEventScope }) => {
+      const { error } = await db.rpc('update_event', {
+        p_event_id: event.id,
+        p_payload: payload as Json,
+        p_scope: scope,
+      });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
-    onSuccess: () => {
+    onSuccess: (_d, { scope }) => {
+      // 'this_and_upcoming' also rewrites the later occurrences (other event ids): refresh them all.
+      if (scope === 'this_and_upcoming') qc.invalidateQueries({ queryKey: ['event'] });
       qc.invalidateQueries({ queryKey: qk.event(event.id) });
       qc.invalidateQueries({ queryKey: qk.myEventsAll });
       if (event.group_id) qc.invalidateQueries({ queryKey: qk.events(event.group_id) });
@@ -70,7 +79,7 @@ export function useSaveEvent(event: EventDetail) {
 
   return async (
     d: ManageDraft,
-    opts: { thumbnail?: File | null; courts?: { courtName: (n: number) => string } } = {},
+    opts: { thumbnail?: File | null; courts?: { courtName: (n: number) => string }; scope?: UpdateEventScope } = {},
   ): Promise<void> => {
     let thumbnailPath: string | null | undefined;
     if (opts.thumbnail === null) thumbnailPath = null;
@@ -78,6 +87,9 @@ export function useSaveEvent(event: EventDetail) {
     const { values, extra } = updateValues(d, { thumbnailPath, courts: opts.courts });
     const parsed = updateEventSchema.safeParse(values);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'unknown_error');
-    await mutation.mutateAsync({ ...buildUpdateEventPayload(parsed.data), ...extra });
+    await mutation.mutateAsync({
+      payload: { ...buildUpdateEventPayload(parsed.data), ...extra },
+      scope: opts.scope ?? 'only_this',
+    });
   };
 }

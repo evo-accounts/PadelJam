@@ -15,7 +15,10 @@
  *            Preferences)
  *   bottom   invited · join (+ countdown) · full · waiting list (+ Confirm spot when one is free —
  *            decision 4) · closed · organizer actions · team entry (Join → the Team Event dialog,
- *            UX-JEVT-09) · interested (Edit response, UX-JEVT-13)
+ *            UX-JEVT-09) · interested (Edit response, UX-JEVT-13). The organizer's Start event
+ *            (from the scheduled time, UX-MEVT-23) runs the start flow — the server's check, then
+ *            a blocking or a warning dialog — and their pending actions card (UX-MEVT-24) is
+ *            pinned above the actions while the event is scheduled.
  *
  * Team events: "Join", an invitee's "Accept" and the organizer's "Join as a player" all open the
  * Team Event dialog — I have a partner (`have-partner`, UX-JEVT-10) or I need a partner
@@ -53,12 +56,17 @@ import {
   useEventParticipants,
   useEventRealtime,
   useEventResultSummary,
+  useEventSeries,
+  useEventTeams,
   useJoinEvent,
   useLeaveEvent,
   useLeaveWaitingList,
   useMyProfile,
 } from '@padel/api';
 import { EventCTA } from '@/components/event/EventCTA';
+import { useStartFlow } from '@/components/event/manage/useStartFlow';
+import { PendingActionsCard } from '@/components/event/PendingActionsCard';
+import { pendingActions, teamsIncomplete } from '@/components/event/pendingActions';
 import {
   EventNoAccess,
   eventSubtitle,
@@ -97,6 +105,10 @@ export default function EventDetailPage() {
   const participants = useEventParticipants(id);
   const invitations = useEventInvitations(id);
   const result = useEventResultSummary(id);
+  // "Recurring" = in a series that is still active (a series switched off keeps its series_id).
+  const series = useEventSeries(id);
+  const teams = useEventTeams(id);
+  const startFlow = useStartFlow(id, event.data);
   // Only a mixed event reads it: the viewer's own gender decides whose waiters queue ahead of them.
   const myProfile = useMyProfile();
 
@@ -180,6 +192,26 @@ export default function EventDetailPage() {
   const organizerGoing = isOrganizer && me?.status === 'confirmed' && !loneTeamOccupant;
   const organizerCanJoin = isOrganizer && status === 'scheduled' && !joinClosed && (me == null || loneTeamOccupant);
   const startHere = isOrganizer && status === 'scheduled' && nowMs >= new Date(e.starts_at).getTime();
+  const recurring = e.series_id != null && series.data?.is_active === true;
+
+  // Pending actions (UX-MEVT-24): organizer only, while scheduled.
+  const confirmedRows = parts.filter((p) => p.status === 'confirmed');
+  const pending =
+    isOrganizer && status === 'scheduled'
+      ? pendingActions({
+          eventId: id,
+          specification: e.specification,
+          openSpots: ps.totalCapacity - ps.totalIn,
+          teamsIncomplete: teamsIncomplete(
+            confirmedRows.map((p) => p.id),
+            teams.data ?? [],
+          ),
+          feeEnabled: e.entrance_fee_enabled,
+          unpaid: confirmedRows.filter((p) => !p.has_paid).length,
+          hasLocation: e.has_location,
+          courtsReserved: e.courts_reserved,
+        })
+      : [];
 
   // --- Body values ---
   const scoringLabel = t(`scoring${cap(e.scoring_mode)}Label`);
@@ -384,10 +416,10 @@ export default function EventDetailPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">{e.name}</h1>
         <p className="text-muted-foreground">{subtitle}</p>
-        {statusBadge !== 'statusScheduled' || e.series_id ? (
+        {statusBadge !== 'statusScheduled' || recurring ? (
           <div className="flex flex-wrap gap-2 pt-1">
             {statusBadge !== 'statusScheduled' ? <Badge variant="secondary">{t(statusBadge)}</Badge> : null}
-            {e.series_id ? <Badge variant="outline">{t('recurrentTag')}</Badge> : null}
+            {recurring ? <Badge variant="outline">{t('recurrentTag')}</Badge> : null}
           </div>
         ) : null}
       </div>
@@ -504,7 +536,11 @@ export default function EventDetailPage() {
         onDecline={() => void onDecline()}
         onTeamJoin={() => setTeamOpen(true)}
         onEditResponse={() => setEditOpen(true)}
+        onStart={startFlow.onStart}
+        startPending={startFlow.pending}
+        pinned={pending.length > 0 ? <PendingActionsCard actions={pending} /> : undefined}
       />
+      {startFlow.dialog}
 
       <TeamEventDialog open={teamOpen} onClose={() => setTeamOpen(false)} onChoose={onTeamChoice} />
       <EditResponseDialog

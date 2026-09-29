@@ -4,16 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
-import {
-  type EventType,
-  useEvent,
-  useEventParticipants,
-  useEventTeams,
-  useEventRealtime,
-  useStartEvent,
-  usePostEventResult,
-} from '@padel/api';
-import { setupComplete } from '@padel/utils';
+import { useEvent, useEventParticipants, useEventRealtime, useEventTeams, usePostEventResult } from '@padel/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,6 +13,7 @@ import { MatchesTab } from '@/components/event/live/MatchesTab';
 import { Leaderboard } from '@/components/event/live/Leaderboard';
 import { MatchTimer } from '@/components/event/live/MatchTimer';
 import { FinishDialog } from '@/components/event/live/FinishDialog';
+import { useStartFlow } from '@/components/event/manage/useStartFlow';
 
 export default function EventLivePage() {
   const { id } = useParams<{ id: string }>();
@@ -31,9 +23,9 @@ export default function EventLivePage() {
   const event = useEvent(id);
   const participants = useEventParticipants(id);
   const teams = useEventTeams(id);
-  const start = useStartEvent(id);
   const postResult = usePostEventResult(id);
-  const [err, setErr] = useState<string | null>(null);
+  // Start event (UX-MEVT-23): the server's check decides — blockers stop it, warnings ask.
+  const startFlow = useStartFlow(id, event.data);
   const [shareErr, setShareErr] = useState<string | null>(null);
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
@@ -46,24 +38,6 @@ export default function EventLivePage() {
   const canScore = isOrganizer || (e.players_submit_results && isParticipant);
   const confirmed = parts.filter((p) => p.status === 'confirmed');
   const confirmedTeamCount = (teams.data ?? []).filter((tm) => tm.is_confirmed).length;
-  const ready = setupComplete({
-    specification: e.specification,
-    confirmedCount: confirmed.length,
-    confirmedTeamCount,
-    numCourts: e.num_courts,
-  });
-
-  const onStart = () => {
-    setErr(null);
-    start
-      .mutateAsync({
-        eventType: e.event_type as EventType,
-        specification: e.specification,
-        confirmedParticipantIds: confirmed.map((p) => p.id),
-        numCourts: e.num_courts,
-      })
-      .catch((x) => setErr(t(x instanceof Error ? x.message : 'unknown_error')));
-  };
 
   const backLink = (
     <Button asChild variant="tertiary" className="self-start">
@@ -101,12 +75,12 @@ export default function EventLivePage() {
                 </Button>
               </div>
             ) : null}
-            <Button disabled={!ready || start.isPending} onClick={onStart}>
+            <Button disabled={startFlow.pending} onClick={startFlow.onStart} data-testid="live-start">
               {t('startCta')}
             </Button>
-            {err ? <p className="text-sm text-destructive">{err}</p> : null}
           </CardContent>
         </Card>
+        {startFlow.dialog}
       </div>
     );
   }
