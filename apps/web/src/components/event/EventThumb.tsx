@@ -3,13 +3,15 @@ import { CalendarDays } from 'lucide-react';
 import { eventThumbnailUrl } from '@/lib/community-images';
 import { cn } from '@/lib/utils';
 
-export type EventThumbShape = 'row' | 'hero';
+export type EventThumbShape = 'row' | 'card' | 'hero';
 
 const BOX: Record<EventThumbShape, string> = {
   row: 'size-14 rounded-lg',
+  // The top of a vertical rail card: full card width, square corners (the card clips them).
+  card: 'aspect-[16/9] w-full',
   hero: 'aspect-[16/7] w-full rounded-xl sm:aspect-[16/6]',
 };
-const ICON: Record<EventThumbShape, string> = { row: 'size-6', hero: 'size-12' };
+const ICON: Record<EventThumbShape, string> = { row: 'size-6', card: 'size-8', hero: 'size-12' };
 
 /**
  * An event's image, or an icon placeholder — never an empty grey block (UX-JEVT-01/02, B13:
