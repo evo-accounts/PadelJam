@@ -1,8 +1,29 @@
 # Events Module — In-progress & Completed Event
 
-*Padel Jam — Version 1.1 • May 2026 • Updated with review feedback*
+*Padel Jam — Version 1.2 • September 2026 • Amended by the Manage Event UX audit (2026-09-29)*
+
+*Changelog — v1.2 (2026-09-30): start rules, team standings, round engine pairs and Duplicate amended to the Manage Event UX audit decisions; see the block below. v1.1 (May 2026): review feedback.*
 
 This document defines the In-progress Event sub-flow (the live match hub, score entry, round generation, leaderboard, and the timer) and the Completed Event view, for both the player and the organizer. It is the third and final document of the Events module, building on the Create Event (v1.1) and Join & Manage Event (v1.0) requirements. It specifies the per-event leaderboard; the cross-event group ranking algorithm is a separate document.
+
+> **Amended 2026-09-29 by the Manage Event UX audit** (`docs/audit/2026-09-29-ux-manage-event.md`,
+> decisions in `docs/audit/2026-09-29-ux-manage-event-plan.md`, migrations 0121–0126). Rows and paragraphs
+> marked *(amended, …)* carry the outcome. The live-event section of the audit (UX-LIVE-*) is not in hand yet;
+> only what the Manage Event items needed is amended here. In short:
+>
+> - **Starting** no longer requires full capacity (IP-03, D1). `start_event` refuses only what cannot be
+>   played: fewer than 4 confirmed players, an odd count with stand-by off, a mixed event with men ≠ women
+>   (or a player with no gender), a team event with an incomplete team. Open spots and idle courts are
+>   warnings — "Add more players" / "Start anyway". The organizer can start any time from Manage Event (an
+>   early start); the event page offers Start only from the scheduled time.
+> - **The round engine keeps pairs** (B16, migration 0126): a Team event's pair plays every round together
+>   and rests together; every Mixed pair is one man and one woman. Classic is unchanged.
+> - **Team standings** (IP-19, D11, migration 0125): a Team event's leaderboard lists pairs ("A & B"); in the
+>   group ranking both players get the pair's placement and placement points. Guests keep their real
+>   placement in the event leaderboard; group results skip them and nobody is re-ranked around them (D10).
+> - **Duplicate** (IP-33, D4): the start is required and in the future; location and courts are editable;
+>   nothing about the roster carries over.
+> - **Finishing** requires an in-progress event; a second finish is refused (`event_not_in_progress`).
 
 **Confirmed design decisions**
 
@@ -47,7 +68,9 @@ An event created via Create Event and populated via Join & Manage reaches its st
 
 - The "Happening now" tag appears when the event’s date and start time arrive.
 
-- The match hub only opens once setup is complete: full regular capacity (num_courts × 4) is confirmed and, for team events, every team is set. Until then, players see "Almost ready to start — waiting for the organizer to finish setup".
+- ~~The match hub only opens once setup is complete: full regular capacity (num_courts × 4) is confirmed and, for team events, every team is set.~~ *(amended, UX-MEVT-23 / D1)* The match hub opens when the organizer starts the event, which needs at least 4 confirmed players, an even count unless stand-by is on, men = women on a mixed event (each with a gender), and complete teams on a team event. Below capacity or an idle court is a warning the organizer can override (“Start anyway”). Only the courts the roster fills are used (4 players, one pair per side, a man and a woman per side on Mixed); whoever does not fit rests (§5.4). Until the start, players see "Almost ready to start — waiting for the organizer to finish setup".
+
+- *(amended, D1)* The organizer can start from Manage Event at any time, before the scheduled time included; the event page shows Start event as its primary action only from the scheduled time.
 
 - Standby players (extra spots beyond num_courts × 4) do not block go-live — they join the rotation as resting players.
 
@@ -99,7 +122,7 @@ This module adds five tables and evolves the events table. Full SQL is in sectio
 
 **Setup-incomplete state**
 
-If the start time has arrived but setup is not complete (regular capacity not filled, or a team event with unset teams), the match hub is not yet available. Players see a bottom-of-screen message: "Almost ready to start — waiting for the organizer to finish setup." The organizer resolves this via the Manage players screens / pending actions (see the Join & Manage doc).
+If the start time has arrived but setup is not complete (regular capacity not filled, or a team event with unset teams), the match hub is not yet available. *(amended, D1)* That is: the organizer has not started the event yet — full capacity is no longer required. Players see a bottom-of-screen message: "Almost ready to start — waiting for the organizer to finish setup." The organizer resolves this via the Manage players screens / pending actions (see the Join & Manage doc).
 
 **Per-match card**
 
@@ -149,7 +172,7 @@ Each event type reveals and generates rounds differently. The round tabs reflect
 |----|----|
 | **Round count** | Natural and finite. Classic / Mixed (individual play): N − 1 rounds, where N is the number of confirmed players — every player partners every other player once. Team specification (fixed pairs): a round-robin of the T teams — T − 1 rounds if T is even, T rounds (with byes) if T is odd. |
 | **Generation** | All rounds are generated at go-live; every round tab is present from the start. |
-| **Pairing** | Random, generated to maximise unique partner / opponent combinations across the schedule (a known round-robin / "social" scheduling problem; a precomputed or heuristic schedule is acceptable). |
+| **Pairing** | Random, generated to maximise unique partner / opponent combinations across the schedule (a known round-robin / "social" scheduling problem; a precomputed or heuristic schedule is acceptable). *(amended, B16 — migration 0126)* **Team**: a circle-method round-robin over the fixed pairs — a side is always an intact pair and a resting team rests both players; with more teams than the courts hold, the full round-robin is packed onto the courts (every pairing still played once, courts full, rests rotating), which takes more than T − 1 rounds. **Mixed**: every side is one man and one woman; over M rounds every man partners every woman once, and men and women rotate their own rests. The server refuses a schedule that splits a pair or puts two men / two women on a side (`invalid_rounds`). |
 | **Editing** | Editing a past score only recalculates the leaderboard — rounds are fixed, not results-dependent. |
 | **Finishing** | The event never finishes automatically. Once every match of the last round is scored, a floating "Finish Event" button appears (see section 08). |
 
@@ -161,7 +184,7 @@ Each event type reveals and generates rounds differently. The round tabs reflect
 | **Round 1** | Generated automatically when the event goes live — seeded by the group ranking, or random if the group has no ranking history or the event is standalone. |
 | **Adding a round** | Only round 1 is auto-generated. The next round tab is an "Add round" button. Tapping it generates the next round — a brief loading state may show while the matches are built, then the new round tab opens. |
 | **Score gate** | The "Add round" button requires every match of the current round to be scored (or marked not played). If any score is missing, a modal blocks generation and tells the organizer to enter all scores first. |
-| **Pairing** | Players are ranked by the current event leaderboard and paired in groups of four by standing: positions 1 + 4 vs 2 + 3, 5 + 8 vs 6 + 7, 9 + 12 vs 10 + 11, and so on. |
+| **Pairing** | Players are ranked by the current event leaderboard and paired in groups of four by standing: positions 1 + 4 vs 2 + 3, 5 + 8 vs 6 + 7, 9 + 12 vs 10 + 11, and so on. *(amended, B16)* On a Team event the pairs are ranked (team standings) and a court holds pair 1 vs pair 2, and so on; on a Mixed event men and women are ranked separately and a court holds best man + second woman vs second man + best woman. Players who don’t fill a court rest and rotate (previously the n mod 4 remainder was silently dropped with no rest row). Ties break by join order, then id. |
 | **Editing** | Editing a past score recalculates only rounds not yet generated (see 4.2). |
 
 ### 5.3 Up & Down
@@ -173,7 +196,7 @@ Each event type reveals and generates rounds differently. The round tabs reflect
 | **Round 1** | Generated automatically at go-live, seeded the same way as Mexicano round 1 (by group ranking, or random). |
 | **Adding a round** | Like Mexicano: only round 1 is auto-generated; each further round is added via the "Add round" button, gated on every match of the current round being scored. |
 | **Movement** | When the next round is generated: the two winners of each match move up one court (Court K → K − 1); the two losers move down one court (K → K + 1). Exceptions at the ends: the winners of Court 1 stay on Court 1; the losers of Court N stay on Court N. |
-| **Within-court pairing** | Proposed rule: the two players who came up from below play against the two who came down from above. (Refinable.) |
+| **Within-court pairing** | Proposed rule: the two players who came up from below play against the two who came down from above. (Refinable.) *(amended, B16)* Units move, not individuals: a Team pair moves as one; on Mixed each side stays one man and one woman. A pair that moves together stays together. |
 
 ### 5.4 Resting players
 
@@ -182,11 +205,11 @@ Each event type reveals and generates rounds differently. The round tabs reflect
 | **When** | When the number of confirmed players exceeds court capacity (num_courts × 4) — i.e. standby players are present — some players sit out each round. |
 | **Rule** | Equal rotation — the system rotates who rests so that, across the event, everyone rests roughly the same number of rounds. |
 | **Display** | Resting players for the current round are listed in the "Resting players" section of the match hub. |
-| **Up & Down note** | A resting player re-entering the rotation rejoins at a mid-table court; the precise re-entry court is a refinable detail. |
+| **Up & Down note** | A resting player re-entering the rotation rejoins at a mid-table court; the precise re-entry court is a refinable detail. *(amended, B16)* The re-entry court is ceil(courts / 2). Rests rotate every round like Mexicano (round-1 resters come back in) and `round_rest` is written every round. On a Team event a whole pair rests; on Mixed as many men as women rest. |
 
 ## Leaderboard
 
-For Classic and Mixed events the leaderboard ranks individual players. For Team events it ranks the fixed pairs — the duo stays together as a single leaderboard entry. It is shown live during the event on the Leaderboard tab and as the final standings on the completed-event view. When a completed event feeds the group ranking, a Team event’s pair score is transferred to each of the two players individually (handled by the group-ranking spec).
+For Classic and Mixed events the leaderboard ranks individual players. For Team events it ranks the fixed pairs — the duo stays together as a single leaderboard entry. It is shown live during the event on the Leaderboard tab and as the final standings on the completed-event view. When a completed event feeds the group ranking, a Team event’s pair score is transferred to each of the two players individually (handled by the group-ranking spec). *(amended, UX-MEVT-27 / D10 / D11 — migration 0125)* The team leaderboard shows one row per pair — both avatars, “A & B”, the pair’s points and W / D / L, counted once per match. Both players of the pair get the pair’s placement, placement points and wins / losses in `group_event_results`. Guests keep their real placement in the event leaderboard but get no group result, and nobody is re-ranked around them. A player of a team event who is in no team keeps an individual row. Group results already recorded for completed team events are not backfilled — re-running `set_event_ranking` recomputes them.
 
 **Scoring of the leaderboard**
 
@@ -279,7 +302,7 @@ Only the organizer finishes an event. There are two ways an event reaches the su
 
 - Activity (the event log) and Duplicate remain available.
 
-- Duplicate copies the entire event configuration; only the date and time are reset, defaulting to today’s date and the current time. (This refines the Duplicate behaviour noted in the Join & Manage doc.)
+- Duplicate copies the entire event configuration; only the date and time are reset, defaulting to today’s date and the current time. (This refines the Duplicate behaviour noted in the Join & Manage doc.) *(amended, UX-MEVT-20 / D4)* The organizer must pick a start in the future (today’s date and the current time are already past the join cut-off); name, thumbnail, location and courts are editable; no players, invitations, waiting list, teams or payments carry over. Export stays available too (D16).
 
 **Ranking inclusion — summary**
 
@@ -294,7 +317,7 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed IP (In-progress).
 | **ID** | **Requirement** | **Priority** | **Notes** |
 | IP-01 | The "Happening now" tag appears when the event’s date and time arrive. | **Must** |  |
 | IP-02 | Before setup is complete, players see "waiting for the organizer to finish setup". | **Must** |  |
-| IP-03 | The match hub opens only once full regular capacity is confirmed and, for team events, all teams are set. | **Must** |  |
+| IP-03 | ~~The match hub opens only once full regular capacity is confirmed and, for team events, all teams are set.~~ *(amended)* The organizer starts the event; `start_event` blocks only on fewer than 4 confirmed, an odd count with stand-by off, a mixed imbalance, or an incomplete team. Below capacity and idle courts are warnings (“Add more players” / “Start anyway”). The organizer may start early from Manage Event. | **Must** | UX-MEVT-23, D1; migration 0122 (`start_event_check`) |
 | IP-04 | The match hub shows round tabs, match cards, and a resting-players section. | **Must** |  |
 | IP-05 | The player’s own match appears first and highlighted. | **Must** | Also for an organizer who plays. |
 | IP-06 | With "players can submit own results" on, a player can enter only their own match’s score. | **Must** |  |
@@ -304,13 +327,13 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed IP (In-progress).
 | IP-10 | Points scoring: the player picks their score and the opponent’s is auto-computed to the event total. | **Must** |  |
 | IP-11 | Classic / Time scoring: scores are entered manually via stepper or keypad. | **Must** |  |
 | IP-12 | "Match not played" sets both sides to 0 and does not block round generation. | **Must** |  |
-| IP-13 | Americano generates all rounds at go-live: N − 1 individual, or a team round-robin for fixed teams. | **Must** |  |
+| IP-13 | Americano generates all rounds at go-live: N − 1 individual, or a team round-robin for fixed teams. | **Must** | *(amended, B16)* Team pairs are never split; Mixed runs M rounds, every man partnering every woman once. Migration 0126 |
 | IP-14 | Mexicano auto-generates round 1; each further round is added via "Add round", gated on all current-round scores. | **Must** | 1+4 vs 2+3 by standing. |
 | IP-15 | Up & Down auto-generates round 1; each further round is added via "Add round" (winners up / losers down). | **Must** |  |
 | IP-16 | Mexicano and Up & Down are open-ended; the organizer ends them manually. | **Must** |  |
 | IP-17 | Editing a previous round never rewrites generated rounds; only ungenerated rounds recalculate. | **Must** |  |
 | IP-18 | Resting players rotate equally when confirmed players exceed court capacity. | **Must** |  |
-| IP-19 | The leaderboard ranks by total points (Points) or 3 / 1 / 0 (Classic / Time) — individual for Classic / Mixed, by pair for Team events. | **Must** |  |
+| IP-19 | The leaderboard ranks by total points (Points) or 3 / 1 / 0 (Classic / Time) — individual for Classic / Mixed, by pair for Team events. *(amended)* Team rows show both players (“A & B”); in the group ranking each player of the pair gets the pair’s placement and points; guests get no group result. | **Must** | UX-MEVT-27, D10, D11; migration 0125 |
 | IP-20 | The leaderboard can be sorted by Points or Wins. | **Should** |  |
 | IP-21 | Time-based events show a Timer tab; the timer does not affect scoring or rounds. | **Should** | Shared, realtime-synced. |
 | IP-22 | The organizer can finish the event early via the More menu. | **Must** |  |
@@ -324,9 +347,11 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed IP (In-progress).
 | IP-30 | After finishing, the organizer’s Manage screen is read-only with a Ranking Event toggle. | **Must** |  |
 | IP-31 | Disabling the Ranking Event toggle requires a confirmation. | **Must** |  |
 | IP-32 | counts_for_ranking is false for private / standalone events and whenever the organizer excludes it. | **Must** |  |
-| IP-33 | Duplicate copies all configuration, with date and time defaulting to today. | **Should** | Refines the Join & Manage doc. |
+| IP-33 | Duplicate copies all configuration, with date and time defaulting to today. *(amended)* The start is required and must be in the future; location and courts are editable; nothing about the roster carries over. | **Should** | Refines the Join & Manage doc. UX-MEVT-20, D4 |
 | IP-34 | Players and the organizer see score and round changes in real time. | **Must** | Supabase Realtime. |
 | IP-35 | "Share results" opens a modal: post to the community feed, share to an external app, or share a result link. | **Could** | Community feed in the Community module. |
+| IP-36 | *(new, amended 2026-09-29)* The round engine keeps a Team event’s pairs together and makes every Mixed pair one man and one woman, on every format (Americano, Mexicano, Up & Down). | **Must** | B16; migration 0126 |
+| IP-37 | *(new, amended 2026-09-29)* Only an in-progress event can be finished; finishing twice is refused. | **Must** | B6; migration 0121 |
 
 ## Database schema
 

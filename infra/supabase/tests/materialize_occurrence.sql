@@ -1,6 +1,6 @@
 -- A1: materialize_occurrence RPC — organizer materializes the next weekly occurrence.
--- Verifies: new scheduled event at +7d with copied config + invitations cloned as pending +
--- zero participants; idempotent re-call returns the same id; forbidden / series_inactive guards.
+-- Verifies: new scheduled event at +7d with copied config + no invitations (public series) + only the
+-- playing organizer seated (0121, B9); idempotent re-call returns the same id; forbidden / series_inactive guards.
 -- 'PT001' = "expected behaviour did not hold" sentinel.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
@@ -103,10 +103,13 @@ begin
   if n_inv <> 0 then
     raise exception using errcode='PT001', message='public occurrence must not copy invitations, got '||n_inv;
   end if;
-  if n_part <> 0 then
-    raise exception using errcode='PT001', message='new occurrence should have zero participants, got '||n_part;
+  -- 0121 (B9): an organizing_and_playing organizer is seated as a confirmed player on the new
+  -- occurrence, as create_event does; nobody else carries over (i1 was confirmed on the source).
+  if n_part <> 1 or not exists (select 1 from event_participants
+                                where event_id = new1 and user_id = u1 and status = 'confirmed') then
+    raise exception using errcode='PT001', message='new occurrence should seat only the playing organizer, got '||n_part||' participants';
   end if;
-  raise notice 'OK materialize: +7d, config copied, no invitations (public), roster empty';
+  raise notice 'OK materialize: +7d, config copied, no invitations (public), only the playing organizer seated';
 
   -- (2) idempotent
   perform set_config('role','authenticated',true);
