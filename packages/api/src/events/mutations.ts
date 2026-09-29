@@ -455,7 +455,11 @@ export const useMarkConfirmed = (eventId: string) => {
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
     onSuccess: () => {
+      // Confirming also accepts the player's pending invitation (0122), so the Invited list moves.
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitedPlayers(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
@@ -528,8 +532,13 @@ export const useRemoveParticipant = (eventId: string) => {
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
     onSuccess: () => {
+      // 'to_invited' reopens the player's invitation; 'from_event' deletes it and any team slot.
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitedPlayers(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+      qc.invalidateQueries({ queryKey: ['event', eventId, 'invite-candidates'] });
       qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
