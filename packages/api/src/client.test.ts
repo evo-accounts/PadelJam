@@ -40,6 +40,13 @@ describe('mapPgError', () => {
     expect(mapPgError({ message: 'gender_required' })).toBe('gender_required');
   });
 
+  it('maps the recurrence-occurrence codes (0123)', () => {
+    for (const code of ['occurrence_not_found', 'occurrence_materialised', 'occurrence_cancelled',
+      'occurrence_conflict']) {
+      expect(mapPgError({ message: code })).toBe(code);
+    }
+  });
+
   it('maps the weak-password rejection', () => {
     expect(mapPgError({ message: 'password_weak' })).toBe('password_weak');
   });

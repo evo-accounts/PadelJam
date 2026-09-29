@@ -50,8 +50,14 @@ const eventRow = (ev) =>
 const occurrences = (seriesId) =>
   sel('events', `series_id=eq.${seriesId}&deleted_at=is.null&select=id,starts_at,status,manual_court_names&order=starts_at`);
 const notifs = (u, type, ev) => sel('notifications', `user_id=eq.${u.id}&type=eq.${type}&event_id=eq.${ev}&select=id`);
-/** Move an event's start (service role; update_event would refuse a past start). */
-const moveTo = (ev, iso) => patch('events', `id=eq.${ev}`, { starts_at: iso });
+/** Move a series' FIRST (only) event in time (service role; update_event would refuse a past start).
+ *  Since 0123 the weekly grid hangs off event_series.grid_anchor, which that event set, so the
+ *  anchor moves with it — as if the series had been created at that time. */
+const moveTo = async (ev, iso) => {
+  await patch('events', `id=eq.${ev}`, { starts_at: iso });
+  const [{ series_id: seriesId }] = await sel('events', `id=eq.${ev}&select=series_id`);
+  if (seriesId) await patch('event_series', `id=eq.${seriesId}`, { grid_anchor: iso });
+};
 const sameInstant = (a, b) => new Date(a).getTime() === new Date(b).getTime();
 
 // Europe/Lisbon wall-clock helpers. Every source occurrence here is moved to 19:00 Lisbon, and 0117

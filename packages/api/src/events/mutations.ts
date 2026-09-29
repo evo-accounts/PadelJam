@@ -55,19 +55,32 @@ export const useCreateEvent = () => {
   });
 };
 
+/** update_event's scope on a recurring event (migration 0123). */
+export type UpdateEventScope = 'only_this' | 'this_and_upcoming';
+
 export const useUpdateEvent = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { values: UpdateEventInput; groupId: string | null }) => {
+    mutationFn: async (input: {
+      values: UpdateEventInput;
+      groupId: string | null;
+      /** A recurring event asks first (UX-MEVT-08/22). Omitted = 'only_this'. Migration 0123. */
+      scope?: UpdateEventScope;
+    }) => {
       const { error } = await db.rpc('update_event', {
         p_event_id: eventId,
         p_payload: buildUpdateEventPayload(input.values) as Json,
+        p_scope: input.scope ?? 'only_this',
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
     onSuccess: (_d, input) => {
+      // 'this_and_upcoming' also rewrites the later occurrences (other event ids): refresh them all.
+      if (input.scope === 'this_and_upcoming') qc.invalidateQueries({ queryKey: ['event'] });
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventSeries(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventNextOccurrences(eventId) });
       invalidateMyEvents(qc);
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
@@ -826,6 +839,7 @@ export const useCancelEvent = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventNextOccurrences(eventId) });
       invalidateMyEvents(qc);
     },
   });
@@ -873,6 +887,100 @@ export const useMaterializeOccurrence = (eventId: string) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.event(eventId) });
       invalidateMyEvents(qc);
+    },
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Recurring occurrences (migration 0123, UX-MEVT-08 / 22). `eventId` is the event whose Manage
+// screen lists the occurrences (its next-occurrences cache is refreshed).
+// ---------------------------------------------------------------------------
+
+/** Move an Upcoming occurrence (not yet sent). A Scheduled one is edited with useUpdateEvent. */
+export const useUpdateOccurrenceSlot = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { seriesId: string; slotDate: string; startsAt: string }) => {
+      const { error } = await db.rpc('update_occurrence_slot', {
+        p_series_id: input.seriesId,
+        p_slot_date: input.slotDate,
+        p_starts_at: input.startsAt,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventNextOccurrences(eventId) });
+    },
+  });
+};
+
+/** Cancel one occurrence; the series goes on. A Scheduled one is cancelled like cancel_event 'only_this'. */
+export const useCancelOccurrenceSlot = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { seriesId: string; slotDate: string }) => {
+      const { error } = await db.rpc('cancel_occurrence_slot', {
+        p_series_id: input.seriesId,
+        p_slot_date: input.slotDate,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventNextOccurrences(eventId) });
+      invalidateMyEvents(qc);
+    },
+  });
+};
+
+/** "Send invitation now": materialise an Upcoming occurrence early. Returns its event id. */
+export const useSendOccurrenceNow = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { seriesId: string; slotDate: string }) => {
+      const { data, error } = await db.rpc('send_occurrence_now', {
+        p_series_id: input.seriesId,
+        p_slot_date: input.slotDate,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as string;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.eventNextOccurrences(eventId) });
+      invalidateMyEvents(qc);
+    },
+  });
+};
+
+/**
+ * "Repeat every week" on an existing event. Off cancels every later Scheduled occurrence (their
+ * players are told) and stops the series; on starts a new weekly series from this event (group
+ * events only; the community's recurring_events cap applies → 'recurring_events').
+ */
+export const useSetEventRecurrence = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { on: boolean; inviteLeadDays?: 3 | 5 | 7 | null; groupId: string | null }) => {
+      const { error } = await db.rpc('set_event_recurrence', {
+        p_event_id: eventId,
+        p_on: input.on,
+        p_invite_lead_days: input.inviteLeadDays ?? null,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: (_d, input) => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventSeries(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventNextOccurrences(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
+      invalidateMyEvents(qc);
+      if (input.groupId) {
+        qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
+        qc.invalidateQueries({ queryKey: qk.canCreateEvent(input.groupId) });
+      }
     },
   });
 };

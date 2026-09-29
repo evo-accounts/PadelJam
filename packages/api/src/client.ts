@@ -40,6 +40,9 @@ const KNOWN = [
   'waitlist_not_confirmable', 'team_required', 'starts_at_required', 'starts_at_in_past',
   'invites_not_allowed', 'not_group_member', 'user_not_found', 'slot_taken',
   'standalone_must_be_private',
+  // 0123: acting on a recurring event's occurrence slot (not a slot / already sent / cancelled),
+  // and a 'this and upcoming' date move onto another occurrence's week.
+  'occurrence_not_found', 'occurrence_materialised', 'occurrence_cancelled', 'occurrence_conflict',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
   'recurring_events', 'not_cancellable', 'invalid_scope', 'not_editable', 'standby_below_roster', 'series_inactive', 'courts_below_roster', 'not_retryable',
   // community reviews: gate RPC codes the review screen translates directly
