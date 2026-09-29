@@ -1,24 +1,41 @@
 'use client';
-import Link from 'next/link';
-import { useMyGroups, useMyProfile, useCommunities } from '@padel/api';
+import { CalendarDays, Users } from 'lucide-react';
+import { useMyEventStatuses, useMyEvents, useMyGroups, useMyProfile } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { EventCard, type EventCardEvent } from '@/components/event/EventCard';
 import { GroupMiniCard } from '@/components/group/GroupMiniCard';
+import { HomeRail } from '@/components/home/HomeRail';
+import { QuickActions } from '@/components/home/QuickActions';
+import { exploreSearchHref } from '@/lib/explore-links';
 
-// Home shows a handful of groups; the rest are one click away on Your Groups, which has no
-// sidebar entry of its own — this section is the way in (product decision, 2026-09-25).
-const HOME_GROUPS = 6;
+/** How many cards each rail shows before "See all" (mobile shows the same eight events). */
+const RAIL_EVENTS = 8;
+const RAIL_GROUPS = 8;
 
+/**
+ * Home (UX-HOME-01): quick actions, then Next Events and My Groups as rails of vertical cards,
+ * each with "See all" and the standard empty state. No search here — search lives on Explore,
+ * and the Find actions go there with the matching tab selected.
+ *
+ * The plain list of the viewer's communities that used to sit here is gone: the audit's Home is
+ * these three sections, and communities keep their own page in the sidebar (and Find Community).
+ */
 export default function AppHome() {
   const { t } = useT('app');
-  const { t: tg } = useT('group');
+  const { t: th } = useT('home');
   const profile = useMyProfile();
-  const communities = useCommunities();
+  // 'going' includes the waiting list and interested since 0112; the card labels those.
+  const events = useMyEvents('going');
+  const { data: statuses } = useMyEventStatuses();
   const groups = useMyGroups();
 
+  const eventRows = (events.data?.pages.flat() ?? []) as EventCardEvent[];
+  const groupRows = groups.data ?? [];
+
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex min-w-0 flex-col gap-8 px-4 py-6 sm:p-6">
       <h1 className="text-2xl font-semibold">
         {profile.isLoading ? (
           <Skeleton className="h-8 w-48" />
@@ -26,47 +43,58 @@ export default function AppHome() {
           t('welcome', { name: profile.data?.full_name ?? '' })
         )}
       </h1>
-      <section className="flex flex-col gap-2" aria-labelledby="home-groups" data-testid="home-groups">
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="home-groups" className="text-sm font-medium text-muted-foreground">
-            {tg('yourGroupsTitle')}
-          </h2>
-          {(groups.data ?? []).length > 0 ? (
-            <Link href="/app/groups" className="text-sm font-medium text-primary hover:underline" data-testid="home-groups-see-all">
-              {tg('seeAll')}
-            </Link>
-          ) : null}
-        </div>
-        {groups.isLoading ? (
-          <Skeleton className="h-20 w-full" />
-        ) : (groups.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">{tg('yourGroupsEmptyTitle')}</p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {(groups.data ?? []).slice(0, HOME_GROUPS).map((g) => (
-              <GroupMiniCard key={g.group_id} group={g} />
-            ))}
-          </div>
-        )}
-      </section>
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">{t('nav.community')}</h2>
-        {communities.isLoading ? (
-          <Skeleton className="h-20 w-full" />
-        ) : (communities.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('noCommunities')}</p>
-        ) : (
-          <div className="grid gap-2">
-            {(communities.data ?? []).map(({ community }) =>
-              community ? (
-                <Card key={community.id} className="p-4">
-                  {community.name}
-                </Card>
-              ) : null,
-            )}
-          </div>
-        )}
-      </section>
+
+      <QuickActions />
+
+      <HomeRail
+        id="home-next-events-title"
+        title={th('nextEvents')}
+        seeAllHref="/app/events"
+        testId="home-next-events"
+        loading={events.isLoading}
+        error={events.isError}
+        onRetry={() => void events.refetch()}
+        empty={
+          eventRows.length === 0 ? (
+            <EmptyState
+              icon={CalendarDays}
+              title={th('eventsEmpty')}
+              action={{ label: th('findEventsCta'), href: exploreSearchHref('events'), testId: 'home-next-events-find' }}
+              testId="home-next-events-empty"
+            />
+          ) : null
+        }
+      >
+        {eventRows.slice(0, RAIL_EVENTS).map((e) => (
+          <EventCard key={e.id} event={e} viewerStatus={statuses?.[e.id]} orientation="vertical" />
+        ))}
+      </HomeRail>
+
+      <HomeRail
+        id="home-groups-title"
+        title={th('myGroups')}
+        // Your Groups has no sidebar entry of its own — this "See all" is the way in
+        // (product decision, 2026-09-25).
+        seeAllHref="/app/groups"
+        testId="home-groups"
+        loading={groups.isLoading}
+        error={groups.isError}
+        onRetry={() => void groups.refetch()}
+        empty={
+          groupRows.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title={th('groupsEmpty')}
+              action={{ label: th('findGroupsCta'), href: exploreSearchHref('groups'), testId: 'home-groups-find' }}
+              testId="home-groups-empty"
+            />
+          ) : null
+        }
+      >
+        {groupRows.slice(0, RAIL_GROUPS).map((g) => (
+          <GroupMiniCard key={g.group_id} group={g} orientation="vertical" />
+        ))}
+      </HomeRail>
     </div>
   );
 }

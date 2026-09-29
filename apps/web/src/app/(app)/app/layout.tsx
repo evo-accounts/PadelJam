@@ -87,7 +87,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </SidebarContent>
       </Sidebar>
 
-      <SidebarInset>
+      {/* min-w-0: a flex child defaults to its content's width, so one wide row (Home's rails)
+          would push the whole inset, header actions included, past the viewport. */}
+      <SidebarInset className="min-w-0">
         <header className="sticky top-0 z-50 flex items-center justify-between gap-2 border-b bg-background px-4 py-2">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="[&_svg]:size-5!" />

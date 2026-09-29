@@ -133,7 +133,6 @@ const webApp = {
     notifications: 'Notificações',
     comingSoon: 'Em breve',
     welcome: 'Bem-vindo, {{name}}',
-    noCommunities: 'Ainda não pertences a nenhuma comunidade.',
   },
   'pt-BR': {
     nav: { home: 'Início', events: 'Eventos', explore: 'Explorar', community: 'Comunidade', profile: 'Perfil', messages: 'Mensagens' },
@@ -141,7 +140,6 @@ const webApp = {
     notifications: 'Notificações',
     comingSoon: 'Em breve',
     welcome: 'Bem-vindo, {{name}}',
-    noCommunities: 'Você ainda não participa de nenhuma comunidade.',
   },
   en: {
     nav: { home: 'Home', events: 'Events', explore: 'Explore', community: 'Community', profile: 'Profile', messages: 'Messages' },
@@ -149,7 +147,6 @@ const webApp = {
     notifications: 'Notifications',
     comingSoon: 'Coming soon',
     welcome: 'Welcome, {{name}}',
-    noCommunities: "You're not in any communities yet.",
   },
 } as const;
 
@@ -159,6 +156,75 @@ const webApp = {
 export function registerWebAppCopy(instance: I18n): void {
   (Object.keys(webApp) as WebLocale[]).forEach((locale) => {
     instance.addResourceBundle(locale, 'app', webApp[locale], true, false);
+  });
+}
+
+/**
+ * Home copy (UX-HOME-01), surfaced through the `home` namespace. The labels mirror mobile's
+ * `home` namespace word for word (quickCreate … groupsEmpty), so both apps read the same; the
+ * rest is what only web needs — the empty-state actions and the community picker behind
+ * Create Event (web's wizard lives under a community).
+ */
+const webHome = {
+  'pt-PT': {
+    quickActions: 'Ações rápidas',
+    quickCreate: 'Criar Evento',
+    findEvent: 'Procurar Evento',
+    findGroup: 'Procurar Grupo',
+    findCommunity: 'Procurar Comunidade',
+    createEventIn: 'Criar evento em',
+    createEventNone: 'Junta-te a uma comunidade para criares eventos.',
+    goToCommunities: 'Ver comunidades',
+    nextEvents: 'Próximos Eventos',
+    myGroups: 'Os meus grupos',
+    seeAll: 'Ver tudo',
+    eventsEmpty: 'Não há eventos próximos.',
+    groupsEmpty: 'Ainda não estás em nenhum grupo.',
+    findEventsCta: 'Procurar eventos',
+    findGroupsCta: 'Procurar grupos',
+  },
+  'pt-BR': {
+    quickActions: 'Ações rápidas',
+    quickCreate: 'Criar Evento',
+    findEvent: 'Buscar Evento',
+    findGroup: 'Buscar Grupo',
+    findCommunity: 'Buscar Comunidade',
+    createEventIn: 'Criar evento em',
+    createEventNone: 'Participe de uma comunidade para criar eventos.',
+    goToCommunities: 'Ver comunidades',
+    nextEvents: 'Próximos Eventos',
+    myGroups: 'Meus grupos',
+    seeAll: 'Ver tudo',
+    eventsEmpty: 'Nenhum evento próximo.',
+    groupsEmpty: 'Você ainda não está em nenhum grupo.',
+    findEventsCta: 'Buscar eventos',
+    findGroupsCta: 'Buscar grupos',
+  },
+  en: {
+    quickActions: 'Quick actions',
+    quickCreate: 'Create Event',
+    findEvent: 'Find Event',
+    findGroup: 'Find Group',
+    findCommunity: 'Find Community',
+    createEventIn: 'Create an event in',
+    createEventNone: 'Join a community to create events.',
+    goToCommunities: 'Go to communities',
+    nextEvents: 'Next Events',
+    myGroups: 'My groups',
+    seeAll: 'See all',
+    eventsEmpty: 'No upcoming events.',
+    groupsEmpty: "You're not in any groups yet.",
+    findEventsCta: 'Find events',
+    findGroupsCta: 'Find groups',
+  },
+} as const;
+
+/**
+ * Merges the web Home keys into the `home` namespace for every locale.
+ */
+export function registerWebHomeCopy(instance: I18n): void {
+  (Object.keys(webHome) as WebLocale[]).forEach((locale) => {
+    instance.addResourceBundle(locale, 'home', webHome[locale], true, false);
   });
 }
 

@@ -9,7 +9,7 @@ import { SessionProvider } from '@padel/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { TypedClient } from '@padel/db';
 import { supabase } from '@/lib/supabase/client';
-import { registerWebAuthCopy, registerWebAppCopy, registerWebProfileCopy, registerWebSettingsCopy, registerWebCommunityCopy, registerWebGroupCopy, registerWebEventCopy, registerWebChatCopy, registerWebNotificationsCopy, registerWebSuperAdminCopy } from '@/lib/i18n-web';
+import { registerWebAuthCopy, registerWebAppCopy, registerWebHomeCopy, registerWebProfileCopy, registerWebSettingsCopy, registerWebCommunityCopy, registerWebGroupCopy, registerWebEventCopy, registerWebChatCopy, registerWebNotificationsCopy, registerWebSuperAdminCopy } from '@/lib/i18n-web';
 import { initSentry } from '@/lib/sentry';
 import { resolveLocale } from '@/lib/locale';
 
@@ -63,6 +63,7 @@ export function Providers({ children }: { children: ReactNode }) {
       const instance = await createI18n(locale);
       registerWebAuthCopy(instance);
       registerWebAppCopy(instance);
+      registerWebHomeCopy(instance);
       registerWebProfileCopy(instance);
       registerWebSettingsCopy(instance);
       registerWebCommunityCopy(instance);
