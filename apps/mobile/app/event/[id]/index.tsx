@@ -369,6 +369,7 @@ export default function EventDetailScreen() {
     run(async () => {
       await startEvent.mutateAsync({
         eventType: event.event_type as EventType,
+        specification: event.specification,
         confirmedParticipantIds: participants
           .filter((p) => p.status === 'confirmed')
           .sort((a, b) => a.joined_at.localeCompare(b.joined_at))

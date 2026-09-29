@@ -14,6 +14,11 @@ const INTERNAL = [
   ['_clear_team_slot', { p_event_id: ZERO, p_participant_id: ZERO }],
   ['_build_fours_arrangement', { p_ordered: [] }],
   ['_persist_round_matches', { p_event_id: ZERO, p_round_id: ZERO, p_arrangement: [] }],
+  // 0126: the round engine's unit helpers.
+  ['_engine_mode', { p_event_id: ZERO }],
+  ['_engine_units', { p_event_id: ZERO }],
+  ['_engine_place', { p_mode: 'classic', p_style: 'mexicano', p_courts: 1, p_units: [] }],
+  ['_engine_side_ok', { p_event_id: ZERO, p_mode: 'team', p_side: [] }],
   ['notif_blocked', { u1: ZERO, u2: ZERO }],
   ['viewer_distance_m', { p: 'SRID=4326;POINT(-9.14 38.72)' }],
   ['placement_points', { p: 1 }],

@@ -8,7 +8,7 @@ import {
   type EventType,
   type UpdateEventInput,
 } from '../schemas';
-import { americanoSchedule } from '../round-gen';
+import { buildAmericanoSchedule, type AmericanoRoster } from '../round-gen';
 
 // Mirrors the generated `Json` scalar from @padel/db (not re-exported there).
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -592,12 +592,59 @@ export const useMarkAllPaid = (eventId: string) => {
 // Match engine
 // ---------------------------------------------------------------------------
 
+type EngineRosterRow = {
+  participant_id: string;
+  gender: string | null;
+  team_id: string | null;
+  team_number: number | null;
+};
+
+/**
+ * The Team / Mixed Americano input, in the caller's seeding order (`orderedIds`, then anyone the
+ * server lists that the caller did not). Team: each complete pair, by team number. Mixed: the men
+ * and the women. start_event refuses a start the roster cannot pair (teams_incomplete,
+ * mixed_unbalanced), and validates the schedule's pairs.
+ */
+export function engineRoster(
+  specification: 'team' | 'mixed',
+  orderedIds: string[],
+  rows: EngineRosterRow[],
+): AmericanoRoster {
+  const pos = new Map(orderedIds.map((id, i) => [id, i]));
+  const ordered = [...rows].sort(
+    (a, b) =>
+      (pos.get(a.participant_id) ?? Number.MAX_SAFE_INTEGER) -
+      (pos.get(b.participant_id) ?? Number.MAX_SAFE_INTEGER),
+  );
+  if (specification === 'mixed') {
+    return {
+      specification,
+      men: ordered.filter((r) => r.gender === 'male').map((r) => r.participant_id),
+      women: ordered.filter((r) => r.gender === 'female').map((r) => r.participant_id),
+    };
+  }
+  const byTeam = new Map<string, { n: number; ids: string[] }>();
+  for (const r of ordered) {
+    if (!r.team_id) continue;
+    const t = byTeam.get(r.team_id) ?? { n: r.team_number ?? 0, ids: [] };
+    t.ids.push(r.participant_id);
+    byTeam.set(r.team_id, t);
+  }
+  const teams = [...byTeam.values()]
+    .filter((t) => t.ids.length === 2)
+    .sort((a, b) => a.n - b.n)
+    .map((t) => [t.ids[0]!, t.ids[1]!] as [string, string]);
+  return { specification, teams };
+}
+
 export const useStartEvent = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
       eventType: EventType;
+      /** The event's modality: Team keeps its pairs, Mixed pairs a man and a woman (0126). */
+      specification?: string | null;
       confirmedParticipantIds: string[];
       numCourts: number;
     }) => {
@@ -605,7 +652,17 @@ export const useStartEvent = (eventId: string) => {
       if (input.eventType === 'americano') {
         // Americano schedule is computed client-side and persisted as the
         // full round plan. Mexicano / Up&Down seed round 1 server-side.
-        const plan = americanoSchedule(input.confirmedParticipantIds, input.numCourts);
+        let roster: AmericanoRoster = {
+          specification: 'classic',
+          participantIds: input.confirmedParticipantIds,
+        };
+        if (input.specification === 'team' || input.specification === 'mixed') {
+          // Genders and teams as start_event sees them (a block can hide a profile's gender).
+          const { data, error } = await db.rpc('event_engine_roster', { p_event_id: eventId });
+          if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+          roster = engineRoster(input.specification, input.confirmedParticipantIds, data ?? []);
+        }
+        const plan = buildAmericanoSchedule(roster, input.numCourts);
         args.p_rounds = plan.map((round) => ({
           round_number: round.roundNumber,
           status: 'pending',
