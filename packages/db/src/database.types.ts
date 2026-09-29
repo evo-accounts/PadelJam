@@ -3862,8 +3862,15 @@ export type Database = {
           entity_id: string
           is_team: boolean
           losses: number
+          name_a: string | null
+          name_b: string | null
+          participant_a_id: string | null
+          participant_b_id: string | null
           points: number
           rank: number
+          team_number: number | null
+          user_a_id: string | null
+          user_b_id: string | null
           wins: number
         }[]
       }
