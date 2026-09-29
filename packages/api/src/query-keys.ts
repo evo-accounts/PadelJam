@@ -71,6 +71,18 @@ export const qk = {
   exploreGroupsList: ['explore', 'groups', 'list'] as const,
   exploreEventsList: ['explore', 'events', 'list'] as const,
   explorePlayersList: ['explore', 'players', 'list'] as const,
+  // Search (0129). Under each type's explore prefix on purpose: the mutations that already
+  // invalidate `explorePlayers` (follow) or `['explore']` (join, community location) refresh the
+  // matching search results too, and a card's viewer_state never goes stale.
+  searchPlayers: (q: string) => ['explore', 'players', 'search', q] as const,
+  searchEvents: (q: string, filters: object, sort: string) =>
+    ['explore', 'events', 'search', q, filters, sort] as const,
+  searchGroups: (q: string, filters: object, sort: string) =>
+    ['explore', 'groups', 'search', q, filters, sort] as const,
+  searchCommunities: (q: string, filters: object, sort: string) =>
+    ['explore', 'communities', 'search', q, filters, sort] as const,
+  searchSuggest: (q: string) => ['explore', 'suggest', q] as const,
+  searchForYouTerms: ['explore', 'for-you'] as const,
   notifications: ['notifications'] as const,
   notificationsUnread: ['notifications', 'unread'] as const,
   partnerRequestSummary: ['notifications', 'partner-summary'] as const,
