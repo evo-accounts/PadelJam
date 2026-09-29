@@ -51,7 +51,21 @@ function Card({ title, id, children }: { title: string; id: string; children: Re
  * occurrence's invitation goes out). The summary of when it happens is `DateSummaryFooter`, fixed
  * at the bottom with the primary button. Mirrors mobile's Step7Schedule.
  */
-export function Step7Schedule({ draft, patch, flagged }: StepProps) {
+export function Step7Schedule({
+  draft,
+  patch,
+  flagged,
+  context = 'wizard',
+  recurring = false,
+}: StepProps & {
+  /**
+   * `edit`: Manage Event's Edit Date & Time dialog (UX-MEVT-08). Repeat every week is shown
+   * read-only there until recurrence editing ships with migration 0123 (W5).
+   */
+  context?: 'wizard' | 'edit';
+  /** Edit only: whether the event belongs to an active weekly series. */
+  recurring?: boolean;
+}) {
   const { t } = useT('event');
   const nowMs = useNow(60_000);
   const now = useMemo(() => new Date(nowMs), [nowMs]);
@@ -136,8 +150,32 @@ export function Step7Schedule({ draft, patch, flagged }: StepProps) {
         ) : null}
       </Card>
 
+      {/* TODO(0123, W5): turn recurrence on/off here (set_event_recurrence). Until then it is shown
+          as it is and cannot be changed — never a switch that does nothing. */}
+      {context === 'edit' && draft.groupId ? (
+        <section aria-label={t('repeatLabel')} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <label htmlFor="repeat-weekly" className="font-semibold">
+                {t('repeatLabel')}
+              </label>
+              <p id="repeat-weekly-hint" className="text-sm text-muted-foreground">
+                {t('repeatEditLater')}
+              </p>
+            </div>
+            <Switch
+              id="repeat-weekly"
+              checked={recurring}
+              disabled
+              aria-describedby="repeat-weekly-hint"
+              data-testid="repeat-weekly"
+            />
+          </div>
+        </section>
+      ) : null}
+
       {/* Recurrence is group-only; a standalone event has nobody to re-invite (plan-capped on create). */}
-      {draft.groupId ? (
+      {context === 'wizard' && draft.groupId ? (
         <section aria-label={t('repeatLabel')} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-0.5">

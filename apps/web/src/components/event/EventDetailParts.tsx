@@ -46,22 +46,29 @@ function initials(name: string | null | undefined): string {
   return (name ?? '?').slice(0, 2).toUpperCase();
 }
 
-/** Three overlapping confirmed-player photos, "Players", and confirmed / capacity; opens the list. */
+/**
+ * Three overlapping confirmed-player photos, "Players", and confirmed / capacity; opens the list.
+ * The organizer's "Manage players" row (UX-MEVT-01) is the same card under its own title.
+ */
 export function PlayersCard({
   people,
   confirmed,
   capacity,
   href,
+  title,
+  testId = 'event-players-card',
 }: {
   people: { id: string; name: string | null; avatarPath: string | null }[];
   confirmed: number;
   capacity: number;
   href: string;
+  title?: string;
+  testId?: string;
 }) {
   const { t } = useT('event');
   const shown = people.slice(0, 3);
   return (
-    <Link href={href} className={rowCard} data-testid="event-players-card">
+    <Link href={href} className={rowCard} data-testid={testId}>
       {shown.length > 0 ? (
         <AvatarGroup>
           {shown.map((p) => (
@@ -73,7 +80,7 @@ export function PlayersCard({
         </AvatarGroup>
       ) : null}
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="font-medium">{t('playersTitle')}</span>
+        <span className="font-medium">{title ?? t('playersTitle')}</span>
         <span className="text-sm text-muted-foreground">{t('playersCapacity', { confirmed, capacity })}</span>
       </span>
       <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />

@@ -30,7 +30,7 @@ export default function EventActivityPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{t('activityTitle')}</h1>
         <Button asChild variant="tertiary">
-          <Link href={`/app/event/${id}/manage`}>{t('manageTitle')}</Link>
+          <Link href={`/app/event/${id}/manage`}>{t('manageEventTitle')}</Link>
         </Button>
       </div>
       {activity.isLoading ? <Skeleton className="h-40" /> : <ActivityFeed rows={activity.data ?? []} />}

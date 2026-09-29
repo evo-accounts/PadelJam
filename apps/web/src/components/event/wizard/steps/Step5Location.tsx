@@ -34,7 +34,7 @@ import type { StepProps } from '../types';
  *
  * Not a map search and no geolocation.
  */
-export function Step5Location(props: StepProps) {
+export function Step5Location(props: StepProps & { context?: 'wizard' | 'edit'; courtsBelow?: boolean }) {
   const manual = props.draft.locationMode === 'manual';
   // Switching between the list and the manual form happens inside the step, so the wizard's
   // step-change focus (to the heading) does not fire: the newly shown view takes focus itself —
@@ -53,7 +53,7 @@ export function Step5Location(props: StepProps) {
   );
 }
 
-type ViewProps = StepProps & { focusOnMount: boolean };
+type ViewProps = StepProps & { focusOnMount: boolean; context?: 'wizard' | 'edit' };
 
 function VenueList({ draft, patch, advance, focusOnMount }: ViewProps) {
   const { t } = useT('event');
@@ -163,7 +163,10 @@ function VenueList({ draft, patch, advance, focusOnMount }: ViewProps) {
   );
 }
 
-function ManualVenueForm({ draft, patch, flagged, focusOnMount }: ViewProps) {
+function ManualVenueForm({ draft, patch, flagged, focusOnMount, context = 'wizard', courtsBelow }: ViewProps & {
+  /** Edit only: the count is below the confirmed players (UX-MEVT-07), flagged on Save. */
+  courtsBelow?: boolean;
+}) {
   const { t } = useT('event');
   const errors = flagged ? locationErrors(draft) : [];
   const badAddress = errors.includes('manualLocationAddress');
@@ -213,8 +216,9 @@ function ManualVenueForm({ draft, patch, flagged, focusOnMount }: ViewProps) {
       <CourtCounter
         value={draft.numCourts}
         onChange={(n) => patch(setManualCourtCount(draft, n))}
-        invalid={errors.includes('numCourts')}
+        invalid={errors.includes('numCourts') || (context === 'edit' && !!courtsBelow)}
       />
+      {context === 'edit' ? <CourtsBelowRoster show={!!courtsBelow} /> : null}
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-medium">{t('courtNamesLabel')}</legend>
@@ -241,6 +245,20 @@ function ManualVenueForm({ draft, patch, flagged, focusOnMount }: ViewProps) {
         {t('chooseFromVenueList')}
       </Button>
     </div>
+  );
+}
+
+/**
+ * Edit only (UX-MEVT-07): the court count cannot drop below the players already confirmed — the
+ * client twin of update_event's `courts_below_roster`, flagged on Save.
+ */
+export function CourtsBelowRoster({ show }: { show: boolean }) {
+  const { t } = useT('event');
+  if (!show) return null;
+  return (
+    <p role="alert" className="text-sm text-destructive" data-testid="courts-below-roster">
+      {t('courts_below_roster')}
+    </p>
   );
 }
 
