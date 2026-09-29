@@ -1,6 +1,7 @@
--- JM-40: event_activity table + log_event_activity RPC.
--- Verifies organizer-vs-self authorization, action-set validation, actor stamping,
--- and organizer-only read RLS. 'PT001' = "expected behaviour did not hold" sentinel.
+-- JM-40: event_activity table. Since 0122 (D15/B11) every row is written server-side: the
+-- client-callable log_event_activity RPC is gone, _log_activity is internal, and the player's own
+-- actions are logged by triggers. Verifies: no client write path, the action vocabulary CHECK,
+-- trigger-stamped actors, and organizer-only read RLS. 'PT001' = "expected behaviour did not hold".
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
   ('f0000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','act-u1@x.com'),
@@ -16,61 +17,56 @@ declare
   ev uuid;
   n  integer;
 begin
-  -- Seed event + participant as a privileged role (fixture setup, not under test).
+  -- The forgeable writer is gone and the internal one is closed to clients.
+  if to_regprocedure('public.log_event_activity(uuid, text, jsonb)') is not null then
+    raise exception using errcode='PT001', message='log_event_activity must be dropped'; end if;
+  if has_function_privilege('authenticated', 'public._log_activity(uuid, uuid, text, jsonb)', 'execute') then
+    raise exception using errcode='PT001', message='_log_activity must not be executable by authenticated'; end if;
+
+  -- Seed a private group-less event (fixture setup, not under test); u2 is invited.
   perform set_config('role','postgres',true);
   insert into events (
     group_id, organizer_id, event_type, specification, scoring_mode,
     num_courts, starts_at, duration_minutes, organizer_role, name, status, is_private
   ) values (
     null, u1, 'americano', 'classic', 'points',
-    1, now() + interval '1 day', 90, 'organizing_and_playing', 'ActEv', 'scheduled', true
+    1, now() + interval '2 day', 90, 'organizing_only', 'ActEv', 'scheduled', true
   ) returning id into ev;
-  insert into event_participants (event_id, user_id, status) values (ev, u2, 'confirmed');
+  insert into event_invitations (event_id, invitee_id, invited_by) values (ev, u2, u1);
 
-  -- ---- As U1 (organizer): organizer action succeeds ----
+  -- ---- As U2: a direct insert is refused (no insert policy) ----
   perform set_config('role','authenticated',true);
-  perform set_config('request.jwt.claims','{"sub":"f0000001-0000-0000-0000-000000000001","role":"authenticated"}',true);
-  perform log_event_activity(ev, 'confirmed', '{"target_name":"U2"}'::jsonb);
-  select count(*) into n from event_activity where event_id = ev;
-  if n <> 1 then
-    raise exception using errcode='PT001', message='expected 1 activity row after confirmed, got '||n;
-  end if;
-  raise notice 'OK organizer: confirmed logged (1 row)';
-
-  -- ---- As U2 (participant): organizer action must be forbidden ----
   perform set_config('request.jwt.claims','{"sub":"f0000002-0000-0000-0000-000000000002","role":"authenticated"}',true);
   begin
-    perform log_event_activity(ev, 'removed', '{}'::jsonb);
-    raise exception using errcode='PT001', message='participant should not be able to log organizer action removed';
-  exception
-    when sqlstate 'PT001' then raise;  -- re-raise our own sentinel
-    when others then
-      if position('forbidden' in sqlerrm) = 0 then
-        raise exception using errcode='PT001', message='wrong error for participant organizer action: '||sqlerrm;
-      end if;
-  end;
-  raise notice 'OK participant: organizer action blocked with forbidden';
-
-  -- ---- As U2 (participant): self action succeeds (event is visible) ----
-  perform log_event_activity(ev, 'joined', '{}'::jsonb);
-  raise notice 'OK participant: joined logged (self action)';
-
-  -- ---- As U1 (organizer): unknown action must be invalid_action ----
-  perform set_config('request.jwt.claims','{"sub":"f0000001-0000-0000-0000-000000000001","role":"authenticated"}',true);
-  begin
-    perform log_event_activity(ev, 'bogus', '{}'::jsonb);
-    raise exception using errcode='PT001', message='bogus action should raise invalid_action';
+    insert into event_activity (event_id, actor_id, action) values (ev, u1, 'removed');
+    raise exception using errcode='PT001', message='a client insert into event_activity must fail';
   exception
     when sqlstate 'PT001' then raise;
-    when others then
-      if position('invalid_action' in sqlerrm) = 0 then
-        raise exception using errcode='PT001', message='wrong error for bogus action: '||sqlerrm;
-      end if;
+    when others then null;
   end;
-  raise notice 'OK organizer: bogus action blocked with invalid_action';
+  raise notice 'OK client: no direct write';
+
+  -- ---- As U2: joining logs 'joined' with the player as actor (trigger) ----
+  perform join_event(ev);
+  perform set_config('role','postgres',true);
+  select count(*) into n from event_activity where event_id = ev and action = 'joined' and actor_id = u2;
+  if n <> 1 then
+    raise exception using errcode='PT001', message='expected 1 joined row stamped with the player, got '||n;
+  end if;
+  raise notice 'OK trigger: joined logged (actor = player)';
+
+  -- ---- The vocabulary CHECK refuses an unknown action ----
+  begin
+    insert into event_activity (event_id, actor_id, action) values (ev, u1, 'bogus');
+    raise exception using errcode='PT001', message='bogus action should violate event_activity_action_check';
+  exception
+    when sqlstate 'PT001' then raise;
+    when check_violation then null;
+  end;
+  raise notice 'OK check: bogus action refused';
 
   -- ---- Read visibility: organizer-only RLS ----
-  -- As U2 (participant, not organizer): cannot read any activity rows.
+  perform set_config('role','authenticated',true);
   perform set_config('request.jwt.claims','{"sub":"f0000002-0000-0000-0000-000000000002","role":"authenticated"}',true);
   select count(*) into n from event_activity where event_id = ev;
   if n <> 0 then
@@ -78,13 +74,13 @@ begin
   end if;
   raise notice 'OK rls: participant reads 0 rows';
 
-  -- As U1 (organizer): reads both the confirmed + joined rows.
+  -- As U1 (organizer): reads the invited + joined rows.
   perform set_config('request.jwt.claims','{"sub":"f0000001-0000-0000-0000-000000000001","role":"authenticated"}',true);
   select count(*) into n from event_activity where event_id = ev;
-  if n <> 2 then
-    raise exception using errcode='PT001', message='organizer should read 2 activity rows, got '||n;
+  if n < 2 then
+    raise exception using errcode='PT001', message='organizer should read the log, got '||n;
   end if;
-  raise notice 'OK rls: organizer reads 2 rows';
+  raise notice 'OK rls: organizer reads the log';
 
   raise notice 'OK event_activity';
 end $$;

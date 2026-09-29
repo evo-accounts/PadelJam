@@ -8,7 +8,7 @@ import {
   useMarkConfirmed, useMarkPaid, useMarkAllPaid, useRemoveParticipant, useAddManualParticipant,
   useDuplicateEvent, useCancelEvent, useSendRosterCsvEmail,
 } from '@padel/api';
-import { buildRosterCsv, rosterCsvFilename } from '@padel/utils';
+import { buildRosterCsv, nextFutureWeekly, rosterCsvFilename } from '@padel/utils';
 import Link from 'next/link';
 import { RosterRow, type RosterParticipant } from '@/components/event/manage/RosterRow';
 import { AddManualForm } from '@/components/event/manage/AddManualForm';
@@ -164,7 +164,13 @@ export default function EventManagePage() {
           onClick={() =>
             run(() =>
               dup
-                .mutateAsync({ eventId: id, groupId: e.group_id, overrides: {} })
+                // starts_at is required and in the future (0122, B8): the next weekly slot
+                // until the Duplicate dialog (plan W1) lets the organizer pick it.
+                .mutateAsync({
+                  eventId: id,
+                  groupId: e.group_id,
+                  overrides: { starts_at: nextFutureWeekly(new Date(e.starts_at)).toISOString() },
+                })
                 .then((newId) => router.push(`/app/event/${newId as string}`)),
             )
           }

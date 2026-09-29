@@ -211,7 +211,7 @@ do $$
 declare grp_ev uuid := current_setting('test.grp_ev')::uuid;
 begin
   begin
-    perform duplicate_event(grp_ev, '{}'::jsonb);
+    perform duplicate_event(grp_ev, jsonb_build_object('starts_at', now() + interval '14 days'));
     raise exception using errcode='PT001',
       message='M2: a non-admin organizer duplicating a group event should be refused with create_events off';
   exception
@@ -229,7 +229,7 @@ set local request.jwt.claims = '{"sub":"f6000002-0000-0000-0000-000000000002","r
 do $$
 declare grp_ev uuid := current_setting('test.grp_ev')::uuid; v_new uuid;
 begin
-  v_new := duplicate_event(grp_ev, '{}'::jsonb);
+  v_new := duplicate_event(grp_ev, jsonb_build_object('starts_at', now() + interval '14 days'));
   if v_new is null then
     raise exception using errcode='PT001', message='M2: duplicate should succeed with create_events on'; end if;
   raise notice 'OK M2: the organizer may duplicate once create_events is on';
@@ -245,7 +245,7 @@ set local request.jwt.claims = '{"sub":"f6000001-0000-0000-0000-000000000001","r
 do $$
 declare grp_ev uuid := current_setting('test.grp_ev')::uuid; v_new uuid;
 begin
-  v_new := duplicate_event(grp_ev, '{}'::jsonb);
+  v_new := duplicate_event(grp_ev, jsonb_build_object('starts_at', now() + interval '14 days'));
   if v_new is null or not exists (select 1 from events where id=v_new and status='scheduled') then
     raise exception using errcode='PT001',
       message='M2: admin organizer should still be able to duplicate a group event'; end if;

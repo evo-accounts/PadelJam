@@ -49,6 +49,10 @@ export const qk = {
   eventResultSummary: (id: string) => ['event', id, 'result-summary'] as const,
   partnerRequests: (id: string) => ['event', id, 'partner-requests'] as const,
   partnerCandidates: (id: string) => ['event', id, 'partner-candidates'] as const,
+  /** Under the event prefix: the start sheet's blockers and warnings (0122). */
+  eventStartCheck: (id: string) => ['event', id, 'start-check'] as const,
+  /** Under the event prefix: the Invite screen's search (0122). */
+  eventInviteCandidates: (id: string, q: string) => ['event', id, 'invite-candidates', q] as const,
   canCreateEvent: (groupId: string) => ['group', groupId, 'can-create-event'] as const,
   canInviteToGroup: (groupId: string) => ['group', groupId, 'can-invite'] as const,
   groupInvitationPreview: (groupId: string) => ['group', groupId, 'invitation-preview'] as const,

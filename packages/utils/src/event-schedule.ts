@@ -152,6 +152,17 @@ export function nextWeekly(start: Date): Date {
   return d;
 }
 
+/**
+ * The first weekly slot after `start` that is still in the future — the interim default date for
+ * Duplicate, whose `starts_at` is required and must be in the future since migration 0122 (B8).
+ * Always at least one week on, so a duplicate never lands on the original's own slot.
+ */
+export function nextFutureWeekly(start: Date, now: Date = new Date()): Date {
+  let d = nextWeekly(start);
+  while (d.getTime() <= now.getTime()) d = nextWeekly(d);
+  return d;
+}
+
 /** The day `leadDays` before `occurrence` — when its invitation is sent. */
 export function inviteDate(occurrence: Date, leadDays: number): Date {
   const d = new Date(occurrence);

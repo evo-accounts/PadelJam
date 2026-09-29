@@ -6,18 +6,21 @@ import { qk } from '../query-keys';
 const PAGE_SIZE = 20;
 
 /**
- * Every notification type the server emits (notifications_type_check, latest: migration 0112).
+ * Every notification type the server emits (notifications_type_check, latest: migration 0122).
  * Renderers translate `type` as an i18n key and must fall back gracefully for a type they do not
  * know — a newer server can emit one before an old app build is updated.
  *   event_created — a public group event was created (members see Join; no invitation, 0112).
  *   partner_left  — your team partner left, you lost the spot and need to set a team again (0112).
  *   partner_request — someone asked you to be their partner in a team event; opens the Partner
  *                     Requests screen (0113).
+ *   organizer_confirmed — the organizer confirmed you for the event from their roster (0122).
+ *   removed_from_event  — the organizer took you off the event (0122).
  */
 export const NOTIFICATION_TYPES = [
   'event_invite', 'group_invite', 'community_invite', 'community_request_accepted', 'follow',
   'follow_joined_event', 'event_cancelled', 'event_updated', 'participant_confirmed', 'waitlist_spot',
   'results_published', 'event_created', 'partner_left', 'partner_request',
+  'organizer_confirmed', 'removed_from_event',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

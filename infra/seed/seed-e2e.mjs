@@ -480,11 +480,10 @@ async function main() {
   }) });
   for (const k of ['maria', 'joao']) await rpc(jwt(k), 'join_event', { p_event_id: e5 });
   // Suite 04 "an invitee can accept an invitation" needs sofia holding a pending invitation on an
-  // event a week out. Public group events are no longer auto-invited (0112), so the organizer
-  // invites her explicitly — invite_to_event still allows that.
-  await rpc(jwt('alex'), 'invite_to_event', {
-    p_event_id: e5, p_invitees: [{ invitee_id: id('sofia'), name: null, email: null, phone: null }],
-  });
+  // event a week out. Public group events are no longer auto-invited (0112), and since 0122 (D12)
+  // invite_to_event refuses them too, so the fixture invitation is written with the service role
+  // (the invitation trigger still sends her the event_invite notification).
+  await insert('event_invitations', { event_id: e5, invitee_id: id('sofia'), invited_by: id('alex') });
   console.log(`  E5 recurring = ${e5}`);
 
   // E6 — inside the 6h join cutoff (starts in ~3h), organizer alex (no invitations since 0112).

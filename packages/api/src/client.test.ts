@@ -29,6 +29,17 @@ describe('mapPgError', () => {
     expect(mapPgError({ message: 'plan_downgrade_over_limit' })).toBe('plan_downgrade_over_limit');
   });
 
+  it('maps the manage-rules codes (0122), longest match first', () => {
+    for (const code of ['not_enough_players', 'odd_players', 'teams_incomplete', 'invalid_rounds',
+      'waitlist_not_confirmable', 'team_required', 'starts_at_required', 'starts_at_in_past',
+      'invites_not_allowed', 'not_group_member', 'user_not_found', 'slot_taken',
+      'standalone_must_be_private', 'blocked']) {
+      expect(mapPgError({ message: code })).toBe(code);
+    }
+    expect(mapPgError({ message: 'player_gender_required' })).toBe('player_gender_required');
+    expect(mapPgError({ message: 'gender_required' })).toBe('gender_required');
+  });
+
   it('maps the weak-password rejection', () => {
     expect(mapPgError({ message: 'password_weak' })).toBe('password_weak');
   });

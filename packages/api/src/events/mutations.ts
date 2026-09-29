@@ -13,24 +13,6 @@ import { americanoSchedule } from '../round-gen';
 // Mirrors the generated `Json` scalar from @padel/db (not re-exported there).
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-/** Fire-and-forget activity log. A logging failure must never fail the user's action. */
-async function logActivity(
-  db: ReturnType<typeof useDb>,
-  eventId: string,
-  action: string,
-  detail: Record<string, unknown> = {},
-) {
-  try {
-    await db.rpc('log_event_activity', {
-      p_event_id: eventId,
-      p_action: action,
-      p_detail: detail as Json,
-    });
-  } catch {
-    /* best-effort */
-  }
-}
-
 /**
  * Invalidate every My Events list.
  *
@@ -130,7 +112,7 @@ export const useJoinEvent = () => {
     mutationFn: async (input: { eventId: string; groupId: string | null }) => {
       const { data, error } = await db.rpc('join_event', { p_event_id: input.eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, input.eventId, 'joined', { status: data });
+      // The activity row is written server-side (migration 0122, trg_activity_on_participant).
       // 'confirmed' or 'waiting_list' — the caller shows "You are in" only for the former.
       return data;
     },
@@ -151,7 +133,6 @@ export const useLeaveEvent = () => {
     mutationFn: async (input: { eventId: string; groupId: string | null }) => {
       const { error } = await db.rpc('leave_event', { p_event_id: input.eventId });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      await logActivity(db, input.eventId, 'left');
     },
     onSuccess: (_data, input) => {
       // leave_event withdraws the leaver's sent partner requests and closes the ones sent to them.
@@ -388,7 +369,9 @@ export const useInviteToEvent = (eventId: string) => {
   const qc = useQueryClient();
   return useMutation({
     // Platform users only (0113): people without an account are guests, added with
-    // add_manual_participant or the wizard's `guests`.
+    // add_manual_participant or the wizard's `guests`. Since 0122 (D12): a group event invites
+    // its members only (not_group_member), a public group event none (invites_not_allowed), a
+    // blocked player never (blocked); anyone already invited or playing is skipped.
     mutationFn: async (invitees: { invitee_id: string }[]) => {
       const { error } = await db.rpc('invite_to_event', {
         p_event_id: eventId,
@@ -398,6 +381,8 @@ export const useInviteToEvent = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitedPlayers(eventId) });
+      qc.invalidateQueries({ queryKey: ['event', eventId, 'invite-candidates'] });
       qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
@@ -457,6 +442,61 @@ export const useMarkConfirmed = (eventId: string) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
+    },
+  });
+};
+
+/**
+ * Confirm a pending invitee who has no participant row yet (organizer_confirm_invitee, 0122). On a
+ * team event a team and slot are required: the placement is organizer_assign_to_team's, and the
+ * player is confirmed once the pair is complete. Returns the participant id.
+ */
+export const useConfirmInvitee = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { userId: string; teamNumber?: number; slot?: 'a' | 'b' }) => {
+      const { data, error } = await db.rpc('organizer_confirm_invitee', {
+        p_event_id: eventId,
+        p_user_id: input.userId,
+        p_team_number: input.teamNumber ?? null,
+        p_slot: input.slot ?? null,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitedPlayers(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
+    },
+  });
+};
+
+/** A guest straight into a team slot (organizer_add_guest_to_team, 0122 / plan D7). */
+export const useAddGuestToTeam = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { teamNumber: number; slot: 'a' | 'b'; name: string; gender?: string | null }) => {
+      const { data, error } = await db.rpc('organizer_add_guest_to_team', {
+        p_event_id: eventId,
+        p_team_number: input.teamNumber,
+        p_slot: input.slot,
+        p_name: input.name,
+        p_gender: input.gender ?? null,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.event(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });

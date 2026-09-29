@@ -1,7 +1,7 @@
 import { type CreateEventInput, useCommunityMembers, useCreateEvent, useMyProfile } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { geocodeQuery } from '@padel/utils';
+import { courtsReserved, geocodeQuery } from '@padel/utils';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import {
@@ -165,6 +165,8 @@ function CreateEventWizard() {
       // Invite players step (a public group event, decision 5) or on "I will invite later".
       ...invitePayload(draft, { later: mode === 'later' }),
       courtIds: draft.courtIds,
+      // "Have not reserved yet" → a "Courts not reserved" pending action (0122, UX-MEVT-24).
+      courtsReserved: courtsReserved(draft),
       // A manual venue's court names (0113): all or nothing, blanks named "Court N".
       manualCourtNames: normalizeCourtNames(draft, (number) => t('courtNamePlaceholder', { number })),
     };

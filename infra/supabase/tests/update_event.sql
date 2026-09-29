@@ -1,6 +1,6 @@
 -- JM-24: update_event RPC — organizer edits a scheduled event's mutable fields.
 -- Verifies organizer gate (forbidden), status gate (not_editable), standby capacity guard
--- (standby_below_roster), standalone forced-private, and a happy-path field update.
+-- (standby_below_roster), standalone stays private (0122: refused, was forced), and a happy-path field update.
 -- 'PT001' = "expected behaviour did not hold" sentinel.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
@@ -167,21 +167,30 @@ begin
   raise notice 'OK standby guard: blocked with standby_below_roster';
 
   -- ============================================================
-  -- (5) Standalone event + is_private=false payload -> succeeds, is_private stays true (forced).
+  -- (5) Standalone event + is_private=false payload -> standalone_must_be_private (0122, D14; was
+  --     silently forced), is_private stays true.
   -- ============================================================
-  perform update_event(ev2, jsonb_build_object(
-    'name','Standalone New','description','d',
-    'starts_at',(now()+interval '2 days')::text,
-    'duration_minutes',90,'scoring_mode','points','scoring_value',24,
-    'allow_standby',true,'standby_spots',2,'is_private',false,
-    'entrance_fee_enabled',false,'players_submit_results',false,
-    'organizer_role','organizing_only'));
+  begin
+    perform update_event(ev2, jsonb_build_object(
+      'name','Standalone New','description','d',
+      'starts_at',(now()+interval '2 days')::text,
+      'duration_minutes',90,'scoring_mode','points','scoring_value',24,
+      'allow_standby',true,'standby_spots',2,'is_private',false,
+      'entrance_fee_enabled',false,'players_submit_results',false,
+      'organizer_role','organizing_only'));
+    raise exception using errcode='PT001', message='a standalone event must refuse is_private=false';
+  exception
+    when sqlstate 'PT001' then raise;
+    when others then
+      if position('standalone_must_be_private' in sqlerrm) = 0 then
+        raise exception using errcode='PT001', message='wrong error: '||sqlerrm; end if;
+  end;
   perform set_config('role','postgres',true);
   select is_private into v_private from events where id = ev2;
   if v_private is distinct from true then
-    raise exception using errcode='PT001', message='standalone event is_private should stay true (forced), got '||coalesce(v_private::text,'<null>');
+    raise exception using errcode='PT001', message='standalone event is_private should stay true, got '||coalesce(v_private::text,'<null>');
   end if;
-  raise notice 'OK standalone: is_private forced true after is_private=false payload';
+  raise notice 'OK standalone: is_private=false refused (standalone_must_be_private)';
 
   raise notice 'OK update_event';
 end $$;

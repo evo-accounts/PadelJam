@@ -243,11 +243,11 @@ await run('choose_guest_partner: on a full event the pair waits together; leavin
   assert((await teams(ev)).some((t) => t.is_confirmed && [t.player_a_id, t.player_b_id].includes(g3b.id)), 'team row with the guest');
   assert((await part(ev, p[5])).waiting_list_position === 1, 'queue renumbered');
 
-  // The organizer confirms a waiting player alone: their guest half goes, not left 'interested'.
+  // 0122 (D2): the organizer cannot confirm a waiting player — the waiting pair stays as it is.
   assert((await rpc(p[4].jwt, 'choose_guest_partner', { p_event_id: ev, p_name: 'Guest Four Again' })) === 'waiting_list', 'another pair waits');
-  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: (await part(ev, p[4])).id });
-  assert((await part(ev, p[4])).status === 'confirmed', 'organizer override confirmed the player');
-  assert(!(await guestRows(ev)).some((r) => r.guest_name === 'Guest Four Again'), 'waiting guest half deleted on mark_confirmed');
+  await expectError(async () => rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: (await part(ev, p[4])).id }), 'waitlist_not_confirmable');
+  assert((await part(ev, p[4])).status === 'waiting_list', 'still waiting');
+  assert((await guestRows(ev)).some((r) => r.guest_name === 'Guest Four Again'), 'the waiting guest half is kept');
 
   // The organizer removes a waiting player: their guest half is deleted, not left 'interested'.
   await rpc(org.jwt, 'organizer_remove_participant', { p_participant_id: (await part(ev, p[5])).id, p_mode: 'from_event' });

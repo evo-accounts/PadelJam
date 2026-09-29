@@ -119,6 +119,8 @@ export const createEventSchema = z
     invitees: z.array(inviteeSchema).optional(),
     guests: z.array(guestSchema).optional(),
     courtIds: z.array(z.string().uuid()).optional(),
+    /** False on "Have not reserved yet" (events.courts_reserved, 0122); the server defaults to true. */
+    courtsReserved: z.boolean().optional(),
     /** Manual venue / no location only: one name per court, in order (UX-CEVT-06). */
     manualCourtNames: z.array(z.string().trim().min(1).max(40)).optional(),
   })
@@ -195,6 +197,7 @@ export function buildCreateEventPayload(input: CreateEventInput): Record<string,
     payload.guests = input.guests.map((g) => ({ name: g.name.trim(), gender: g.gender ?? null }));
   }
   if (input.courtIds) payload.court_ids = input.courtIds;
+  if (input.courtsReserved !== undefined) payload.courts_reserved = input.courtsReserved;
   if (input.manualCourtNames && !input.venueId) {
     payload.manual_court_names = input.manualCourtNames.map((n) => n.trim());
   }
@@ -232,6 +235,10 @@ export const updateEventSchema = z
     locationLng: z.number().optional(),
     hasLocation: z.boolean(),
     numCourts: z.number().int().min(1),
+    /** A registry venue's ticked courts; sent → replaced (and courts_reserved set true) (0122). */
+    courtIds: z.array(z.string().uuid()).optional(),
+    /** Set explicitly from Edit Location & Courts (0122); omitted → unchanged. */
+    courtsReserved: z.boolean().optional(),
   })
   .refine((v) => !v.entranceFee.enabled || (v.entranceFee.amount != null && !!v.entranceFee.method), {
     path: ['entranceFee'],
@@ -240,7 +247,7 @@ export const updateEventSchema = z
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 
 export function buildUpdateEventPayload(input: UpdateEventInput): Record<string, unknown> {
-  return {
+  const payload: Record<string, unknown> = {
     name: input.name,
     description: input.description ?? null,
     thumbnail_path: input.thumbnailPath ?? null,
@@ -256,6 +263,8 @@ export function buildUpdateEventPayload(input: UpdateEventInput): Record<string,
     entrance_fee_method: input.entranceFee.method ?? null,
     entrance_fee_mba_number: input.entranceFee.mbaNumber ?? null,
     players_submit_results: input.playersSubmitResults,
+    // Ignored by update_event since 0122 (plan D8: the role is set at creation); kept in the
+    // payload for older servers.
     organizer_role: input.organizerRole,
     num_courts: input.numCourts,
     manual_location_name: input.venueId ? null : (input.manualLocationName ?? null),
@@ -267,6 +276,10 @@ export function buildUpdateEventPayload(input: UpdateEventInput): Record<string,
     location_text: input.manualLocationName ?? input.manualLocationAddress ?? null,
     has_location: input.hasLocation,
   };
+  // Omitted unless given, so an edit that does not touch the courts keeps them (0122).
+  if (input.courtIds && input.venueId) payload.court_ids = input.courtIds;
+  if (input.courtsReserved !== undefined) payload.courts_reserved = input.courtsReserved;
+  return payload;
 }
 
 export const submitScoreSchema = z.object({
