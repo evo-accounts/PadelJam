@@ -413,6 +413,41 @@ export const useEventInviteCandidates = (eventId: string, query: string, limit =
 };
 
 /**
+ * A recurring event's next occurrences (event_next_occurrences, migration 0123 / UX-MEVT-22):
+ * the weekly slots after this one, in order. 'scheduled' = materialised (invitations are out;
+ * `event_id` is its event, with its own date and location); 'upcoming' = not yet (`event_id`
+ * null; name, location and duration come from the series' latest occurrence). `slot_date` (the
+ * Lisbon date of the weekly slot) identifies an upcoming one to update_occurrence_slot,
+ * cancel_occurrence_slot and send_occurrence_now; `overridden` = its date/time was edited.
+ * Organizer only; an event that is not recurring returns [].
+ */
+export type EventOccurrence = {
+  slot_date: string;
+  starts_at: string;
+  duration_minutes: number;
+  status: 'scheduled' | 'upcoming';
+  event_id: string | null;
+  name: string | null;
+  venue_id: string | null;
+  location_name: string | null;
+  location_address: string | null;
+  overridden: boolean;
+};
+export const useEventNextOccurrences = (eventId: string, limit = 4, enabled = true) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.eventNextOccurrences(eventId),
+    enabled: enabled && !!uid && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('event_next_occurrences', { p_event_id: eventId, p_limit: limit });
+      if (error) throw error;
+      return (data ?? []) as EventOccurrence[];
+    },
+  });
+};
+
+/**
  * My Events tabs (migration 0112, UX-JEVT-01):
  *   organizing — events I organize;
  *   going      — I hold a roster row: confirmed, waiting list or interested;

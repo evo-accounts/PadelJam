@@ -1017,6 +1017,7 @@ export type Database = {
           day_of_week: number
           deleted_at: string | null
           duration_minutes: number
+          grid_anchor: string | null
           group_id: string
           id: string
           invite_lead_days: number
@@ -1029,6 +1030,7 @@ export type Database = {
           day_of_week: number
           deleted_at?: string | null
           duration_minutes: number
+          grid_anchor?: string | null
           group_id: string
           id?: string
           invite_lead_days: number
@@ -1041,6 +1043,7 @@ export type Database = {
           day_of_week?: number
           deleted_at?: string | null
           duration_minutes?: number
+          grid_anchor?: string | null
           group_id?: string
           id?: string
           invite_lead_days?: number
@@ -1061,6 +1064,38 @@ export type Database = {
             columns: ["organizer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_series_exceptions: {
+        Row: {
+          cancelled: boolean
+          created_at: string
+          series_id: string
+          slot_date: string
+          starts_at_override: string | null
+        }
+        Insert: {
+          cancelled?: boolean
+          created_at?: string
+          series_id: string
+          slot_date: string
+          starts_at_override?: string | null
+        }
+        Update: {
+          cancelled?: boolean
+          created_at?: string
+          series_id?: string
+          slot_date?: string
+          starts_at_override?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_series_exceptions_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "event_series"
             referencedColumns: ["id"]
           },
         ]
@@ -1186,6 +1221,7 @@ export type Database = {
           scoring_mode: string
           scoring_value: number | null
           series_id: string | null
+          slot_at: string | null
           specification: string
           standby_spots: number | null
           starts_at: string
@@ -1227,6 +1263,7 @@ export type Database = {
           scoring_mode: string
           scoring_value?: number | null
           series_id?: string | null
+          slot_at?: string | null
           specification: string
           standby_spots?: number | null
           starts_at: string
@@ -1268,6 +1305,7 @@ export type Database = {
           scoring_mode?: string
           scoring_value?: number | null
           series_id?: string | null
+          slot_at?: string | null
           specification?: string
           standby_spots?: number | null
           starts_at?: string
@@ -2474,6 +2512,7 @@ export type Database = {
       can_customize_blast: { Args: { p_event_id: string }; Returns: boolean }
       can_review_community: { Args: { p_community_id: string }; Returns: boolean }
       cancel_event: { Args: { p_event_id: string; p_scope?: string }; Returns: undefined }
+      cancel_occurrence_slot: { Args: { p_series_id: string; p_slot_date: string }; Returns: undefined }
       chat_channel_spec: {
         Args: { p_kind: string; p_id: string }
         Returns: { name: string; member_ids: string[] }[]
@@ -2589,6 +2628,21 @@ export type Database = {
           invited_at: string
         }[]
       }
+      event_next_occurrences: {
+        Args: { p_event_id: string; p_limit?: number }
+        Returns: {
+          slot_date: string
+          starts_at: string
+          duration_minutes: number
+          status: string
+          event_id: string | null
+          name: string | null
+          venue_id: string | null
+          location_name: string | null
+          location_address: string | null
+          overridden: boolean
+        }[]
+      }
       event_invite_candidates: {
         Args: { p_event_id: string; p_query?: string | null; p_limit?: number }
         Returns: {
@@ -2619,6 +2673,11 @@ export type Database = {
       may_create_event: { Args: { c: string }; Returns: boolean }
       may_create_group: { Args: { c: string }; Returns: boolean }
       may_invite_to_group: { Args: { g: string; u: string }; Returns: boolean }
+      send_occurrence_now: { Args: { p_series_id: string; p_slot_date: string }; Returns: string }
+      set_event_recurrence: {
+        Args: { p_event_id: string; p_on: boolean; p_invite_lead_days?: number | null }
+        Returns: undefined
+      }
       set_event_timer: {
         Args: { p_event_id: string; p_action: string }
         Returns: undefined
@@ -2721,6 +2780,7 @@ export type Database = {
           scoring_mode: string
           scoring_value: number | null
           series_id: string | null
+          slot_at: string | null
           specification: string
           standby_spots: number | null
           starts_at: string
@@ -3824,7 +3884,8 @@ export type Database = {
       }
       unarchive_group: { Args: { p_group_id: string }; Returns: undefined }
       unlockrows: { Args: { "": string }; Returns: number }
-      update_event: { Args: { p_event_id: string; p_payload: Json }; Returns: undefined }
+      update_event: { Args: { p_event_id: string; p_payload: Json; p_scope?: string }; Returns: undefined }
+      update_occurrence_slot: { Args: { p_series_id: string; p_slot_date: string; p_starts_at: string }; Returns: undefined }
       updategeometrysrid: {
         Args: {
           catalogn_name: string
