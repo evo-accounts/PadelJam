@@ -188,7 +188,8 @@ await run('finishing twice does not publish results twice', async () => {
   const matches = await sel('event_matches', `round_id=eq.${rounds[0].id}&select=id`);
   for (const m of matches) await rpc(org.jwt, 'submit_score', { p_match_id: m.id, p_side_a: 24, p_side_b: 16, p_not_played: false });
   await rpc(org.jwt, 'finish_event', { p_event_id: eventId, p_finish_message: null, p_counts_override: true });
-  await rpc(org.jwt, 'finish_event', { p_event_id: eventId, p_finish_message: 'edited', p_counts_override: true });
+  // Since 0121 (B6) a completed event cannot be finished again at all.
+  await expectError(() => rpc(org.jwt, 'finish_event', { p_event_id: eventId, p_finish_message: 'edited', p_counts_override: true }), 'event_not_in_progress');
   assert((await notifs(players[0].id, 'results_published', eventId)).length === 1, 'one results_published after two finishes');
 });
 
