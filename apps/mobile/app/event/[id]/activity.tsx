@@ -28,6 +28,23 @@ function lineFor(t: (k: string, o?: Record<string, unknown>) => string, row: Act
     invited: 'activityInvited',
     invite_accepted: 'activityInviteAccepted',
     invite_declined: 'activityInviteDeclined',
+    // Written server-side since migration 0122 (UX-MEVT-17).
+    waitlist_joined: 'activityWaitlistJoined',
+    waitlist_claimed: 'activityWaitlistClaimed',
+    partner_invite_sent: 'activityPartnerInviteSent',
+    partner_invite_accepted: 'activityPartnerInviteAccepted',
+    partner_invite_declined: 'activityPartnerInviteDeclined',
+    fee_changed: 'activityFeeChanged',
+    recurrence_on: 'activityRecurrenceOn',
+    recurrence_off: 'activityRecurrenceOff',
+    event_started: 'activityEventStarted',
+    score_entered: 'activityScoreEntered',
+    score_edited: 'activityScoreEdited',
+    match_not_played: 'activityMatchNotPlayed',
+    event_finished: 'activityEventFinished',
+    results_published: 'activityResultsPublished',
+    ranking_changed: 'activityRankingChanged',
+    event_cancelled: 'activityEventCancelled',
   };
   if (row.action === 'event_edited') {
     const changes = Array.isArray((row.detail as { changes?: unknown })?.changes)
@@ -37,7 +54,8 @@ function lineFor(t: (k: string, o?: Record<string, unknown>) => string, row: Act
     const base = t('activityEventEdited', { actor });
     return words ? `${base} (${words})` : base;
   }
-  return t(key[row.action] ?? 'activityJoined', { actor, target });
+  // An action a newer server logs before this build knows it reads neutrally, never as "joined".
+  return t(key[row.action] ?? 'activityOther', { actor, target });
 }
 
 /** Relative timestamp like "3h ago" / "2d ago" / "just now". */

@@ -357,6 +357,61 @@ export const useEventPartnerCandidates = (eventId: string) => {
   });
 };
 
+/** What blocks a start and what only warns (start_event_check, migration 0122 / UX-MEVT-23). */
+export type StartBlocker =
+  | 'not_enough_players' | 'mixed_gender_missing' | 'mixed_unbalanced' | 'teams_incomplete' | 'odd_players';
+export type StartWarning =
+  | { code: 'below_capacity'; open_spots: number }
+  | { code: 'idle_courts'; idle: number };
+export type StartEventCheck = { blockers: StartBlocker[]; warnings: StartWarning[] };
+
+/** The organizer's start sheet: blockers (the first is what start_event raises) and warnings. */
+export const useStartEventCheck = (eventId: string, enabled = true) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.eventStartCheck(eventId),
+    enabled: enabled && !!uid && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('start_event_check', { p_event_id: eventId });
+      if (error) throw error;
+      return data as unknown as StartEventCheck;
+    },
+  });
+};
+
+/**
+ * Invite screen candidates (event_invite_candidates, migration 0122 / UX-MEVT-13). A group event
+ * lists its members not yet invited or playing ('members'); a group-less one the organizer's
+ * mutual follows ('connections'), then people they follow ('following'), then — only with a
+ * query — everyone else matching it ('others'). A public group event returns nothing.
+ */
+export type InviteCandidateSection = 'members' | 'connections' | 'following' | 'others';
+export type InviteCandidate = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  section: InviteCandidateSection;
+};
+export const useEventInviteCandidates = (eventId: string, query: string, limit = 50) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  const q = query.trim();
+  return useQuery({
+    queryKey: qk.eventInviteCandidates(eventId, q),
+    enabled: !!uid && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('event_invite_candidates', {
+        p_event_id: eventId,
+        p_query: q || null,
+        p_limit: limit,
+      });
+      if (error) throw error;
+      return (data ?? []) as InviteCandidate[];
+    },
+  });
+};
+
 /**
  * My Events tabs (migration 0112, UX-JEVT-01):
  *   organizing — events I organize;

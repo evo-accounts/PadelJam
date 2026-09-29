@@ -13,7 +13,7 @@ import {
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { buildRosterCsv, rosterCsvFilename } from '@padel/utils';
+import { buildRosterCsv, nextFutureWeekly, rosterCsvFilename } from '@padel/utils';
 import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -161,9 +161,12 @@ export default function EventManageScreen() {
 
   const onDuplicate = () =>
     run(async () => {
+      // starts_at is required and must be in the future (0122, B8). Until the Duplicate sheet
+      // (plan M1) lets the organizer pick it, the copy takes the next weekly slot.
       const newId = await duplicateEvent.mutateAsync({
         eventId: id,
         groupId: event.group_id,
+        overrides: { starts_at: nextFutureWeekly(new Date(event.starts_at)).toISOString() },
       });
       if (typeof newId === 'string') {
         router.replace(`/event/${newId}` as Href);

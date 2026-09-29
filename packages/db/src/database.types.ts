@@ -900,6 +900,7 @@ export type Database = {
           guest_gender: string | null
           guest_name: string | null
           has_paid: boolean
+          paid_amount: number
           id: string
           invited_by: string | null
           is_standby: boolean
@@ -916,6 +917,7 @@ export type Database = {
           guest_gender?: string | null
           guest_name?: string | null
           has_paid?: boolean
+          paid_amount?: number
           id?: string
           invited_by?: string | null
           is_standby?: boolean
@@ -932,6 +934,7 @@ export type Database = {
           guest_gender?: string | null
           guest_name?: string | null
           has_paid?: boolean
+          paid_amount?: number
           id?: string
           invited_by?: string | null
           is_standby?: boolean
@@ -1153,6 +1156,7 @@ export type Database = {
         Row: {
           allow_standby: boolean
           counts_for_ranking: boolean
+          courts_reserved: boolean
           created_at: string
           deleted_at: string | null
           description: string | null
@@ -1193,6 +1197,7 @@ export type Database = {
         Insert: {
           allow_standby?: boolean
           counts_for_ranking?: boolean
+          courts_reserved?: boolean
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -1233,6 +1238,7 @@ export type Database = {
         Update: {
           allow_standby?: boolean
           counts_for_ranking?: boolean
+          courts_reserved?: boolean
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -2583,6 +2589,15 @@ export type Database = {
           invited_at: string
         }[]
       }
+      event_invite_candidates: {
+        Args: { p_event_id: string; p_query?: string | null; p_limit?: number }
+        Returns: {
+          id: string
+          full_name: string | null
+          avatar_url: string | null
+          section: string
+        }[]
+      }
       event_partner_candidates: {
         Args: { p_event_id: string }
         Returns: {
@@ -2676,6 +2691,7 @@ export type Database = {
         Returns: {
           allow_standby: boolean
           counts_for_ranking: boolean
+          courts_reserved: boolean
           created_at: string
           deleted_at: string | null
           description: string | null
@@ -2826,10 +2842,6 @@ export type Database = {
           is_following: boolean
           is_followed_by: boolean
         }[]
-      }
-      log_event_activity: {
-        Args: { p_event_id: string; p_action: string; p_detail?: Json }
-        Returns: undefined
       }
       block_user: { Args: { p_target: string }; Returns: undefined }
       unblock_user: { Args: { p_target: string }; Returns: undefined }
@@ -3077,6 +3089,25 @@ export type Database = {
           p_slot: string
         }
         Returns: undefined
+      }
+      organizer_add_guest_to_team: {
+        Args: {
+          p_event_id: string
+          p_team_number: number
+          p_slot: string
+          p_name: string
+          p_gender?: string | null
+        }
+        Returns: string
+      }
+      organizer_confirm_invitee: {
+        Args: {
+          p_event_id: string
+          p_user_id: string
+          p_team_number?: number | null
+          p_slot?: string | null
+        }
+        Returns: string
       }
       organizer_mark_confirmed: {
         Args: { p_participant_id: string }
@@ -3780,6 +3811,7 @@ export type Database = {
         Args: { p_event_id: string; p_rounds?: Json }
         Returns: undefined
       }
+      start_event_check: { Args: { p_event_id: string }; Returns: Json }
       start_new_season: { Args: { p_group_id: string }; Returns: number }
       submit_score: {
         Args: {

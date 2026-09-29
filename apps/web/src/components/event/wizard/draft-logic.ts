@@ -1,6 +1,7 @@
 import {
   COURTS_MAX,
   COURTS_MIN,
+  courtsReserved,
   defaultStart,
   DURATION_MAX,
   DURATION_MIN,
@@ -215,6 +216,8 @@ export function webCreateInput(
   return {
     ...base,
     courtIds: d.venueId && d.courtIds && d.courtIds.length > 0 ? d.courtIds : undefined,
+    // "Have not reserved yet" → a "Courts not reserved" pending action (0122, UX-MEVT-24).
+    courtsReserved: courtsReserved(d),
     manualCourtNames: manualCourtNamesPayload(d, courtNamePlaceholder),
     ...invitePayload(d, opts),
   };

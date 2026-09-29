@@ -200,11 +200,10 @@ export async function seedEvents(ctx: Ctx) {
   }
 
   // E8 — scheduled, A1 invited and unanswered (N2). Public group events are no longer
-  // auto-invited (0112), so F4 invites A1 explicitly; invite_to_event still allows that.
+  // auto-invited (0112) and since 0122 (D12) invite_to_event refuses them, so the invitation F4
+  // "sent" is written with the service role (the trigger still sends A1 the event_invite).
   ctx.ids.E8 = await create(ctx, 'f4', base(id(ctx, 'G1'), { name: 'Americano de Sexta', starts_at: daysFromNow(8, 20) }));
-  await ctx.c.rpc(u(ctx, 'f4').jwt, 'invite_to_event', {
-    p_event_id: id(ctx, 'E8'), p_invitees: [{ invitee_id: a1.id, name: null, email: null, phone: null }],
-  });
+  await ctx.c.insert('event_invitations', { event_id: id(ctx, 'E8'), invitee_id: a1.id, invited_by: u(ctx, 'f4').id });
   ctx.log(`E8 ${id(ctx, 'E8')}`);
 
   // U4's history — 20 completed, counted, spread over the last four months, in C3's ranking group.

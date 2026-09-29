@@ -8,6 +8,7 @@ import {
   inviteDate,
   isDurationPreset,
   isPastSlot,
+  nextFutureWeekly,
   nextWeekly,
   parseHHMM,
   parseWholeInRange,
@@ -151,5 +152,17 @@ describe('eventCapacity', () => {
     expect(eventCapacity(2, 'mixed', 4)).toEqual({ players: 8, perGender: 6 });
     expect(eventCapacity(2, 'mixed', 3)).toEqual({ players: 8, perGender: 5 });
     expect(eventCapacity(2, 'classic', 3)).toEqual({ players: 8, perGender: null });
+  });
+});
+
+describe('nextFutureWeekly', () => {
+  const now = new Date(2026, 8, 29, 12, 0);
+  it('is one week on for an upcoming event', () => {
+    const start = new Date(2026, 9, 2, 19, 0);
+    expect(nextFutureWeekly(start, now)).toEqual(new Date(2026, 9, 9, 19, 0));
+  });
+  it('rolls a past event forward to the first future weekly slot, same wall-clock time', () => {
+    const start = new Date(2026, 8, 1, 19, 0);
+    expect(nextFutureWeekly(start, now)).toEqual(new Date(2026, 8, 29, 19, 0));
   });
 });

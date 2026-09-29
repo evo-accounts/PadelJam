@@ -20,6 +20,8 @@ const KNOWN = [
   'not_on_waiting_list', 'spot_taken',
   // 0113: a mixed event's guest has no gender. BEFORE 'gender_required', which is a substring.
   'guest_gender_required',
+  // 0122: the organizer confirms a player with no gender on a mixed event. Same reason.
+  'player_gender_required',
   'use_team_join', 'not_a_team_event', 'partner_unavailable', 'request_stale', 'gender_required',
   // 0112: a mixed event's half for the caller's gender is full (claim_waitlist_spot).
   'gender_full',
@@ -31,6 +33,13 @@ const KNOWN = [
   // finish_event on an event that is not in progress, a participant of another event. BEFORE
   // 'not_editable', which is a substring of 'event_not_editable'.
   'event_not_editable', 'event_not_in_progress', 'participant_not_found',
+  // 0122: start blockers (setup_incomplete is no longer raised), a client schedule that does not
+  // fit the event, the organizer's roster rules, duplicate's date, invitation scope, team slots,
+  // a group-less event made public.
+  'not_enough_players', 'odd_players', 'teams_incomplete', 'invalid_rounds',
+  'waitlist_not_confirmable', 'team_required', 'starts_at_required', 'starts_at_in_past',
+  'invites_not_allowed', 'not_group_member', 'user_not_found', 'slot_taken',
+  'standalone_must_be_private',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
   'recurring_events', 'not_cancellable', 'invalid_scope', 'not_editable', 'standby_below_roster', 'series_inactive', 'courts_below_roster', 'not_retryable',
   // community reviews: gate RPC codes the review screen translates directly
@@ -48,6 +57,8 @@ const KNOWN = [
   'password_weak',
   // venue registry (0114): save_venue / the court-in-use guard
   'court_in_use', 'court_name_required', 'venue_not_found', 'invalid_courts',
+  // 0122: invite_to_event to a blocked player. LAST: the shortest, most generic code.
+  'blocked',
 ] as const;
 
 /** Map a Supabase/Postgres error to a stable code the UI translates via i18n. */

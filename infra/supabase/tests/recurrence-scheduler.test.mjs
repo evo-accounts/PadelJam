@@ -295,7 +295,7 @@ await run('a soft-deleted venue: the sweep skips the series, the organizer paths
   await sweep();
   assert((await occurrences(series_id)).length === 1, 'skipped (a WARNING is logged)');
   await expectError(() => rpc(admin.jwt, 'materialize_occurrence', { p_after_event_id: ev }), 'venue_not_found');
-  await expectError(() => rpc(admin.jwt, 'duplicate_event', { p_event_id: ev, p_overrides: {} }), 'venue_not_found');
+  await expectError(() => rpc(admin.jwt, 'duplicate_event', { p_event_id: ev, p_overrides: { starts_at: at(10 * DAY) } }), 'venue_not_found');
 });
 
 await run('an organizer who left the group, or deleted their account, no longer runs the series', async () => {

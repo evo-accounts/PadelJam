@@ -22,6 +22,8 @@ function render(n: { type: string; actor_name: string | null; entity_name: strin
     case 'event_created': return { title: 'New event', body: `${actor} created ${entity}` };
     case 'partner_left': return { title: 'Your partner left', body: `Your partner left ${entity} — set your team again` };
     case 'partner_request': return { title: 'Partner request', body: `${actor} wants to partner with you in ${entity}` };
+    case 'organizer_confirmed': return { title: 'You are in', body: `${actor} confirmed you for ${entity}` };
+    case 'removed_from_event': return { title: 'Removed from event', body: `${actor} removed you from ${entity}` };
     default: return { title: 'Padel Jam', body: 'You have a new notification' };
   }
 }
