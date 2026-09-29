@@ -188,14 +188,14 @@ invitation / switch with invitee / assign-to-team fixes, shipped with M3). Mobil
 | M1 | Mobile event header, dashboard, edit sheets, Donut, Export / Duplicate / Cancel sheets (UX-MEVT-01, 03–09, 19–21, B23) | #241 | merged |
 | M2 | Mobile Manage players, Invite, Add manually (UX-MEVT-10–13, 25) | #242 | merged |
 | M3 + 0127 | Mobile team management (UX-MEVT-14, 15, 26); **0127** `organizer_revoke_invitation`, `organizer_switch_with_invitee`, assign-to-team `slot_taken` / bound / `event_full`, remove reconciles the team (B19, B20) | #245 | merged |
-| M4 | Mobile Payment list, Activity, Send blast (UX-MEVT-16–18, B14) | #247 | open |
-| M5 | Mobile start flow, pending actions, next occurrences, edit scope, team leaderboard (UX-MEVT-21–24, 27) | #248 | open |
+| M4 | Mobile Payment list, Activity, Send blast (UX-MEVT-16–18, B14) | #247 | merged |
+| M5 | Mobile start flow, pending actions, next occurrences, edit scope, team leaderboard (UX-MEVT-21–24, 27) | #248 | merged |
 | W1 | Web event header, dashboard, edit dialogs (UX-MEVT-01, 03–09, 19–21) | #243 | merged |
 | W2 | Web Manage players, Invite, Add manually (UX-MEVT-10–13, 25, B15) | #244 | merged |
 | W3 | Web team management (UX-MEVT-14, 15, 26) | #246 | merged |
 | W4 | Web Payment list, Activity, Send blast (UX-MEVT-16–18) | #249 | merged |
-| W5 | Web start flow, pending actions, next occurrences, edit scope, team leaderboard (UX-MEVT-21–24, 27) | #250 | open |
-| Final | Requirements amended (`join-manage-event.md` v1.5, `in-progress-event.md` v1.2), this status + hand-off, legacy SQL tests fixed | this PR | open |
+| W5 | Web start flow, pending actions, next occurrences, edit scope, team leaderboard (UX-MEVT-21–24, 27) | #250 | merged |
+| Final | Requirements amended (`join-manage-event.md` v1.5, `in-progress-event.md` v1.2), this status + hand-off, legacy SQL tests fixed | this PR | merged |
 
 The PR sequence above is kept as planned; this table is authoritative for what shipped.
 
