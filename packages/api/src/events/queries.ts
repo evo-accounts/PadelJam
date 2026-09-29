@@ -129,6 +129,8 @@ export const useEventParticipants = (id: string) => {
             is_standby: boolean;
             confirmed_at: string | null;
             has_paid: boolean;
+            /** Credited towards the fee (0122, decision 9); has_paid = paid_amount covers the fee. */
+            paid_amount: number;
             paid_at: string | null;
             joined_at: string;
             waiting_list_position: number | null;

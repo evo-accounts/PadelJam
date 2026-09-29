@@ -121,45 +121,65 @@ describe('06 event manage (organizer)', () => {
     );
   });
 
-  it('marks a participant as paid from the Payment list', async () => {
+  // --- Payment list (UX-MEVT-16) and Activity (UX-MEVT-17) ------------------------------------
+
+  type PaidRow = { id: string; user_id: string | null; has_paid: boolean; paid_amount: number };
+  const paymentsOf = (eventId: string) =>
+    select('event_participants', `event_id=eq.${eventId}&status=eq.confirmed&select=id,user_id,has_paid,paid_amount`) as Promise<PaidRow[]>;
+
+  it('the Payment list toggles one player to Paid, crediting the fee', async () => {
     const m = manifest();
     // The Paid card only renders for fee-enabled events. E1 "Tuesday Americano" is the seeded
-    // one with a fee, and maria organizes it.
+    // one with a fee (5 €), and maria organizes it.
     await switchUser('maria');
     await openManage(/tuesday americano/i);
     await tap({ id: 'manage-paid' });
     await expectVisible({ text: /^payment list$/i }, { timeout: 20_000 });
-    // Each row carries a chip showing its CURRENT state ("Unpaid"/"Paid"); tapping it toggles.
-    await scrollUntilVisible({ text: /^unpaid$/i, type: 'Button' }, { maxSwipes: 8 });
-    await tap({ text: /^unpaid$/i, type: 'Button' });
+    // Total card: nothing collected yet, against fee × confirmed (guests and stand-by included).
+    const confirmed = await paymentsOf(m.events.e1);
+    await expectVisible({ id: 'payments-total', text: new RegExp(`^€0 of €${5 * confirmed.length}$`) }, { timeout: 15_000 });
+    await expectVisible({ id: 'payments-count', text: new RegExp(`^${confirmed.length} players$`) });
+    await shot('10-payment-list.png');
+    const alex = confirmed.find((r) => r.user_id === m.users.alex)!;
+    await scrollUntilVisible({ id: `payment-toggle-${alex.id}` }, { maxSwipes: 6 });
+    expect(query(await snapshot(), { id: `payment-toggle-${alex.id}` })?.AXLabel ?? '').toMatch(/^pending$/i);
+    await tap({ id: `payment-toggle-${alex.id}` });
     await pollUntil(
-      () => select('event_participants', `event_id=eq.${m.events.e1}&has_paid=is.true&select=user_id`),
-      (rows) => (rows as unknown[]).length >= 1,
-      { label: 'a participant marked paid', timeoutMs: 15_000 },
+      () => paymentsOf(m.events.e1),
+      (rows) => rows.some((r) => r.id === alex.id && r.has_paid && Number(r.paid_amount) === 5),
+      { label: 'alex marked paid with the fee credited', timeoutMs: 15_000 },
     );
+    await expectVisible({ id: 'payments-total', text: new RegExp(`^€5 of €${5 * confirmed.length}$`) }, { timeout: 15_000 });
   });
 
-  it('marks everyone as paid', async () => {
+  it('"Mark all as paid" asks first, then marks every confirmed player', async () => {
     const m = manifest();
-    await tap({ text: /mark all paid/i });
+    await tap({ id: 'payments-mark-all' });
+    await expectVisible({ id: 'confirm-sheet-confirm' }, { timeout: 10_000 });
+    await shot('11-mark-all-confirm.png');
+    await tap({ id: 'confirm-sheet-confirm' });
     await pollUntil(
-      () =>
-        select(
-          'event_participants',
-          `event_id=eq.${m.events.e1}&status=eq.confirmed&has_paid=is.false&select=user_id`,
-        ),
-      (rows) => (rows as unknown[]).length === 0,
+      () => paymentsOf(m.events.e1),
+      (rows) => rows.length > 0 && rows.every((r) => r.has_paid),
       { label: 'no unpaid confirmed participants remain', timeoutMs: 15_000 },
     );
+    await tap({ id: 'payments-tabs-pending' });
+    await expectVisible({ id: 'empty-payments-pending' }, { timeout: 10_000 });
   });
 
-  it('records those actions in the activity log', async () => {
+  it('the Activity log lists who / what / when for those actions, newest first', async () => {
     await backGesture();
     await scrollUntilVisible({ id: 'manage-activity' }, { maxSwipes: 10 });
     await tap({ id: 'manage-activity' });
-    await expectVisible({ text: /activity/i }, { timeout: 20_000 });
-    // "{actor} marked everyone as paid" must be listed.
-    await expectVisible({ text: /marked everyone as paid|marked .* as paid/i }, { timeout: 20_000 });
+    await expectVisible({ text: /^activity$/i }, { timeout: 20_000 });
+    // One element per entry: "{who}, {what}, {when}" — the relative time comes from i18n (B14).
+    const markAll = await expectVisible({ id: 'activity-row-marked_all_paid' }, { timeout: 20_000 });
+    expect(markAll.AXLabel ?? '').toMatch(/^maria santos, marked \d+ players? as paid, (just now|\d+ minutes? ago)$/i);
+    const markOne = query(await snapshot(), { id: 'activity-row-marked_paid' });
+    expect(markOne?.AXLabel ?? '').toMatch(/^maria santos, marked alex.* as paid, /i);
+    // Newest first: the bulk action sits above the single one.
+    expect(markAll.frame.y).toBeLessThan(markOne!.frame.y);
+    await shot('12-activity.png');
   });
 
   // --- Manage players, Invite, Add manually (UX-MEVT-10..13) ---------------------------------
@@ -420,5 +440,42 @@ describe('06 event manage (organizer)', () => {
       },
       { label: 'rita and sofia switched', timeoutMs: 20_000 },
     );
+  });
+
+  // --- Send blast (UX-MEVT-18) ------------------------------------------------------------------
+
+  it('group-less event: a template blast goes out by email, then "Blast sent!"', async () => {
+    const m = manifest();
+    // E8: nina's private event without a group; nina has no Jammer+ plan.
+    await switchUser('nina');
+    await openManage(/secret standalone/i);
+    await scrollUntilVisible({ id: 'manage-blast' }, { maxSwipes: 10 });
+    await tap({ id: 'manage-blast' });
+    await expectVisible({ id: 'blast-template-0' }, { timeout: 20_000 });
+    // Without customisation: one Templates grid, no Your blasts tab, and the plan prompt below.
+    expect(query(await snapshot(), { id: 'blast-tabs-saved' }), 'no Your blasts tab without a plan').toBeUndefined();
+    await scrollUntilVisible({ id: 'blast-customize-upgrade-cta' }, { maxSwipes: 6 });
+    await shot('13-blast-templates.png');
+    await scrollUntilVisible({ id: 'blast-template-0' }, { maxSwipes: 6, direction: 'down' });
+    await tap({ id: 'blast-template-0' });
+    await expectVisible({ id: 'blast-compose-save' }, { timeout: 15_000 });
+    // Send to → Confirmed only; Email is ticked by default.
+    await tap({ id: 'blast-send-to' });
+    await tap({ id: 'blast-send-to-confirmed' });
+    await expectVisible({ id: 'blast-send-to', text: /confirmed only/i });
+    await shot('14-blast-compose.png');
+    await tap({ id: 'blast-compose-save' });
+    await expectVisible({ text: /^blast sent!$/i, type: 'Heading' }, { timeout: 20_000 });
+    await shot('15-blast-sent.png');
+    const rows = (await select('event_blasts', `event_id=eq.${m.events.e8}&select=send_to,channels,source_template_id`)) as {
+      send_to: string;
+      channels: string[];
+      source_template_id: string | null;
+    }[];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ send_to: 'confirmed', channels: ['email'] });
+    expect(rows[0]!.source_template_id).not.toBeNull();
+    await tap({ id: 'blast-sent-ok' });
+    await expectVisible({ id: 'manage-name' }, { timeout: 15_000 });
   });
 });

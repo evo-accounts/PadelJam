@@ -16,7 +16,13 @@ import { Image, StyleSheet, View, type ImageSourcePropType, type ViewStyle } fro
 import { colors, radius } from '../../theme';
 import { Text } from './Text';
 
-export type IllustrationName = 'welcomeFind' | 'welcomeCommunity' | 'welcomePlay' | 'passwordChanged' | 'communityCreated';
+export type IllustrationName =
+  | 'welcomeFind'
+  | 'welcomeCommunity'
+  | 'welcomePlay'
+  | 'passwordChanged'
+  | 'communityCreated'
+  | 'blastSent';
 
 export type IllustrationProps = {
   name: IllustrationName;
@@ -48,6 +54,8 @@ const REGISTRY: Record<IllustrationName, { source?: ImageSourcePropType; glyph: 
   // UX-COMM-02 asks for a generic success image, explicitly unrelated to the
   // community's own cover — this is the placeholder until artwork lands.
   communityCreated: { glyph: '🎉' },
+  // UX-MEVT-18's "Blast sent!" confirmation — placeholder until the artwork lands.
+  blastSent: { glyph: '📣' },
 };
 
 export function Illustration({ name, size = 'hero', accessibilityLabel, style, testID }: IllustrationProps) {

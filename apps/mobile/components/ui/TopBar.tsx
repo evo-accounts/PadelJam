@@ -48,6 +48,11 @@ type Props = {
   actions?: TopBarAction[];
   /** Deprecated single action; kept so existing call sites compile until they migrate. */
   action?: TopBarAction;
+  /**
+   * Non-interactive content for the right slot when there are no actions — a short count such
+   * as the Payment list's player total (UX-MEVT-16). Keep it within the slot's 44pt width.
+   */
+  trailing?: React.ReactNode;
   backLabel?: string;
   style?: ViewStyle;
   testID?: string;
@@ -55,7 +60,7 @@ type Props = {
 
 const SIDE = 44;
 
-export function TopBar({ variant = 'nav', title, centre, onBack, onClose, dirty = false, actions, action, backLabel, style, testID }: Props) {
+export function TopBar({ variant = 'nav', title, centre, onBack, onClose, dirty = false, actions, action, trailing, backLabel, style, testID }: Props) {
   const { t } = useT('common');
   const confirm = useConfirm();
   const rightActions = (actions ?? (action ? [action] : [])).slice(0, 3);
@@ -109,7 +114,9 @@ export function TopBar({ variant = 'nav', title, centre, onBack, onClose, dirty 
       <View style={[styles.side, styles.sideRight, sideStyle]}>
         {layout.right === 'close'
           ? closeButton
-          : rightActions.map((a) => (
+          : rightActions.length === 0 && trailing
+            ? trailing
+            : rightActions.map((a) => (
               <IconButton key={a.testID ?? a.label} icon={a.icon} accessibilityLabel={a.label} size="lg" onPress={a.onPress} testID={a.testID} />
             ))}
       </View>
