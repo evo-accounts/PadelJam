@@ -2,9 +2,10 @@
  * Manage players (UX-MEVT-10..13, 25): which rows go on which tab, what the organizer may do to
  * each, and the per-side counts of a mixed event.
  *
- * WEB-LOCAL COPY of mobile's `apps/mobile/components/event/manage/manageRoster.ts` (PR #242, where
- * the rules are unit-tested). Kept in step by hand rather than moved to packages/utils: a change
- * under packages/ queues the ~37-min mobile E2E for what is a web-only PR. Change both together.
+ * WEB-LOCAL COPY of mobile's `apps/mobile/components/event/manage/manageRoster.ts` (PR #242, plus
+ * the team additions of #245; the rules are unit-tested there). Kept in step by hand rather than
+ * moved to packages/utils: a change under packages/ queues the ~37-min mobile E2E for what is a
+ * web-only PR. Change both together.
  *
  *   Confirmed    — regular players first, then stand-by, each in the order they joined. The tab
  *                  label is the ratio to the TOTAL capacity (courts × 4 + stand-by spots).
@@ -13,6 +14,8 @@
  *                  waiting player (plan D2 — `organizer_mark_confirmed` refuses it).
  *   Invited      — roster rows still `invited`, then the pending invitations without a row
  *                  (`event_invited_players`).
+ *   Interested   — team events only (UX-MEVT-14): players who want to play but have no pair yet
+ *                  (invited nobody, or a partner invitation is still unanswered). No spot held.
  *
  * Mixed events (UX-MEVT-25): half the spots belong to each side, `floor(capacity / 2)` — the same
  * rounding as the server's `_mixed_gender_full`, stand-by included.
@@ -52,6 +55,8 @@ export type ManageRow = {
   key: string;
   /** The roster row; null for a pending invitation that has none yet. */
   participantId: string | null;
+  /** A pending invitation without a roster row: the invitation to revoke (0127). */
+  invitationId: string | null;
   /** The account; null for a guest or a manual invitee (no profile to open). */
   userId: string | null;
   name: string | null;
@@ -69,6 +74,8 @@ export type ManageRoster = {
   confirmed: ManageRow[];
   waiting: ManageRow[];
   invited: ManageRow[];
+  /** Team events: status 'interested' (UX-MEVT-14); empty on any other event. */
+  interested: ManageRow[];
   /** Confirmed players per side on a mixed event; null otherwise. */
   sideCounts: Record<ManageSide, number> | null;
   full: boolean;
@@ -101,6 +108,7 @@ function participantRow(p: ManageParticipant): ManageRow {
   return {
     key: p.id,
     participantId: p.id,
+    invitationId: null,
     userId: p.user_id,
     name: p.profiles?.full_name ?? p.guest_name ?? null,
     avatarPath: p.profiles?.avatar_url ?? null,
@@ -140,6 +148,7 @@ export function manageRoster(
     ...invitations.map((i) => ({
       key: i.invitation_id,
       participantId: null,
+      invitationId: i.invitation_id,
       userId: i.user_id,
       name: i.full_name ?? i.invitee_name,
       avatarPath: i.avatar_url,
@@ -163,6 +172,7 @@ export function manageRoster(
     confirmed,
     waiting,
     invited,
+    interested: participants.filter((p) => p.status === 'interested').map(participantRow),
     sideCounts,
     full,
     showWaiting: full || waiting.length > 0,
@@ -178,19 +188,27 @@ export function rowsOfSide(rows: readonly ManageRow[], side: ManageSide): Manage
   return rows.filter((r) => r.side === side || r.side == null);
 }
 
-/** What the organizer may do to an Invited row (UX-MEVT-10). */
-export function invitedActions(
-  row: ManageRow,
-  opts: { team: boolean },
-): { confirm: boolean; remove: boolean } {
+/**
+ * What the organizer may do to an Invited row (UX-MEVT-10). On a team event "Mark as confirmed"
+ * first asks which team (UX-MEVT-14) — the screen's job; the answer here is only whether it is
+ * possible at all.
+ */
+export function invitedActions(row: ManageRow): { confirm: boolean; remove: 'participant' | 'invitation' | null } {
   return {
     // A manual invitee (no account) cannot be confirmed: a guest is added with "Add manually".
-    // Team events place the player in a team first — that is M3's team management (UX-MEVT-14).
-    confirm: !opts.team && row.userId != null,
-    // organizer_remove_participant needs a roster row; a pending invitation without one has no
-    // organizer RPC to withdraw it yet (direct writes to event_invitations are revoked since 0122).
-    remove: row.participantId != null,
+    confirm: row.userId != null,
+    // A roster row leaves through organizer_remove_participant; a pending invitation without one
+    // is withdrawn by organizer_revoke_invitation (0127).
+    remove: row.participantId != null ? 'participant' : row.invitationId != null ? 'invitation' : null,
   };
+}
+
+/**
+ * "Remove" on an Interested row (UX-MEVT-14): back to Invited — except on a public group event,
+ * which has no invited state (D3): there the player simply leaves, and may join again.
+ */
+export function interestedRemoveMode(e: Pick<ManageEvent, 'group_id' | 'is_private'>): 'to_invited' | 'from_event' {
+  return isPublicGroupEvent(e) ? 'from_event' : 'to_invited';
 }
 
 /**
@@ -206,6 +224,8 @@ export function rosterErrorKey(code: string): string {
       return 'mpGenderRequired';
     case 'name_required':
       return 'manualNameRequired';
+    case 'invitation_not_found':
+      return 'mpInvitationGone';
     default:
       return code;
   }
