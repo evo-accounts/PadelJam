@@ -202,7 +202,14 @@ export default function EventLiveScreen() {
   // Plain-text results summary for the share sheet.
   const resultsSummary = [
     `🏆 ${event.name}`,
-    ...standings.map((s) => `${s.rank}. ${participantById.get(s.entity_id)?.name ?? '—'} (${s.points})`),
+    // A team row's entity_id is the event_teams id (0125): name the pair, not a participant.
+    ...standings.map((s) => {
+      const name = s.is_team
+        ? [s.name_a, s.name_b].filter(Boolean).join(' & ') ||
+          t('teamLabel', { n: teamNumberById.get(s.entity_id) ?? s.team_number ?? 0 })
+        : (participantById.get(s.entity_id)?.name ?? '—');
+      return `${s.rank}. ${name} (${s.points})`;
+    }),
   ].join('\n');
 
   // --- Matches for the selected round, sorted by court ---
