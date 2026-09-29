@@ -287,15 +287,12 @@ function Dashboard({
             <Button variant="secondary" className="w-full" onClick={onCalendar} data-testid="manage-calendar">
               {t('addToCalendarAction')}
             </Button>
-            {/* Blasts need a group today (send_event_blast, 0076); decision 6 opens them to
-                group-less events with migration 0124. */}
-            {event.group_id != null ? (
-              <Button asChild variant="secondary" className="w-full">
-                <Link href={`/app/event/${id}/manage/blast`} data-testid="manage-blast">
-                  {t('sendBlastCta')}
-                </Link>
-              </Button>
-            ) : null}
+            {/* Every event, group-less ones included (decision 6, 0124). */}
+            <Button asChild variant="secondary" className="w-full">
+              <Link href={`/app/event/${id}/manage/blast`} data-testid="manage-blast">
+                {t('sendBlastCta')}
+              </Link>
+            </Button>
             {exportAction}
             {/* The organizer can start any time from here (UX-MEVT-23); the live page keeps
                 today's start gate until W5. */}

@@ -417,14 +417,12 @@ export default function EventDetailPage() {
                 </Link>
               </Button>
             ) : null}
-            {/* Blasts need a group today (0076); decision 6 opens them to group-less events (0124). */}
-            {e.group_id != null ? (
-              <Button asChild variant="secondary" size="sm" className="shrink-0 rounded-full">
-                <Link href={`/app/event/${id}/manage/blast`} data-testid="event-chip-blast">
-                  {t('sendBlastCta')}
-                </Link>
-              </Button>
-            ) : null}
+            {/* Every event, group-less ones included (decision 6, 0124). */}
+            <Button asChild variant="secondary" size="sm" className="shrink-0 rounded-full">
+              <Link href={`/app/event/${id}/manage/blast`} data-testid="event-chip-blast">
+                {t('sendBlastCta')}
+              </Link>
+            </Button>
             {status === 'scheduled' ? (
               <Button asChild variant="secondary" size="sm" className="shrink-0 rounded-full">
                 <Link href={`/app/event/${id}/manage?sheet=preferences`} data-testid="event-chip-preferences">
