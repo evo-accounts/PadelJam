@@ -103,7 +103,9 @@ export default function ManagePlayersScreen() {
   const { t: tc } = useT('common');
   const router = useRouter();
   const goBack = useGoBack();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `?view=players` opens a team event on its Players view; Teams is the default (and what the
+  // "Teams not fully set up" pending action asks for with `?view=teams`).
+  const { id, view: viewParam } = useLocalSearchParams<{ id: string; view?: string }>();
   const uid = useSession().session?.user.id;
   const show = useActionSheet();
   const confirm = useConfirm();
@@ -121,7 +123,7 @@ export default function ManagePlayersScreen() {
   const removeFromTeam = useRemoveFromTeam(id);
 
   const [picked, setPicked] = useState<Tab>('confirmed');
-  const [view, setView] = useState<TeamView>('teams');
+  const [view, setView] = useState<TeamView>(viewParam === 'players' ? 'players' : 'teams');
   const [teamSheet, setTeamSheet] = useState<TeamSheet>(null);
   const [side, setSide] = useState<ManageSide>('female');
   const [addingManual, setAddingManual] = useState(false);

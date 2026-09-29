@@ -3,7 +3,7 @@
  * with the screen that resolves it. Pure so it can be tested without rendering; a resolved action
  * simply stops being returned.
  *
- *   teams     a team event with a confirmed player outside a complete team → Teams (Manage players)
+ *   teams     a team event with a confirmed player outside a complete team → Manage players, Teams view
  *   spots     fewer confirmed than the capacity (stand-by spots included, as start_event_check
  *             counts them)                                                  → Manage players
  *   payments  a fee event with a confirmed player who has not paid         → Payment list
@@ -36,7 +36,7 @@ export function pendingActions(i: PendingActionsInput): PendingAction[] {
   const players = `/event/${i.eventId}/manage-players`;
   const locationSheet = `/event/${i.eventId}/manage?sheet=location`;
   const rows: PendingAction[] = [];
-  if (i.specification === 'team' && i.teamsIncomplete) rows.push({ key: 'teams', count: 0, href: players });
+  if (i.specification === 'team' && i.teamsIncomplete) rows.push({ key: 'teams', count: 0, href: `${players}?view=teams` });
   if (i.openSpots > 0) rows.push({ key: 'spots', count: i.openSpots, href: players });
   if (i.feeEnabled && i.unpaid > 0) rows.push({ key: 'payments', count: i.unpaid, href: `/event/${i.eventId}/payments` });
   if (!i.hasLocation) rows.push({ key: 'location', count: 0, href: locationSheet });

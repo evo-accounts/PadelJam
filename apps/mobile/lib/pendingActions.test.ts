@@ -27,7 +27,7 @@ describe('pendingActions', () => {
   it('asks for teams only on a team event', () => {
     expect(pendingActions({ ...base, teamsIncomplete: true })).toEqual([]);
     expect(pendingActions({ ...base, specification: 'team', teamsIncomplete: true })).toEqual([
-      { key: 'teams', count: 0, href: '/event/e1/manage-players' },
+      { key: 'teams', count: 0, href: '/event/e1/manage-players?view=teams' },
     ]);
   });
 
