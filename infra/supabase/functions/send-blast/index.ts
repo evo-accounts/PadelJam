@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sendBatchEmails } from '../_shared/email.ts';
+import { hasEmailChannel, nextEmailAttempt, renderBlastEmailHtml } from '../_shared/blast.ts';
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -22,9 +23,10 @@ Deno.serve(async (req) => {
 
   async function logEmailDelivery(ok: boolean, sentCount: number, failedCount: number, error: string | null) {
     try {
-      const { data } = await admin.from('delivery_log').select('attempt')
-        .eq('blast_id', body.blast_id).order('attempt', { ascending: false }).limit(1);
-      const attempt = ((data?.[0]?.attempt as number | undefined) ?? 0) + 1;
+      // Email attempts only: since 0124 the RPC also logs a WhatsApp 'shared' row for the blast.
+      const { data } = await admin.from('delivery_log').select('channel, attempt')
+        .eq('blast_id', body.blast_id).eq('channel', 'email');
+      const attempt = nextEmailAttempt(data as { channel: string; attempt: number }[] | null);
       await admin.from('delivery_log').insert({
         channel: 'email', blast_id: body.blast_id, attempt,
         status: ok ? 'sent' : 'failed', sent_count: sentCount, failed_count: failedCount, error });
@@ -38,7 +40,8 @@ Deno.serve(async (req) => {
     .eq('id', body.blast_id)
     .maybeSingle();
   if (bErr || !blast) return json({ error: 'blast_not_found' }, 404);
-  if (!(blast.channels as string[]).includes('email')) return json({ ok: true, sent: 0 });
+  // WhatsApp is shared from the organizer's device (0124); only email is delivered from here.
+  if (!hasEmailChannel(blast.channels as string[])) return json({ ok: true, sent: 0 });
 
   // Recipient emails (organizer-gated RPC; reads auth.users server-side).
   const { data: recipients, error: rErr } = await client.rpc('blast_email_recipients', { p_blast_id: body.blast_id });
@@ -47,10 +50,7 @@ Deno.serve(async (req) => {
   const list = (recipients ?? []) as { email: string }[];
   if (list.length === 0) { await logEmailDelivery(true, 0, 0, null); return json({ ok: true, sent: 0 }); }
 
-  // Escape organizer-authored text so stray `<`/`&` render correctly in recipients' mail clients.
-  const esc = (s: string) =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const html = `<h2>${esc(blast.title as string)}</h2><p>${esc(blast.description as string).replace(/\n/g, '<br>')}</p>`;
+  const html = renderBlastEmailHtml(blast.title as string, blast.description as string);
   try {
     await sendBatchEmails(list.map((r) => ({ to: r.email, subject: blast.title as string, html })));
   } catch (e) {

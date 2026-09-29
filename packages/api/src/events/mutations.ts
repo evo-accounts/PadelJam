@@ -4,6 +4,8 @@ import { qk } from '../query-keys';
 import {
   buildCreateEventPayload,
   buildUpdateEventPayload,
+  type BlastChannel,
+  type BlastSendTo,
   type CreateEventInput,
   type EventType,
   type UpdateEventInput,
@@ -841,17 +843,39 @@ export const useSwitchPlayers = (eventId: string) => {
   });
 };
 
+export interface SendBlastResult {
+  blastId: string | null;
+  /** Email recipients (audience members opted in to email); 0 without the email channel. */
+  sentToCount: number;
+  /** Everyone in the send_to scope. */
+  audienceCount: number;
+  /**
+   * "*Title*\n\nDescription" when WhatsApp was chosen, else null. WhatsApp is sent from the
+   * organizer's device (D6): open `https://wa.me/?text=${encodeURIComponent(shareText)}` or the
+   * share sheet with it. The server only records the blast as 'shared'.
+   */
+  shareText: string | null;
+}
+
+/**
+ * Send a blast (UX-MEVT-18, migration 0124). Without customisation (useCanCustomizeBlast false)
+ * the server only accepts an unedited template: pass `sourceTemplateId` with `title` /
+ * `description` / `imagePath` null (it fills them) or equal to the template's; anything else, or
+ * `save`, raises blast_customization_required. `save` also stores it under "Your blasts".
+ */
 export const useSendBlast = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
       sourceTemplateId: string | null;
-      title: string;
-      description: string;
+      title: string | null;
+      description: string | null;
       imagePath: string | null;
-      channels: ('email' | 'whatsapp')[];
-    }) => {
+      channels: BlastChannel[];
+      sendTo?: BlastSendTo;
+      save?: boolean;
+    }): Promise<SendBlastResult> => {
       const { data, error } = await db.rpc('send_event_blast', {
         p_event_id: eventId,
         p_source_template_id: input.sourceTemplateId,
@@ -859,23 +883,89 @@ export const useSendBlast = (eventId: string) => {
         p_description: input.description,
         p_image_path: input.imagePath,
         p_channels: input.channels,
+        p_send_to: input.sendTo ?? 'all',
+        p_save: input.save ?? false,
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-      const row = data?.[0] ?? { blast_id: null, sent_to_count: 0 };
+      const row = data?.[0];
+      const result: SendBlastResult = {
+        blastId: row?.blast_id ?? null,
+        sentToCount: row?.sent_to_count ?? 0,
+        audienceCount: row?.audience_count ?? 0,
+        shareText: row?.share_text ?? null,
+      };
       // Deliver the email channel best-effort (the row is already recorded). Use the supabase
       // client's `functions.invoke` — it injects the project URL + the caller's auth automatically.
-      if (input.channels.includes('email') && row.blast_id) {
+      if (input.channels.includes('email') && result.blastId) {
         try {
-          await db.functions.invoke('send-blast', { body: { blast_id: row.blast_id } });
+          await db.functions.invoke('send-blast', { body: { blast_id: result.blastId } });
         } catch {
           /* delivery is best-effort; the blast is recorded regardless */
         }
       }
-      return row.sent_to_count;
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (_r, input) => {
       qc.invalidateQueries({ queryKey: qk.eventBlasts(eventId) });
+      qc.invalidateQueries({ queryKey: qk.blastDeliveries(eventId) });
+      if (input.save) qc.invalidateQueries({ queryKey: qk.savedBlastsAll });
     },
+  });
+};
+
+/** Save a blast under "Your blasts" without sending it. Needs customisation. Returns its id. */
+export const useSaveBlast = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      title: string;
+      description: string;
+      imagePath?: string | null;
+      sourceTemplateId?: string | null;
+    }) => {
+      const { data, error } = await db.rpc('save_blast', {
+        p_event_id: eventId,
+        p_title: input.title,
+        p_description: input.description,
+        p_image_path: input.imagePath ?? null,
+        p_source_template_id: input.sourceTemplateId ?? null,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as string;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.savedBlastsAll }),
+  });
+};
+
+/** Edit a saved blast (its creator or a community admin; needs customisation). */
+export const useUpdateSavedBlast = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; title: string; description: string; imagePath?: string | null }) => {
+      const { error } = await db.rpc('update_saved_blast', {
+        p_saved_blast_id: input.id,
+        p_title: input.title,
+        p_description: input.description,
+        p_image_path: input.imagePath ?? null,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.savedBlastsAll }),
+  });
+};
+
+/** Delete a saved blast. Allowed after a downgrade too, so an owner can still clean up. */
+export const useDeleteSavedBlast = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await db.rpc('delete_saved_blast', { p_saved_blast_id: id });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.savedBlastsAll }),
   });
 };
 

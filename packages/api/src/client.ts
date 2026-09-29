@@ -49,6 +49,10 @@ const KNOWN = [
   'invalid_rating', 'review_requires_participation',
   // blasts: RPC/validation codes the blast screen translates directly
   'no_community', 'channels_required', 'invalid_channel', 'blast_incomplete',
+  // 0124: custom text / Save blast / Your blasts without custom_broadcasts (or Jammer+ on a
+  // group-less event), over-long text, an unknown send_to, template or saved blast.
+  'blast_customization_required', 'blast_too_long', 'invalid_send_to', 'template_not_found',
+  'saved_blast_not_found',
   // timer + share-results: RPC codes the timer/share screens translate directly
   'invalid_action', 'not_completed', 'already_posted',
   // plans: RPC/validation codes the paywall and plan screens translate directly

@@ -103,7 +103,7 @@ export default function BlastScreen() {
     setFieldErrors({});
     setBusy(true);
     try {
-      const count = await sendBlast.mutateAsync({
+      const { sentToCount } = await sendBlast.mutateAsync({
         sourceTemplateId: args.template?.id ?? null,
         title: parsed.data.title,
         description: parsed.data.description,
@@ -111,7 +111,7 @@ export default function BlastScreen() {
         channels: parsed.data.channels,
       });
       setEditing(null);
-      setSentCount(count);
+      setSentCount(sentToCount);
     } catch (e) {
       banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
     } finally {

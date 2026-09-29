@@ -107,7 +107,7 @@ export async function seedEvents(ctx: Ctx) {
     // Blast recorded, never dispatched: no email leaves the seed.
     await ctx.c.insert('event_blasts', {
       event_id: eventId, sender_id: a1.id, source_template_id: null, title: 'Round 2 starting',
-      description: 'Grab water, round 2 is up on the board.', image_path: null, channels: ['email'], send_to: 'all_members', sent_to_count: 5,
+      description: 'Grab water, round 2 is up on the board.', image_path: null, channels: ['email'], send_to: 'all', sent_to_count: 5,
     });
     await backdate(ctx, eventId, hoursFromNow(-2));
     ctx.ids.E2 = eventId;
