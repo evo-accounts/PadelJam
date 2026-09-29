@@ -136,9 +136,10 @@ describe('06 event manage (organizer)', () => {
     await tap({ id: 'manage-paid' });
     await expectVisible({ text: /^payment list$/i }, { timeout: 20_000 });
     // Total card: nothing collected yet, against fee × confirmed (guests and stand-by included).
+    // Matched by text: a plain Text's testID never reaches the E2E tree.
     const confirmed = await paymentsOf(m.events.e1);
-    await expectVisible({ id: 'payments-total', text: new RegExp(`^€0 of €${5 * confirmed.length}$`) }, { timeout: 15_000 });
-    await expectVisible({ id: 'payments-count', text: new RegExp(`^${confirmed.length} players$`) });
+    await expectVisible({ text: new RegExp(`^€0 of €${5 * confirmed.length}$`) }, { timeout: 15_000 });
+    await expectVisible({ text: new RegExp(`^${confirmed.length} players$`) });
     await shot('10-payment-list.png');
     const alex = confirmed.find((r) => r.user_id === m.users.alex)!;
     await scrollUntilVisible({ id: `payment-toggle-${alex.id}` }, { maxSwipes: 6 });
@@ -149,7 +150,7 @@ describe('06 event manage (organizer)', () => {
       (rows) => rows.some((r) => r.id === alex.id && r.has_paid && Number(r.paid_amount) === 5),
       { label: 'alex marked paid with the fee credited', timeoutMs: 15_000 },
     );
-    await expectVisible({ id: 'payments-total', text: new RegExp(`^€5 of €${5 * confirmed.length}$`) }, { timeout: 15_000 });
+    await expectVisible({ text: new RegExp(`^€5 of €${5 * confirmed.length}$`) }, { timeout: 15_000 });
   });
 
   it('"Mark all as paid" asks first, then marks every confirmed player', async () => {
@@ -164,7 +165,7 @@ describe('06 event manage (organizer)', () => {
       { label: 'no unpaid confirmed participants remain', timeoutMs: 15_000 },
     );
     await tap({ id: 'payments-tabs-pending' });
-    await expectVisible({ id: 'empty-payments-pending' }, { timeout: 10_000 });
+    await expectVisible({ text: /^everyone has paid$/i }, { timeout: 10_000 });
   });
 
   it('the Activity log lists who / what / when for those actions, newest first', async () => {

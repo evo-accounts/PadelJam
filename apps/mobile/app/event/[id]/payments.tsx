@@ -177,7 +177,7 @@ export default function PaymentListScreen() {
         backLabel={t('back')}
         title={t('paymentListTitle')}
         trailing={
-          <Text variant="label" tone="muted" accessibilityLabel={t('payPlayersCount', { count: list.counts.all })} testID="payments-count">
+          <Text variant="label" tone="muted" accessibilityLabel={t('payPlayersCount', { count: list.counts.all })}>
             {list.counts.all}
           </Text>
         }
@@ -187,7 +187,7 @@ export default function PaymentListScreen() {
           <Text variant="label" tone="muted">
             {t('payTotalTitle')}
           </Text>
-          <Text variant="heading" testID="payments-total">
+          <Text variant="heading">
             {t('payCollectedOf', { collected: money(list.collected), expected: money(list.expected) })}
           </Text>
           <ProgressBar
