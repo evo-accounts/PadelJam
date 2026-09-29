@@ -542,6 +542,23 @@ export const useEventInvitedPlayers = (eventId: string) => {
   });
 };
 
+/**
+ * The registry courts an event uses (`event_courts`), as ids — what Edit Location & Courts starts
+ * from when the organizer picked courts at a venue (UX-MEVT-07).
+ */
+export const useEventCourts = (eventId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.eventCourts(eventId),
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.from('event_courts').select('court_id').eq('event_id', eventId);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.court_id);
+    },
+  });
+};
+
 /** One registry row as `search_venues` (0114) returns it. */
 export type VenueSearchRow = {
   id: string;

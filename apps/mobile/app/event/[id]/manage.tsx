@@ -20,6 +20,7 @@
 import {
   type EventDetail,
   useEvent,
+  useEventCourts,
   useEventInvitations,
   useEventParticipants,
   useEventSeries,
@@ -112,6 +113,7 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
   const { data: participantsData } = useEventParticipants(id);
   const { data: invitationsData } = useEventInvitations(id);
   const { data: series } = useEventSeries(id);
+  const { data: courtIds } = useEventCourts(id);
   const setRanking = useSetEventRanking(id);
   const startFlow = useStartFlow(id, event);
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -348,6 +350,7 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
           event={event}
           confirmedMain={confirmedMain}
           recurring={recurring}
+          courtIds={courtIds}
           onClose={() => setSheet(null)}
           onSaved={() => {
             setSheet(null);
@@ -368,6 +371,7 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
       {sheet === 'duplicate' ? (
         <DuplicateEventSheet
           event={event}
+          courtIds={courtIds}
           onClose={() => setSheet(null)}
           onDuplicated={(newId) => {
             setSheet(null);

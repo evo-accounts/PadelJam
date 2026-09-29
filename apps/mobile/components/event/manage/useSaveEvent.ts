@@ -22,7 +22,7 @@ export function useSaveEvent(event: EventDetail) {
   const uid = useSession().session?.user.id;
   const update = useUpdateEvent(event.id);
 
-  return async (d: EventDraft): Promise<void> => {
+  return async (d: EventDraft, opts: { courts?: { courtName: (n: number) => string } } = {}): Promise<void> => {
     let thumbnailPath: string | undefined;
     if (d.thumbnail && uid) {
       thumbnailPath = await uploadCommunityImage(supabase, 'event-thumbnails', uid, d.thumbnail.uri, d.thumbnail.mimeType);
@@ -32,7 +32,7 @@ export function useSaveEvent(event: EventDetail) {
       const q = geocodeQuery({ name: d.manualLocationName, address: d.manualLocationAddress });
       if (q) coords = await geocodeAddress(q).catch(() => null);
     }
-    const parsed = updateEventSchema.safeParse(updateValues(d, { thumbnailPath, coords }));
+    const parsed = updateEventSchema.safeParse(updateValues(d, { thumbnailPath, coords, courts: opts.courts }));
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'unknown_error');
     await update.mutateAsync({ values: parsed.data, groupId: event.group_id });
   };

@@ -1,6 +1,7 @@
 import type { EventDetail } from '@padel/api';
 
 import type { EventDraft } from '../wizard/draft';
+import { normalizeCourtNames } from '../wizard/location';
 
 /**
  * Manage Event's edit sheets (UX-MEVT-04..08) as pure draft helpers. RN-free so they are
@@ -17,7 +18,11 @@ export function locationModeOf(e: Pick<EventDetail, 'venue_id' | 'has_location'>
   return e.has_location ? 'manual' : 'none';
 }
 
-export function draftFromEvent(e: EventDetail): EventDraft {
+/**
+ * `courtIds`: the registry courts the event uses (`useEventCourts`) — seeded only for a registry
+ * venue, where they are the "Select courts" answer; none means "Have not reserved yet".
+ */
+export function draftFromEvent(e: EventDetail, courtIds?: string[]): EventDraft {
   return {
     groupId: e.group_id,
     eventType: e.event_type as EventDraft['eventType'],
@@ -32,6 +37,8 @@ export function draftFromEvent(e: EventDetail): EventDraft {
     manualLocationName: e.venue?.name ?? e.manual_location_name ?? undefined,
     manualLocationAddress: e.venue_id ? (e.venue?.address ?? undefined) : (e.manual_location_address ?? undefined),
     numCourts: e.num_courts,
+    courtIds: e.venue_id && courtIds && courtIds.length > 0 ? courtIds : undefined,
+    manualCourtNames: e.venue_id ? undefined : (e.manual_court_names ?? undefined),
     // PostgREST answers `…+00:00`; updateEventSchema's datetime() takes only the `Z` form.
     startsAt: new Date(e.starts_at).toISOString(),
     durationMinutes: e.duration_minutes,
@@ -71,9 +78,24 @@ export function locationChanged(d: EventDraft, e: EventDetail): boolean {
  */
 export function updateValues(
   d: EventDraft,
-  opts: { thumbnailPath?: string; coords?: { lat: number; lng: number } | null } = {},
+  opts: {
+    thumbnailPath?: string;
+    coords?: { lat: number; lng: number } | null;
+    /**
+     * Edit Location & Courts only: also send the courts (0122) — a registry venue's ticked courts
+     * (none = "Have not reserved yet", courts_reserved false), or a manual venue's court names
+     * with blanks named by `courtName(n)`. Other sheets omit them, so the courts stay as they are.
+     */
+    courts?: { courtName: (n: number) => string };
+  } = {},
 ): Record<string, unknown> {
+  const courts = opts.courts
+    ? d.venueId
+      ? { courtIds: d.courtIds ?? [], courtsReserved: (d.courtIds?.length ?? 0) > 0 }
+      : { manualCourtNames: d.hasLocation ? normalizeCourtNames(d, opts.courts.courtName) : undefined }
+    : {};
   return {
+    ...courts,
     name: d.name,
     description: d.description?.trim() ? d.description : undefined,
     thumbnailPath: opts.thumbnailPath ?? d.thumbnailPath,
@@ -105,4 +127,41 @@ export function updateValues(
  */
 export function courtsBelowRoster(numCourts: number, confirmedMain: number): boolean {
   return numCourts * 4 < confirmedMain;
+}
+
+/**
+ * Duplicate (UX-MEVT-20, decision 4): the location and courts as `duplicate_event` overrides
+ * (0122) — sent only when the organizer changed them, since sending any location key replaces the
+ * whole location (and a point it is not given is left empty).
+ */
+export function locationOverrides(
+  d: EventDraft,
+  coords: { lat: number; lng: number } | null,
+  courtName: (n: number) => string,
+): Record<string, unknown> {
+  const venue = d.venueId ?? null;
+  const names = venue ? undefined : normalizeCourtNames(d, courtName);
+  return {
+    venue_id: venue,
+    manual_location_name: venue ? null : (d.manualLocationName?.trim() || null),
+    manual_location_address: venue ? null : (d.manualLocationAddress?.trim() || null),
+    has_location: d.hasLocation,
+    num_courts: d.numCourts,
+    ...(names ? { manual_court_names: names } : {}),
+    ...(venue ? { court_ids: d.courtIds ?? [], courts_reserved: (d.courtIds?.length ?? 0) > 0 } : {}),
+    ...(coords ? { location_lat: coords.lat, location_lng: coords.lng } : {}),
+    location_text: d.hasLocation ? (d.manualLocationName ?? d.manualLocationAddress ?? null) : null,
+  };
+}
+
+/** Did the organizer touch the location or courts at all (Duplicate sends them only then)? */
+export function courtsOrLocationChanged(d: EventDraft, e: EventDetail, courtIds?: string[]): boolean {
+  const before = draftFromEvent(e, courtIds);
+  const same = (a?: string[], b?: string[]) => JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
+  return (
+    locationChanged(d, e) ||
+    d.numCourts !== before.numCourts ||
+    !same(d.courtIds, before.courtIds) ||
+    !same(d.manualCourtNames, before.manualCourtNames)
+  );
 }

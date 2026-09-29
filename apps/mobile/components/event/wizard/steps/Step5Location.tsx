@@ -159,11 +159,8 @@ function ManualVenueForm({
         }}
       />
 
-      {/* TODO(0122): update_event takes no manual_court_names (a court-count change clears them,
-          0113), so Edit Location & Courts cannot name courts yet. */}
-      {context === 'edit' ? (
-        <CourtsBelowRoster errors={errors} />
-      ) : (
+      {context === 'edit' ? <CourtsBelowRoster errors={errors} /> : null}
+
       <View style={styles.names}>
         <Text variant="label">{t('courtNamesLabel')}</Text>
         {Array.from({ length: draft.numCourts }, (_, i) => (
@@ -177,7 +174,6 @@ function ManualVenueForm({
           />
         ))}
       </View>
-      )}
 
       <Button
         label={t('chooseFromVenueList')}

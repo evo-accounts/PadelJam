@@ -2,7 +2,15 @@ import type { EventDetail } from '@padel/api';
 import { updateEventSchema } from '@padel/api';
 import { describe, expect, it } from 'vitest';
 
-import { courtsBelowRoster, draftFromEvent, locationChanged, locationModeOf, updateValues } from './eventDraft';
+import {
+  courtsBelowRoster,
+  courtsOrLocationChanged,
+  draftFromEvent,
+  locationChanged,
+  locationModeOf,
+  locationOverrides,
+  updateValues,
+} from './eventDraft';
 
 const base = {
   id: 'e1',
@@ -31,6 +39,7 @@ const base = {
   name: 'Tuesday Americano',
   description: null,
   thumbnail_path: 'u/t.jpg',
+  manual_court_names: null,
 } as unknown as EventDetail;
 
 describe('draftFromEvent / updateValues', () => {
@@ -97,6 +106,52 @@ describe('locationModeOf / locationChanged', () => {
     expect(locationChanged(d, base)).toBe(false);
     expect(locationChanged({ ...d, manualLocationAddress: 'Rua 2' }, base)).toBe(true);
     expect(locationChanged({ ...d, hasLocation: false }, base)).toBe(true);
+  });
+});
+
+describe('courts (0122)', () => {
+  const venueEvent = { ...base, venue_id: '00000000-0000-4000-8000-000000000001', venue: { name: 'Padel Club', address: 'Av 2' } } as unknown as EventDetail;
+  const court = '00000000-0000-4000-8000-0000000000c1';
+  const name = (n: number) => `Court ${n}`;
+
+  it('sends courts only from the Location sheet', () => {
+    const d = draftFromEvent(venueEvent, [court]);
+    expect(d.courtIds).toEqual([court]);
+    expect(updateValues(d).courtIds).toBeUndefined();
+    const v = updateEventSchema.parse(updateValues(d, { courts: { courtName: name } }));
+    expect(v).toMatchObject({ courtIds: [court], courtsReserved: true });
+  });
+
+  it('no ticked court at a venue is "not reserved yet"', () => {
+    const v = updateValues(draftFromEvent(venueEvent), { courts: { courtName: name } });
+    expect(v).toMatchObject({ courtIds: [], courtsReserved: false });
+  });
+
+  it('a manual venue sends its court names, blanks named', () => {
+    const d = { ...draftFromEvent(base), manualCourtNames: ['Centre', ''] };
+    const v = updateEventSchema.parse(updateValues(d, { courts: { courtName: name } }));
+    expect(v.manualCourtNames).toEqual(['Centre', 'Court 2']);
+  });
+
+  it('duplicate overrides carry the whole location, only when changed', () => {
+    const d = draftFromEvent(base);
+    expect(courtsOrLocationChanged(d, base)).toBe(false);
+    const moved = { ...d, numCourts: 3 };
+    expect(courtsOrLocationChanged(moved, base)).toBe(true);
+    expect(locationOverrides(moved, { lat: 1, lng: 2 }, name)).toMatchObject({
+      venue_id: null,
+      manual_location_name: 'Club',
+      manual_location_address: 'Rua 1',
+      has_location: true,
+      num_courts: 3,
+      location_lat: 1,
+      location_lng: 2,
+    });
+    expect(locationOverrides({ ...draftFromEvent(venueEvent, [court]) }, null, name)).toMatchObject({
+      venue_id: '00000000-0000-4000-8000-000000000001',
+      court_ids: [court],
+      courts_reserved: true,
+    });
   });
 });
 

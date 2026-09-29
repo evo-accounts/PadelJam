@@ -1,31 +1,36 @@
 /**
  * Duplicate event (UX-MEVT-20, decision 4). A read-only summary of what the copy inherits — group,
- * format, modality, scoring, preferences, fee — over what can be set: name, thumbnail, date and
- * time. Nothing about people carries over: the new event starts empty.
+ * format, modality, scoring, preferences, fee — over what can be set: name, thumbnail, date, time,
+ * and location & courts (the same event often moves to another court of the same club). Nothing
+ * about people carries over: the new event starts empty.
  *
  * The date is required and picked here (B8: `duplicate_event` would otherwise default to now,
  * already past the join cut-off). It opens on the same slot a week after the original, or the
  * next such week still ahead.
  *
- * TODO(0122): location and courts join the editable part once `duplicate_event` accepts them;
- * today it copies the original's venue and courts as they are, and the summary says so.
+ * Location and courts are sent (`duplicate_event` overrides, 0122) only when changed here; left
+ * alone, the copy keeps the original's venue, courts and point.
  */
 import { useDuplicateEvent, type EventDetail } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { atTime, defaultStart, eventPlace, formatEventWhen, nextWeekly, timeOf } from '@padel/utils';
-import { useMemo, useState } from 'react';
+import { atTime, defaultStart, formatEventWhen, geocodeQuery, nextWeekly, timeOf } from '@padel/utils';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
+import { geocodeAddress } from '@/lib/geocode';
 import { useNow } from '@/lib/useNow';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
+import type { EventDraft } from '../wizard/draft';
 import { DayScroller } from '../wizard/DayScroller';
 import { TimeSlotPicker } from '../wizard/TimeSlotPicker';
 import { space } from '../../../theme';
 import { Card, Field, Text } from '../../ui';
+import { courtsOrLocationChanged, draftFromEvent, locationChanged, locationOverrides } from './eventDraft';
+import { LocationBody } from './EventEditSheet';
 import { feeLabel, formatLabel, modalityLabel, preferencesSummary, scoringLabel } from './eventLabels';
 import { ManageSheet } from './ManageSheet';
 
@@ -38,10 +43,12 @@ export function duplicateStart(originalIso: string, now: Date): Date {
 
 export function DuplicateEventSheet({
   event,
+  courtIds,
   onClose,
   onDuplicated,
 }: {
   event: EventDetail;
+  courtIds?: string[];
   onClose: () => void;
   onDuplicated: (newId: string) => void;
 }) {
@@ -57,6 +64,9 @@ export function DuplicateEventSheet({
   const [name, setName] = useState(event.name);
   const [start, setStart] = useState<Date>(() => duplicateStart(event.starts_at, new Date()));
   const [picked, setPicked] = useState<PickedImage | null>(null);
+  // Location & courts, as the Edit Location & Courts sheet edits them.
+  const [place, setPlace] = useState<EventDraft>(() => draftFromEvent(event, courtIds));
+  const patchPlace = useCallback((p: Partial<EventDraft>) => setPlace((prev) => ({ ...prev, ...p })), []);
   const [errors, setErrors] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,7 +74,6 @@ export function DuplicateEventSheet({
   const storedUrl = event.thumbnail_path
     ? supabase.storage.from('event-thumbnails').getPublicUrl(event.thumbnail_path).data.publicUrl
     : null;
-  const place = eventPlace(event);
 
   const pickDay = (day: Date) => {
     const kept = atTime(day, timeOf(start));
@@ -80,6 +89,9 @@ export function DuplicateEventSheet({
     const failing = [
       ...(name.trim() ? [] : ['name']),
       ...(start.getTime() > Date.now() ? [] : ['startsAt']),
+      ...(place.locationMode === undefined ? ['locationMode'] : []),
+      ...(place.locationMode === 'manual' && !(place.manualLocationAddress ?? '').trim() ? ['manualLocationAddress'] : []),
+      ...(place.courtIds && place.courtIds.length === 0 ? ['courtIds'] : []),
     ];
     if (failing.length > 0) {
       setErrors(failing);
@@ -90,6 +102,16 @@ export function DuplicateEventSheet({
     setMessage(null);
     try {
       const overrides: Record<string, unknown> = { name: name.trim(), starts_at: start.toISOString() };
+      if (courtsOrLocationChanged(place, event, courtIds)) {
+        const q = place.hasLocation && locationChanged(place, event)
+          ? geocodeQuery({ name: place.manualLocationName, address: place.manualLocationAddress })
+          : null;
+        const coords = q ? await geocodeAddress(q).catch(() => null) : null;
+        Object.assign(
+          overrides,
+          locationOverrides(place, coords, (n) => t('courtNamePlaceholder', { number: n })),
+        );
+      }
       if (picked && uid) {
         overrides.thumbnail_path = await uploadCommunityImage(
           supabase,
@@ -115,7 +137,6 @@ export function DuplicateEventSheet({
     [t('widgetScoring'), scoringLabel(t, event)],
     [t('step8Title'), preferencesSummary(t, event)],
     [t('widgetFee'), feeLabel(t, event)],
-    [t('duplicateLocationLabel'), place?.name ?? t('noLocationValue')],
   ];
 
   return (
@@ -187,6 +208,14 @@ export function DuplicateEventSheet({
       <Text variant="bodyStrong" testID="duplicate-when">
         {formatEventWhen(start, event.duration_minutes, i18n.language)}
       </Text>
+
+      <Text variant="sectionTitle">{t('duplicateLocationLabel')}</Text>
+      <LocationBody
+        draft={place}
+        patch={patchPlace}
+        errors={errors}
+        clearError={(key) => setErrors((e) => e.filter((k) => k !== key))}
+      />
     </ManageSheet>
   );
 }

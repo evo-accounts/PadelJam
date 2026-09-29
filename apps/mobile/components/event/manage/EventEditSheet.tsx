@@ -76,11 +76,14 @@ export function EventEditSheet({
   event,
   confirmedMain,
   recurring,
+  courtIds,
   onClose,
   onSaved,
 }: {
   kind: EditSheetKind;
   event: EventDetail;
+  /** The registry courts the event uses (`useEventCourts`), for Edit Location & Courts. */
+  courtIds?: string[];
   /** Confirmed players holding a main spot (stand-by excluded), as update_event counts them. */
   confirmedMain: number;
   recurring: boolean;
@@ -90,7 +93,7 @@ export function EventEditSheet({
   const { t } = useT('event');
   const { t: tc } = useT('common');
   const save = useSaveEvent(event);
-  const [draft, setDraft] = useState<EventDraft>(() => draftFromEvent(event));
+  const [draft, setDraft] = useState<EventDraft>(() => draftFromEvent(event, courtIds));
   // Stable: Step6Courts runs an effect on it.
   const patch = useCallback((p: Partial<EventDraft>) => setDraft((prev) => ({ ...prev, ...p })), []);
   const [errors, setErrors] = useState<string[]>([]);
@@ -111,7 +114,7 @@ export function EventEditSheet({
     setMessage(null);
     setBusy(true);
     try {
-      await save(draft);
+      await save(draft, kind === 'location' ? { courts: { courtName: (n) => t('courtNamePlaceholder', { number: n }) } } : {});
       onSaved();
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';
@@ -167,7 +170,7 @@ export function EventEditSheet({
   );
 }
 
-type BodyProps = {
+export type BodyProps = {
   draft: EventDraft;
   patch: (p: Partial<EventDraft>) => void;
   errors: string[];
@@ -226,11 +229,11 @@ function GeneralInfoBody({ draft, patch, errors, clearError, disabled }: BodyPro
 
 /**
  * Edit Location & Courts (UX-MEVT-07): the creation step's three scenarios. A registry venue or no
- * location opens on the court count, with the place above it and "Change location" back to the
+ * location opens on the courts (a venue's courts to tick, or the count), with the place above it and "Change location" back to the
  * venue list; the manual venue form carries its own count. Capacity may not drop below the
  * confirmed players (`courtsBelowRoster`); when no option fits, the organizer cancels instead.
  */
-function LocationBody({ draft, patch, errors, clearError }: BodyProps) {
+export function LocationBody({ draft, patch, errors, clearError }: BodyProps) {
   const { t } = useT('event');
   const [page, setPage] = useState<'list' | 'courts'>(
     draft.locationMode === 'registry' || draft.locationMode === 'none' ? 'courts' : 'list',
@@ -271,7 +274,7 @@ function LocationBody({ draft, patch, errors, clearError }: BodyProps) {
           testID="location-sheet-change"
         />
       </Card>
-      <Step6Courts {...props} context="edit" />
+      <Step6Courts {...props} />
       <CourtsBelowRoster errors={errors} />
     </View>
   );
