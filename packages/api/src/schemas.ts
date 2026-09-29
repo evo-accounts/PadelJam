@@ -303,3 +303,12 @@ export const blastSchema = z.object({
   channels: z.array(z.enum(BLAST_CHANNELS)).min(1),
 });
 export type BlastInput = z.infer<typeof blastSchema>;
+export type BlastChannel = (typeof BLAST_CHANNELS)[number];
+
+/** 0124: who a blast goes to. 'all' = every participant plus pending invitees. */
+export const BLAST_SEND_TO = ['all', 'confirmed', 'invited', 'waiting_list'] as const;
+export type BlastSendTo = (typeof BLAST_SEND_TO)[number];
+
+/** "Your blasts" (0124): the same text limits as a sent blast. */
+export const savedBlastSchema = blastSchema.pick({ title: true, description: true });
+export type SavedBlastInput = z.infer<typeof savedBlastSchema>;

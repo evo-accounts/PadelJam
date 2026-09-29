@@ -622,7 +622,8 @@ export interface BlastTemplate {
   id: string;
   title: string;
   description: string;
-  image_path: string;
+  /** Storage key of the preview image for the Templates grid. NULL until the artwork exists (0124). */
+  image_path: string | null;
   category: string | null;
   is_default: boolean;
 }
@@ -635,6 +636,10 @@ export interface EventBlast {
   sent_at: string;
   source_template_id: string | null;
   image_path: string | null;
+  /** 'all' | 'confirmed' | 'invited' | 'waiting_list' (0124; older rows were rewritten to 'all'). */
+  send_to: string;
+  /** Everyone in the send_to scope at send time; NULL on blasts sent before 0124. */
+  audience_count: number | null;
 }
 
 export const useBlastTemplates = () => {
@@ -662,7 +667,7 @@ export const useEventBlasts = (eventId: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('event_blasts')
-        .select('id, title, description, channels, sent_to_count, sent_at, source_template_id, image_path')
+        .select('id, title, description, channels, sent_to_count, sent_at, source_template_id, image_path, send_to, audience_count')
         .eq('event_id', eventId)
         .order('sent_at', { ascending: false })
         .returns<EventBlast[]>();
@@ -672,14 +677,49 @@ export const useEventBlasts = (eventId: string) => {
   });
 };
 
+/**
+ * Full blast customisation — custom text, "Your blasts", Save blast (UX-MEVT-18). A group event
+ * follows its community's `custom_broadcasts` feature; a group-less one the organizer's account
+ * plan (Jammer+). Always false for anyone but the event's organizer. Enforced server-side (0124).
+ */
 export const useCanCustomizeBlast = (eventId: string) => {
   const db = useDb();
   return useQuery({
     queryKey: qk.canCustomizeBlast(eventId),
     queryFn: async () => {
-      const { data, error } = await db.rpc('can_customize_blast', { p_event_id: eventId });
+      const { data, error } = await db.rpc('can_customize_event_blast', { p_event_id: eventId });
       if (error) throw error;
       return data ?? false;
+    },
+  });
+};
+
+export interface SavedBlast {
+  id: string;
+  title: string;
+  description: string;
+  image_path: string | null;
+  source_template_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * "Your blasts" for this event's scope — its community's saved blasts, or the organizer's own on a
+ * group-less event — most recently edited first. Pass `enabled: false` (e.g. until
+ * useCanCustomizeBlast resolves true): without customisation the RPC raises
+ * blast_customization_required.
+ */
+export const useSavedBlasts = (eventId: string, { enabled = true }: { enabled?: boolean } = {}) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.savedBlasts(eventId),
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('list_saved_blasts', { p_event_id: eventId });
+      if (error) throw error;
+      return (data ?? []) as SavedBlast[];
     },
   });
 };
@@ -755,10 +795,13 @@ export const useEventBlastDeliveries = (eventId: string) => {
   return useQuery({
     queryKey: qk.blastDeliveries(eventId),
     queryFn: async () => {
+      // Email attempts only: a WhatsApp blast is logged once as 'shared' (sent from the
+      // organizer's device, 0124) and has no delivery state to show or retry.
       const { data, error } = await db
         .from('delivery_log')
         .select('blast_id, status, attempt, sent_count, failed_count, error, event_blasts!inner(event_id)')
         .eq('event_blasts.event_id', eventId)
+        .eq('channel', 'email')
         .order('attempt', { ascending: false });
       if (error) throw error;
       // Rows are attempt-desc; first time we see a blast_id is its latest attempt.

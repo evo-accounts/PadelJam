@@ -30,7 +30,7 @@ begin
   values (g, u1, 'americano','classic','points',1, now()+interval '2 day',90,'organizing_only','DlEv','scheduled',false)
   returning id into ev;
   insert into event_blasts (event_id, sender_id, title, description, channels, send_to, sent_to_count)
-  values (ev, u1, 'Blast','body', array['email'], 'all_members', 3) returning id into bl;
+  values (ev, u1, 'Blast','body', array['email'], 'all', 3) returning id into bl;
 
   -- target CHECK: an email row with no blast_id (no target at all) must be rejected (no FK noise).
   begin

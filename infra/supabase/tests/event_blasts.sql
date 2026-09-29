@@ -1,6 +1,7 @@
 -- 5G-4: event_blasts + blast_templates + send_event_blast RPC.
--- Verifies opt-in recipient counting, no_community/channels_required guards,
--- organizer-only send + read RLS, and can_customize_blast tier gating.
+-- Verifies opt-in recipient counting, channels_required guard, organizer-only send + read RLS,
+-- and can_customize_blast tier gating. 0124: a group-less event is no longer refused
+-- (no_community); its organizer's account plan decides customisation.
 -- 'PT001' = "expected behaviour did not hold" sentinel.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
@@ -22,7 +23,6 @@ declare
   ev  uuid;
   ev2 uuid;
   n   integer;
-  cc  boolean;
 begin
   -- ---- As U1: create the community (owner) ----
   perform set_config('role','authenticated',true);
@@ -33,6 +33,9 @@ begin
   -- Reuse the community's auto-created general group (starter caps groups_per_community at 1).
   perform set_config('role','postgres',true);
   select id into g from groups where community_id = cid order by created_at limit 1;
+  -- 0124 (B10): custom text needs custom_broadcasts. Community Pro has it (unique(community_id)).
+  insert into community_subscriptions (community_id, plan_id, status, dimension)
+    values (cid, 'community_pro', 'active', 'community');
 
   insert into events (
     group_id, organizer_id, event_type, specification, scoring_mode,
@@ -74,25 +77,20 @@ begin
   perform set_config('role','authenticated',true);
   raise notice 'OK send email: returns 1 and inserts 1 row';
 
-  -- (2) whatsapp channel: M1 opted out -> returns 0.
+  -- (2) whatsapp channel: shared from the organizer's device (0124), no email recipients -> 0.
   select sent_to_count into n from send_event_blast(ev, null, 'Hi', 'Body', null, array['whatsapp']);
   if n <> 0 then
     raise exception using errcode='PT001', message='expected send_event_blast(whatsapp) = 0, got '||n;
   end if;
-  raise notice 'OK send whatsapp: returns 0 (M1 opted out)';
+  raise notice 'OK send whatsapp: returns 0 (no server send)';
 
-  -- (3) standalone event -> no_community.
-  begin
-    perform send_event_blast(ev2, null, 'Hi', 'Body', null, array['email']);
-    raise exception using errcode='PT001', message='standalone event should raise no_community';
-  exception
-    when sqlstate 'PT001' then raise;
-    when others then
-      if position('no_community' in sqlerrm) = 0 then
-        raise exception using errcode='PT001', message='wrong error for standalone event: '||sqlerrm;
-      end if;
-  end;
-  raise notice 'OK standalone: blocked with no_community';
+  -- (3) standalone event -> accepted since 0124 (was no_community). U1 created a Community Pro
+  -- community, so their account plan is Jammer+ (jammer_plus_included) and custom text is allowed.
+  select sent_to_count into n from send_event_blast(ev2, null, 'Hi', 'Body', null, array['email']);
+  if n <> 0 then
+    raise exception using errcode='PT001', message='standalone event with no participants should reach 0, got '||n;
+  end if;
+  raise notice 'OK standalone: accepted (group-less blasts, 0124)';
 
   -- (4) empty channels -> channels_required.
   begin
@@ -135,22 +133,13 @@ begin
   end if;
   raise notice 'OK rls: organizer reads >= 1 rows';
 
-  -- (7) can_customize_blast: boolean for the starter (implicit) plan, then true after community_pro.
-  cc := can_customize_blast(ev);
-  if cc is null then
-    raise exception using errcode='PT001', message='can_customize_blast should return a boolean, got null';
-  end if;
-  raise notice 'OK can_customize_blast: returns a boolean (%)', cc;
-
-  -- Grant the community a Community Pro subscription (unique(community_id); personal tenant has no row).
-  perform set_config('role','postgres',true);
-  insert into community_subscriptions (community_id, plan_id, status, dimension)
-    values (cid, 'community_pro', 'active', 'community')
-    on conflict (community_id) do update set plan_id = excluded.plan_id, status = excluded.status;
-  perform set_config('role','authenticated',true);
-
+  -- (7) can_customize_blast: true under community_pro (subscribed at fixture time), and on the
+  -- standalone event through the organizer's derived Jammer+.
   if can_customize_blast(ev) is distinct from true then
     raise exception using errcode='PT001', message='can_customize_blast should be true under community_pro';
+  end if;
+  if can_customize_blast(ev2) is distinct from true then
+    raise exception using errcode='PT001', message='can_customize_blast should follow the organizer''s Jammer+ on a standalone event';
   end if;
   raise notice 'OK can_customize_blast: true under community_pro';
 

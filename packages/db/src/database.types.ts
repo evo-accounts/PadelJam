@@ -71,7 +71,7 @@ export type Database = {
           id: string
           title: string
           description: string
-          image_path: string
+          image_path: string | null
           category: string | null
           is_default: boolean
           is_active: boolean
@@ -81,7 +81,7 @@ export type Database = {
           id?: string
           title: string
           description: string
-          image_path: string
+          image_path: string | null
           category?: string | null
           is_default?: boolean
           is_active?: boolean
@@ -91,7 +91,7 @@ export type Database = {
           id?: string
           title?: string
           description?: string
-          image_path?: string
+          image_path?: string | null
           category?: string | null
           is_default?: boolean
           is_active?: boolean
@@ -111,6 +111,7 @@ export type Database = {
           channels: string[]
           send_to: string
           sent_to_count: number
+          audience_count: number | null
           sent_at: string
         }
         Insert: {
@@ -124,6 +125,7 @@ export type Database = {
           channels: string[]
           send_to?: string
           sent_to_count?: number
+          audience_count?: number | null
           sent_at?: string
         }
         Update: {
@@ -137,6 +139,7 @@ export type Database = {
           channels?: string[]
           send_to?: string
           sent_to_count?: number
+          audience_count?: number | null
           sent_at?: string
         }
         Relationships: [
@@ -162,6 +165,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_blasts: {
+        Row: { id: string; community_id: string | null; owner_user_id: string | null; created_by: string | null;
+               source_template_id: string | null; title: string; description: string; image_path: string | null;
+               created_at: string; updated_at: string }
+        Insert: { id?: string; community_id?: string | null; owner_user_id?: string | null; created_by?: string | null;
+                  source_template_id?: string | null; title: string; description: string; image_path?: string | null;
+                  created_at?: string; updated_at?: string }
+        Update: { id?: string; community_id?: string | null; owner_user_id?: string | null; created_by?: string | null;
+                  source_template_id?: string | null; title?: string; description?: string; image_path?: string | null;
+                  created_at?: string; updated_at?: string }
+        Relationships: []
       }
       user_settings: {
         Row: { user_id: string; notifications_push: boolean; notifications_whatsapp: boolean; notifications_email: boolean; updated_at: string }
@@ -2510,6 +2525,7 @@ export type Database = {
       can_create_group: { Args: { p_community_id: string }; Returns: boolean }
       can_create_post: { Args: { c: string }; Returns: boolean }
       can_customize_blast: { Args: { p_event_id: string }; Returns: boolean }
+      can_customize_event_blast: { Args: { p_event_id: string }; Returns: boolean }
       can_review_community: { Args: { p_community_id: string }; Returns: boolean }
       cancel_event: { Args: { p_event_id: string; p_scope?: string }; Returns: undefined }
       cancel_occurrence_slot: { Args: { p_series_id: string; p_slot_date: string }; Returns: undefined }
@@ -2961,13 +2977,43 @@ export type Database = {
         Args: {
           p_event_id: string
           p_source_template_id: string | null
-          p_title: string
-          p_description: string
+          p_title: string | null
+          p_description: string | null
           p_image_path: string | null
           p_channels: string[]
+          p_send_to?: string
+          p_save?: boolean
         }
-        Returns: { blast_id: string; sent_to_count: number }[]
+        Returns: { blast_id: string; sent_to_count: number; audience_count: number; share_text: string | null }[]
       }
+      list_saved_blasts: {
+        Args: { p_event_id: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          image_path: string | null
+          source_template_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      save_blast: {
+        Args: {
+          p_event_id: string
+          p_title: string
+          p_description: string
+          p_image_path?: string | null
+          p_source_template_id?: string | null
+        }
+        Returns: string
+      }
+      update_saved_blast: {
+        Args: { p_saved_blast_id: string; p_title: string; p_description: string; p_image_path?: string | null }
+        Returns: undefined
+      }
+      delete_saved_blast: { Args: { p_saved_blast_id: string }; Returns: undefined }
       event_roster_csv: {
         Args: { p_event_id: string }
         Returns: string

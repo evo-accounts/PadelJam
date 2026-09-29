@@ -33,6 +33,9 @@ begin
   -- Reuse the community's auto-created general group.
   perform set_config('role','postgres',true);
   select id into g from groups where community_id = cid order by created_at limit 1;
+  -- 0124 (B10): a custom blast needs custom_broadcasts (Basic and above).
+  insert into community_subscriptions (community_id, plan_id, status, dimension)
+    values (cid, 'community_pro', 'active', 'community');
 
   insert into events (
     group_id, organizer_id, event_type, specification, scoring_mode,

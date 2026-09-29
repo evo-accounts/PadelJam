@@ -99,6 +99,10 @@ export const qk = {
   eventBlasts: (id: string) => ['event', id, 'blasts'] as const,
   blastDeliveries: (id: string) => ['event', id, 'blast-deliveries'] as const,
   canCustomizeBlast: (id: string) => ['event', id, 'can-customize-blast'] as const,
+  // Saved blasts are scoped to a community or an organizer, not an event: every event's list is
+  // invalidated together through the 'saved-blasts' prefix.
+  savedBlastsAll: ['saved-blasts'] as const,
+  savedBlasts: (eventId: string) => ['saved-blasts', eventId] as const,
   accountPlan: ['account-plan'] as const,
   communityPlan: (id: string) => ['community', id, 'plan'] as const,
 };
