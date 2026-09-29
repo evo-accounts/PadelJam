@@ -11,6 +11,13 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { EventCard } from '@/components/event/EventCard';
 import { CommunityCard } from '@/components/explore/CommunityCard';
+import {
+  CommunityJoinAction,
+  GroupJoinAction,
+  PlayerFollowAction,
+  useStickyRows,
+  type ActionKind,
+} from '@/components/explore/ExploreActions';
 import { PlayerCard } from '@/components/explore/PlayerCard';
 import { GroupCard } from '@/components/group/GroupCard';
 import { EmptyState, emptyIcon, listEmptyContent } from '@/components/ui';
@@ -19,63 +26,105 @@ import { colors } from '../../theme';
 export type ExploreKind = 'players' | 'events' | 'communities' | 'groups';
 
 /**
- * The tab strip shared by the Explore TAB and the `/search` screen (UX-GLOB-08)
- * — `foryou` is Explore-only (its curated rails), everything else is a
- * {@link ExploreKind} this list can render directly. Hoisted here, rather than
- * duplicated per screen, so the two chip rows can never drift out of order or
- * out of sync with each other.
+ * The chip strip of the legacy `/search` screen (UX-GLOB-08), which M1 leaves
+ * in place with nothing linking to it; M2 turns that route into a redirect to
+ * Explore's search. `foryou` there means "people".
  */
 export const EXPLORE_TABS = ['foryou', 'events', 'groups', 'communities', 'players'] as const;
 export type ExploreTab = (typeof EXPLORE_TABS)[number];
 
 /**
- * The paginated list for one explore kind.
- *
- * Extracted from `app/explore/[type].tsx` so the Explore TAB and the "see all"
- * ROUTE render the same thing. They were always going to diverge otherwise —
- * the tab is the primary surface now, and the route is still where each
- * suggestion rail's "see all" lands.
- *
- * All four hooks are called unconditionally (Rules of Hooks) and only the active
- * one is enabled; that was already true in the route and is why this extraction
- * is a move rather than a rewrite.
+ * The kinds Explore's search state offers as tabs, in the audit's order (UX-EXPL-06). `people` is
+ * an M1 stop-gap: until the "All" tab arrives with 0129 / M2, a player is only findable here.
  */
-export function ExploreList({
+export const SEARCH_KINDS = ['events', 'groups', 'communities', 'players'] as const satisfies readonly ExploreKind[];
+
+/**
+ * The paginated list for one explore kind: the See-all screens
+ * (`app/explore/[type].tsx`, UX-EXPL-03), the interim search state on the
+ * Explore tab, and `/search` until M2 turns it into a redirect.
+ *
+ * B2: this used to call all four list hooks whatever `kind` was, so every list
+ * screen fetched four lists. Each kind is now its own component calling only
+ * its own hook, and switching kind swaps the component (a remount), which is
+ * what Rules of Hooks wanted all along.
+ *
+ * Rows are the horizontal cards of UX-GLOB-09 with the inline actions of
+ * UX-EXPL-02: Follow on players, Join / Request on communities, Join on groups.
+ */
+type ListProps = {
+  kind: ExploreKind;
+  query?: string;
+  /** Passed by the search states: the input stays focused while the list is dragged or tapped. */
+  keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
+  keyboardShouldPersistTaps?: boolean | 'always' | 'never' | 'handled';
+};
+
+export function ExploreList(props: ListProps) {
+  switch (props.kind) {
+    case 'players':
+      return <PlayersList {...props} />;
+    case 'events':
+      return <EventsList {...props} />;
+    case 'communities':
+      return <CommunitiesList {...props} />;
+    case 'groups':
+      return <GroupsList {...props} />;
+  }
+}
+
+function PlayersList(props: ListProps) {
+  return <ExploreListBody {...props} list={useExplorePlayersList()} />;
+}
+function EventsList(props: ListProps) {
+  return <ExploreListBody {...props} list={useExploreEventsList()} />;
+}
+function CommunitiesList(props: ListProps) {
+  return <ExploreListBody {...props} list={useExploreCommunitiesList()} />;
+}
+function GroupsList(props: ListProps) {
+  return <ExploreListBody {...props} list={useExploreGroupsList()} />;
+}
+
+/** The slice of an infinite query the list reads — the four hooks differ only in their rows. */
+type InfiniteList = {
+  data?: { pages: ReadonlyArray<ReadonlyArray<unknown>> };
+  isLoading: boolean;
+  isError: boolean;
+  isFetchingNextPage: boolean;
+  hasNextPage: boolean;
+  fetchNextPage: () => Promise<unknown>;
+  refetch: () => Promise<unknown>;
+};
+
+const STICKY_KIND: Record<ExploreKind, ActionKind | null> = {
+  players: 'players',
+  events: null,
+  communities: 'communities',
+  groups: 'groups',
+};
+
+function ExploreListBody({
   kind,
   query = '',
   keyboardDismissMode,
   keyboardShouldPersistTaps,
-}: {
-  kind: ExploreKind;
-  query?: string;
-  /** Passed by `/search` only: its Field stays focused while the list is dragged or tapped. */
-  keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
-  keyboardShouldPersistTaps?: boolean | 'always' | 'never' | 'handled';
-}) {
+  list,
+}: ListProps & { list: InfiniteList }) {
   const { t } = useT('discovery');
   const router = useRouter();
 
-  const players = useExplorePlayersList();
-  const events = useExploreEventsList();
-  const communities = useExploreCommunitiesList();
-  const groups = useExploreGroupsList();
+  const all = (list.data?.pages.flat() ?? []) as ReadonlyArray<Record<string, unknown> & { id: string }>;
+  const loaded = useStickyRows(STICKY_KIND[kind], all);
 
-  const active = { players, events, communities, groups }[kind];
-  const all = (active.data?.pages.flat() ?? []) as ReadonlyArray<Record<string, unknown>>;
-
-  // Client-side, over what is already loaded. Deliberately not a server query:
-  // browsing is the primary interaction and the lists are short, so this narrows
-  // what you can see rather than pretending to search the whole database. If
-  // that stops being true, this is the seam where a real query goes.
+  // Client-side, over what is already loaded (B3: server search arrives with 0129 / M2).
   const q = query.trim().toLowerCase();
-  const rows = (
-    q
-      ? all.filter((item) => {
-          const name = (item.name ?? item.full_name ?? '') as string;
-          return name.toLowerCase().includes(q);
-        })
-      : all
-  ) as ReadonlyArray<{ id: string }>;
+  const rows = q
+    ? loaded.filter((item) => {
+        const name = (item.name ?? item.full_name ?? '') as string;
+        return name.toLowerCase().includes(q);
+      })
+    : loaded;
 
   const emptyKey = {
     players: 'emptyPlayers',
@@ -84,13 +133,14 @@ export function ExploreList({
     groups: 'emptyGroups',
   }[kind] as 'emptyPlayers' | 'emptyEvents' | 'emptyCommunities' | 'emptyGroups';
 
-  const renderItem = (item: { id: string }) => {
+  const renderItem = (item: { id: string }, index: number) => {
     if (kind === 'players')
       return (
         <PlayerCard
           player={item as never}
           orientation="horizontal"
           onPress={() => router.push(`/profile/${item.id}`)}
+          action={<PlayerFollowAction player={item as never} index={index} />}
         />
       );
     if (kind === 'events')
@@ -103,15 +153,20 @@ export function ExploreList({
           community={item as never}
           orientation="horizontal"
           onOpen={() => router.push(`/community/${item.id}`)}
-          onRequestJoin={() => router.push(`/community/${item.id}/join`)}
+          action={<CommunityJoinAction community={item as never} index={index} />}
         />
       );
     return (
-      <GroupCard group={item as never} orientation="horizontal" onPress={() => router.push(`/group/${item.id}`)} />
+      <GroupCard
+        group={item as never}
+        orientation="horizontal"
+        onPress={() => router.push(`/group/${item.id}`)}
+        action={<GroupJoinAction group={item as never} index={index} />}
+      />
     );
   };
 
-  if (active.isLoading) {
+  if (list.isLoading) {
     return <ActivityIndicator color={colors.foreground} style={styles.state} />;
   }
 
@@ -124,12 +179,12 @@ export function ExploreList({
       keyboardShouldPersistTaps={keyboardShouldPersistTaps}
       ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListEmptyComponent={
-        active.isError ? (
+        list.isError ? (
           <EmptyState
             fill
             tone="error"
             title={t('loadError', { ns: 'common' })}
-            action={{ label: t('retry', { ns: 'common' }), onPress: () => active.refetch() }}
+            action={{ label: t('retry', { ns: 'common' }), onPress: () => void list.refetch() }}
             testID="empty-explore"
           />
         ) : q ? (
@@ -147,15 +202,13 @@ export function ExploreList({
         )
       }
       ListFooterComponent={
-        active.isFetchingNextPage ? (
-          <ActivityIndicator color={colors.foreground} style={styles.state} />
-        ) : null
+        list.isFetchingNextPage ? <ActivityIndicator color={colors.foreground} style={styles.state} /> : null
       }
       onEndReachedThreshold={0.5}
       onEndReached={() => {
-        if (active.hasNextPage && !active.isFetchingNextPage) void active.fetchNextPage();
+        if (list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage();
       }}
-      renderItem={({ item }) => renderItem(item)}
+      renderItem={({ item, index }) => renderItem(item, index)}
     />
   );
 }

@@ -63,7 +63,7 @@ function visibleTapPoint(el: AxElement): { x: number; y: number } | null {
  * the test timed out waiting for the event page.
  */
 const TAB_LABEL = /, tab, \d+ of \d+$/;
-function tabBarTop(tree: AxElement[]): number | null {
+export function tabBarTop(tree: AxElement[]): number | null {
   const tops = tree.filter((e) => TAB_LABEL.test(e.AXLabel ?? '')).map((e) => e.frame.y);
   return tops.length > 0 ? Math.min(...tops) : null;
 }

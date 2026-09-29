@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ExploreActionsProvider } from '@/components/explore/ExploreActions';
 import { EXPLORE_TABS, ExploreList, type ExploreTab } from '@/components/explore/ExploreList';
 import { Chip, Field, TopBar } from '@/components/ui';
 import { useGoBack } from '@/lib/useGoBack';
@@ -53,42 +54,44 @@ export default function SearchScreen() {
   const listKind = tab === 'foryou' ? 'players' : tab;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar
-        variant="nav"
-        onBack={onBack}
-        centre={
-          <Field
-            ref={input}
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('searchPlaceholder')}
-            autoFocus
-            returnKeyType="search"
-            autoCapitalize="none"
-            clearButtonMode="while-editing"
-            accessibilityLabel={t('searchPlaceholder')}
-            testID="search-input"
-          />
-        }
-      />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chips}
-        style={styles.chipsWrap}
-      >
-        {EXPLORE_TABS.map((k) => (
-          <Chip key={k} label={t(`tab_${k}`)} selected={tab === k} onPress={() => setTab(k)} testID={`search-tab-${k}`} />
-        ))}
-      </ScrollView>
-      <ExploreList
-        kind={listKind}
-        query={query}
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-      />
-    </SafeAreaView>
+    <ExploreActionsProvider>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <TopBar
+          variant="nav"
+          onBack={onBack}
+          centre={
+            <Field
+              ref={input}
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('searchPlaceholder')}
+              autoFocus
+              returnKeyType="search"
+              autoCapitalize="none"
+              clearButtonMode="while-editing"
+              accessibilityLabel={t('searchPlaceholder')}
+              testID="search-input"
+            />
+          }
+        />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chips}
+          style={styles.chipsWrap}
+        >
+          {EXPLORE_TABS.map((k) => (
+            <Chip key={k} label={t(`tab_${k}`)} selected={tab === k} onPress={() => setTab(k)} testID={`search-tab-${k}`} />
+          ))}
+        </ScrollView>
+        <ExploreList
+          kind={listKind}
+          query={query}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+        />
+      </SafeAreaView>
+    </ExploreActionsProvider>
   );
 }
 

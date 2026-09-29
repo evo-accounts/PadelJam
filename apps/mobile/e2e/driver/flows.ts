@@ -87,6 +87,21 @@ export async function tabTo(name: 'Home' | 'Events' | 'Explore' | 'Community' | 
 }
 
 /**
+ * Home → one of the Find quick actions, which lands on Explore in search mode with that tab
+ * chosen and the input focused (UX-HOME-01, D11). Ends with the keyboard up: a swipe dismisses
+ * it (the list uses `on-drag`), and a tap on a row goes through (`handled`).
+ *
+ * This is how a test reaches an event it is NOT part of — the Events tab lists only your own.
+ */
+export async function findFromHome(action: 'findEvent' | 'findGroup' | 'findCommunity'): Promise<void> {
+  await tabTo('Home');
+  const quick = { id: `home-quick-${action}` };
+  await scrollUntilVisible(quick, { direction: 'down', maxSwipes: 4 });
+  await tap(quick);
+  await expectVisible({ id: 'explore-search-cancel' }, { timeout: 15_000 });
+}
+
+/**
  * Pop pushed screens until the tab bar is visible.
  *
  * The back gesture swipes from the left edge across the content area, so any

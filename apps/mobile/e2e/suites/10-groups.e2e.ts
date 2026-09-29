@@ -29,8 +29,12 @@ describe('10 groups', () => {
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
   });
 
+  // Home's My groups is a rail of fixed-width cards (UX-HOME-01), sorted by name, so a given
+  // group may sit off screen to the right. Its See all lists every group full width.
   const openGroup = async (name: RegExp) => {
     await tabTo('Home');
+    await scrollUntilVisible({ id: 'home-groups-see-all' }, { maxSwipes: 8 });
+    await tap({ id: 'home-groups-see-all' });
     await scrollUntilVisible({ text: name }, { maxSwipes: 8 });
     await tap({ text: name });
     await expectVisible({ text: name }, { timeout: 20_000 });

@@ -1,11 +1,21 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { query, queryAll, snapshot, type AxElement } from '../driver/a11y';
-import { backGesture, scrollUntilVisible, swipe, tap, toggleSwitch, typeText } from '../driver/actions';
+import { keyboardTop, query, queryAll, snapshot, type AxElement } from '../driver/a11y';
+import {
+  backGesture,
+  scrollUntilVisible,
+  swipe,
+  tabBarTop,
+  tap,
+  toggleSwitch,
+  typeText,
+} from '../driver/actions';
 import { CONFIG } from '../driver/config';
 import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { loginAs, switchUser, tabTo } from '../driver/flows';
-import { resetDb } from '../fixtures/seed';
+import { select } from '../fixtures/db';
+import { pollUntil } from '../fixtures/poll';
+import { manifest, resetDb } from '../fixtures/seed';
 
 describe('03 home & tabs', () => {
   beforeAll(async () => {
@@ -20,21 +30,32 @@ describe('03 home & tabs', () => {
     await expectVisible({ text: /tuesday americano/i });
   });
 
-  it('home shows my groups', async () => {
+  it('home shows my groups as a rail of cards with a See all (UX-HOME-01)', async () => {
+    await scrollUntilVisible({ id: 'home-groups-see-all' }, { maxSwipes: 6 });
+    // A rail of vertical cards: alex's groups sort by name, so which one is on screen first is
+    // the seed's business — assert the rail rendered cards, then find a named one in See all.
+    const cards = (await snapshot()).filter((el) => el.AXUniqueId?.startsWith('group-card-'));
+    expect(cards.length, 'group cards in the My groups rail').toBeGreaterThanOrEqual(1);
+    await tap({ id: 'home-groups-see-all' });
     await scrollUntilVisible({ text: /tuesday night league/i }, { maxSwipes: 6 });
-    await expectVisible({ text: /tuesday night league/i });
+    await backGesture();
+    await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 15_000 });
   });
 
-  it('quick action opens the event wizard and closes cleanly', async () => {
-    await swipe('down'); // back to top
+  it('home has no search icon, and the Create event FAB sits ~20pt above the tab bar (B6)', async () => {
     await swipe('down');
-    await tap({ text: /create event/i });
-    // Wizard step 1 (group picker) — close via X / back.
-    await expectVisible({ text: /group|no group/i }, { timeout: 20_000 });
-    const close = query(await snapshot(), { label: 'Close' }) ?? query(await snapshot(), { text: /close|cancel/i });
-    if (close) await tap({ label: close.AXLabel ?? 'Close' });
-    else await swipe('down', { fromY: 300 }); // sheet dismiss fallback
-    await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 15_000 });
+    await swipe('down');
+    const tree = await snapshot();
+    // Chat and Notifications only (UX-HOME-01): search lives on Explore.
+    expect(query(tree, { id: 'header-search' }), 'no header search on Home').toBeUndefined();
+    const fab = query(tree, { id: 'create-event-fab' });
+    expect(fab, 'the FAB is on Home').toBeDefined();
+    const bar = tabBarTop(tree);
+    expect(bar, 'the tab bar is on screen').not.toBeNull();
+    const gap = (bar as number) - (fab!.frame.y + fab!.frame.height);
+    // The audit's "roughly 20". It was ~58 on a notched phone before B6.
+    expect(gap, `FAB-to-tab-bar gap (${gap}pt)`).toBeGreaterThanOrEqual(12);
+    expect(gap, `FAB-to-tab-bar gap (${gap}pt)`).toBeLessThanOrEqual(32);
   });
 
   it('events tab filters organizing vs going, with a Pending tab', async () => {
@@ -65,61 +86,98 @@ describe('03 home & tabs', () => {
     await tap({ text: /^all$/i });
   });
 
-  it('explore shows all four rails and see-all paginates events', async () => {
+  it('Find Event opens Explore in search mode on Events, and Cancel returns to the feed (D11)', async () => {
+    await tabTo('Home');
+    await swipe('down');
+    await tap({ id: 'home-quick-findEvent' });
+    // Explore's own input, focused, with Cancel beside it and the Events tab chosen.
+    await expectVisible({ id: 'explore-search-cancel' }, { timeout: 15_000 });
+    await pollUntil(async () => keyboardTop(await snapshot()), (top) => top != null, {
+      label: 'the search input is focused (keyboard up)',
+      timeoutMs: 10_000,
+    });
+    await expectVisible({ id: 'explore-search-tab-events' });
+    await tap({ id: 'explore-search-cancel' });
+    await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
+    await expectVisible({ id: 'explore-see-all-events' }, { timeout: 15_000 });
+  });
+
+  it('explore is a feed under an inline search input: no chip bar, no FAB, See all opens the list', async () => {
     await tabTo('Explore');
-    // The Explore tab strip has chips labelled "Events", "Groups" and
-    // "Communities" — the EXACT strings three rail titles use. A text selector
-    // takes the first match in the tree, which is the chip, so the old loop
-    // passed while asserting nothing about three of the four rails.
-    //
-    // testID is not an option: nothing in this app's tree carries an
-    // AXUniqueId, so the driver's `id` selector never matches (verified by
-    // dumping a captured tree — 0 elements have one).
-    //
-    // So: scroll to the ONE rail title that is still unique, then count the
-    // "See all" controls. There is exactly one per rail and the chips have
-    // none, which makes four an unambiguous statement that four rails rendered.
-    await scrollUntilVisible({ text: /players you might know/i }, { maxSwipes: 4 });
-    const seeAlls = queryAll(await snapshot(), { text: /see all/i });
-    expect(seeAlls.length).toBeGreaterThanOrEqual(4);
-    await swipe('down');
-    await swipe('down');
-    // Open the events see-all list.
-    await tap({ text: /see all/i, nth: 1 }).catch(async () => tap({ text: /see all/i }));
+    await expectVisible({ id: 'explore-search-input' }, { timeout: 15_000 });
+    const tree = await snapshot();
+    // UX-EXPL-01/02: no header search, no "For you" chip bar, no FAB on this screen.
+    expect(query(tree, { id: 'header-search' }), 'no header search on Explore').toBeUndefined();
+    expect(query(tree, { text: /^for you$/i, type: 'Button' }), 'no chip bar on the feed').toBeUndefined();
+    expect(query(tree, { id: 'create-event-fab' }), 'no FAB on Explore').toBeUndefined();
+    // Players come first (UX-EXPL-01's order), then Events.
+    await expectVisible({ text: /players you might know/i }, { timeout: 20_000 });
+    await scrollUntilVisible({ id: 'explore-see-all-events' }, { maxSwipes: 4 });
+    await tap({ id: 'explore-see-all-events' });
     await expectVisible({ text: /tuesday americano|full house|team cup/i }, { timeout: 20_000 });
     await backGesture(); // pop the pushed see-all screen so the tab bar is reachable again
   });
 
-  it('explore header search icon opens /search focused, sharing ExploreList with the tab', async () => {
-    // UX-GLOB-08: Explore no longer embeds its own input — the header
-    // magnifying glass is the only way in, and it lands on the standalone
-    // /search screen (autofocused Field + the same tab chips).
+  it('Follow on a player card resolves to Following and stays put (UX-EXPL-02)', async () => {
+    const m = manifest();
     await tabTo('Explore');
-    await tap({ label: 'Search' });
-    await expectVisible({ id: 'search-input' }, { timeout: 15_000 });
-    // `alex` (Alex Organizer) is the LOGGED-IN user here, and explore_players
-    // (infra/supabase/migrations/0052_explore_rpcs.sql) excludes `auth.uid()`
-    // from its own candidates — so a real "alex" result can never render for
-    // this session, seeded or not. `expectVisible({ text: /alex/i })` was
-    // passing anyway, because the Field's own AXValue becomes "alex" the
-    // moment you type it, which satisfies a bare text-visibility check without
-    // a single player card on screen. "maria" (Maria Santos, the only seeded
-    // player whose name contains it — infra/seed/seed-e2e.mjs) shares alex's
-    // community and group, so she IS a valid explore_players candidate.
-    await typeText({ id: 'search-input' }, 'maria');
+    // bruno shares community A with alex and alex does not follow him, so he is on the rail
+    // (0128 drops the people alex already follows: maria, joao, sofia).
+    const follow = { id: `player-follow-${m.users.bruno}` };
+    expect((await expectVisible(follow, { timeout: 20_000 })).AXLabel).toBe('Follow');
+    await tap(follow);
+    await expectVisible({ label: 'Following' }, { timeout: 15_000 });
+    await pollUntil(
+      () => select('follows', `follower_id=eq.${m.users.alex}&followee_id=eq.${m.users.bruno}&select=follower_id`),
+      (rows) => (rows as unknown[]).length === 1,
+      { label: 'alex follows bruno', timeoutMs: 15_000 },
+    );
+    // The follow invalidates the rail, whose refetch no longer returns bruno. His card must not
+    // vanish from under the tap: it stays, resolved, until the screen is left.
+    await new Promise((r) => setTimeout(r, 3000));
+    await expectVisible({ text: /bruno almeida/i });
+    await expectVisible({ label: 'Following' });
+  });
+
+  it('the search input finds a player by name in the People tab', async () => {
+    await tabTo('Explore');
+    await tap({ id: 'explore-search-input' });
+    await expectVisible({ id: 'explore-search-cancel' }, { timeout: 10_000 });
+    await tap({ id: 'explore-search-tab-players' });
+    // rita (Rita Fernandes) shares community A with alex and is not followed, so she is a
+    // candidate. The typed value is itself "rita", so only a player CARD (a Button) counts.
+    await typeText({ id: 'explore-search-input' }, 'rita');
     const deadline = Date.now() + 20_000;
     let results: AxElement[] = [];
     while (Date.now() < deadline) {
-      // PlayerCard is a Pressable (type 'Button'); excluding `search-input` by
-      // id guards against ever matching the input itself, whatever its type.
-      results = queryAll(await snapshot(), { text: /maria/i }).filter(
-        (el) => el.AXUniqueId !== 'search-input' && el.type === 'Button',
+      results = queryAll(await snapshot(), { text: /rita fernandes/i }).filter(
+        (el) => el.AXUniqueId !== 'explore-search-input' && el.type === 'Button',
       );
       if (results.length >= 1) break;
       await new Promise((r) => setTimeout(r, CONFIG.pollIntervalMs));
     }
-    expect(results.length, 'a player result card for "maria"').toBeGreaterThanOrEqual(1);
-    await backGesture(); // pop /search so the tab bar is reachable again
+    expect(results.length, 'a player result card for "rita"').toBeGreaterThanOrEqual(1);
+    await tap({ id: 'explore-search-cancel' });
+    await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
+  });
+
+  it('Join on a public community in See all resolves to Joined (UX-EXPL-03, B1)', async () => {
+    const m = manifest();
+    await tabTo('Explore');
+    await scrollUntilVisible({ id: 'explore-see-all-communities' }, { maxSwipes: 6 });
+    await tap({ id: 'explore-see-all-communities' });
+    // Review Club (R) is public with no rules, and alex is not in it.
+    const join = { id: `community-join-${m.communities.R}` };
+    await scrollUntilVisible(join, { maxSwipes: 6 });
+    expect((await expectVisible(join)).AXLabel, 'a public community offers Join, not Request').toBe('Join');
+    await tap(join);
+    await expectVisible({ label: 'Joined' }, { timeout: 15_000 });
+    await pollUntil(
+      () => select('community_members', `community_id=eq.${m.communities.R}&user_id=eq.${m.users.alex}&select=user_id`),
+      (rows) => (rows as unknown[]).length === 1,
+      { label: 'alex joined Review Club', timeoutMs: 15_000 },
+    );
+    await backGesture();
   });
 
   it('home shows the add-location banner for a user without location', async () => {

@@ -3,7 +3,7 @@ import { query, snapshot } from '../driver/a11y';
 import { scrollUntilVisible, tap, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
-import { loginAs, switchUser, tabTo } from '../driver/flows';
+import { findFromHome, loginAs, switchUser } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
@@ -35,8 +35,7 @@ describe('08 team events & partner requests', () => {
 
   /** Any event the user can see, through Home → Find Event (the Events tab lists only their own). */
   const openAnyEvent = async (name: RegExp) => {
-    await tabTo('Home');
-    await tap({ text: /find event/i });
+    await findFromHome('findEvent');
     await scrollUntilVisible({ text: name }, { maxSwipes: 10 });
     await tap({ text: name });
     await expectVisible({ text: name }, { timeout: 20_000 });

@@ -11,15 +11,16 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImagePickerRow } from '@/components/community/ImagePickerRow';
-import { LocationPickerSheet } from '@/components/community/LocationPickerSheet';
 import { PrivacyCards } from '@/components/community/PrivacyCards';
 import { RulesToggle } from '@/components/community/RulesToggle';
 import { SegmentedType } from '@/components/community/SegmentedType';
+import { LocationSheet } from '@/components/profile/LocationSheet';
 import { setPendingCommunityImages } from '@/lib/community-image-handoff';
 import { pickAndValidateImage, type PickedImage } from '@/lib/storage';
 import { validateCommunityForm, type CommunityFormFieldKey } from '@/lib/communityFormValidate';
 import { useDirty } from '@/lib/useDirty';
 import { useFieldErrors } from '@/lib/useFieldErrors';
+import type { ResolvedPlace } from '@/lib/useGeocodeSearch';
 import { colors, space } from '../../../theme';
 import { Button, Field, ListRow, Text, TopBar, useBanner } from '../../../components/ui';
 
@@ -36,7 +37,10 @@ export default function CreateCommunityScreen() {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
+  // D2: a picked place — its label is the community's `location`, its point ranks Explore by
+  // distance. The lookup can hand back a label with null coordinates; that saves as text only.
+  const [place, setPlace] = useState<ResolvedPlace | null>(null);
+  const location = place?.label ?? '';
   const [type, setType] = useState<CommunityType>('club');
   const [privacy, setPrivacy] = useState<Privacy>('public');
   const [thumbnail, setThumbnail] = useState<PickedImage | null>(null);
@@ -84,6 +88,7 @@ export default function CreateCommunityScreen() {
       name: name.trim(),
       description: description.trim() || undefined,
       location: location.trim() || undefined,
+      locationPoint: place?.lat != null && place.lng != null ? { lat: place.lat, lng: place.lng } : undefined,
       type,
       privacy,
       rules: { enabled: rulesEnabled, text: rulesText.trim() || undefined },
@@ -136,8 +141,8 @@ export default function CreateCommunityScreen() {
           containerStyle={styles.field}
         />
 
-        {/* A picker, not free text (UX-COMM-01). Rendered as a Field-shaped row
-            so it reads as part of the same form; the sheet owns the search. */}
+        {/* A picker, not free text (UX-COMM-01, D2). Rendered as a Field-shaped
+            row so it reads as part of the same form; the sheet owns the search. */}
         <Text variant="label" tone="muted" style={styles.label}>{t('locationLabel')}</Text>
         <ListRow
           title={location || t('locationPlaceholder')}
@@ -197,15 +202,7 @@ export default function CreateCommunityScreen() {
       </View>
       </KeyboardAvoidingView>
 
-      <LocationPickerSheet
-        visible={pickingLocation}
-        onClose={() => setPickingLocation(false)}
-        initial={location || undefined}
-        onConfirm={(value) => {
-          setLocation(value);
-          setPickingLocation(false);
-        }}
-      />
+      <LocationSheet visible={pickingLocation} onClose={() => setPickingLocation(false)} onPick={setPlace} />
     </SafeAreaView>
   );
 }
