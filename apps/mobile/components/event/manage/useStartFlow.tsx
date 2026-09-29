@@ -39,7 +39,7 @@ export function useStartFlow(
   const { t } = useT('event');
   const router = useRouter();
   const banner = useBanner();
-  const { data: participantsData } = useEventParticipants(eventId);
+  const participants = useEventParticipants(eventId);
   // Fetched on the tap, never in the background: the roster may have moved since the page loaded.
   const check = useStartEventCheck(eventId, false);
   const startEvent = useStartEvent(eventId);
@@ -51,7 +51,9 @@ export function useStartFlow(
   const start = async () => {
     if (event == null) return;
     // The server counts status='confirmed' regardless of is_standby; seeding is by join order.
-    const confirmed = (participantsData ?? [])
+    // Re-read the roster: an Americano schedule built from a stale one names the wrong players.
+    const fresh = await participants.refetch();
+    const confirmed = (fresh.data ?? participants.data ?? [])
       .filter((p) => p.status === 'confirmed')
       .sort((a, b) => a.joined_at.localeCompare(b.joined_at))
       .map((p) => p.id);
