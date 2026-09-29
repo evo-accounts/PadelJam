@@ -42,8 +42,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
  * "I am…". Every value a toggle enables (the extra spots, the fee's method, amount and MB WAY
  * number) opens inside that toggle's card rather than as a loose field below it.
  *
- * Also reused by `event/[id]/edit.tsx` (`context="edit"`), where there is no "last step" to invite
- * from, so the private warning drops that sentence.
+ * Also reused by Manage Event's Preferences sheet (`context="edit"`, UX-MEVT-05), where there is
+ * no "last step" to invite from, so the private warning drops that sentence; a group-less event
+ * (always private) hides the Private card; and "I am…" is gone — the organizer's role is set at
+ * creation and changed afterwards by joining or leaving as a player (decision 8).
  */
 export function Step8Preferences({
   draft,
@@ -94,6 +96,7 @@ export function Step8Preferences({
       </Section>
 
       <Section title={t('prefInviteDetails')}>
+        {context === 'edit' && standalone ? null : (
         <Card style={styles.card}>
           <SwitchRow
             label={t('privateLabel')}
@@ -115,6 +118,7 @@ export function Step8Preferences({
             />
           ) : null}
         </Card>
+        )}
 
         <Card style={styles.card}>
           <SwitchRow
@@ -189,6 +193,7 @@ export function Step8Preferences({
       </Section>
 
       {/* Only whether the organizer starts confirmed — never whether they may join later. */}
+      {context === 'edit' ? null : (
       <Section title={t('organizerRoleLabel')}>
         <RadioCardGroup
           options={ORGANIZER_ROLES.map((role) => ({
@@ -201,6 +206,7 @@ export function Step8Preferences({
           testID="pref-role"
         />
       </Section>
+      )}
     </View>
   );
 }

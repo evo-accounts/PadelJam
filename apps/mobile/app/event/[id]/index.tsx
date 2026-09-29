@@ -2,10 +2,15 @@
  * The event page (UX-JEVT-02..07). One body for every viewer; only the top banner and the fixed
  * bottom area change with the viewer's state (see `@padel/utils` eventViewerState for the table).
  *
- *   header      back · ⋯ (Share, Add to calendar, Leave event)
+ *   header      back · ⋯ (Share, Add to calendar, Leave event). The organizer gets the settings
+ *               icon (→ Manage Event, UX-MEVT-03) instead, and both side by side when they play.
+ *   status      organizer only (UX-MEVT-01): "You are organizing" + Join as a player, or
+ *               "You are organizing and going!"
  *   banner      You are going / stand-by / waiting list / interested
  *   body        image, name + date · time · place, Players card, type + group badges,
- *               description, Courts / Scoring / Fee, Organizer card, Location card
+ *               description, Courts / Scoring / Fee, Organizer card, Location card — the same for
+ *               the organizer, who also gets a "Manage players" row and a chip row (Payment
+ *               list, Send blast, Preferences)
  *   bottom      invited · join (+ countdown) · full · waiting list (+ Confirm spot when one is
  *               free — decision 4) · closed · organizer actions · team entry (Join → the Team Event
  *               sheet, UX-JEVT-09) · interested (Edit response, UX-JEVT-13)
@@ -33,10 +38,8 @@ import {
   useLeaveEvent,
   useLeaveWaitingList,
   useMyProfile,
-  useStartEvent,
   useEnsureChannel,
   useMaterializeOccurrence,
-  type EventType,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
@@ -62,13 +65,13 @@ import { streamClient } from '@/lib/streamClient';
 import { useNow } from '@/lib/useNow';
 import { useGoBack } from '@/lib/useGoBack';
 import { pendingActions } from '@/lib/pendingActions';
-import { mixedBalance } from '@/lib/mixedBalance';
 import { avatarUrl } from '@/lib/community-images';
 import { addToCalendar } from '@/lib/eventCalendar';
 import { openInMaps } from '@/lib/eventLocation';
 import { eventSubtitle, eventWhen } from '@/lib/eventFormat';
 import { shareEvent } from '@/lib/eventShare';
 import { PendingActionsSheet } from '../../../components/event/PendingActionsSheet';
+import { useStartFlow } from '../../../components/event/manage/useStartFlow';
 import {
   EditResponseSheet,
   TeamEventSheet,
@@ -90,6 +93,7 @@ import {
   Badge,
   Button,
   Card,
+  Chip,
   EmptyState,
   emptyIcon,
   Text,
@@ -133,7 +137,7 @@ export default function EventDetailScreen() {
   const claimWaitlistSpot = useClaimWaitlistSpot(id);
   const acceptInvitation = useAcceptEventInvitation();
   const declineInvitation = useDeclineEventInvitation(id);
-  const startEvent = useStartEvent(id);
+  const startFlow = useStartFlow(id, event);
   const ensureChannel = useEnsureChannel();
   const materialize = useMaterializeOccurrence(id);
 
@@ -194,25 +198,9 @@ export default function EventDetailScreen() {
   const { me, myInvite, isOrganizer, joinClosed, leaveLocked, joinCutoffMs } = ps;
   const status = event.status;
 
-  // --- Start gate: server counts status='confirmed' regardless of is_standby ---
+  // --- Pending actions: the server counts status='confirmed' regardless of is_standby ---
   const startConfirmedCount = participants.filter((p) => p.status === 'confirmed').length;
   const confirmedTeamCount = (teamsData ?? []).filter((tm) => tm.is_confirmed).length;
-  const setupComplete =
-    startConfirmedCount >= event.num_courts * 4 &&
-    (event.specification !== 'team' || confirmedTeamCount >= event.num_courts * 2);
-
-  // Mixed events also need equal men and women with no unknown gender (start_event, migration 0092).
-  const mixed = event.specification === 'mixed' ? mixedBalance(participants) : null;
-  const mixedHint =
-    mixed != null && !mixed.balanced
-      ? mixed.unknown > 0
-        ? t('mixedGenderMissingHint', { count: mixed.unknown })
-        : t('mixedUnbalancedHint', {
-            men: t('mixedMenCount', { count: mixed.men }),
-            women: t('mixedWomenCount', { count: mixed.women }),
-          })
-      : null;
-  const mixedBlocked = mixedHint != null;
 
   // --- Body values ---
   const lang = i18n.language;
@@ -282,6 +270,14 @@ export default function EventDetailScreen() {
   // organizer too, who then sees "Join as a player" again rather than "organizing and playing".
   const loneTeamOccupant = event.specification === 'team' && me?.status === 'invited';
   const leaveOffered = canLeave(status, me, isOrganizer, leaveLocked);
+  // UX-MEVT-01: which of the organizer's two states applies, and whether the status line offers
+  // "Join as a player" (decision 8: the organizer is always eligible, whatever the role chosen at
+  // creation). "Start event" is the primary action here only once the scheduled time has come;
+  // before that it lives in Manage Event.
+  const organizerGoing = isOrganizer && me?.status === 'confirmed' && !loneTeamOccupant;
+  const organizerCanJoin =
+    isOrganizer && status === 'scheduled' && !joinClosed && (me == null || loneTeamOccupant);
+  const startHere = isOrganizer && status === 'scheduled' && nowMs >= new Date(event.starts_at).getTime();
 
   // --- Actions ---
   const fail = (e: unknown) => banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
@@ -365,19 +361,14 @@ export default function EventDetailScreen() {
     });
     if (ok) await onLeave();
   };
-  const onStart = () =>
-    run(async () => {
-      await startEvent.mutateAsync({
-        eventType: event.event_type as EventType,
-        specification: event.specification,
-        confirmedParticipantIds: participants
-          .filter((p) => p.status === 'confirmed')
-          .sort((a, b) => a.joined_at.localeCompare(b.joined_at))
-          .map((p) => p.id),
-        numCourts: event.num_courts,
-      });
+  // A blocked start answers the tap with its reason (UX-GLOB-06) rather than a disabled button.
+  const onStart = () => {
+    if (startFlow.blocker) return banner.show(startFlow.blocker);
+    return run(async () => {
+      await startFlow.start();
       router.push(`/event/${id}/live` as Href);
     });
+  };
   const onOpenNextOccurrence = () =>
     run(async () => {
       const newId = await materialize.mutateAsync();
@@ -470,75 +461,51 @@ export default function EventDetailScreen() {
         />
       );
       break;
-    case 'organizer':
-      // UX-MEVT-01 owns this area; it is unchanged here except that leaving moved into ⋯.
-      bottomArea = (
-        <View style={styles.col}>
-          <Text variant="bodyStrong" style={styles.centerText}>
-            {me != null && !loneTeamOccupant ? t('organizerPlayingBadge') : t('organizerBadge')}
-          </Text>
-          <Button
-            label={t('manageCta')}
-            fullWidth
-            disabled={busy}
-            onPress={() => router.push(`/event/${id}/manage` as Href)}
-          />
-          {status === 'scheduled' ? (
-            <>
-              <Button
-                label={t('startCta')}
-                fullWidth
-                loading={busy}
-                disabled={!setupComplete || mixedBlocked}
-                onPress={onStart}
-              />
-              {mixedHint != null ? (
-                <Text variant="caption" tone="muted" style={styles.centerText} accessibilityRole="alert">
-                  {mixedHint}
-                </Text>
-              ) : !setupComplete ? (
-                <Text variant="caption" tone="muted" style={styles.centerText}>
-                  {t('startSetupIncomplete', { needed: event.num_courts * 4 })}
-                </Text>
-              ) : null}
-              {(me == null || loneTeamOccupant) && !joinClosed ? (
-                <Button
-                  label={t('joinAsPlayerCta')}
-                  variant="secondary"
-                  fullWidth
-                  loading={busy}
-                  onPress={event.specification === 'team' ? () => setTeamSheetOpen(true) : onJoin}
-                />
-              ) : null}
-              {/* An organizer who plays and is still looking for a partner (UX-JEVT-13). */}
-              {me?.status === 'interested' && !joinClosed ? (
-                <Button
-                  label={t('editResponseCta')}
-                  variant="secondary"
-                  fullWidth
-                  disabled={busy}
-                  onPress={() => setEditSheetOpen(true)}
-                  testID="event-edit-response"
-                />
-              ) : null}
-              {/* An organizer who tried to play on a full event is waiting like anyone else. */}
-              {me?.status === 'waiting_list' && claimable ? (
-                <Button label={t('confirmSpotCta')} fullWidth loading={busy} onPress={onClaim} />
-              ) : null}
-              {me?.status === 'waiting_list' ? (
-                <Button
-                  label={t('leaveWaitlistCta')}
-                  variant="secondary"
-                  fullWidth
-                  loading={busy}
-                  onPress={onLeaveWaitlist}
-                />
-              ) : null}
-            </>
-          ) : null}
-        </View>
-      );
+    case 'organizer': {
+      // UX-MEVT-01: management lives in the header and Manage Event; Join as a player sits in the
+      // status line. What is left here is Start event (from the scheduled time) and the organizer's
+      // own player states.
+      const rows: React.ReactNode[] = [];
+      if (status === 'scheduled') {
+        if (startHere) {
+          rows.push(
+            <Button key="start" label={t('startCta')} fullWidth loading={busy} onPress={onStart} testID="event-start" />,
+          );
+        }
+        // An organizer who plays and is still looking for a partner (UX-JEVT-13).
+        if (me?.status === 'interested' && !joinClosed) {
+          rows.push(
+            <Button
+              key="edit"
+              label={t('editResponseCta')}
+              variant="secondary"
+              fullWidth
+              disabled={busy}
+              onPress={() => setEditSheetOpen(true)}
+              testID="event-edit-response"
+            />,
+          );
+        }
+        // An organizer who tried to play on a full event is waiting like anyone else.
+        if (me?.status === 'waiting_list' && claimable) {
+          rows.push(<Button key="claim" label={t('confirmSpotCta')} fullWidth loading={busy} onPress={onClaim} />);
+        }
+        if (me?.status === 'waiting_list') {
+          rows.push(
+            <Button
+              key="leave"
+              label={t('leaveWaitlistCta')}
+              variant="secondary"
+              fullWidth
+              loading={busy}
+              onPress={onLeaveWaitlist}
+            />,
+          );
+        }
+      }
+      bottomArea = rows.length > 0 ? <View style={styles.col}>{rows}</View> : null;
       break;
+    }
     case 'invited':
       bottomArea = (
         <View style={styles.col}>
@@ -668,23 +635,63 @@ export default function EventDetailScreen() {
         onBack={goBack}
         backLabel={t('back')}
         actions={[
-          {
-            icon: (
-              <SymbolView
-                name={{ ios: 'ellipsis', android: 'more_vert', web: 'more_vert' } as never}
-                tintColor={colors.foreground}
-                size={22}
-              />
-            ),
-            label: t('moreActionsLabel'),
-            onPress: () => void onMore(),
-            testID: 'event-more',
-          },
+          ...(isOrganizer
+            ? [
+                {
+                  icon: (
+                    <SymbolView
+                      name={{ ios: 'gearshape', android: 'settings', web: 'settings' } as never}
+                      tintColor={colors.foreground}
+                      size={22}
+                    />
+                  ),
+                  label: t('manageEventTitle'),
+                  onPress: () => router.push(`/event/${id}/manage` as Href),
+                  testID: 'event-settings',
+                },
+              ]
+            : []),
+          // The organizer who only organizes has nothing to leave; Share and Add to calendar are
+          // on Manage Event for them.
+          ...(!isOrganizer || me != null
+            ? [
+                {
+                  icon: (
+                    <SymbolView
+                      name={{ ios: 'ellipsis', android: 'more_vert', web: 'more_vert' } as never}
+                      tintColor={colors.foreground}
+                      size={22}
+                    />
+                  ),
+                  label: t('moreActionsLabel'),
+                  onPress: () => void onMore(),
+                  testID: 'event-more',
+                },
+              ]
+            : []),
         ]}
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        {bannerKind ? <StateBanner state={bannerKind} /> : null}
+        {isOrganizer ? (
+          <View style={[styles.section, styles.statusLine]}>
+            <Text variant="bodyStrong" style={styles.flex} testID="event-organizer-status">
+              {organizerGoing ? t('organizerPlayingBadge') : t('organizerBadge')}
+            </Text>
+            {organizerCanJoin ? (
+              <Button
+                label={t('joinAsPlayerCta')}
+                variant="secondary"
+                size="sm"
+                loading={busy}
+                onPress={event.specification === 'team' ? () => setTeamSheetOpen(true) : onJoin}
+                testID="event-join-as-player"
+              />
+            ) : null}
+          </View>
+        ) : null}
+        {/* The organizer's status line already says "going". */}
+        {bannerKind && !(isOrganizer && bannerKind === 'going') ? <StateBanner state={bannerKind} /> : null}
 
         <View style={styles.section}>
           <EventThumb path={event.thumbnail_path} shape="hero" />
@@ -719,6 +726,48 @@ export default function EventDetailScreen() {
             onPress={() => router.push(`/event/${id}/players` as Href)}
           />
         </View>
+
+        {isOrganizer ? (
+          <>
+            <View style={styles.section}>
+              <PlayersCard
+                title={t('managePlayersTitle')}
+                people={confirmedPeople}
+                confirmed={ps.totalIn}
+                capacity={ps.totalCapacity}
+                onPress={() => router.push(`/event/${id}/manage-players` as Href)}
+                testID="event-manage-players"
+              />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipRow}
+            >
+              {event.entrance_fee_enabled ? (
+                <Chip
+                  label={t('paymentListTitle')}
+                  onPress={() => router.push(`/event/${id}/payments` as Href)}
+                  testID="event-chip-payments"
+                />
+              ) : null}
+              {event.group_id != null ? (
+                <Chip
+                  label={t('sendBlastCta')}
+                  onPress={() => router.push(`/event/${id}/blast` as Href)}
+                  testID="event-chip-blast"
+                />
+              ) : null}
+              {status === 'scheduled' ? (
+                <Chip
+                  label={t('step8Title')}
+                  onPress={() => router.push(`/event/${id}/manage?sheet=preferences` as Href)}
+                  testID="event-chip-preferences"
+                />
+              ) : null}
+            </ScrollView>
+          </>
+        ) : null}
 
         <View style={[styles.section, styles.badges]}>
           {badges.map((b) => (
@@ -851,5 +900,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   inviterRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   centerText: { textAlign: 'center' },
+  statusLine: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  chipRow: { paddingHorizontal: space[4], paddingTop: space[3], gap: space[2] },
   closedLine: { paddingVertical: space[2] },
 });

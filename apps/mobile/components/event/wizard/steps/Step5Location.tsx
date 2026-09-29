@@ -32,7 +32,7 @@ import { Button, EmptyState, emptyIcon, Field, SearchInput, Text } from '../../.
  * Not a map search and no geolocation: the address is geocoded silently when the event is
  * created, to fill its point.
  */
-export function Step5Location(props: WizardStepProps) {
+export function Step5Location(props: WizardStepProps & { context?: 'wizard' | 'edit' }) {
   return props.draft.locationMode === 'manual' ? <ManualVenueForm {...props} /> : <VenueList {...props} />;
 }
 
@@ -115,7 +115,13 @@ function VenueList({ draft, patch, advance }: WizardStepProps) {
   );
 }
 
-function ManualVenueForm({ draft, patch, errors, clearError }: WizardStepProps) {
+function ManualVenueForm({
+  draft,
+  patch,
+  errors,
+  clearError,
+  context = 'wizard',
+}: WizardStepProps & { context?: 'wizard' | 'edit' }) {
   const { t } = useT('event');
   const flagged = (key: string) => errors?.includes(key) ?? false;
 
@@ -153,6 +159,8 @@ function ManualVenueForm({ draft, patch, errors, clearError }: WizardStepProps) 
         }}
       />
 
+      {context === 'edit' ? <CourtsBelowRoster errors={errors} /> : null}
+
       <View style={styles.names}>
         <Text variant="label">{t('courtNamesLabel')}</Text>
         {Array.from({ length: draft.numCourts }, (_, i) => (
@@ -174,6 +182,20 @@ function ManualVenueForm({ draft, patch, errors, clearError }: WizardStepProps) 
         testID="venue-back-to-list"
       />
     </View>
+  );
+}
+
+/**
+ * Edit only (UX-MEVT-07): the court count cannot drop below the players already confirmed — the
+ * client twin of update_event's `courts_below_roster`, flagged on Save.
+ */
+export function CourtsBelowRoster({ errors }: { errors?: string[] }) {
+  const { t } = useT('event');
+  if (!errors?.includes('courtsBelowRoster')) return null;
+  return (
+    <Text variant="caption" tone="destructive" accessibilityRole="alert" testID="courts-below-roster">
+      {t('courts_below_roster')}
+    </Text>
   );
 }
 

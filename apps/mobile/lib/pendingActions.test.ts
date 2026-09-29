@@ -17,14 +17,14 @@ describe('pendingActions', () => {
 
   it('asks for the missing players and a location (the audit E4 shape)', () => {
     expect(pendingActions({ ...base, confirmedCount: 0, hasLocation: false })).toEqual([
-      { key: 'addPlayers', count: 4, href: '/event/e1/manage' },
-      { key: 'setLocation', count: 0, href: '/event/e1/edit' },
+      { key: 'addPlayers', count: 4, href: '/event/e1/manage-players' },
+      { key: 'setLocation', count: 0, href: '/event/e1/manage?sheet=location' },
     ]);
   });
 
   it('asks for teams on a team event', () => {
     expect(pendingActions({ ...base, specification: 'team', confirmedTeamCount: 1 })).toEqual([
-      { key: 'setUpTeams', count: 1, href: '/event/e1/manage' },
+      { key: 'setUpTeams', count: 1, href: '/event/e1/manage-players' },
     ]);
   });
 
@@ -32,9 +32,9 @@ describe('pendingActions', () => {
     expect(
       pendingActions({ ...base, specification: 'team', confirmedCount: 2, confirmedTeamCount: 0, hasLocation: false })
     ).toEqual([
-      { key: 'addPlayers', count: 2, href: '/event/e1/manage' },
-      { key: 'setUpTeams', count: 2, href: '/event/e1/manage' },
-      { key: 'setLocation', count: 0, href: '/event/e1/edit' },
+      { key: 'addPlayers', count: 2, href: '/event/e1/manage-players' },
+      { key: 'setUpTeams', count: 2, href: '/event/e1/manage-players' },
+      { key: 'setLocation', count: 0, href: '/event/e1/manage?sheet=location' },
     ]);
   });
 

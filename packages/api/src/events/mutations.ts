@@ -84,6 +84,7 @@ export const useUpdateEvent = (eventId: string) => {
       invalidateMyEvents(qc);
       if (input.groupId) qc.invalidateQueries({ queryKey: qk.events(input.groupId) });
       qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventCourts(eventId) });
     },
   });
 };

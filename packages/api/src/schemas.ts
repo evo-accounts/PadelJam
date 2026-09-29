@@ -239,6 +239,8 @@ export const updateEventSchema = z
     courtIds: z.array(z.string().uuid()).optional(),
     /** Set explicitly from Edit Location & Courts (0122); omitted → unchanged. */
     courtsReserved: z.boolean().optional(),
+    /** A manual venue's court names, one per court (0122 takes the key; omitted → unchanged). */
+    manualCourtNames: z.array(z.string().trim().min(1).max(40)).optional(),
   })
   .refine((v) => !v.entranceFee.enabled || (v.entranceFee.amount != null && !!v.entranceFee.method), {
     path: ['entranceFee'],
@@ -279,6 +281,7 @@ export function buildUpdateEventPayload(input: UpdateEventInput): Record<string,
   // Omitted unless given, so an edit that does not touch the courts keeps them (0122).
   if (input.courtIds && input.venueId) payload.court_ids = input.courtIds;
   if (input.courtsReserved !== undefined) payload.courts_reserved = input.courtsReserved;
+  if (input.manualCourtNames && !input.venueId) payload.manual_court_names = input.manualCourtNames;
   return payload;
 }
 

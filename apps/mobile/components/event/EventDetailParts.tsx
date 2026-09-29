@@ -21,24 +21,31 @@ export const Chevron = () => (
   </Text>
 );
 
-/** Three overlapping confirmed-player photos, "Players", and confirmed / capacity. */
+/**
+ * Three overlapping confirmed-player photos, "Players", and confirmed / capacity. The organizer's
+ * "Manage players" row (UX-MEVT-01) is the same card under its own title.
+ */
 export function PlayersCard({
   people,
   confirmed,
   capacity,
   onPress,
+  title,
+  testID = 'event-players-card',
 }: {
   people: { id: string; name: string | null; uri: string | null }[];
   confirmed: number;
   capacity: number;
   onPress: () => void;
+  title?: string;
+  testID?: string;
 }) {
   const { t } = useT('event');
   const shown = people.slice(0, 3);
   return (
     <ListRow
       variant="card"
-      title={t('playersTitle')}
+      title={title ?? t('playersTitle')}
       subtitle={t('playersCapacity', { confirmed, capacity })}
       onPress={onPress}
       leading={
@@ -59,7 +66,7 @@ export function PlayersCard({
         ) : undefined
       }
       trailing={<Chevron />}
-      testID="event-players-card"
+      testID={testID}
     />
   );
 }

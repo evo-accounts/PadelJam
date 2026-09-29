@@ -49,12 +49,17 @@ describe('04 event detail & membership', () => {
     await expectVisible({ text: name }, { timeout: 20_000 });
   };
 
-  it('organizer sees Manage instead of a join CTA', async () => {
-    await openMyEvent(/weekly friday social/i); // alex organizes E5
-    await scrollUntilVisible({ text: /^Manage$/ }, { maxSwipes: 6 });
-    if (query(await snapshot(), { text: /^Join$/ })) {
-      throw new Error('organizer should not see a Join CTA');
-    }
+  it('organizer: settings and ⋯ in the header, the status line and Manage players (UX-MEVT-01)', async () => {
+    await openMyEvent(/weekly friday social/i); // alex organizes E5 and plays in it
+    // Organizing and going: the settings icon (→ Manage Event) and the players' ⋯, side by side.
+    await expectVisible({ id: 'event-settings' }, { timeout: 15_000 });
+    await expectVisible({ label: 'More options' });
+    await expectVisible({ text: /organizing and going/i });
+    // The body is the player view plus a Manage players row; no Join, no old "Manage" button.
+    await scrollUntilVisible({ id: 'event-manage-players' }, { maxSwipes: 6 });
+    const tree = await snapshot();
+    if (query(tree, { text: /^Join$/ })) throw new Error('organizer should not see a Join CTA');
+    if (query(tree, { text: /^Manage$/, type: 'Button' })) throw new Error('the old Manage button should be gone');
   });
 
   it('the players card opens the read-only player list, with an Invited tab', async () => {
