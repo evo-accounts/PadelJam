@@ -59,6 +59,7 @@ export default function EventLivePage() {
     start
       .mutateAsync({
         eventType: e.event_type as EventType,
+        specification: e.specification,
         confirmedParticipantIds: confirmed.map((p) => p.id),
         numCourts: e.num_courts,
       })

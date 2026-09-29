@@ -1,2 +1,7 @@
-export { americanoSchedule } from './americano';
-export type { RoundPlan, RoundMatch } from './americano';
+export {
+  americanoSchedule,
+  buildAmericanoSchedule,
+  mixedAmericanoSchedule,
+  teamAmericanoSchedule,
+} from './americano';
+export type { AmericanoRoster, RoundPlan, RoundMatch } from './americano';

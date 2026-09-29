@@ -2617,6 +2617,15 @@ export type Database = {
       event_capacity: { Args: { e: string }; Returns: number }
       event_group_community: { Args: { e: string }; Returns: string }
       event_is_visible: { Args: { e: string; u: string }; Returns: boolean }
+      event_engine_roster: {
+        Args: { p_event_id: string }
+        Returns: {
+          participant_id: string
+          gender: string | null
+          team_id: string | null
+          team_number: number | null
+        }[]
+      }
       event_invited_players: {
         Args: { p_event_id: string }
         Returns: {
