@@ -5,7 +5,7 @@
 //
 // Every call goes through PostgREST with a real user's JWT. The explore functions are `security
 // definer`, so the predicates inside them are the only fence; the service key would prove nothing.
-import { user, rpc, insert, patch, expectError, assert, run } from './lib.mjs';
+import { user, rpc, anonRpc, insert, patch, expectError, assert, run } from './lib.mjs';
 
 const suffix = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
@@ -153,4 +153,25 @@ await run('explore_groups: members are still excluded', async () => {
   assert(before, 'the general group is offered');
   await rpc(viewer.jwt, 'join_group', { p_group_id: before.id, p_ack: false });
   assert(!(await rail(viewer, 'explore_groups')).some((g) => g.id === before.id), 'a joined group leaves the rail');
+});
+
+await run('anon cannot call any discovery or follow RPC', async () => {
+  const ZERO = '00000000-0000-0000-0000-000000000000';
+  const calls = [
+    ['explore_players', { p_limit: 1, p_offset: 0 }],
+    ['explore_communities', { p_limit: 1, p_offset: 0 }],
+    ['explore_groups', { p_limit: 1, p_offset: 0 }],
+    ['explore_events', { p_limit: 1, p_offset: 0 }],
+    ['follow_player', { p_user: ZERO }],
+    ['unfollow_player', { p_user: ZERO }],
+    ['set_community_location', { p_community_id: ZERO, p_lat: null, p_lng: null, p_location: null }],
+  ];
+  for (const [name, args] of calls) {
+    await expectError(() => anonRpc(name, args), 'permission denied for function');
+  }
+  // Signed in, the rails still answer.
+  const u = await user('vs-anon');
+  for (const [name, args] of calls.slice(0, 4)) {
+    assert(Array.isArray(await rpc(u.jwt, name, args)), `${name} still works for authenticated`);
+  }
 });

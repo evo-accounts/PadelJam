@@ -13,8 +13,14 @@
 --   4. explore_groups    + viewer_state + distance_m (through the parent community's point).
 --   5. follow_player / unfollow_player, returning the new state (D9).
 --
--- explore_events is NOT touched. Its rail already excludes every event the viewer organizes or has
--- any roster row on, so a viewer_state column would read 'none' on every row it can return.
+-- explore_events keeps its body. Its rail already excludes every event the viewer organizes or has
+-- any roster row on, so a viewer_state column would read 'none' on every row it can return. Only
+-- its grants change (section 6).
+--
+-- Grants: all four discovery RPCs are signed-in only. `create function` gives PUBLIC execute, and
+-- 0030's default privileges add anon explicitly, so a bare `grant ... to authenticated` left these
+-- security definer functions callable by anon — explore_communities listed public communities to
+-- anyone with the publishable key. Each is closed the 0094 way, then re-granted to authenticated.
 
 ------------------------------------------------------------------------------
 -- 1. Communities get a geo point (D2)
@@ -200,6 +206,7 @@ language sql stable security definer set search_path = public as $$
   order by a.shared_count desc, p.created_at desc
   limit greatest(p_limit, 0) offset greatest(p_offset, 0);
 $$;
+revoke execute on function explore_players(int, int) from public, anon, authenticated;
 grant execute on function explore_players(int, int) to authenticated;
 
 ------------------------------------------------------------------------------
@@ -271,6 +278,7 @@ language sql stable security definer set search_path = public as $$
     c.created_at desc
   limit greatest(p_limit, 0) offset greatest(p_offset, 0);
 $$;
+revoke execute on function explore_communities(int, int) from public, anon, authenticated;
 grant execute on function explore_communities(int, int) to authenticated;
 
 ------------------------------------------------------------------------------
@@ -335,6 +343,7 @@ language sql stable security definer set search_path = public as $$
     g.created_at desc
   limit greatest(p_limit, 0) offset greatest(p_offset, 0);
 $$;
+revoke execute on function explore_groups(int, int) from public, anon, authenticated;
 grant execute on function explore_groups(int, int) to authenticated;
 
 ------------------------------------------------------------------------------
@@ -391,3 +400,26 @@ end;
 $$;
 revoke execute on function unfollow_player(uuid) from public, anon, authenticated;
 grant execute on function unfollow_player(uuid) to authenticated;
+
+------------------------------------------------------------------------------
+-- 6. explore_events: signed-in only, like the other three discovery RPCs
+------------------------------------------------------------------------------
+revoke execute on function explore_events(int, int) from public, anon, authenticated;
+grant execute on function explore_events(int, int) to authenticated;
+
+-- Self-check so a partial paste into the hosted SQL editor cannot leave one open to anon.
+do $$
+declare v_open text;
+begin
+  select string_agg(p.proname, ', ' order by p.proname) into v_open
+  from pg_proc p
+  where p.pronamespace = 'public'::regnamespace
+    and p.proname in ('explore_players','explore_communities','explore_groups','explore_events',
+                      'follow_player','unfollow_player','set_community_location',
+                      'create_community_with_personal_tenant')
+    and (has_function_privilege('anon', p.oid, 'execute')
+         or not has_function_privilege('authenticated', p.oid, 'execute'));
+  if v_open is not null then
+    raise exception 'discovery RPC grants wrong (anon may call, or authenticated may not): %', v_open;
+  end if;
+end $$;
