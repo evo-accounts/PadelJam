@@ -305,9 +305,8 @@ describe('06 event manage (organizer)', () => {
     expect(card?.AXLabel ?? '', 'the Confirmed card names the complete teams').toMatch(/1 complete team/i);
     await tap({ id: 'manage-confirmed' });
     await expectVisible({ text: /^manage players$/i }, { timeout: 20_000 });
-    await expectVisible({ id: 'teams-summary' }, { timeout: 20_000 });
-    const summary = query(await snapshot(), { id: 'teams-summary' });
-    expect(summary?.AXLabel ?? '', 'two empty teams: four open slots, none half-formed').toMatch(/^4 open slots$/i);
+    // Two empty teams: four open slots, none of them in a half-formed team.
+    await expectVisible({ text: /^4 open slots$/i }, { timeout: 20_000 });
     const rita = await pidOf(m.events.e2, m.users.rita!);
     await expectVisible({ id: `team-unassigned-${rita}` }, { timeout: 15_000 });
     await shot('11-teams.png');

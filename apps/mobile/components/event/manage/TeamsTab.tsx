@@ -41,7 +41,7 @@ type Props = {
 
 type Rect = { key: string; x: number; y: number; w: number; h: number };
 
-const CARD_W = 88;
+const CARD_W = 108;
 const nameOf = (p: BoardPlayer) => p.name ?? '—';
 
 /**
@@ -208,7 +208,7 @@ export function TeamsTab({ board, editable, onAdd, onSwitch, onRemove, onPlace, 
         <Text variant="body" tone="muted">
           {t('tmInstruction')}
         </Text>
-        <Text variant="bodyStrong" testID="teams-summary" accessibilityRole="summary">
+        <Text variant="bodyStrong" testID="teams-summary">
           {summary}
         </Text>
         {board.teams.map((team) => (
