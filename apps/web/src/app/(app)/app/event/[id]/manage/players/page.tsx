@@ -16,12 +16,21 @@
  *   Confirmed    — Remove → dialog: "Remove from confirmed list" (back to invited) and "Remove from
  *                  event"; a public group event has no invited state, so only the latter (D3).
  *   Invited      — Mark as confirmed (a roster row: organizer_mark_confirmed; an invitee without
- *                  one: organizer_confirm_invitee) and Remove.
+ *                  one: organizer_confirm_invitee) and Remove (a roster row: organizer_remove_
+ *                  participant; a pending invitation without one: organizer_revoke_invitation, 0127).
  *   Waiting list — Remove only, in queue order (D2: the organizer never confirms a waiting player).
  * Every action needs a scheduled event; after that the lists are read-only.
  *
- * Team events: Mark as confirmed is hidden — confirming there means picking a team (UX-MEVT-14,
- * W3). Web's team builder stays on the live page until then.
+ * Team events (UX-MEVT-14, 15, 26 — mobile's #245) open on two views, Teams and Players:
+ *   Teams    — TeamsTab: the team blocks, the unassigned area, drag and drop, the "Assign to team…"
+ *              menu (the keyboard path) and "+" (Select player dialog), the switch button (Switch
+ *              player dialog) and ✕ (Remove player: from the team → Invited, or from the event;
+ *              a guest has no invited state, so from the event only).
+ *   Players  — the tabs above plus Interested: players who want to play without a pair. Confirm
+ *              asks which team (only teams with an open slot) and places them; Remove sends them
+ *              back to Invited (out of the event on a public group event, D3). Mark as confirmed
+ *              on Invited asks for the team the same way.
+ * The live page no longer carries a team builder: teams are set up here before the start.
  */
 import { useState } from 'react';
 import Link from 'next/link';
@@ -31,17 +40,23 @@ import { Clock, MoreHorizontal, Plus, UserRoundCheck, Users } from 'lucide-react
 import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
 import {
+  useAssignToTeam,
   useConfirmInvitee,
   useEvent,
   useEventInvitedPlayers,
   useEventParticipants,
   useEventRealtime,
+  useEventTeams,
   useMarkConfirmed,
+  useRemoveFromTeam,
   useRemoveParticipant,
+  useRevokeInvitation,
 } from '@padel/api';
 import { AddManualDialog } from '@/components/event/manage/AddManualDialog';
+import { ManageDialog } from '@/components/event/manage/ManageDialog';
 import {
   headerAction,
+  interestedRemoveMode,
   invitedActions,
   manageRoster,
   removeModes,
@@ -50,6 +65,21 @@ import {
   type ManageRow,
   type ManageSide,
 } from '@/components/event/manage/manageRoster';
+import { RadioCards } from '@/components/event/manage/RadioCards';
+import { SelectPlayerDialog } from '@/components/event/manage/SelectPlayerDialog';
+import { SwitchPlayerDialog } from '@/components/event/manage/SwitchPlayerDialog';
+import {
+  openSlotsOf,
+  selectCandidates,
+  switchCandidates,
+  teamBoard,
+  teamOfParticipant,
+  teamsWithOpenSlot,
+  type BoardPlayer,
+  type BoardTeam,
+  type Slot,
+} from '@/components/event/manage/teamBoard';
+import { TeamsTab } from '@/components/event/manage/TeamsTab';
 import { GroupPageTitle } from '@/components/group/GroupHeader';
 import {
   AlertDialog,
@@ -74,8 +104,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/toaster';
 import { avatarUrl } from '@/lib/upload';
 
-type Tab = 'confirmed' | 'waiting' | 'invited';
+type Tab = 'confirmed' | 'waiting' | 'invited' | 'interested';
+type TeamView = 'teams' | 'players';
 type RemoveMode = 'to_invited' | 'from_event';
+/** Who a team placement is for: a roster row, or a pending invitee without one. */
+type Placeable = { participantId: string | null; userId: string | null; name: string | null; confirmed: boolean };
+type TeamDialog =
+  | { kind: 'select'; team: number }
+  | { kind: 'switch'; team: number; participantId: string }
+  | { kind: 'remove'; team: number; participantId: string }
+  | { kind: 'pick'; who: Placeable }
+  | null;
+/** A yes/no question before an action: its copy, and what "yes" runs. */
+type Ask = { title: string; body: string; confirmLabel: string; destructive?: boolean; run: () => Promise<void> };
 
 function Empty({
   icon: Icon,
@@ -103,22 +144,34 @@ function Empty({
 export default function ManagePlayersPage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useT('event');
+  const { t: tc } = useT('common');
   const qc = useQueryClient();
   const uid = useSession().session?.user.id;
   useEventRealtime(id);
   const event = useEvent(id);
   const participants = useEventParticipants(id);
   const invitedQuery = useEventInvitedPlayers(id);
+  const teamsQuery = useEventTeams(id);
   const markConfirmed = useMarkConfirmed(id);
   const confirmInvitee = useConfirmInvitee(id);
   const removeParticipant = useRemoveParticipant(id);
+  const revokeInvitation = useRevokeInvitation(id);
+  const assign = useAssignToTeam(id);
+  const removeFromTeam = useRemoveFromTeam(id);
 
   const [picked, setPicked] = useState<Tab>('confirmed');
+  const [view, setView] = useState<TeamView>('teams');
   const [side, setSide] = useState<ManageSide>('female');
   const [addingManual, setAddingManual] = useState(false);
   /** The remove dialog: the row and the modes it offers (two on a private event's Confirmed tab). */
   const [removing, setRemoving] = useState<{ row: ManageRow; modes: RemoveMode[] } | null>(null);
+  const [teamDialog, setTeamDialog] = useState<TeamDialog>(null);
+  /** The Remove player dialog's choice, and the Which team? dialog's. */
+  const [slotRemoveMode, setSlotRemoveMode] = useState<'from_team' | 'from_event'>('from_team');
+  const [pickedTeam, setPickedTeam] = useState<string>('');
+  const [ask, setAsk] = useState<Ask | null>(null);
   const [busy, setBusy] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
   const back = `/app/event/${id}/manage`;
 
@@ -141,16 +194,36 @@ export default function ManagePlayersPage() {
   const mixed = e.specification === 'mixed';
   const action = headerAction(e);
   // The waiting list can empty while its tab is open (a claim, a removal): fall back to Confirmed.
-  const tab: Tab = picked === 'waiting' && !roster.showWaiting ? 'confirmed' : picked;
+  // Interested exists on team events only.
+  const tab: Tab =
+    (picked === 'waiting' && !roster.showWaiting) || (picked === 'interested' && !team) ? 'confirmed' : picked;
+  const board = teamBoard(e, participants.data ?? [], teamsQuery.data ?? []);
   const nameOf = (row: ManageRow) => row.name ?? '—';
+  const teamName = (n: number) => t('teamLabel', { number: n });
 
   // Confirming accepts the invitation and removing may reopen or delete it (0122): the shared
   // hooks refresh the roster only, so the invited list, teams and invite candidates follow here.
   const refreshAll = () => qc.invalidateQueries({ queryKey: ['event', id] });
 
-  const fail = (x: unknown) => {
+  const messageOf = (x: unknown) => {
     const code = x instanceof Error ? x.message : 'unknown_error';
-    toast(t(rosterErrorKey(code), { defaultValue: t('unknown_error') }), 'error');
+    return t(rosterErrorKey(code), { defaultValue: t('unknown_error') });
+  };
+  const fail = (x: unknown) => toast(messageOf(x), 'error');
+
+  /** Runs a dialog's action: busy while it runs, its refusal shown in the dialog, closed on success. */
+  const runInDialog = async (fn: () => Promise<void>, close: () => void) => {
+    setBusy(true);
+    setDialogError(null);
+    try {
+      await fn();
+      void refreshAll();
+      close();
+    } catch (x) {
+      setDialogError(messageOf(x));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const remove = async (row: ManageRow, mode: RemoveMode) => {
@@ -184,7 +257,124 @@ export default function ManagePlayersPage() {
     }
   };
 
+  /** Pending invitation without a roster row: withdrawn, nobody notified (0127). */
+  const askRevoke = (row: ManageRow) => {
+    const invitationId = row.invitationId;
+    if (invitationId == null) return;
+    setDialogError(null);
+    setAsk({
+      title: t('mpRemoveTitle', { name: nameOf(row) }),
+      body: t('mpRevokeBody'),
+      confirmLabel: t('removeCta'),
+      destructive: true,
+      run: async () => {
+        await revokeInvitation.mutateAsync({ invitationId });
+        toast(t('mpRevokedToast', { name: nameOf(row) }));
+      },
+    });
+  };
+
+  // --- Team events (UX-MEVT-14, 15) ---------------------------------------------------------
+
+  /** Put someone in a slot: a roster row is assigned, a pending invitee confirmed into it. */
+  const placeIn = async (who: Placeable, target: BoardTeam, slot: Slot) => {
+    if (who.participantId != null) {
+      await assign.mutateAsync({
+        participantId: who.participantId,
+        teamNumber: target.number,
+        slot,
+        targetName: who.name ?? undefined,
+      });
+    } else if (who.userId != null) {
+      await confirmInvitee.mutateAsync({ userId: who.userId, teamNumber: target.number, slot });
+    } else {
+      return;
+    }
+    toast(t('tmAssignedToast', { name: who.name ?? '—', team: teamName(target.number) }));
+  };
+
+  /** The teams `who` can go to: an open slot, and never the team they are alone in already. */
+  const openTeamsFor = (who: Placeable) =>
+    teamsWithOpenSlot(board).filter(
+      (tm) =>
+        who.participantId == null ||
+        (tm.a?.participantId !== who.participantId && tm.b?.participantId !== who.participantId),
+    );
+
+  /** "Which team?" (UX-MEVT-14): Interested → Confirm, and Invited → Mark as confirmed. */
+  const pickTeam = (who: Placeable) => {
+    const open = openTeamsFor(who);
+    if (open.length === 0) {
+      toast(t('tmNoOpenTeam'), 'error');
+      return;
+    }
+    setDialogError(null);
+    setPickedTeam(String(open[0]!.number));
+    setTeamDialog({ kind: 'pick', who });
+  };
+
+  const placeableOf = (row: ManageRow): Placeable => ({
+    participantId: row.participantId,
+    userId: row.userId,
+    name: row.name,
+    confirmed: false,
+  });
+  const placeableOfPlayer = (p: BoardPlayer): Placeable => ({
+    participantId: p.participantId,
+    userId: p.userId,
+    name: p.name,
+    confirmed: p.status === 'confirmed',
+  });
+
+  /** A card dropped on an empty slot (or assigned from its menu): not yet confirmed → ask first. */
+  const onPlace = (p: BoardPlayer, target: BoardTeam, slot: Slot) => {
+    const who = placeableOfPlayer(p);
+    if (who.confirmed) {
+      void placeIn(who, target, slot).then(refreshAll, fail);
+      return;
+    }
+    setDialogError(null);
+    setAsk({
+      title: t('tmConfirmPlayerTitle'),
+      body: t('tmConfirmPlayerBody', { name: p.name ?? '—' }),
+      confirmLabel: tc('confirm'),
+      run: () => placeIn(who, target, slot),
+    });
+  };
+
+  /** Interested → Remove (UX-MEVT-14): back to Invited; out of the event on a public group event. */
+  const removeInterested = (row: ManageRow) => {
+    if (interestedRemoveMode(e) === 'from_event') {
+      setRemoving({ row, modes: ['from_event'] });
+      return;
+    }
+    const participantId = row.participantId;
+    if (participantId == null) return;
+    setDialogError(null);
+    setAsk({
+      title: t('mpRemoveTitle', { name: nameOf(row) }),
+      body: t('mpInterestedRemoveBody'),
+      confirmLabel: t('tmRemoveToInvited'),
+      destructive: true,
+      run: async () => {
+        await removeParticipant.mutateAsync({ participantId, mode: 'to_invited', targetName: row.name ?? undefined });
+        toast(t('mpMovedToInvitedToast', { name: nameOf(row) }));
+      },
+    });
+  };
+
   const sideLabel = (s: ManageSide | null) => (s === 'female' ? t('mpSideFemale') : s === 'male' ? t('mpSideMale') : undefined);
+
+  const menuItem = (key: string, label: string, onSelect: () => void, row: ManageRow, destructive = false) => (
+    <DropdownMenuItem
+      key={key}
+      variant={destructive ? 'destructive' : undefined}
+      onSelect={onSelect}
+      data-testid={`manage-player-${key}-${row.key}`}
+    >
+      {label}
+    </DropdownMenuItem>
+  );
 
   const rowMenu = (row: ManageRow, kind: Tab) => {
     const items: React.ReactNode[] = [];
@@ -196,54 +386,41 @@ export default function ManagePlayersPage() {
       );
     }
     if (scheduled && kind === 'confirmed') {
-      items.push(
-        <DropdownMenuItem
-          key="remove"
-          variant="destructive"
-          onSelect={() => setRemoving({ row, modes: removeModes(e) })}
-          data-testid={`manage-player-remove-${row.key}`}
-        >
-          {t('removeCta')}
-        </DropdownMenuItem>,
-      );
+      items.push(menuItem('remove', t('removeCta'), () => setRemoving({ row, modes: removeModes(e) }), row, true));
     }
     if (scheduled && kind === 'invited') {
-      const can = invitedActions(row, { team });
+      const can = invitedActions(row);
       if (can.confirm) {
         items.push(
-          <DropdownMenuItem
-            key="confirm"
-            onSelect={() => void markAsConfirmed(row)}
-            data-testid={`manage-player-confirm-${row.key}`}
-          >
-            {t('mpMarkConfirmed')}
-          </DropdownMenuItem>,
+          menuItem(
+            'confirm',
+            t('mpMarkConfirmed'),
+            // On a team event, which team first (UX-MEVT-14).
+            () => (team ? pickTeam(placeableOf(row)) : void markAsConfirmed(row)),
+            row,
+          ),
         );
       }
-      if (can.remove) {
-        items.push(
-          <DropdownMenuItem
-            key="remove"
-            variant="destructive"
-            onSelect={() => setRemoving({ row, modes: ['from_event'] })}
-            data-testid={`manage-player-remove-${row.key}`}
-          >
-            {t('removeCta')}
-          </DropdownMenuItem>,
-        );
+      if (can.remove === 'participant') {
+        items.push(menuItem('remove', t('removeCta'), () => setRemoving({ row, modes: ['from_event'] }), row, true));
+      } else if (can.remove === 'invitation') {
+        items.push(menuItem('remove', t('removeCta'), () => askRevoke(row), row, true));
       }
     }
-    if (scheduled && kind === 'waiting') {
+    if (scheduled && kind === 'interested') {
+      items.push(menuItem('confirm', t('mpConfirmCta'), () => pickTeam(placeableOf(row)), row));
       items.push(
-        <DropdownMenuItem
-          key="remove"
-          variant="destructive"
-          onSelect={() => setRemoving({ row, modes: ['from_event'] })}
-          data-testid={`manage-player-remove-${row.key}`}
-        >
-          {t('removeCta')}
-        </DropdownMenuItem>,
+        menuItem(
+          'remove',
+          interestedRemoveMode(e) === 'to_invited' ? t('tmRemoveToInvited') : t('mpRemoveFromEvent'),
+          () => removeInterested(row),
+          row,
+          true,
+        ),
       );
+    }
+    if (scheduled && kind === 'waiting') {
+      items.push(menuItem('remove', t('removeCta'), () => setRemoving({ row, modes: ['from_event'] }), row, true));
     }
     if (items.length === 0) return null;
     return (
@@ -265,12 +442,13 @@ export default function ManagePlayersPage() {
 
   const renderRow = (row: ManageRow, kind: Tab, index: number) => {
     const name = nameOf(row);
+    const seat = team && row.participantId != null ? teamOfParticipant(board, row.participantId) : null;
     const subtitle =
       kind === 'waiting'
         ? [t('mpQueuePosition', { n: index + 1 }), mixed ? sideLabel(row.side) : undefined].filter(Boolean).join(' · ')
-        : row.standby
-          ? t('playersListStandby')
-          : undefined;
+        : [seat ? t('tmKindTeam', { team: teamName(seat.number) }) : undefined, row.standby ? t('playersListStandby') : undefined]
+            .filter(Boolean)
+            .join(' · ') || undefined;
     return (
       <li key={row.key} className="flex items-center gap-3 px-2 py-2" data-testid={`manage-player-${row.key}`}>
         <Avatar className="size-9">
@@ -311,6 +489,7 @@ export default function ManagePlayersPage() {
       // No count until the list has loaded: "Invited 0" would claim nobody is invited.
       label: invitedQuery.data ? t('mpTabInvited', { n: roster.invited.length }) : t('playersTabInvitedPlain'),
     },
+    ...(team ? [{ value: 'interested' as const, label: t('mpTabInterested', { n: roster.interested.length }) }] : []),
   ];
 
   let rows: ManageRow[] = [];
@@ -335,6 +514,18 @@ export default function ManagePlayersPage() {
         <Empty icon={Clock} title={t('mpWaitingEmpty')} body={t('mpWaitingEmptyBody')} testId="manage-players-waiting-empty" />
       );
     }
+  } else if (tab === 'interested') {
+    rows = roster.interested;
+    if (rows.length === 0) {
+      empty = (
+        <Empty
+          icon={Users}
+          title={t('mpInterestedEmpty')}
+          body={t('mpInterestedEmptyBody')}
+          testId="manage-players-interested-empty"
+        />
+      );
+    }
   } else {
     rows = roster.invited;
     if (rows.length === 0) {
@@ -352,6 +543,67 @@ export default function ManagePlayersPage() {
 
   const loading = participants.isLoading || (tab === 'invited' && invitedQuery.isLoading);
 
+  // The open team dialog, re-derived from the live board so it follows every refetch.
+  const dialogTeam =
+    teamDialog && teamDialog.kind !== 'pick' ? board.teams.find((tm) => tm.number === teamDialog.team) : undefined;
+  const dialogPlayer =
+    (teamDialog?.kind === 'switch' || teamDialog?.kind === 'remove') && dialogTeam
+      ? ([dialogTeam.a, dialogTeam.b].find((p) => p?.participantId === teamDialog.participantId) ?? null)
+      : null;
+  const closeTeamDialog = (message?: string) => {
+    setTeamDialog(null);
+    setDialogError(null);
+    if (message) {
+      void refreshAll();
+      toast(message);
+    }
+  };
+
+  const playersView = (
+    <Tabs value={tab} onValueChange={(v) => setPicked(v as Tab)}>
+      {/* Three counted tabs overflow a 375px screen in Portuguese: the list scrolls sideways. */}
+      <TabsList className="w-full justify-start overflow-x-auto sm:w-fit">
+        {tabOptions.map((o) => (
+          <TabsTrigger key={o.value} value={o.value} className="flex-none" data-testid={`manage-players-tab-${o.value}`}>
+            {o.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      <TabsContent value={tab} className="flex flex-col gap-3 pt-2">
+        {mixed && tab === 'confirmed' && roster.sideCounts && roster.perSide != null ? (
+          <Tabs value={side} onValueChange={(v) => setSide(v as ManageSide)}>
+            <TabsList variant="line" data-testid="manage-players-side">
+              <TabsTrigger value="female" data-testid="manage-players-side-female">
+                {t('mpSideWomen', { n: roster.sideCounts.female, cap: roster.perSide })}
+              </TabsTrigger>
+              <TabsTrigger value="male" data-testid="manage-players-side-male">
+                {t('mpSideMen', { n: roster.sideCounts.male, cap: roster.perSide })}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        ) : null}
+        {loading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : (
+          (empty ?? (
+            <ul className="flex flex-col" data-testid={`manage-players-${tab}`}>
+              {rows.map((row, i) => renderRow(row, tab, i))}
+            </ul>
+          ))
+        )}
+      </TabsContent>
+    </Tabs>
+  );
+
+  const pickWho = teamDialog?.kind === 'pick' ? teamDialog.who : null;
+  const pickOpen = pickWho ? openTeamsFor(pickWho) : [];
+  const teamOption = (tm: BoardTeam) => {
+    const mate = tm.a ?? tm.b;
+    return mate
+      ? t('tmTeamOptionWith', { team: teamName(tm.number), name: mate.name ?? '—' })
+      : t('tmTeamOptionEmpty', { team: teamName(tm.number) });
+  };
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 sm:p-6">
       <GroupPageTitle
@@ -359,39 +611,47 @@ export default function ManagePlayersPage() {
         fallbackHref={back}
         actions={scheduled ? addButton('manage-players-add', 'primary') : undefined}
       />
-      <Tabs value={tab} onValueChange={(v) => setPicked(v as Tab)}>
-        {/* Three counted tabs overflow a 375px screen in Portuguese: the list scrolls sideways. */}
-        <TabsList className="w-full justify-start overflow-x-auto sm:w-fit">
-          {tabOptions.map((o) => (
-            <TabsTrigger key={o.value} value={o.value} className="flex-none" data-testid={`manage-players-tab-${o.value}`}>
-              {o.label}
+      {team ? (
+        <Tabs value={view} onValueChange={(v) => setView(v as TeamView)}>
+          <TabsList className="w-full sm:w-fit" data-testid="manage-players-view">
+            <TabsTrigger value="teams" data-testid="manage-players-view-teams">
+              {t('mpViewTeams')}
             </TabsTrigger>
-          ))}
-        </TabsList>
-        <TabsContent value={tab} className="flex flex-col gap-3 pt-2">
-          {mixed && tab === 'confirmed' && roster.sideCounts && roster.perSide != null ? (
-            <Tabs value={side} onValueChange={(v) => setSide(v as ManageSide)}>
-              <TabsList variant="line" data-testid="manage-players-side">
-                <TabsTrigger value="female" data-testid="manage-players-side-female">
-                  {t('mpSideWomen', { n: roster.sideCounts.female, cap: roster.perSide })}
-                </TabsTrigger>
-                <TabsTrigger value="male" data-testid="manage-players-side-male">
-                  {t('mpSideMen', { n: roster.sideCounts.male, cap: roster.perSide })}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          ) : null}
-          {loading ? (
-            <Skeleton className="h-40 w-full" />
-          ) : (
-            (empty ?? (
-              <ul className="flex flex-col" data-testid={`manage-players-${tab}`}>
-                {rows.map((row, i) => renderRow(row, tab, i))}
-              </ul>
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+            <TabsTrigger value="players" data-testid="manage-players-view-players">
+              {t('mpViewPlayers')}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="teams" className="pt-2">
+            {participants.isLoading || teamsQuery.isLoading ? (
+              <Skeleton className="h-60 w-full" />
+            ) : (
+              <TeamsTab
+                board={board}
+                editable={scheduled}
+                onAdd={(tm) => {
+                  setDialogError(null);
+                  setTeamDialog({ kind: 'select', team: tm.number });
+                }}
+                onSwitch={(p, tm) => {
+                  setDialogError(null);
+                  setTeamDialog({ kind: 'switch', team: tm.number, participantId: p.participantId });
+                }}
+                onRemove={(p, tm) => {
+                  setDialogError(null);
+                  setSlotRemoveMode(p.guest ? 'from_event' : 'from_team');
+                  setTeamDialog({ kind: 'remove', team: tm.number, participantId: p.participantId });
+                }}
+                onPlace={onPlace}
+              />
+            )}
+          </TabsContent>
+          <TabsContent value="players" className="pt-2">
+            {playersView}
+          </TabsContent>
+        </Tabs>
+      ) : (
+        playersView
+      )}
 
       <AlertDialog open={removing != null} onOpenChange={(o) => (!o && !busy ? setRemoving(null) : undefined)}>
         <AlertDialogContent data-testid="manage-players-remove-dialog">
@@ -424,6 +684,123 @@ export default function ManagePlayersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={ask != null} onOpenChange={(o) => (!o && !busy ? setAsk(null) : undefined)}>
+        <AlertDialogContent data-testid="manage-players-ask-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{ask?.title ?? ''}</AlertDialogTitle>
+            <AlertDialogDescription>{ask?.body ?? ''}</AlertDialogDescription>
+          </AlertDialogHeader>
+          {dialogError ? (
+            <p role="alert" className="text-sm text-destructive" data-testid="manage-players-ask-error">
+              {dialogError}
+            </p>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>{t('cancel')}</AlertDialogCancel>
+            <Button
+              variant={ask?.destructive ? 'destructive' : 'primary'}
+              disabled={busy}
+              onClick={() => ask && void runInDialog(ask.run, () => setAsk(null))}
+              data-testid="manage-players-ask-confirm"
+            >
+              {ask?.confirmLabel ?? ''}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {teamDialog?.kind === 'select' && dialogTeam ? (
+        <SelectPlayerDialog
+          eventId={id}
+          team={dialogTeam}
+          candidates={selectCandidates(participants.data ?? [], invitedQuery.data ?? [], board)}
+          onClose={() => closeTeamDialog()}
+          onDone={closeTeamDialog}
+        />
+      ) : null}
+      {teamDialog?.kind === 'switch' && dialogTeam && dialogPlayer ? (
+        <SwitchPlayerDialog
+          eventId={id}
+          player={dialogPlayer}
+          team={dialogTeam}
+          candidates={switchCandidates(participants.data ?? [], invitedQuery.data ?? [], board, dialogPlayer.participantId)}
+          onClose={() => closeTeamDialog()}
+          onDone={closeTeamDialog}
+        />
+      ) : null}
+      {teamDialog?.kind === 'remove' && dialogTeam && dialogPlayer ? (
+        <ManageDialog
+          title={t('mpRemoveTitle', { name: dialogPlayer.name ?? '—' })}
+          description={t('tmRemoveBody', { name: dialogPlayer.name ?? '—' })}
+          onClose={() => closeTeamDialog()}
+          primaryLabel={tc('confirm')}
+          destructive={slotRemoveMode === 'from_event'}
+          busy={busy}
+          error={dialogError}
+          onPrimary={() => {
+            const p = dialogPlayer;
+            const name = p.name ?? '—';
+            const tn = teamName(dialogTeam.number);
+            void runInDialog(
+              async () => {
+                if (slotRemoveMode === 'from_team') {
+                  await removeFromTeam.mutateAsync({ participantId: p.participantId, targetName: name });
+                  toast(t('tmRemovedFromTeamToast', { name, team: tn }));
+                } else {
+                  await removeParticipant.mutateAsync({ participantId: p.participantId, mode: 'from_event', targetName: name });
+                  toast(t('mpRemovedToast', { name }));
+                }
+              },
+              () => setTeamDialog(null),
+            );
+          }}
+          testId="dialog-remove-player"
+        >
+          <RadioCards
+            label={t('tmRemoveBody', { name: dialogPlayer.name ?? '—' })}
+            // A guest has no invited state to go back to: they leave the event.
+            options={[
+              ...(dialogPlayer.guest ? [] : [{ value: 'from_team' as const, title: t('tmRemoveFromTeam') }]),
+              { value: 'from_event' as const, title: t('mpRemoveFromEvent') },
+            ]}
+            value={slotRemoveMode}
+            onChange={setSlotRemoveMode}
+            testId="remove-player-mode"
+          />
+        </ManageDialog>
+      ) : null}
+      {pickWho ? (
+        <ManageDialog
+          title={t('mpPickTeamTitle', { name: pickWho.name ?? '—' })}
+          description={pickWho.confirmed ? undefined : t('tmConfirmPlayerBody', { name: pickWho.name ?? '—' })}
+          onClose={() => closeTeamDialog()}
+          primaryLabel={tc('confirm')}
+          busy={busy}
+          error={dialogError}
+          onPrimary={() => {
+            const target = pickOpen.find((tm) => String(tm.number) === pickedTeam);
+            if (!target) {
+              setDialogError(t('tmNoOpenTeam'));
+              return;
+            }
+            void runInDialog(() => placeIn(pickWho, target, openSlotsOf(target)[0]!), () => setTeamDialog(null));
+          }}
+          testId="dialog-pick-team"
+        >
+          {pickOpen.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('tmNoOpenTeam')}</p>
+          ) : (
+            <RadioCards
+              label={t('tmPickTeamLabel')}
+              options={pickOpen.map((tm) => ({ value: String(tm.number), title: teamOption(tm) }))}
+              value={pickedTeam}
+              onChange={setPickedTeam}
+              testId="pick-team"
+            />
+          )}
+        </ManageDialog>
+      ) : null}
 
       {addingManual ? (
         <AddManualDialog

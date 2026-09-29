@@ -18,7 +18,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { TeamSetup } from '@/components/event/live/TeamSetup';
 import { MatchesTab } from '@/components/event/live/MatchesTab';
 import { Leaderboard } from '@/components/event/live/Leaderboard';
 import { MatchTimer } from '@/components/event/live/MatchTimer';
@@ -81,21 +80,6 @@ export default function EventLivePage() {
         </div>
       );
     }
-    if (e.specification === 'team') {
-      return (
-        <div className="flex flex-col gap-4 p-6">
-          {backLink}
-          <TeamSetup
-            eventId={id}
-            numCourts={e.num_courts}
-            canStart={ready}
-            starting={start.isPending}
-            onStart={onStart}
-          />
-          {err ? <p className="text-sm text-destructive">{err}</p> : null}
-        </div>
-      );
-    }
     return (
       <div className="flex flex-col gap-4 p-6">
         {backLink}
@@ -104,6 +88,19 @@ export default function EventLivePage() {
             <p className="text-sm text-muted-foreground">
               {t('readyToStart', { confirmed: confirmed.length, needed: e.num_courts * 4 })}
             </p>
+            {/* Team events: the pairs are built in Manage players' Teams tab (UX-MEVT-14), not here. */}
+            {e.specification === 'team' ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm text-muted-foreground" data-testid="live-teams-complete">
+                  {t('dashTeamsComplete', { count: confirmedTeamCount })}
+                </span>
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={`/app/event/${id}/manage/players`} data-testid="live-manage-teams">
+                    {t('tmManageTeamsCta')}
+                  </Link>
+                </Button>
+              </div>
+            ) : null}
             <Button disabled={!ready || start.isPending} onClick={onStart}>
               {t('startCta')}
             </Button>

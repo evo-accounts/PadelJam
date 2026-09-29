@@ -30,6 +30,7 @@ import {
   useEventParticipants,
   useEventRealtime,
   useEventSeries,
+  useEventTeams,
   useSetEventRanking,
   type EventDetail,
 } from '@padel/api';
@@ -117,6 +118,7 @@ function Dashboard({
   const nowMs = useNow();
   const id = event.id;
   const participants = useEventParticipants(id);
+  const teams = useEventTeams(id);
   const invitations = useEventInvitations(id);
   const series = useEventSeries(id);
   const courtIds = useEventCourts(id);
@@ -124,6 +126,7 @@ function Dashboard({
   const [dialog, setDialog] = useState<Dialog | null>(initialDialog);
 
   const parts = participants.data ?? [];
+  const completeTeams = (teams.data ?? []).filter((tm) => tm.player_a != null && tm.player_b != null).length;
   const recurring = event.series_id != null && series.data != null && series.data.is_active;
   const status = event.status;
   const editable = status === 'scheduled';
@@ -176,6 +179,8 @@ function Dashboard({
     <DashCard
       title={t('dashConfirmedTitle')}
       a11yValue={t('dashRatio', { n: ps.totalIn, total: ps.totalCapacity })}
+      // UX-MEVT-26: a team event adds how many pairs are complete under the count.
+      detail={event.specification === 'team' ? t('dashTeamsComplete', { count: completeTeams }) : undefined}
       href={`/app/event/${id}/manage/players`}
       testId="manage-confirmed"
     >
