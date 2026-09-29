@@ -532,7 +532,9 @@ describe('06 event manage (organizer)', () => {
     await openManage(/cutoff no invites/i); // E10: alex alone
     await scrollUntilVisible({ id: 'manage-start' }, { maxSwipes: 10 });
     await tap({ id: 'manage-start' });
-    await expectVisible({ id: 'start-blocker-not_enough_players' }, { timeout: 20_000 });
+    // The blocker's line is plain text (a Text's testID never reaches the tree): match its copy.
+    await expectVisible({ text: /^can't start yet$/i, type: 'Heading' }, { timeout: 20_000 });
+    await expectVisible({ text: /at least 4 confirmed players/i });
     expect(query(await snapshot(), { id: 'start-anyway' }), 'a blocker offers no start anyway').toBeUndefined();
     await expectVisible({ id: 'start-manage-players' });
     await shot('31-start-blocked.png');
@@ -560,8 +562,8 @@ describe('06 event manage (organizer)', () => {
     await openManage(/cutoff no invites/i);
     await scrollUntilVisible({ id: 'manage-start' }, { maxSwipes: 10 });
     await tap({ id: 'manage-start' });
-    const warning = await expectVisible({ id: 'start-warning-below_capacity' }, { timeout: 20_000 });
-    expect(warning.AXLabel ?? '').toMatch(/2 spots are still open/i);
+    await expectVisible({ text: /^start the event\?$/i, type: 'Heading' }, { timeout: 20_000 });
+    await expectVisible({ text: /2 spots are still open/i });
     await expectVisible({ id: 'start-add-players' });
     await shot('32-start-warning.png');
     await tap({ id: 'start-anyway' });

@@ -111,12 +111,12 @@ export function useStartFlow(
         <View style={styles.lines}>
           {sheet.kind === 'blocked'
             ? sheet.blockers.map((b) => (
-                <Text key={b} variant="body" testID={`start-blocker-${b}`}>
+                <Text key={b} variant="body">
                   {t(b)}
                 </Text>
               ))
             : sheet.warnings.map((w) => (
-                <Text key={w.code} variant="body" testID={`start-warning-${w.code}`}>
+                <Text key={w.code} variant="body">
                   {warningLine(w)}
                 </Text>
               ))}
