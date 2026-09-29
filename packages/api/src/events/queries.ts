@@ -730,6 +730,8 @@ export interface EventSeriesInfo {
   day_of_week: number;
   start_time: string;
   is_active: boolean;
+  /** Days before each occurrence its invitations go out (3, 5 or 7). */
+  invite_lead_days: number;
 }
 
 export const useEventSeries = (eventId: string) => {
@@ -739,7 +741,7 @@ export const useEventSeries = (eventId: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('events')
-        .select('series_id, event_series(day_of_week, start_time, is_active)')
+        .select('series_id, event_series(day_of_week, start_time, is_active, invite_lead_days)')
         .eq('id', eventId)
         .maybeSingle()
         .returns<{ series_id: string | null; event_series: EventSeriesInfo | null }>();
