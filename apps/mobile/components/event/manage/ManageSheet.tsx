@@ -10,8 +10,9 @@
  * the caller raises the success banner, which is visible again once the sheet is gone.
  */
 import { useT } from '@padel/i18n';
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Keyboard, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { space } from '../../../theme';
 import { BottomSheet, Button, Text } from '../../ui';
@@ -46,10 +47,16 @@ export function ManageSheet({
 }: Props) {
   const { t: tc } = useT('common');
   const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardHeight();
+  // BottomSheet lifts itself above the keyboard; the body must shrink by the same amount or the
+  // sheet's top (the field being typed in) is pushed off screen. What stays: status bar, the
+  // sheet's title row and the two footer buttons.
+  const maxBody = keyboard > 0 ? Math.max(120, height - keyboard - insets.top - CHROME) : height * 0.62;
   return (
     <BottomSheet visible onClose={onClose} title={title} testID={testID}>
       <ScrollView
-        style={{ maxHeight: height * 0.62 }}
+        style={{ maxHeight: maxBody }}
         contentContainerStyle={styles.body}
         keyboardShouldPersistTaps="handled"
       >
@@ -80,6 +87,24 @@ export function ManageSheet({
       </View>
     </BottomSheet>
   );
+}
+
+/** Title row + footer buttons + paddings, in points: what the body must leave room for. */
+const CHROME = 250;
+
+function useKeyboardHeight(): number {
+  const [h, setH] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) =>
+      setH(e.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setH(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return h;
 }
 
 const styles = StyleSheet.create({

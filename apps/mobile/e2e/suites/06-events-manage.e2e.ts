@@ -87,7 +87,7 @@ describe('06 event manage (organizer)', () => {
   it('duplicates an event onto a date picked in the sheet', async () => {
     const m = manifest();
     const before = (await select('events', `organizer_id=eq.${m.users.alex}&select=id`)) as { id: string }[];
-    // Still on E5's dashboard.
+    await openManage(/weekly friday social/i);
     await scrollUntilVisible({ id: 'manage-duplicate' }, { maxSwipes: 10 });
     await tap({ id: 'manage-duplicate' });
     await expectVisible({ id: 'sheet-duplicate-save' }, { timeout: 15_000 });
