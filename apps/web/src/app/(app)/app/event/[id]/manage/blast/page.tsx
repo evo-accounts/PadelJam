@@ -30,7 +30,7 @@ export default function EventBlastPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{t('blastTitle')}</h1>
         <Button asChild variant="tertiary">
-          <Link href={`/app/event/${id}/manage`}>{t('manageTitle')}</Link>
+          <Link href={`/app/event/${id}/manage`}>{t('manageEventTitle')}</Link>
         </Button>
       </div>
       <BlastComposer eventId={id} />

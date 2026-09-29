@@ -4,10 +4,15 @@
  * every viewer; only the top banner and the bottom area change with the viewer's state — decided
  * by `bottomState` / `bannerState` / `canLeave` in `@padel/utils`, the table mobile reads too.
  *
- *   header   back · ⋯ (Share, Add to calendar, Leave event)
+ *   header   back · ⋯ (Share, Add to calendar, Leave event). The organizer gets the settings icon
+ *            (→ Manage Event, UX-MEVT-03) instead, and both side by side when they play.
+ *   status   organizer only (UX-MEVT-01): "You are organizing" + Join as a player, or
+ *            "You are organizing and going!"
  *   banner   You are going / stand-by / waiting list / interested
  *   body     image, name + date · time · place, Players card, type + group badges, description,
- *            Courts / Scoring / Fee, Organizer card, Location card
+ *            Courts / Scoring / Fee, Organizer card, Location card — the same for the organizer,
+ *            who also gets a "Manage players" row and a chip row (Payment list, Send blast,
+ *            Preferences)
  *   bottom   invited · join (+ countdown) · full · waiting list (+ Confirm spot when one is free —
  *            decision 4) · closed · organizer actions · team entry (Join → the Team Event dialog,
  *            UX-JEVT-09) · interested (Edit response, UX-JEVT-13)
@@ -22,7 +27,9 @@
  * "Confirm spot" without a reload.
  */
 import { useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { Settings } from 'lucide-react';
 import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
 import {
@@ -166,6 +173,13 @@ export default function EventDetailPage() {
   // organizer too, who then sees "Join as a player" again rather than "organizing and playing".
   const loneTeamOccupant = e.specification === 'team' && me?.status === 'invited';
   const leaveOffered = canLeave(status, me, isOrganizer, leaveLocked);
+  // UX-MEVT-01: which of the organizer's two states applies, and whether the status line offers
+  // "Join as a player" (decision 8: the organizer is always eligible, whatever the role chosen at
+  // creation). "Start event" is the primary action here only once the scheduled time has come;
+  // before that it lives in Manage Event.
+  const organizerGoing = isOrganizer && me?.status === 'confirmed' && !loneTeamOccupant;
+  const organizerCanJoin = isOrganizer && status === 'scheduled' && !joinClosed && (me == null || loneTeamOccupant);
+  const startHere = isOrganizer && status === 'scheduled' && nowMs >= new Date(e.starts_at).getTime();
 
   // --- Body values ---
   const scoringLabel = t(`scoring${cap(e.scoring_mode)}Label`);
@@ -318,22 +332,52 @@ export default function EventDetailPage() {
     <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-3xl flex-col gap-4 px-4 pt-3 sm:px-6">
       <div className="flex items-center justify-between gap-2">
         <BackButton fallbackHref="/app/events" label={t('back')} />
-        <EventMenu
-          canLeave={leaveOffered}
-          teamLeave={isTeam && me?.status === 'confirmed'}
-          leaveLocked={leaveLocked}
-          organizer={organizer}
-          busy={busy}
-          dialog={dialog}
-          setDialog={setDialog}
-          onShare={() => void onShare()}
-          onCalendar={onCalendar}
-          onLeave={onLeave}
-          onChatOrganizer={() => void onChatOrganizer()}
-        />
+        <div className="flex items-center gap-1">
+          {isOrganizer ? (
+            <Button asChild variant="tertiary" size="icon">
+              <Link href={`/app/event/${id}/manage`} aria-label={t('manageEventTitle')} data-testid="event-settings">
+                <Settings />
+              </Link>
+            </Button>
+          ) : null}
+          {/* The organizer who only organizes has nothing to leave; Share and Add to calendar are
+              on Manage Event for them. */}
+          {!isOrganizer || me != null ? (
+            <EventMenu
+              canLeave={leaveOffered}
+              teamLeave={isTeam && me?.status === 'confirmed'}
+              leaveLocked={leaveLocked}
+              organizer={organizer}
+              busy={busy}
+              dialog={dialog}
+              setDialog={setDialog}
+              onShare={() => void onShare()}
+              onCalendar={onCalendar}
+              onLeave={onLeave}
+              onChatOrganizer={() => void onChatOrganizer()}
+            />
+          ) : null}
+        </div>
       </div>
 
-      {bannerKind ? <StateBanner state={bannerKind} /> : null}
+      {isOrganizer ? (
+        <div className="flex items-center gap-3" data-testid="event-organizer-status">
+          <p className="flex-1 font-medium">{organizerGoing ? t('organizerPlayingBadge') : t('organizerBadge')}</p>
+          {organizerCanJoin ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={isTeam ? () => setTeamOpen(true) : () => void onJoin()}
+              data-testid="event-join-as-player"
+            >
+              {t('joinAsPlayerCta')}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {/* The organizer's status line already says "going". */}
+      {bannerKind && !(isOrganizer && bannerKind === 'going') ? <StateBanner state={bannerKind} /> : null}
 
       <EventThumb path={e.thumbnail_path} shape="hero" />
 
@@ -354,6 +398,43 @@ export default function EventDetailPage() {
         capacity={ps.totalCapacity}
         href={`/app/event/${id}/players`}
       />
+
+      {isOrganizer ? (
+        <>
+          <PlayersCard
+            title={t('managePlayersTitle')}
+            people={confirmedPeople}
+            confirmed={ps.totalIn}
+            capacity={ps.totalCapacity}
+            href={`/app/event/${id}/manage/players`}
+            testId="event-manage-players"
+          />
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6" data-testid="event-organizer-chips">
+            {e.entrance_fee_enabled ? (
+              <Button asChild variant="secondary" size="sm" className="shrink-0 rounded-full">
+                <Link href={`/app/event/${id}/manage/payments`} data-testid="event-chip-payments">
+                  {t('paymentListTitle')}
+                </Link>
+              </Button>
+            ) : null}
+            {/* Blasts need a group today (0076); decision 6 opens them to group-less events (0124). */}
+            {e.group_id != null ? (
+              <Button asChild variant="secondary" size="sm" className="shrink-0 rounded-full">
+                <Link href={`/app/event/${id}/manage/blast`} data-testid="event-chip-blast">
+                  {t('sendBlastCta')}
+                </Link>
+              </Button>
+            ) : null}
+            {status === 'scheduled' ? (
+              <Button asChild variant="secondary" size="sm" className="shrink-0 rounded-full">
+                <Link href={`/app/event/${id}/manage?sheet=preferences`} data-testid="event-chip-preferences">
+                  {t('step8Title')}
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        </>
+      ) : null}
 
       <div className="flex flex-wrap gap-2" data-testid="event-badges">
         {badges.map((b) => (
@@ -408,11 +489,9 @@ export default function EventDetailPage() {
       <EventCTA
         bottom={bottom}
         eventId={id}
-        isTeam={isTeam}
-        organizerPlaying={me != null && me.status !== 'waiting_list' && !loneTeamOccupant}
+        startHere={startHere}
         organizerWaiting={status === 'scheduled' && me?.status === 'waiting_list'}
         organizerCanClaim={claimable}
-        canJoinAsPlayer={status === 'scheduled' && (me == null || loneTeamOccupant) && !joinClosed}
         organizerInterested={status === 'scheduled' && me?.status === 'interested' && !joinClosed}
         scheduled={status === 'scheduled'}
         countdownMs={joinCutoffMs - nowMs}

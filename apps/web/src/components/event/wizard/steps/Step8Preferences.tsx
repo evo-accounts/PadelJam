@@ -89,8 +89,17 @@ function SwitchRow({
  * details, Permissions and "I am…". Every value a toggle enables (the extra spots, the fee's method,
  * amount and MB WAY number) opens inside that toggle's card rather than as a loose field below it.
  * Validated on the primary button (UX-GLOB-06): each field shows its error while it is still wrong.
+ *
+ * Also Manage Event's Preferences dialog (`context="edit"`, UX-MEVT-05): a group-less event (always
+ * private) hides the Private card, and "I am…" is gone — the organizer's role is set at creation
+ * and changed afterwards by joining or leaving as a player (decision 8).
  */
-export function Step8Preferences({ draft, patch, flagged }: StepProps) {
+export function Step8Preferences({
+  draft,
+  patch,
+  flagged,
+  context = 'wizard',
+}: StepProps & { context?: 'wizard' | 'edit' }) {
   const { t } = useT('event');
   const fee = draft.entranceFee;
   // An event with no group is always private (the schema refuses anything else).
@@ -140,6 +149,7 @@ export function Step8Preferences({ draft, patch, flagged }: StepProps) {
       </Section>
 
       <Section title={t('prefInviteDetails')}>
+        {context === 'edit' && standalone ? null : (
         <Card>
           <SwitchRow
             id="pref-private"
@@ -158,6 +168,7 @@ export function Step8Preferences({ draft, patch, flagged }: StepProps) {
             <InfoNote tone="warning" text={t('privateRankingWarning')} testId="pref-private-warning" />
           ) : null}
         </Card>
+        )}
 
         <Card>
           <SwitchRow
@@ -241,9 +252,11 @@ export function Step8Preferences({ draft, patch, flagged }: StepProps) {
       </Section>
 
       {/* Only whether the organizer starts confirmed — never whether they may join later. */}
-      <Section title={t('organizerRoleLabel')}>
-        <RoleCards value={draft.organizerRole as Role} onChange={(organizerRole) => patch({ organizerRole })} />
-      </Section>
+      {context === 'edit' ? null : (
+        <Section title={t('organizerRoleLabel')}>
+          <RoleCards value={draft.organizerRole as Role} onChange={(organizerRole) => patch({ organizerRole })} />
+        </Section>
+      )}
     </div>
   );
 }

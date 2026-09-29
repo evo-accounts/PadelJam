@@ -5,9 +5,10 @@
  * gets "Leave waiting list" next to a primary "Confirm spot". Leaving is never here: it lives in the ⋯ menu, and
  * past the 12h deadline it opens the contact-the-organizer dialog instead (UX-JEVT-05).
  *
- * Team events (UX-JEVT-09/13): "Join" (`team_entry`), an invitee's "Accept" and the organizer's
- * "Join as a player" all call `onTeamJoin`, which opens the Team Event dialog; a player looking for
- * a partner (`interested`) gets the interested line and "Edit response".
+ * Team events (UX-JEVT-09/13): "Join" (`team_entry`) and an invitee's "Accept" call `onTeamJoin`,
+ * which opens the Team Event dialog; a player looking for a partner (`interested`) gets the
+ * interested line and "Edit response". The organizer's "Join as a player" is on the page's status
+ * line (UX-MEVT-01), not here.
  */
 import Link from 'next/link';
 import { useT } from '@padel/i18n';
@@ -20,11 +21,9 @@ import type { PersonLite } from './EventDetailParts';
 export function EventCTA({
   bottom,
   eventId,
-  isTeam,
-  organizerPlaying,
+  startHere,
   organizerWaiting,
   organizerCanClaim,
-  canJoinAsPlayer,
   organizerInterested,
   scheduled,
   countdownMs,
@@ -42,18 +41,15 @@ export function EventCTA({
 }: {
   bottom: BottomState;
   eventId: string;
-  isTeam: boolean;
-  /** Organizer only: they also hold a player's place. */
-  organizerPlaying: boolean;
+  /** Organizer only: the scheduled time has come, so Start event is the primary action here. */
+  startHere: boolean;
   /** Organizer only: they tried to play on a full event and are on its waiting list. */
   organizerWaiting: boolean;
   /** Organizer only: waiting, and a spot is free for them — "Confirm spot" (decision 4). */
   organizerCanClaim: boolean;
-  /** Organizer only: not playing, and joining is still open. */
-  canJoinAsPlayer: boolean;
   /** Organizer only: they play, and are still looking for a partner (UX-JEVT-13). */
   organizerInterested: boolean;
-  /** Organizer only: the event is still scheduled (Start, Edit and joining apply). */
+  /** Organizer only: the event is still scheduled (Start and the player states apply). */
   scheduled: boolean;
   /** Time left to the join cut-off, for the countdown. */
   countdownMs: number;
@@ -91,57 +87,48 @@ export function EventCTA({
         </Button>
       );
       break;
-    case 'organizer':
-      // UX-MEVT-01 owns this area; unchanged here except that leaving moved into ⋯.
-      body = (
-        <div className="flex flex-col gap-2">
-          <p className="text-center text-sm font-medium">
-            {organizerPlaying ? t('organizerPlayingBadge') : t('organizerBadge')}
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {scheduled ? (
-              <Button asChild>
-                <Link href={`/app/event/${eventId}/live`}>{t('startCta')}</Link>
-              </Button>
-            ) : null}
-            <Button asChild variant="secondary">
-              <Link href={`/app/event/${eventId}/manage`}>{t('manageCta')}</Link>
-            </Button>
-            {scheduled ? (
-              <Button asChild variant="secondary">
-                <Link href={`/app/event/${eventId}/edit`}>{t('editTitle')}</Link>
-              </Button>
-            ) : null}
-            {canJoinAsPlayer ? (
-              <Button
-                variant="secondary"
-                disabled={busy}
-                onClick={isTeam ? onTeamJoin : onJoin}
-                data-testid="event-join-as-player"
-              >
-                {t('joinAsPlayerCta')}
-              </Button>
-            ) : null}
-            {organizerInterested ? (
-              <Button variant="secondary" disabled={busy} onClick={onEditResponse} data-testid="event-edit-response">
-                {t('editResponseCta')}
-              </Button>
-            ) : null}
-            {/* An organizer who tried to play on a full event is waiting like anyone else. */}
-            {organizerWaiting && organizerCanClaim ? (
-              <Button disabled={busy} onClick={onClaim} data-testid="event-confirm-spot">
-                {t('confirmSpotCta')}
-              </Button>
-            ) : null}
-            {organizerWaiting ? (
-              <Button variant="secondary" disabled={busy} onClick={onLeaveWaitlist}>
-                {t('leaveWaitlistCta')}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      );
+    case 'organizer': {
+      // UX-MEVT-01: management lives in the header (settings → Manage Event) and Join as a player
+      // in the status line. What is left here is Start event — only once the scheduled time has
+      // come; before that it is on Manage Event — and the organizer's own player states.
+      const rows: React.ReactNode[] = [];
+      if (scheduled) {
+        if (startHere) {
+          rows.push(
+            <Button key="start" asChild>
+              <Link href={`/app/event/${eventId}/live`} data-testid="event-start">
+                {t('startCta')}
+              </Link>
+            </Button>,
+          );
+        }
+        // An organizer who plays and is still looking for a partner (UX-JEVT-13).
+        if (organizerInterested) {
+          rows.push(
+            <Button key="edit" variant="secondary" disabled={busy} onClick={onEditResponse} data-testid="event-edit-response">
+              {t('editResponseCta')}
+            </Button>,
+          );
+        }
+        // An organizer who tried to play on a full event is waiting like anyone else.
+        if (organizerWaiting && organizerCanClaim) {
+          rows.push(
+            <Button key="claim" disabled={busy} onClick={onClaim} data-testid="event-confirm-spot">
+              {t('confirmSpotCta')}
+            </Button>,
+          );
+        }
+        if (organizerWaiting) {
+          rows.push(
+            <Button key="leave" variant="secondary" disabled={busy} onClick={onLeaveWaitlist}>
+              {t('leaveWaitlistCta')}
+            </Button>,
+          );
+        }
+      }
+      body = rows.length > 0 ? <div className="grid gap-2 sm:grid-cols-2">{rows}</div> : null;
       break;
+    }
     case 'invited':
       body = (
         <div className="flex flex-col gap-3">

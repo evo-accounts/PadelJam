@@ -1,228 +1,441 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+/**
+ * Manage Event (UX-MEVT-03) — an overview, reached from the settings icon on the event page (its
+ * only entry point). Web's twin of mobile's `app/event/[id]/manage.tsx`. Every card opens a dialog
+ * holding only that piece of information (`EventEditDialog`), never the creation steps as one form.
+ *
+ *   header    back · "Manage Event"; format, modality and group as read-only chips (UX-MEVT-09)
+ *   cards     Event name → General Info · Preferences | Scoring · Confirmed | Paid (donuts — two
+ *             lists that never merge) · Location → Location & Courts · Date → Date & Time ·
+ *             Activity (full page)
+ *   actions   Share, Add to calendar, Send blast, Export, Start event
+ *   footer    Duplicate | Cancel
+ *
+ * Only a scheduled event is editable (update_event refuses anything else): the cards of an event in
+ * progress are read-only. A completed event reduces to the Paid donut, the ranking toggle, Activity,
+ * Export and Duplicate (decision 16). The Paid card is hidden when there is no fee.
+ *
+ * `?sheet=<kind>` opens one of the edit dialogs on arrival — the event page's Preferences chip
+ * links here that way.
+ */
+import { useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { ChevronRight } from 'lucide-react';
 import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
 import {
-  useEvent, useEventParticipants, useEventInvitations, useEventRealtime,
-  useMarkConfirmed, useMarkPaid, useMarkAllPaid, useRemoveParticipant, useAddManualParticipant,
-  useDuplicateEvent, useCancelEvent, useSendRosterCsvEmail,
+  useEvent,
+  useEventInvitations,
+  useEventParticipants,
+  useEventRealtime,
+  useEventSeries,
+  useSetEventRanking,
+  type EventDetail,
 } from '@padel/api';
-import { buildRosterCsv, nextFutureWeekly, rosterCsvFilename } from '@padel/utils';
-import Link from 'next/link';
-import { RosterRow, type RosterParticipant } from '@/components/event/manage/RosterRow';
-import { AddManualForm } from '@/components/event/manage/AddManualForm';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { eventPlace, formatEventWhen, participationState } from '@padel/utils';
+import { BackButton } from '@/components/group/GroupHeader';
+import { CancelEventDialog } from '@/components/event/manage/CancelEventDialog';
+import { DuplicateEventDialog } from '@/components/event/manage/DuplicateEventDialog';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { avatarUrl } from '@/lib/upload';
+  EDIT_DIALOG_KINDS,
+  EventEditDialog,
+  type EditDialogKind,
+} from '@/components/event/manage/EventEditDialog';
+import { formatLabel, modalityLabel, preferencesSummary, scoringLabel } from '@/components/event/manage/eventLabels';
+import { ExportDialog } from '@/components/event/manage/ExportDialog';
+import { useEventCourts } from '@/components/event/manage/useSaveEvent';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Donut } from '@/components/ui/donut';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { toast } from '@/components/ui/toaster';
+import { downloadEventIcs, shareEvent } from '@/lib/eventLinks';
+import { useNow } from '@/lib/useNow';
+import { cn } from '@/lib/utils';
 
-export default function EventManagePage() {
+type Dialog = EditDialogKind | 'export' | 'duplicate' | 'cancel';
+
+export default function ManageEventPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
+  const sheet = useSearchParams().get('sheet');
   const { t } = useT('event');
   const uid = useSession().session?.user.id;
   useEventRealtime(id);
   const event = useEvent(id);
-  const participants = useEventParticipants(id);
-  const invitations = useEventInvitations(id);
-  const markConfirmed = useMarkConfirmed(id);
-  const markPaid = useMarkPaid(id);
-  const markAllPaid = useMarkAllPaid(id);
-  const removeParticipant = useRemoveParticipant(id);
-  const addManual = useAddManualParticipant(id);
-  const dup = useDuplicateEvent();
-  const cancelEvent = useCancelEvent(id);
-  const emailCsv = useSendRosterCsvEmail(id);
-  const [err, setErr] = useState<string | null>(null);
-  const [cancelOpen, setCancelOpen] = useState(false);
 
-  const isOrganizer = event.data != null && event.data.organizer_id === uid;
-  useEffect(() => {
-    if (!event.isLoading && event.data && !isOrganizer) router.replace(`/app/event/${id}`);
-  }, [event.isLoading, event.data, isOrganizer, id, router]);
+  const header = (
+    <div className="flex items-center gap-2">
+      <BackButton fallbackHref={`/app/event/${id}`} label={t('back')} />
+      <h1 className="text-xl font-semibold">{t('manageEventTitle')}</h1>
+    </div>
+  );
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
-  if (!event.data || !isOrganizer) return null;
-
-  const e = event.data;
-  const rows = (participants.data ?? []) as unknown as RosterParticipant[];
-  const confirmed = rows.filter((p) => p.status === 'confirmed' && !p.is_standby);
-  const waiting = rows.filter((p) => p.status === 'waiting_list');
-  const standby = rows.filter((p) => p.is_standby);
-  const invited = invitations.data ?? [];
-  const feeEnabled = !!e.entrance_fee_enabled;
-
-  const run = (fn: () => Promise<unknown>) => {
-    setErr(null);
-    fn().catch((x) => setErr(t(x instanceof Error ? x.message : 'unknown_error')));
-  };
-
-  const onExportCsv = () => {
-    const csv = buildRosterCsv(
-      rows.map((p) => ({
-        user_id: p.user_id,
-        guest_name: p.guest_name,
-        status: p.status,
-        is_standby: p.is_standby,
-        joined_at: p.joined_at,
-        confirmed_at: p.confirmed_at,
-        has_paid: p.has_paid,
-        paid_at: p.paid_at,
-        profiles: { full_name: p.profiles?.full_name ?? null },
-      })),
-      { entrance_fee_enabled: !!e.entrance_fee_enabled, entrance_fee_amount: e.entrance_fee_amount ?? null },
-    );
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = rosterCsvFilename(e.name, e.starts_at ?? new Date().toISOString());
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const section = (title: string, list: RosterParticipant[]) =>
-    list.length > 0 ? (
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <Card className="divide-y p-0">
-          {list.map((p) => (
-            <RosterRow
-              key={p.id}
-              p={p}
-              feeEnabled={feeEnabled}
-              onConfirm={(name) => run(() => markConfirmed.mutateAsync({ participantId: p.id, targetName: name }))}
-              onTogglePaid={(paid, name) => run(() => markPaid.mutateAsync({ participantId: p.id, paid, targetName: name }))}
-              onRemove={(mode, name) => run(() => removeParticipant.mutateAsync({ participantId: p.id, mode, targetName: name }))}
-            />
-          ))}
-        </Card>
+  if (event.isError) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 pt-3 sm:px-6">
+        {header}
+        <div className="flex flex-col items-center gap-3 p-8 text-center" role="alert" data-testid="manage-load-error">
+          <p className="text-sm text-muted-foreground">{t('loadError')}</p>
+          <Button variant="secondary" onClick={() => void event.refetch()}>
+            {t('retryCta')}
+          </Button>
+        </div>
       </div>
-    ) : null;
+    );
+  }
+  // Organizer only: no event (RLS) or someone else's.
+  if (event.data == null || uid == null || uid !== event.data.organizer_id) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 pt-3 sm:px-6">
+        {header}
+        <p className="p-8 text-center text-sm text-muted-foreground" data-testid="manage-forbidden">
+          {t('forbidden')}
+        </p>
+      </div>
+    );
+  }
+
+  const initial = EDIT_DIALOG_KINDS.includes(sheet as EditDialogKind) ? (sheet as EditDialogKind) : null;
+  return <Dashboard key={event.data.id} event={event.data} header={header} initialDialog={initial} />;
+}
+
+function Dashboard({
+  event,
+  header,
+  initialDialog,
+}: {
+  event: EventDetail;
+  header: React.ReactNode;
+  initialDialog: Dialog | null;
+}) {
+  const { t, i18n } = useT('event');
+  const router = useRouter();
+  const nowMs = useNow();
+  const id = event.id;
+  const participants = useEventParticipants(id);
+  const invitations = useEventInvitations(id);
+  const series = useEventSeries(id);
+  const courtIds = useEventCourts(id);
+  const setRanking = useSetEventRanking(id);
+  const [dialog, setDialog] = useState<Dialog | null>(initialDialog);
+
+  const parts = participants.data ?? [];
+  const recurring = event.series_id != null && series.data != null && series.data.is_active;
+  const status = event.status;
+  const editable = status === 'scheduled';
+  const completed = status === 'completed';
+  const hasFee = event.entrance_fee_enabled;
+  const ps = participationState(event, parts, invitations.data ?? [], event.organizer_id, nowMs);
+  const confirmed = parts.filter((p) => p.status === 'confirmed');
+  const confirmedMain = confirmed.filter((p) => !p.is_standby).length;
+  const paid = confirmed.filter((p) => p.has_paid).length;
+  const anyonePaid = parts.some((p) => p.has_paid);
+  const place = eventPlace(event);
+  const isPublicGroup = event.group_id != null && !event.is_private;
+
+  const close = () => {
+    setDialog(null);
+    // Drop `?sheet=` so a reload does not open the dialog again.
+    if (initialDialog) router.replace(`/app/event/${id}/manage`);
+  };
+  const edit = (k: EditDialogKind) => (editable ? () => setDialog(k) : undefined);
+
+  const onShare = async () => {
+    try {
+      if ((await shareEvent(id, event.name)) === 'copied') toast(t('linkCopied'));
+    } catch {
+      toast(t('copyFailed'), 'error');
+    }
+  };
+  const onCalendar = () => {
+    try {
+      downloadEventIcs({
+        id,
+        name: event.name,
+        starts_at: event.starts_at,
+        duration_minutes: event.duration_minutes,
+        description: event.description,
+        place,
+      });
+    } catch {
+      toast(t('calendarError'), 'error');
+    }
+  };
+  const onToggleRanking = (on: boolean) =>
+    void setRanking
+      .mutateAsync(on)
+      .catch((e: unknown) =>
+        toast(t(e instanceof Error ? e.message : 'unknown_error', { defaultValue: t('unknown_error') }), 'error'),
+      );
+
+  const confirmedCard = (
+    <DashCard
+      title={t('dashConfirmedTitle')}
+      a11yValue={t('dashRatio', { n: ps.totalIn, total: ps.totalCapacity })}
+      href={`/app/event/${id}/manage/players`}
+      testId="manage-confirmed"
+    >
+      <Donut value={ps.totalIn} total={ps.totalCapacity} label={t('dashConfirmedTitle')} decorative />
+    </DashCard>
+  );
+  const paidCard = hasFee ? (
+    <DashCard
+      title={t('dashPaidTitle')}
+      a11yValue={t('dashRatio', { n: paid, total: confirmed.length })}
+      href={`/app/event/${id}/manage/payments`}
+      testId="manage-paid"
+    >
+      <Donut value={paid} total={confirmed.length} label={t('dashPaidTitle')} decorative />
+    </DashCard>
+  ) : null;
+  const activityCard = (
+    <DashCard title={t('activityLogCta')} href={`/app/event/${id}/manage/activity`} testId="manage-activity" />
+  );
+  const exportAction = (
+    <Button variant="secondary" className="w-full" onClick={() => setDialog('export')} data-testid="manage-export">
+      {t('exportDataCta')}
+    </Button>
+  );
+  const duplicateAction = (
+    <Button variant="secondary" className="flex-1" onClick={() => setDialog('duplicate')} data-testid="manage-duplicate">
+      {t('duplicateCta')}
+    </Button>
+  );
+
+  const chips = [
+    formatLabel(t, event),
+    event.specification === 'team' ? t('teamFormatBadge') : modalityLabel(t, event),
+    event.group?.name ?? (event.group_id == null ? t('groupBadgeNone') : null),
+  ].filter((c): c is string => c != null);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-xl font-semibold">{t('manageTitle')}</h1>
-      {err ? <p className="text-sm text-destructive">{err}</p> : null}
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 pt-3 pb-8 sm:px-6">
+      {header}
+      <div className="flex flex-wrap gap-2" data-testid="manage-chips">
+        {chips.map((c) => (
+          <Badge key={c} variant="secondary">
+            {c}
+          </Badge>
+        ))}
+      </div>
 
-      {feeEnabled ? (
-        <Button variant="secondary" className="self-start" onClick={() => run(() => markAllPaid.mutateAsync())}>
-          {t('markAllPaidCta')}
-        </Button>
-      ) : null}
+      {completed ? (
+        <>
+          {paidCard ? <div className="grid grid-cols-2 gap-3">{paidCard}</div> : null}
+          {isPublicGroup ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl border bg-card p-4">
+              <Label htmlFor="manage-ranking">{t('rankingToggleLabel')}</Label>
+              <Switch
+                id="manage-ranking"
+                checked={event.counts_for_ranking}
+                disabled={setRanking.isPending}
+                onCheckedChange={onToggleRanking}
+                data-testid="manage-ranking"
+              />
+            </div>
+          ) : null}
+          {activityCard}
+          <div className="mt-2 flex flex-col gap-2">
+            {exportAction}
+            <div className="flex gap-3">{duplicateAction}</div>
+          </div>
+        </>
+      ) : (
+        <>
+          <DashCard title={t('dashNameTitle')} value={event.name} onClick={edit('general')} testId="manage-name" />
+          <div className="grid grid-cols-2 gap-3">
+            <DashCard
+              title={t('step8Title')}
+              value={preferencesSummary(t, event)}
+              onClick={edit('preferences')}
+              testId="manage-preferences"
+            />
+            <DashCard
+              title={t('widgetScoring')}
+              value={scoringLabel(t, event)}
+              onClick={edit('scoring')}
+              testId="manage-scoring"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {confirmedCard}
+            {paidCard}
+          </div>
+          <DashCard
+            title={t('locationCardTitle')}
+            value={place?.name ?? t('noLocationValue')}
+            detail={t('dashCourts', { count: event.num_courts })}
+            onClick={edit('location')}
+            testId="manage-location"
+          />
+          <DashCard
+            title={t('dateLabel')}
+            value={formatEventWhen(new Date(event.starts_at), event.duration_minutes, i18n.language)}
+            onClick={edit('date')}
+            testId="manage-date"
+          />
+          {activityCard}
 
-      {section(t('rosterConfirmedSection'), confirmed)}
-      {section(t('rosterWaitingSection'), waiting)}
-      {section(t('rosterStandbySection'), standby)}
+          <div className="mt-2 flex flex-col gap-2">
+            <Button variant="secondary" className="w-full" onClick={() => void onShare()} data-testid="manage-share">
+              {t('shareAction')}
+            </Button>
+            <Button variant="secondary" className="w-full" onClick={onCalendar} data-testid="manage-calendar">
+              {t('addToCalendarAction')}
+            </Button>
+            {/* Blasts need a group today (send_event_blast, 0076); decision 6 opens them to
+                group-less events with migration 0124. */}
+            {event.group_id != null ? (
+              <Button asChild variant="secondary" className="w-full">
+                <Link href={`/app/event/${id}/manage/blast`} data-testid="manage-blast">
+                  {t('sendBlastCta')}
+                </Link>
+              </Button>
+            ) : null}
+            {exportAction}
+            {/* The organizer can start any time from here (UX-MEVT-23); the live page keeps
+                today's start gate until W5. */}
+            {editable ? (
+              <Button asChild className="w-full">
+                <Link href={`/app/event/${id}/live`} data-testid="manage-start">
+                  {t('startCta')}
+                </Link>
+              </Button>
+            ) : null}
+          </div>
 
-      {invited.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-muted-foreground">{t('rosterInvitedSection')}</p>
-          <Card className="divide-y p-0">
-            {invited.map((inv) => {
-              const n = inv.invitee?.full_name ?? '—';
-              return (
-                <div key={inv.id} className="flex items-center gap-3 px-4 py-3">
-                  <Avatar className="size-9">
-                    <AvatarImage src={avatarUrl(inv.invitee?.avatar_url) ?? undefined} />
-                    <AvatarFallback>{n.slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <span className="truncate text-sm">{n}</span>
-                </div>
-              );
-            })}
-          </Card>
-        </div>
-      ) : null}
-
-      {confirmed.length + waiting.length + standby.length + invited.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t('noRoster')}</p>
-      ) : null}
-
-      <AddManualForm onAdd={(name, gender) => run(() => addManual.mutateAsync({ name, gender }))} />
-
-      <Card className="flex flex-col gap-2 p-4">
-        <Button asChild variant="secondary">
-          <Link href={`/app/event/${id}/edit`}>{t('editEventCta')}</Link>
-        </Button>
-        <Button asChild variant="secondary">
-          <Link href={`/app/event/${id}/manage/blast`}>{t('sendBlastCta')}</Link>
-        </Button>
-        <Button asChild variant="secondary">
-          <Link href={`/app/event/${id}/manage/activity`}>{t('activityLogCta')}</Link>
-        </Button>
-        <Button variant="secondary" onClick={onExportCsv}>{t('exportCsvCta')}</Button>
-        <Button variant="secondary" onClick={() => run(() => emailCsv.mutateAsync())}>{t('emailCsvCta')}</Button>
-        <Button
-          variant="secondary"
-          onClick={() =>
-            run(() =>
-              dup
-                // starts_at is required and in the future (0122, B8): the next weekly slot
-                // until the Duplicate dialog (plan W1) lets the organizer pick it.
-                .mutateAsync({
-                  eventId: id,
-                  groupId: e.group_id,
-                  overrides: { starts_at: nextFutureWeekly(new Date(e.starts_at)).toISOString() },
-                })
-                .then((newId) => router.push(`/app/event/${newId as string}`)),
-            )
-          }
-        >
-          {t('duplicateCta')}
-        </Button>
-        <Button variant="destructive" onClick={() => setCancelOpen(true)}>{t('cancelEventCta')}</Button>
-      </Card>
-
-      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{e.series_id ? t('cancelRecurringTitle') : t('cancelStandardTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('cancelStandardBody')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
-            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-            {e.series_id ? (
-              <>
-                <AlertDialogAction
-                  onClick={() =>
-                    run(() =>
-                      cancelEvent.mutateAsync({ scope: 'only_this' }).then(() => router.push(`/app/event/${id}`)),
-                    )
-                  }
-                >
-                  {t('cancelOnlyThisCta')}
-                </AlertDialogAction>
-                <AlertDialogAction
-                  onClick={() =>
-                    run(() =>
-                      cancelEvent
-                        .mutateAsync({ scope: 'this_and_upcoming' })
-                        .then(() => router.push(`/app/event/${id}`)),
-                    )
-                  }
-                >
-                  {t('cancelThisAndUpcomingCta')}
-                </AlertDialogAction>
-              </>
-            ) : (
-              <AlertDialogAction
-                onClick={() =>
-                  run(() => cancelEvent.mutateAsync({ scope: 'only_this' }).then(() => router.push(`/app/event/${id}`)))
-                }
+          <div className="flex gap-3">
+            {duplicateAction}
+            {editable ? (
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => setDialog('cancel')}
+                data-testid="manage-cancel"
               >
                 {t('cancelEventCta')}
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </Button>
+            ) : null}
+          </div>
+        </>
+      )}
+
+      {dialog != null && (EDIT_DIALOG_KINDS as readonly string[]).includes(dialog) && editable ? (
+        <EventEditDialog
+          kind={dialog as EditDialogKind}
+          event={event}
+          confirmedMain={confirmedMain}
+          recurring={recurring}
+          courtIds={courtIds.data}
+          onClose={close}
+          onSaved={() => {
+            close();
+            toast(t('eventSavedToast'));
+          }}
+        />
+      ) : null}
+      {dialog === 'export' ? (
+        <ExportDialog
+          event={event}
+          onClose={close}
+          onDone={(message) => {
+            close();
+            toast(message);
+          }}
+        />
+      ) : null}
+      {dialog === 'duplicate' ? (
+        <DuplicateEventDialog
+          event={event}
+          courtIds={courtIds.data}
+          onClose={close}
+          onDuplicated={(newId) => {
+            setDialog(null);
+            toast(t('duplicatedToast'));
+            router.push(`/app/event/${newId}`);
+          }}
+        />
+      ) : null}
+      {dialog === 'cancel' ? (
+        <CancelEventDialog
+          event={event}
+          recurring={recurring}
+          anyonePaid={anyonePaid}
+          onClose={close}
+          onCancelled={() => {
+            setDialog(null);
+            toast(t('cancelledToast'));
+            router.push(`/app/event/${id}`);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * One dashboard card: its title, the current value as a subtitle, and a chevron when it opens
+ * something (a dialog via `onClick`, a page via `href`). A card that opens something is ONE control
+ * whose name carries the value, so a donut inside it is decorative.
+ */
+function DashCard({
+  title,
+  value,
+  detail,
+  a11yValue,
+  onClick,
+  href,
+  children,
+  testId,
+}: {
+  title: string;
+  value?: string;
+  detail?: string;
+  /** What a screen reader hears after the title when the value is drawn (a donut). */
+  a11yValue?: string;
+  onClick?: () => void;
+  href?: string;
+  children?: React.ReactNode;
+  testId: string;
+}) {
+  const interactive = onClick != null || href != null;
+  const label = interactive ? [title, value, detail, a11yValue].filter(Boolean).join(', ') : undefined;
+  const body = (
+    <>
+      <span className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-xs font-medium text-muted-foreground">{title}</span>
+        {interactive ? <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : null}
+      </span>
+      {value ? <span className="line-clamp-2 font-medium break-words">{value}</span> : null}
+      {detail ? <span className="text-sm text-muted-foreground">{detail}</span> : null}
+      {children ? <span className="flex justify-center pt-2">{children}</span> : null}
+    </>
+  );
+  const cls = cn(
+    'flex w-full min-w-0 flex-col gap-1 rounded-xl border bg-card p-4 text-left',
+    interactive && 'transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+  );
+  if (href) {
+    return (
+      <Link href={href} className={cls} aria-label={label} data-testid={testId}>
+        {body}
+      </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cls} aria-label={label} data-testid={testId}>
+        {body}
+      </button>
+    );
+  }
+  return (
+    <div className={cls} data-testid={testId}>
+      {body}
     </div>
   );
 }
