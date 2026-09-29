@@ -208,7 +208,7 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
   ) : null;
   const activityCard = (
     <DashCard
-      title={t('activityLogCta')}
+      title={t('activityTitle')}
       onPress={() => router.push(`/event/${id}/activity` as Href)}
       testID="manage-activity"
     />
@@ -310,17 +310,14 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
                 onPress={() => void onCalendar()}
                 testID="manage-calendar"
               />
-              {/* Blasts need a group today (send_event_blast, 0076); decision 6 opens them to
-                  group-less events with migration 0124. */}
-              {event.group_id != null ? (
-                <Button
-                  label={t('sendBlastCta')}
-                  variant="secondary"
-                  fullWidth
-                  onPress={() => router.push(`/event/${id}/blast` as Href)}
-                  testID="manage-blast"
-                />
-              ) : null}
+              {/* Group and group-less events alike (decision 6, migration 0124). */}
+              <Button
+                label={t('sendBlastCta')}
+                variant="secondary"
+                fullWidth
+                onPress={() => router.push(`/event/${id}/blast` as Href)}
+                testID="manage-blast"
+              />
               {exportAction}
               {editable ? (
                 <Button

@@ -751,13 +751,11 @@ export default function EventDetailScreen() {
                   testID="event-chip-payments"
                 />
               ) : null}
-              {event.group_id != null ? (
-                <Chip
-                  label={t('sendBlastCta')}
-                  onPress={() => router.push(`/event/${id}/blast` as Href)}
-                  testID="event-chip-blast"
-                />
-              ) : null}
+              <Chip
+                label={t('sendBlastCta')}
+                onPress={() => router.push(`/event/${id}/blast` as Href)}
+                testID="event-chip-blast"
+              />
               {status === 'scheduled' ? (
                 <Chip
                   label={t('step8Title')}

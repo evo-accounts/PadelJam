@@ -28,6 +28,8 @@ type Props = {
   secondaryLabel?: string;
   /** The failed submit's message, shown as an alert above the buttons. */
   error?: string | null;
+  /** Pinned above the buttons, outside the scrolling body — e.g. Send blast's "Save blast" tick. */
+  footerExtra?: ReactNode;
   children: ReactNode;
   /** The sheet is `{testID}`; Save `{testID}-save`, Cancel `{testID}-cancel`, ✕ `{testID}-close`. */
   testID: string;
@@ -42,6 +44,7 @@ export function ManageSheet({
   destructive = false,
   secondaryLabel,
   error,
+  footerExtra,
   children,
   testID,
 }: Props) {
@@ -63,6 +66,7 @@ export function ManageSheet({
         {children}
       </ScrollView>
       <View style={styles.footer}>
+        {footerExtra}
         {error ? (
           <Text variant="caption" tone="destructive" accessibilityRole="alert" testID={`${testID}-error`}>
             {error}
