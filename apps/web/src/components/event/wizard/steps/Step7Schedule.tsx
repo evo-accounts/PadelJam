@@ -59,11 +59,14 @@ export function Step7Schedule({
   recurring = false,
 }: StepProps & {
   /**
-   * `edit`: Manage Event's Edit Date & Time dialog (UX-MEVT-08). Repeat every week is shown
-   * read-only there until recurrence editing ships with migration 0123 (W5).
+   * `edit`: Manage Event's Edit Date & Time dialog (UX-MEVT-08) — Repeat every week is a real
+   * switch there (`draft.series` on / off; the dialog turns it into set_event_recurrence).
+   * `occurrence`: one Upcoming occurrence of a series (UX-MEVT-22) — its date and time only: no
+   * Repeat card (it already belongs to a series) and no duration (update_occurrence_slot moves
+   * the start alone).
    */
-  context?: 'wizard' | 'edit';
-  /** Edit only: whether the event belongs to an active weekly series. */
+  context?: 'wizard' | 'edit' | 'occurrence';
+  /** Edit only: whether the event already belongs to an active weekly series (its lead is kept). */
   recurring?: boolean;
 }) {
   const { t } = useT('event');
@@ -115,67 +118,45 @@ export function Step7Schedule({
         ) : null}
       </Card>
 
-      <Card title={t('durationCardTitle')} id="date-card-duration">
-        <div className="flex flex-wrap gap-2" role="group" aria-labelledby="date-card-duration">
-          {DURATION_PRESETS.map((mins) => (
+      {context === 'occurrence' ? null : (
+        <Card title={t('durationCardTitle')} id="date-card-duration">
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="date-card-duration">
+            {DURATION_PRESETS.map((mins) => (
+              <Button
+                key={mins}
+                type="button"
+                size="sm"
+                variant={draft.durationMinutes === mins ? 'primary' : 'secondary'}
+                aria-pressed={draft.durationMinutes === mins}
+                onClick={() => update({ durationMinutes: mins })}
+                className="rounded-full"
+                data-testid={`duration-${mins}`}
+              >
+                {t('minutesValue', { count: mins })}
+              </Button>
+            ))}
             <Button
-              key={mins}
               type="button"
               size="sm"
-              variant={draft.durationMinutes === mins ? 'primary' : 'secondary'}
-              aria-pressed={draft.durationMinutes === mins}
-              onClick={() => update({ durationMinutes: mins })}
+              variant={custom ? 'primary' : 'secondary'}
+              aria-pressed={custom}
+              onClick={() => setCustomOpen(true)}
               className="rounded-full"
-              data-testid={`duration-${mins}`}
+              data-testid="duration-custom"
             >
-              {t('minutesValue', { count: mins })}
+              {custom ? t('durationCustomValue', { count: draft.durationMinutes }) : t('durationCustom')}
             </Button>
-          ))}
-          <Button
-            type="button"
-            size="sm"
-            variant={custom ? 'primary' : 'secondary'}
-            aria-pressed={custom}
-            onClick={() => setCustomOpen(true)}
-            className="rounded-full"
-            data-testid="duration-custom"
-          >
-            {custom ? t('durationCustomValue', { count: draft.durationMinutes }) : t('durationCustom')}
-          </Button>
-        </div>
-        {errors.includes('durationMinutes') ? (
-          <p role="alert" className="text-sm text-destructive">
-            {t('customDurationError')}
-          </p>
-        ) : null}
-      </Card>
-
-      {/* TODO(0123, W5): turn recurrence on/off here (set_event_recurrence). Until then it is shown
-          as it is and cannot be changed — never a switch that does nothing. */}
-      {context === 'edit' && draft.groupId ? (
-        <section aria-label={t('repeatLabel')} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-0.5">
-              <label htmlFor="repeat-weekly" className="font-semibold">
-                {t('repeatLabel')}
-              </label>
-              <p id="repeat-weekly-hint" className="text-sm text-muted-foreground">
-                {t('repeatEditLater')}
-              </p>
-            </div>
-            <Switch
-              id="repeat-weekly"
-              checked={recurring}
-              disabled
-              aria-describedby="repeat-weekly-hint"
-              data-testid="repeat-weekly"
-            />
           </div>
-        </section>
-      ) : null}
+          {errors.includes('durationMinutes') ? (
+            <p role="alert" className="text-sm text-destructive">
+              {t('customDurationError')}
+            </p>
+          ) : null}
+        </Card>
+      )}
 
       {/* Recurrence is group-only; a standalone event has nobody to re-invite (plan-capped on create). */}
-      {context === 'wizard' && draft.groupId ? (
+      {context !== 'occurrence' && draft.groupId ? (
         <section aria-label={t('repeatLabel')} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-0.5">
@@ -196,7 +177,8 @@ export function Step7Schedule({
               data-testid="repeat-weekly"
             />
           </div>
-          {repeatOn ? (
+          {/* An existing series keeps its own lead; only a new one picks it. */}
+          {repeatOn && !(context === 'edit' && recurring) ? (
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium">{t('inviteLeadLabel')}</span>
               <SegmentedRadio<`${InviteLeadDays}`>

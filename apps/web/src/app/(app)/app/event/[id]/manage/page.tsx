@@ -7,8 +7,9 @@
  *   header    back · "Manage Event"; format, modality and group as read-only chips (UX-MEVT-09)
  *   cards     Event name → General Info · Preferences | Scoring · Confirmed | Paid (donuts — two
  *             lists that never merge) · Location → Location & Courts · Date → Date & Time ·
- *             Activity (full page)
- *   actions   Share, Add to calendar, Send blast, Export, Start event
+ *             Activity (full page) · Next occurrences (a recurring event, UX-MEVT-22)
+ *   actions   Share, Add to calendar, Send blast, Export, Start event (any time — the start
+ *             flow's check and dialogs, UX-MEVT-23)
  *   footer    Duplicate | Cancel
  *
  * Only a scheduled event is editable (update_event refuses anything else): the cards of an event in
@@ -29,8 +30,10 @@ import {
   useEventInvitations,
   useEventParticipants,
   useEventRealtime,
+  useCommunityMembers,
   useEventSeries,
   useEventTeams,
+  useGroup,
   useSetEventRanking,
   type EventDetail,
 } from '@padel/api';
@@ -45,6 +48,9 @@ import {
 } from '@/components/event/manage/EventEditDialog';
 import { formatLabel, modalityLabel, preferencesSummary, scoringLabel } from '@/components/event/manage/eventLabels';
 import { ExportDialog } from '@/components/event/manage/ExportDialog';
+import { NextOccurrences } from '@/components/event/manage/NextOccurrences';
+import { useStartFlow } from '@/components/event/manage/useStartFlow';
+import { UpgradePrompt } from '@/components/community/UpgradePrompt';
 import { useEventCourts } from '@/components/event/manage/useSaveEvent';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -114,7 +120,9 @@ function Dashboard({
   initialDialog: Dialog | null;
 }) {
   const { t, i18n } = useT('event');
+  const { t: tCommunity } = useT('community');
   const router = useRouter();
+  const uid = useSession().session?.user.id;
   const nowMs = useNow();
   const id = event.id;
   const participants = useEventParticipants(id);
@@ -124,6 +132,13 @@ function Dashboard({
   const courtIds = useEventCourts(id);
   const setRanking = useSetEventRanking(id);
   const [dialog, setDialog] = useState<Dialog | null>(initialDialog);
+  const startFlow = useStartFlow(id, event);
+  // Turning Repeat every week on can hit the community's recurring-events cap (UpgradePrompt).
+  // Only an admin can change the plan; the member list is read only once the prompt is up.
+  const [capPrompt, setCapPrompt] = useState(false);
+  const group = useGroup(event.group_id);
+  const communityMembers = useCommunityMembers(capPrompt ? group.data?.community_id : undefined);
+  const canManagePlan = communityMembers.data?.find((m) => m.user_id === uid)?.role === 'admin';
 
   const parts = participants.data ?? [];
   const completeTeams = (teams.data ?? []).filter((tm) => tm.player_a != null && tm.player_b != null).length;
@@ -284,6 +299,7 @@ function Dashboard({
             testId="manage-date"
           />
           {activityCard}
+          {recurring ? <NextOccurrences eventId={id} /> : null}
 
           <div className="mt-2 flex flex-col gap-2">
             <Button variant="secondary" className="w-full" onClick={() => void onShare()} data-testid="manage-share">
@@ -299,13 +315,16 @@ function Dashboard({
               </Link>
             </Button>
             {exportAction}
-            {/* The organizer can start any time from here (UX-MEVT-23); the live page keeps
-                today's start gate until W5. */}
+            {/* The organizer can start any time from here, ahead of schedule (UX-MEVT-23). */}
             {editable ? (
-              <Button asChild className="w-full">
-                <Link href={`/app/event/${id}/live`} data-testid="manage-start">
-                  {t('startCta')}
-                </Link>
+              <Button
+                className="w-full"
+                disabled={startFlow.pending}
+                aria-busy={startFlow.pending || undefined}
+                onClick={startFlow.onStart}
+                data-testid="manage-start"
+              >
+                {t('startCta')}
               </Button>
             ) : null}
           </div>
@@ -338,8 +357,19 @@ function Dashboard({
             close();
             toast(t('eventSavedToast'));
           }}
+          onUpgrade={() => {
+            close();
+            setCapPrompt(true);
+          }}
         />
       ) : null}
+      <UpgradePrompt
+        open={capPrompt}
+        onClose={() => setCapPrompt(false)}
+        title={tCommunity('upgradeRecurringCap')}
+        canManage={canManagePlan}
+      />
+      {startFlow.dialog}
       {dialog === 'export' ? (
         <ExportDialog
           event={event}

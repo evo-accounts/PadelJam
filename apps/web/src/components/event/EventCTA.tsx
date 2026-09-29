@@ -38,6 +38,9 @@ export function EventCTA({
   onDecline,
   onTeamJoin,
   onEditResponse,
+  onStart,
+  startPending = false,
+  pinned,
 }: {
   bottom: BottomState;
   eventId: string;
@@ -68,6 +71,11 @@ export function EventCTA({
   onTeamJoin: () => void;
   /** An interested player's "Edit response" (UX-JEVT-13). */
   onEditResponse: () => void;
+  /** Organizer: Start event — the start flow's check and dialogs (UX-MEVT-23). */
+  onStart?: () => void;
+  startPending?: boolean;
+  /** Pinned above the actions: the organizer's pending actions card (UX-MEVT-24). */
+  pinned?: React.ReactNode;
 }) {
   const { t } = useT('event');
   const errLine = error ? (
@@ -95,10 +103,14 @@ export function EventCTA({
       if (scheduled) {
         if (startHere) {
           rows.push(
-            <Button key="start" asChild>
-              <Link href={`/app/event/${eventId}/live`} data-testid="event-start">
-                {t('startCta')}
-              </Link>
+            <Button
+              key="start"
+              disabled={busy || startPending}
+              aria-busy={startPending || undefined}
+              onClick={onStart}
+              data-testid="event-start"
+            >
+              {t('startCta')}
             </Button>,
           );
         }
@@ -246,12 +258,13 @@ export function EventCTA({
       break;
   }
 
-  if (body == null && errLine == null) return null;
+  if (body == null && errLine == null && pinned == null) return null;
   return (
     <div
       className="sticky bottom-0 z-10 -mx-4 mt-auto flex flex-col gap-2 border-t bg-card px-4 pt-3 pb-4 sm:-mx-6 sm:px-6"
       data-testid="event-bottom-area"
     >
+      {pinned}
       {body}
       {errLine}
     </div>
