@@ -137,7 +137,8 @@ function Occurrence({
       : `${event.entrance_fee_amount ?? 0}`
     : t('feeFree');
 
-  const backToManage = () => router.push(`/app/event/${event.id}/manage`);
+  // Replace, not push: once sent or cancelled the preview is gone, so Back must not return to it.
+  const backToManage = () => router.replace(`/app/event/${event.id}/manage`);
   const fail = (e: unknown) =>
     toast(t(e instanceof Error ? e.message : 'unknown_error', { defaultValue: t('unknown_error') }), 'error');
   const onConfirm = async () => {
