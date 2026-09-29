@@ -24,6 +24,11 @@ describe('mapPgError', () => {
     expect(mapPgError({ message: 'request_stale' })).toBe('request_stale');
     expect(mapPgError({ message: 'partner_unavailable' })).toBe('partner_unavailable');
   });
+  it('maps the follow and community-location codes (0128)', () => {
+    expect(mapPgError({ message: 'cannot_follow_self' })).toBe('cannot_follow_self');
+    expect(mapPgError({ message: 'blocked' })).toBe('blocked');
+    expect(mapPgError({ message: 'invalid_location' })).toBe('invalid_location');
+  });
   it('maps the plan grant/downgrade guard codes', () => {
     expect(mapPgError({ message: 'invalid_plan' })).toBe('invalid_plan');
     expect(mapPgError({ message: 'plan_downgrade_over_limit' })).toBe('plan_downgrade_over_limit');

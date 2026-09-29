@@ -33,6 +33,13 @@ describe('schemas', () => {
     expect(createCommunitySchema.safeParse({ name: 'A', type: 'club', privacy: 'public',
       rules: { enabled: true, text: 'No-shows banned' } }).success).toBe(true);
   });
+  it('accepts an optional location point and range-checks it', () => {
+    const base = { name: 'A', type: 'club', privacy: 'public', rules: { enabled: false } } as const;
+    expect(createCommunitySchema.safeParse(base).success).toBe(true);
+    expect(createCommunitySchema.safeParse({ ...base, locationPoint: { lat: 38.72, lng: -9.14 } }).success).toBe(true);
+    expect(createCommunitySchema.safeParse({ ...base, locationPoint: { lat: 91, lng: 0 } }).success).toBe(false);
+    expect(createCommunitySchema.safeParse({ ...base, locationPoint: { lat: 0, lng: -181 } }).success).toBe(false);
+  });
   it('rejects an empty community name', () => {
     expect(createCommunitySchema.safeParse({ name: '', type: 'club', privacy: 'public',
       rules: { enabled: false } }).success).toBe(false);

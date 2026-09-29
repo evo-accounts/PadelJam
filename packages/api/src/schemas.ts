@@ -3,11 +3,19 @@ import { z } from 'zod';
 export const COMMUNITY_TYPES = ['club', 'team', 'friends'] as const;
 export const PRIVACY = ['public', 'request_to_join', 'private'] as const;
 
+/** A picked place's coordinates (D2 of the Home & Explore audit). `location` stays the label. */
+export const locationPointSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+export type LocationPoint = z.infer<typeof locationPointSchema>;
+
 export const createCommunitySchema = z
   .object({
     name: z.string().trim().min(1).max(80),
     description: z.string().trim().max(2000).optional(),
     location: z.string().trim().max(120).optional(),
+    locationPoint: locationPointSchema.optional(),
     type: z.enum(COMMUNITY_TYPES),
     privacy: z.enum(PRIVACY),
     thumbnailPath: z.string().optional(),

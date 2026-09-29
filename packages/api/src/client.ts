@@ -67,7 +67,10 @@ const KNOWN = [
   'password_weak',
   // venue registry (0114): save_venue / the court-in-use guard
   'court_in_use', 'court_name_required', 'venue_not_found', 'invalid_courts',
-  // 0122: invite_to_event to a blocked player. LAST: the shortest, most generic code.
+  // 0128: follow_player on yourself; a community location with half a point or out of range.
+  'cannot_follow_self', 'invalid_location',
+  // 0122: invite_to_event to a blocked player; 0128: follow_player across a block.
+  // LAST: the shortest, most generic code.
   'blocked',
 ] as const;
 
