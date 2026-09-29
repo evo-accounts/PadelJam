@@ -1,5 +1,5 @@
--- create_event: group admin creates a public americano -> uuid, auto-invitations for OTHER group
--- members, organizer is a confirmed participant (organizing_and_playing). Non-admin member -> forbidden.
+-- create_event: group admin creates a public americano -> uuid, no invitations and an event_created
+-- notification for OTHER group members (0112), organizer is a confirmed participant (organizing_and_playing). Non-admin member -> forbidden.
 -- Standalone (no group_id) -> is_private=true. Blank name -> name_required. Bad event_type -> invalid_event_config.
 -- 'PT001' = "expected behaviour did not hold" sentinel; the RPC raises P0001.
 begin;
@@ -52,6 +52,16 @@ begin
   if not exists (select 1 from event_participants
                  where event_id=v_event and user_id='f1000001-0000-0000-0000-000000000001' and status='confirmed') then
     raise exception using errcode='PT001', message='organizer must be a confirmed participant'; end if;
+  perform set_config('test.ev1', v_event::text, false);
+end $$;
+reset role;
+
+-- The invitation / notification checks run as the table owner: under RLS the organizer cannot read
+-- event_invitations rows or another user's notifications, so an authenticated read would see nothing
+-- and prove nothing.
+do $$
+declare v_event uuid := current_setting('test.ev1')::uuid;
+begin
   -- 0112 (decision 5): a public group event invites nobody; the OTHER member (member2) gets an
   -- event_created notification instead, and the organizer gets none.
   if exists (select 1 from event_invitations where event_id=v_event) then
@@ -64,7 +74,6 @@ begin
     raise exception using errcode='PT001', message='organizer must not be notified of their own event'; end if;
   raise notice 'OK create_event public group: uuid + event_created for other members + organizer confirmed';
 end $$;
-reset role;
 
 -- (2) A plain community member and create_event. Since migration 0098 the gate is the
 -- create_events TOGGLE (UX-COMM-17), not the role: it is ON by default, so the member succeeds,

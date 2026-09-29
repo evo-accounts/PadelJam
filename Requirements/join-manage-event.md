@@ -1,8 +1,8 @@
 # Events Module — Join & Manage Event
 
-*Padel Jam — Version 1.4 • September 2026 • Amended by the Create & Join Events UX audit (2026-09-25)*
+*Padel Jam — Version 1.5 • September 2026 • Amended by the Create & Join Events (2026-09-25) and Manage Event (2026-09-29) UX audits*
 
-*Changelog — v1.4 (2026-09-26): amended to the Events UX audit decisions; see the block below. v1.3 (May 2026): send blast and attendance export.*
+*Changelog — v1.5 (2026-09-30): amended to the Manage Event UX audit decisions (UX-MEVT-01..27, D1–D17); see the second block below. v1.4 (2026-09-26): amended to the Events UX audit decisions; see the first block below. v1.3 (May 2026): send blast and attendance export.*
 
 This document defines two perspectives on an already-created event: Join Event (the player perspective — joining, leaving, partnering up, waiting lists) and Manage Event (the organizer perspective — editing the event, managing its roster, sending blasts, and exporting attendance / revenue). It builds directly on the data model established in the Create Event requirements doc (v1.1). Plan-driven behaviour — the organizer’s blast-customisation level — references the Profile & Settings document’s Subscription section. The In-progress Event sub-flows (player and manager views) are specified in a separate companion document.
 
@@ -43,6 +43,49 @@ This document defines two perspectives on an already-created event: Join Event (
 >   `pg_cron`); there is no ~3-month rolling window of addressable occurrences (§4.6, matches Create Event
 >   EV-09). A duplicate is a one-off.
 
+> **Amended 2026-09-29 by the Manage Event UX audit** (`docs/audit/2026-09-29-ux-manage-event.md`,
+> decisions D1–D17 in `docs/audit/2026-09-29-ux-manage-event-plan.md`, migrations 0121–0127). This time the
+> Manage Event (organizer) side was audited. Rows and paragraphs marked *(amended, UX-MEVT-nn / Dn)* carry the
+> outcome; where the audit and this document disagreed, the audit won. In short:
+>
+> - **Organizer event page** — a settings icon opens Manage Event; an organizer who plays also gets ⋯. A status
+>   line ("You are organizing" + Join as a player / "You are organizing and going!"), a Manage players row and
+>   a chip row (Payment list, Send blast, Preferences). No "Gerir" button (UX-MEVT-01, §3.2, §4.1).
+> - **Manage Event dashboard** — read-only format / modality / group chips; cards for Event name, Preferences,
+>   Scoring, Confirmed and Paid donuts, Location & courts, Date, Activity, Next occurrences; actions Share, Add
+>   to calendar, Send blast, Export, Start event; footer Duplicate | Cancel. One sheet per setting. Only a
+>   scheduled event is editable; a completed one reduces to Paid, the ranking toggle, Activity, Export and
+>   Duplicate (UX-MEVT-03..09, JM-23, §4.1, §4.2).
+> - **Roster rules** — the waiting list cannot be confirmed by the organizer (D2); a public group event
+>   offers "Remove from event" only, a private one also "Remove from confirmed list" (D3); organizer confirms
+>   and manual guests respect capacity and the mixed halves (MEVT-25); removed and organizer-confirmed players
+>   are notified (JM-25..27, JM-48, §4.3).
+> - **Organizer always eligible** for their own event; the organizer role is set at creation and is no longer
+>   editable — Join / Leave as a player instead (D8, JM-35, §4.8).
+> - **Invite** — group members only on a group event; connections (mutual follows), then following, then
+>   everyone else on a group-less one (D12, JM-36, §4.3.1).
+> - **Teams** — Teams / Players views, slots, drag and drop, guests straight into a slot, switch with an
+>   invitee, remove from team (D7, UX-MEVT-14/15/26, §4.4).
+> - **Payments** — a per-player `paid_amount` credit: raising the fee turns earlier payers Pending for the
+>   difference; guests owe the fee too (D9, JM-33, §4.5).
+> - **Recurring** — the next 4 occurrences are listed (Upcoming = not materialised, Scheduled = materialised);
+>   an Upcoming date can be moved, cancelled or its invitations sent now; edits ask "this occurrence only" /
+>   "this and upcoming"; Repeat every week is a real toggle (D5, JM-34, §4.6).
+> - **Pending actions** — teams, open spots, outstanding payments, no location, courts not reserved (D13,
+>   JM-38, §4.7).
+> - **Duplicate** — name, thumbnail, date, time, location and courts editable; nothing carries over (no
+>   players, invitations, waiting list, teams or payments); the start is required and in the future (D4,
+>   JM-39, §4.9).
+> - **Activity** is written server-side for every roster, invitation, payment, configuration and event
+>   action; clients cannot write it (D15, JM-40).
+> - **Blasts** — allowed on group-less events; customisation = the community's `custom_broadcasts` feature
+>   (Basic+) or, group-less, the organizer's Jammer+ account plan, enforced server-side; Send to all /
+>   confirmed / invited / waiting list; saved blasts ("Your blasts"); WhatsApp opens the organizer's own
+>   WhatsApp with the text prefilled (D6, JM-41..45, §4.10).
+> - **Export** on every status, including completed (D16, JM-46/47, §4.11).
+> - **Start event** blocks only on real impossibilities and warns otherwise; the round engine keeps team pairs
+>   and mixed man + woman pairs — see the In-progress Event document (IP-03, IP-19).
+
 **Confirmed design decisions**
 
 - Rotation events (Americano / Mexicano / Up and Down) confirm a player in a single Join action. Team events confirm players only as complete pairs.
@@ -61,11 +104,11 @@ This document defines two perspectives on an already-created event: Join Event (
 
 - Removing or adding a player never changes whether the event counts toward the group ranking — only is_private decides that. Manually-added players are event-scoped — no platform account or profile is created for them. *(amended: they are guests — name, plus gender on mixed, confirmed for that event only, no history or ranking, not reusable.)*
 
-- Send blast is available only on events that belong to a community. The customisation level follows the community tier (Profile doc 7.6): Starter — send the template as-is on the chosen channels; Basic / Community Pro — fully customise title and description before sending.
+- ~~Send blast is available only on events that belong to a community. The customisation level follows the community tier (Profile doc 7.6): Starter — send the template as-is on the chosen channels; Basic / Community Pro — fully customise title and description before sending.~~ *(amended, UX-MEVT-18 / D6)* Send blast is available on every event, group-less included. Customisation follows the community's `custom_broadcasts` feature (Basic and above) on a group event and the organizer's account plan (Jammer+) on a group-less one; without it the template is sent as-is on the chosen channels.
 
-- Export attendance & revenue is available on every Manage Event hub, irrespective of plan. The organizer can either Download CSV or Send CSV to their email.
+- Export attendance & revenue is available on every Manage Event hub, irrespective of plan *(amended, D16: and of status — completed included)*. The organizer can either Download CSV or Send CSV to their email.
 
-- Duplicate is a quick-edit modal that clones the event’s entire configuration and lets the organizer change Name, Thumbnail, Date, and Time before confirming; every other field is inherited from the original.
+- Duplicate is a quick-edit modal that clones the event’s entire configuration and lets the organizer change Name, Thumbnail, Date, and Time before confirming; every other field is inherited from the original. *(amended, UX-MEVT-20 / D4)* Location and courts are editable too, and nothing about the roster carries over — no players, invitations, waiting list, teams or payment status.
 
 ## Overview
 
@@ -92,7 +135,7 @@ A person’s relationship to an event moves through a small set of states. The M
 
 - When every confirmed slot (regular + standby) is taken, further joiners go to the waiting list.
 
-- *(amended)* **Mixed events** split the capacity per gender: floor(capacity / 2) spots each (an odd stand-by spot stays unused). Every confirming path — join, accept an invitation, claim a waiting-list spot, guests at creation — enforces it; a player whose half is full goes to the waiting list, and a claim is refused with `gender_full`. A player with no gender on their profile is asked for it before joining a mixed event (`gender_required`). Organizer overrides are not restricted.
+- *(amended)* **Mixed events** split the capacity per gender: floor(capacity / 2) spots each (an odd stand-by spot stays unused). Every confirming path — join, accept an invitation, claim a waiting-list spot, guests at creation — enforces it; a player whose half is full goes to the waiting list, and a claim is refused with `gender_full`. A player with no gender on their profile is asked for it before joining a mixed event (`gender_required`). ~~Organizer overrides are not restricted.~~ *(amended, UX-MEVT-25)* The halves bind the organizer too: Mark as confirmed, confirming an invitee and Add manually refuse `event_full` / `gender_full` like every other path (migrations 0121, 0122).
 
 **Event join window**
 
@@ -137,6 +180,8 @@ This module evolves three tables from the Create Event doc and adds five new one
 | blast_templates | New. | System-provided blast templates exposed in the Templates tab of Send a blast. |
 | event_blasts | New. | History of every blast sent on every event — source data for the Your blasts tab and audit / analytics. |
 
+*(amended 2026-09-29, Manage Event audit)* Added since: `event_participants.paid_amount` (D9); `events.courts_reserved` (D13) and `events.slot_at` (the nominal slot of a moved occurrence); `event_series.grid_anchor` and a new `event_series_exceptions` table (per-date edits and cancellations, D5); `saved_blasts` (D6) with `event_blasts.send_to` / `audience_count`. The SQL is in migrations 0122–0124; the schema section below is not updated for them.
+
 *Note: the evolved event_participants supersedes the definition in the Create Event doc §05. Because every change is an added column or a relaxed constraint, the Create Event doc only needs its schema section synced — no behavioural rework.*
 
 ## Join Event — player perspective
@@ -168,10 +213,12 @@ The event detail screen is shared by everyone, but the status banner and primary
 | On the waiting list | “You’re on the waiting list” — *(amended)* with the line that everyone on the list is notified when a spot opens and it goes to whoever confirms first | Leave waiting list (secondary); *(amended)* Claim spot while a spot is free |
 | Event full, not joined | “No more spots available” | Join waiting list |
 | Join window closed | “Event closed” *(amended: a static line in the bottom area)* | (none) |
-| Organizer, not playing | “You’re organizing” | Join as a player |
-| Organizer, playing | “You’re organizing and going!” | More menu |
+| Organizer, not playing | “You’re organizing” *(amended, UX-MEVT-01: a status line under the header, with Join as a player beside it)* | Join as a player; *(amended)* Start event from the scheduled time |
+| Organizer, playing | “You’re organizing and going!” | More menu; *(amended)* Start event from the scheduled time |
 
 The detail body is the same throughout: hero image, name, date/time, location, players count, Type · Group line, Courts / Scoring / Fee chips, an Organizer section, and a location card. *(amended, UX-JEVT-02)* Header: back on the left, ⋯ on the right. The players card shows three confirmed avatars and confirmed / capacity, with a chevron to the Player list (§3.10). Type and group are badges; Courts, Scoring and Fee are three read-only widgets. The organizer card (always shown, even when the organizer only organizes) opens their profile; the location card opens the native maps app. On the organizer’s view, the body also shows the quick-action row: Manage players, Payment list (when the event has an entrance fee), and Send blast (when the event belongs to a community — see 4.10).
+
+*(amended, UX-MEVT-01 / UX-MEVT-24)* The organizer’s header has a settings icon (→ Manage Event) and, when they also play, the players’ ⋯ beside it. The body is the player view plus a **Manage players** row (overlapping avatars, confirmed / capacity, chevron) and a horizontally scrollable chip row: Payment list (fee only), Send blast (every event — D6), Preferences (opens the Preferences sheet on the dashboard). There is no “Gerir” button and no remaining-spots line. Start event is the primary action only from the scheduled time; a collapsible **pending actions** card is pinned to the bottom (§4.7).
 
 ### 3.3 Joining a rotation event
 
@@ -479,6 +526,15 @@ The organizer opens the Manage Event hub from the event detail. It is the contro
 
 - Recurring events additionally show a “Next occurrences” section listing the scheduled / upcoming instances.
 
+*(amended, UX-MEVT-03 / UX-MEVT-09)* The hub is a dashboard:
+
+- **Header chips** (read-only): format, modality, group.
+- **Cards**: Event name (→ General Info); Preferences | Scoring side by side; Confirmed | Paid donuts (Paid hidden without a fee; on a team event the Confirmed card also counts complete teams); Location with its courts; Date; Activity (full screen); Next occurrences on a recurring event (§4.6).
+- **Actions**, stacked full width: Share, Add to calendar, Send blast, Export attendance & revenue data, Start event. **Footer**: Duplicate | Cancel.
+- Only a **scheduled** event is editable; an in-progress event’s cards are read-only. A **completed** event reduces to the Paid donut, the ranking toggle (public group events), Activity, Export and Duplicate (D16; IP-30/31).
+- Manage players, Payment list and Send blast are reached from the organizer’s event page (§3.2) and from the dashboard’s cards.
+- **Start event** (D1, IP-03) can be used any time from the dashboard (an early start); it asks the server first — blockers stop it, warnings offer “Add more players” / “Start anyway”.
+
 ### 4.2 Editing event details
 
 | **Editing rule** | event_type (Americano / Mexicano / Up and Down) and specification (Classic / Mixed / Team) are immutable once the event is created. Every other variable can be edited. Edits are allowed while the event is scheduled; once it is in progress or completed, editing is locked. |
@@ -487,12 +543,12 @@ The organizer opens the Manage Event hub from the event detail. It is the contro
 | **Edit screen** | **Edits** | **Notes** |
 |----|----|----|
 | General Info | Name, description, thumbnail. | Same fields as Create Event step 9. |
-| Preferences | Standby players, private, entrance fee, permissions, organizer role. | Private toggle stays locked ON for standalone events. |
+| Preferences | Standby players, private, entrance fee, permissions, ~~organizer role~~. | Private toggle stays locked ON for standalone events. *(amended, D8)* The organizer role is set at creation and is not editable — the organizer joins or leaves as a player instead. *(amended, D14)* On a group-less event the Private toggle is hidden. Turning a private group event public deletes its pending invitations (members’ invitation notifications become `event_created`) and tells the other members. |
 | Scoring | Points / Time / Classic and the value. | Mode stays mutually exclusive. |
-| Edit Location & Courts | Venue search / manual location / court count. | Same logic as Create Event steps 5—6. |
-| Edit Date & Time | Date, time, duration, weekly recurrence. | Custom duration via a numeric keypad. |
+| Edit Location & Courts | Venue search / manual location / court count. | Same logic as Create Event steps 5—6. *(amended, D13)* Ticking a venue’s courts marks them reserved (`events.courts_reserved`); a registry venue with no court ticked stays “not reserved” and raises a pending action. Fewer courts than the confirmed roster needs is refused (`courts_below_roster`). A bigger capacity offers the new spots to the waiting list. |
+| Edit Date & Time | Date, time, duration, weekly recurrence. | Custom duration via a numeric keypad. *(amended, UX-MEVT-08 / D5)* “Repeat every week” is a real toggle (off → confirmation; on → group events only, capped by the community plan). On a recurring event, saving Date & Time, Location & Courts or Preferences asks “This occurrence only” / “This and upcoming occurrences” (§4.6). |
 
-Each edit screen opens as its own sheet with Save / Cancel.
+Each edit screen opens as its own sheet with Save / Cancel. *(amended, UX-MEVT-04..08)* Each sheet has ✕, reuses the Create Event step component, and shows submission errors inside the sheet (UX-GLOB-06); success raises a banner. Every save sends the whole event. A date or location change notifies confirmed players (`event_updated`); a fee change re-prices payments (§4.5) and is logged (`fee_changed`).
 
 <table>
 <colgroup>
@@ -549,27 +605,27 @@ Each edit screen opens as its own sheet with Save / Cancel.
 </tr>
 <tr>
 <th><strong>Tabs</strong></th>
-<th>Confirmed (X/Y) · Invited (n) · Waiting list (n). X/Y on the Confirmed tab is confirmed players ÷ event capacity.</th>
+<th>Confirmed (X/Y) · Invited (n) · Waiting list (n). X/Y on the Confirmed tab is confirmed players ÷ event capacity. *(amended, UX-MEVT-10 / UX-MEVT-12)* Order: Confirmed · Waiting list · Invited; the Waiting list tab appears only when the event is full or someone is queued. A row shows avatar, name, a Guest tag, a Stand-by subtitle or the queue position. Actions are a swipe plus the row’s tap sheet (which also holds See profile), so nothing is swipe-only. On a **mixed** event the Confirmed tab splits into Women x/y · Men x/y (y = floor(capacity / 2)) and waiting rows show their side (UX-MEVT-25). Read-only once the event is no longer scheduled.</th>
 </tr>
 <tr>
 <th><strong>Confirmed tab</strong></th>
-<th>Removing a confirmed player opens a modal with two choices: remove from the confirmed list (player returns to invited) or remove from the event entirely.</th>
+<th>Removing a confirmed player opens a modal with two choices: remove from the confirmed list (player returns to invited) or remove from the event entirely. *(amended, UX-MEVT-10 / D3)* Only on **private** events; a **public group** event has no invitations, so it offers “Remove from event” only (`invalid_mode` otherwise). The removed player is notified (`removed_from_event`).</th>
 </tr>
 <tr>
 <th><strong>Invited tab</strong></th>
-<th>Lists invited-but-not-confirmed players. The organizer can Remove them or Mark as confirmed (with a feedback message).</th>
+<th>Lists invited-but-not-confirmed players. The organizer can Remove them or Mark as confirmed (with a feedback message). *(amended)* Mark as confirmed works on an invitee who has no roster row too (it creates the row and accepts the invitation); it respects capacity and the mixed halves, sets stand-by past the regular spots and notifies the player (`organizer_confirmed`). Remove withdraws a pending invitation that has no roster row (migration 0127) — no notification. On a team event, confirming asks for the team first (§4.4).</th>
 </tr>
 <tr>
 <th><strong>Waiting list tab</strong></th>
-<th>Lists waiting-list players in confirmation order. The organizer can Remove a player from the event, or Mark as confirmed. ~~When a confirmed player leaves, the first waiting-list player is auto-notified.~~ *(amended)* When a confirmed player leaves, every waiter who could take the spot is notified; the first to claim wins.</th>
+<th>Lists waiting-list players in confirmation order. The organizer can Remove a player from the event~~, or Mark as confirmed~~. *(amended, UX-MEVT-12 / D2)* The organizer cannot confirm a waiting-list player (`waitlist_not_confirmable`) — Remove is the only action; spots go to the queue through the broadcast below. ~~When a confirmed player leaves, the first waiting-list player is auto-notified.~~ *(amended)* When a confirmed player leaves, every waiter who could take the spot is notified; the first to claim wins.</th>
 </tr>
 <tr>
 <th><strong>Add manually</strong></th>
-<th>Via “+ Add manually”. For Classic and Team events the form asks only for a name; for Mixed events it also asks for gender. The player is created confirmed and is event-scoped only — no platform account. *(amended)* A guest: no history, no ranking, not reusable.</th>
+<th>Via “+ Add manually”. For Classic and Team events the form asks only for a name; for Mixed events it also asks for gender. The player is created confirmed and is event-scoped only — no platform account. *(amended)* A guest: no history, no ranking, not reusable. *(amended, UX-MEVT-11)* A sheet: Name (≤ 60 characters), gender only on mixed events (female / male), two notes; refused past capacity (`event_full`) or past that gender’s half (`gender_full`); beyond the regular spots the guest is stand-by. A guest owes the entrance fee like anyone else (§4.5).</th>
 </tr>
 <tr>
 <th><strong>Inviting more players</strong></th>
-<th>A “+ Add manually” link is always present. A “+ Invite” link is present only when there are still people who could be invited — see 4.3.1.</th>
+<th>A “+ Add manually” link is always present. A “+ Invite” link is present only when there are still people who could be invited — see 4.3.1. *(amended, UX-MEVT-13)* The header has one “+” action: **Add manually** on a public group event, **Invite** otherwise; the Invite screen carries its own “+ Add manually”.</th>
 </tr>
 <tr>
 <th><strong>Ranking</strong></th>
@@ -595,11 +651,11 @@ Each edit screen opens as its own sheet with Save / Cancel.
 </tr>
 <tr>
 <th><strong>Private group event</strong></th>
-<th>“+ Invite” opens a list of the group’s members who have not been invited yet, plus a “+ Add manually” button.</th>
+<th>“+ Invite” opens a list of the group’s members who have not been invited yet, plus a “+ Add manually” button. *(amended, D12)* Only group members can be invited (`not_group_member`); members already invited (in any state, declined included), already on the roster or blocked either way are left out.</th>
 </tr>
 <tr>
 <th><strong>Private standalone event</strong></th>
-<th>“+ Invite” opens a list of the users the organizer follows, plus a “+ Add manually” button. To invite anyone beyond that, the organizer types a username and the search returns matching platform users.</th>
+<th>“+ Invite” opens a list of the users the organizer follows, plus a “+ Add manually” button. To invite anyone beyond that, the organizer types a username and the search returns matching platform users. *(amended, UX-MEVT-13 / D12)* The list has three sections: **My connections** (mutual follows), **Following**, and — only once a name is typed — **Others** (any live user). Blocked users never appear. Rows have checkboxes; “Send invite” is fixed at the bottom.</th>
 </tr>
 <tr>
 <th><strong>Add manually</strong></th>
@@ -612,7 +668,7 @@ Each edit screen opens as its own sheet with Save / Cancel.
 
 ### 4.4 Manage players — team events
 
-Team events offer two views of the roster, switchable at the top: Team view and Player view.
+Team events offer two views of the roster, switchable at the top: Team view and Player view. *(amended, UX-MEVT-14/15/26)* Labelled **Teams / Players**. Teams shows an instruction line and a summary (“N open slots · M in half-formed teams”); the number of team blocks is the larger of courts × 2 and capacity ÷ 2 (stand-by pairs included), or the highest existing team.
 
 <table>
 <colgroup>
@@ -629,7 +685,7 @@ Team events offer two views of the roster, switchable at the top: Team view and 
 </tr>
 <tr>
 <th><strong>Assigning</strong></th>
-<th>The organizer drag-and-drops a player card into a team slot, or taps the slot’s “+” to pick a player.</th>
+<th>The organizer drag-and-drops a player card into a team slot, or taps the slot’s “+” to pick a player. *(amended, UX-MEVT-15 / D7)* The tray (unassigned row) lists confirmed players without a team, then interested players; tapping a card is the accessible alternative to dragging (“which team?”). The “+” opens a **Select player** sheet: Team N with its occupancy, a search, **Add manually** (a guest goes straight into the slot, confirmed in that team), then confirmed / interested / invited / waiting-list candidates. A taken slot is refused (`slot_taken`) — an occupant is never displaced; completing a pair past capacity is refused (`event_full`).</th>
 </tr>
 <tr>
 <th><strong>One player in a team</strong></th>
@@ -645,11 +701,11 @@ Team events offer two views of the roster, switchable at the top: Team view and 
 </tr>
 <tr>
 <th><strong>Switch player</strong></th>
-<th>The switch icon opens a list of ALL players (in teams, invited, or waiting list). Switching swaps the two players’ positions: a player swapped in from the invited list joins the team and is confirmed; the displaced player moves to where the new one came from.</th>
+<th>The switch icon opens a list of ALL players (in teams, invited, or waiting list). Switching swaps the two players’ positions: a player swapped in from the invited list joins the team and is confirmed; the displaced player moves to where the new one came from. *(amended)* A pending invitee with no roster row can be switched in too (created, invitation accepted and swapped in one step, migration 0127); the displaced player goes back to Invited. Only players of the same event can be switched.</th>
 </tr>
 <tr>
 <th><strong>Remove player</strong></th>
-<th>A modal asks “Remove from team” (player returns to invited) or “Remove from event”.</th>
+<th>A modal asks “Remove from team” (player returns to invited) or “Remove from event”. *(amended)* A guest gets “Remove from event” only. Removing a player reconciles their team: the teammate goes back to unpaired.</th>
 </tr>
 </thead>
 <tbody>
@@ -667,15 +723,15 @@ Team events offer two views of the roster, switchable at the top: Team view and 
 </tr>
 <tr>
 <th><strong>Tabs</strong></th>
-<th>Confirmed (X/Y) · Interested (n) · Invited (n). Same as a rotation event plus the Interested tab.</th>
+<th>Confirmed (X/Y) · Interested (n) · Invited (n). Same as a rotation event plus the Interested tab. *(amended)* Plus the Waiting list tab under the rotation rules; rows in a team show “In Team N”.</th>
 </tr>
 <tr>
 <th><strong>Interested tab</strong></th>
-<th>Players who joined but have no partner yet. The organizer can Remove them (they return to invited) or Mark as confirmed.</th>
+<th>Players who joined but have no partner yet. The organizer can Remove them (they return to invited) or Mark as confirmed. *(amended, UX-MEVT-14)* Confirm asks for a team with an open slot and places the player there. Remove sends them back to Invited — or, on a public group event, out of the event (D3).</th>
 </tr>
 <tr>
 <th><strong>Mark as confirmed</strong></th>
-<th>Confirming an interested player requires choosing another player to pair with them — a team event has no confirmed solo players.</th>
+<th>Confirming an interested player requires choosing another player to pair with them — a team event has no confirmed solo players. *(amended)* Server-side, `organizer_mark_confirmed` refuses an unpaired team player (`team_required`); a player placed alone in a team stays invited until the team has two players.</th>
 </tr>
 </thead>
 <tbody>
@@ -697,7 +753,7 @@ Available only when the event has an entrance fee. It is reached as a quick acti
 </tr>
 <tr>
 <th><strong>Header total</strong></th>
-<th>The header shows amount collected over the event total — e.g. “$35 / 200” — with the collected amount as the prominent figure. The event total = the per-player entrance fee × the number of players (the fee set at creation is per player).</th>
+<th>The header shows amount collected over the event total — e.g. “$35 / 200” — with the collected amount as the prominent figure. The event total = the per-player entrance fee × the number of players (the fee set at creation is per player). *(amended, UX-MEVT-16 / D9)* A Total card with a progress bar; the player count sits in the header. Expected = fee × confirmed players, **guests and stand-by included** — guests owe the fee too.</th>
 </tr>
 <tr>
 <th><strong>Tabs</strong></th>
@@ -705,11 +761,11 @@ Available only when the event has an entrance fee. It is reached as a quick acti
 </tr>
 <tr>
 <th><strong>Per-player control</strong></th>
-<th>Each confirmed player’s card has a “Mark as paid” button on the right. Tapping it flips the button to “Paid” and adds that player’s fee to the collected total. Tapping again reverts it to “Mark as paid” and subtracts the fee — it behaves as a toggle tag.</th>
+<th>Each confirmed player’s card has a “Mark as paid” button on the right. Tapping it flips the button to “Paid” and adds that player’s fee to the collected total. Tapping again reverts it to “Mark as paid” and subtracts the fee — it behaves as a toggle tag. *(amended, D9)* Payments are a per-player credit, `event_participants.paid_amount`; “Paid” means `paid_amount >= fee`. Raising the fee turns earlier payers Pending for the difference, and their row shows what they still owe; Paid tops the credit up to the current fee, Pending zeroes it. Lowering the fee keeps them Paid.</th>
 </tr>
 <tr>
 <th><strong>Mark all as paid</strong></th>
-<th>Marks every player as paid in one action — for when everyone has paid and the organizer does not want to do it one by one.</th>
+<th>Marks every player as paid in one action — for when everyone has paid and the organizer does not want to do it one by one. *(amended)* Confirmed players only (never waiting, interested or invited rows), behind a confirmation sheet. Payments stay editable after the event (scheduled, in progress, completed); a cancelled event refuses them.</th>
 </tr>
 <tr>
 <th><strong>Informational only</strong></th>
@@ -740,6 +796,15 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 
 - Editing an occurrence’s details prompts the same “this occurrence / this and all future occurrences” choice as cancelling.
 
+*(amended, UX-MEVT-21/22 / D5 — migration 0123)* **Next occurrences.** Manage Event on a recurring occurrence lists the **next 4** weekly slots after it, computed from the series (still next-instance-only: slots further ahead are not rows):
+
+- **Upcoming** = not materialised yet: the template’s name, location and duration with the slot’s date. Tapping opens a read-only preview (no players, teams or matches) whose settings offer **Edit date & time** (stored as a per-date exception; the start must be in the future), **Send invitation now** (materialises the occurrence immediately — it becomes Scheduled) and **Cancel this occurrence** (a cancelled exception; the series continues).
+- **Scheduled** = materialised (announced / invitations out): tapping opens its event page; cancelling it is a normal `cancel_event(only_this)` and its players are told.
+- The scheduler honours exceptions: a cancelled slot is skipped, an edited one starts at its new time and its invitation lead is counted from it.
+- **Edit scope.** “This and upcoming occurrences” applies the same change to every later scheduled occurrence (same validations and notifications) and to the template; a date or time change re-plans the weekly grid. “This occurrence only” changes this one alone and no longer moves the series.
+- **Repeat every week** (Date & Time sheet): off cancels every later scheduled occurrence (players notified) and stops the series; on starts a new series from this event (group events only, plan-capped). Both are logged (`recurrence_on` / `recurrence_off`).
+- ~~from there the organizer can open the next occurrence early~~ — superseded by Send invitation now above; the old “open the next occurrence” card is gone.
+
 **Player**
 
 - A recurring event shows a small “recurrent” tag on its main event screen.
@@ -754,6 +819,8 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 
 - Each pending action links straight to the screen that resolves it.
 
+- *(amended, UX-MEVT-24 / D13)* A collapsible card pinned to the bottom of the organizer’s event page (not a sheet), titled with the count, collapsed by default, organizer only, while the event is scheduled. Rows: **Teams not fully set up** → Manage players (Teams); **Spots still open** → Manage players; **Payments outstanding** (fee events only) → Payment list; **Location not defined** → Edit Location & Courts; **Courts not reserved** (`events.courts_reserved` false — the wizard’s “Have not reserved yet”) → Edit Location & Courts. A resolved row drops out; with nothing pending the card disappears.
+
 ### 4.8 Organizer as a player
 
 - If the organizer chose “Organizing only” at creation, the detail screen offers “Join as a player”, and the top-right shows only the settings icon. *(amended)* An organizer who was playing and whose partner left a team event is back in this state and sees “Join as a player” (both apps).
@@ -761,6 +828,8 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 - If the organizer chose “Organizing and playing”, they are already a confirmed player, and the top-right shows the settings and more icons.
 
 - The organizer can leave as a player via the More menu (“Leave Event as a player”) without cancelling the event.
+
+- *(amended, UX-MEVT-02 / D8)* The organizer is always eligible for their own event: Join as a player skips the private-invitation and group-membership checks (the organizer is not added to the group), and they may enter the team flow. They still follow the other join rules — the 6 h cut-off, capacity, the mixed halves and the waiting list. A playing organizer is seated on every materialised occurrence and on a duplicate. The organizer role is set at creation only.
 
 ### 4.9 Duplicate & cancel
 
@@ -783,11 +852,11 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 </tr>
 <tr>
 <th><strong>Fields</strong></th>
-<th>Name (text input, prefilled with the original name); Thumbnail (a row of 4 default thumbnail tiles plus a “+” tile to add a custom upload — the original thumbnail is selected by default); Date (a horizontal day pill picker showing the next several days, today selected by default); Time (Morning / Afternoon / Evening tab row that swaps a grid of 30-minute time pills below — 7:00 AM through 12:00 PM under Morning, 12:30 PM through 5:00 PM under Afternoon, 5:30 PM through 11:00 PM under Evening; the current rounded slot selected by default).</th>
+<th>*(amended, UX-MEVT-20 / D4)* Name, Thumbnail, Date, Time **and Location & courts** (registry venue, manual venue or none) are editable; group, format, modality, scoring, preferences and fee are shown read-only as inherited. The date is always sent — `starts_at` is required and must be in the future (`starts_at_required`, `starts_at_in_past`). Original spec: Name (text input, prefilled with the original name); Thumbnail (a row of 4 default thumbnail tiles plus a “+” tile to add a custom upload — the original thumbnail is selected by default); Date (a horizontal day pill picker showing the next several days, today selected by default); Time (Morning / Afternoon / Evening tab row that swaps a grid of 30-minute time pills below — 7:00 AM through 12:00 PM under Morning, 12:30 PM through 5:00 PM under Afternoon, 5:30 PM through 11:00 PM under Evening; the current rounded slot selected by default).</th>
 </tr>
 <tr>
 <th><strong>Inherited fields</strong></th>
-<th>Every field NOT in the modal is copied verbatim from the source event: event_type, specification, group, courts, venue / manual location, scoring, fee, standby, permissions, organizer role, ~~recurring config (if any),~~ and the full invitation list (a duplicate is treated as a brand-new event, so participants and waiting-list entries do NOT carry over — only invitations do). *(amended)* A duplicate is always a **one-off** (series_id NULL), even of a recurring occurrence. A public group duplicate copies no invitations and notifies the group (`event_created`). Court selections and manual court names are copied; a soft-deleted venue refuses the duplicate (`venue_not_found`).</th>
+<th>Every field NOT in the modal is copied verbatim from the source event: event_type, specification, group, courts, venue / manual location, scoring, fee, standby, permissions, organizer role, ~~recurring config (if any),~~ and the full invitation list (a duplicate is treated as a brand-new event, so participants and waiting-list entries do NOT carry over — only invitations do). *(amended)* A duplicate is always a **one-off** (series_id NULL), even of a recurring occurrence. A public group duplicate copies no invitations and notifies the group (`event_created`). Court selections and manual court names are copied; a soft-deleted venue refuses the duplicate (`venue_not_found`). *(amended, D4)* **Nothing carries over** — no participants, invitations (of any status), waiting list, teams or payment status; the only roster row is a playing organizer. The ranking flag resets to create_event’s default.</th>
 </tr>
 <tr>
 <th><strong>Confirm</strong></th>
@@ -817,7 +886,7 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 </tr>
 <tr>
 <th><strong>Standard event</strong></th>
-<th>A confirmation modal: “Cancel this event?” Confirm / Cancel.</th>
+<th>A confirmation modal: “Cancel this event?” Confirm / Cancel. *(amended, UX-MEVT-21)* Always a sheet, never a direct action; when anyone has paid, a note says refunds happen off-platform.</th>
 </tr>
 <tr>
 <th><strong>Recurring event</strong></th>
@@ -845,11 +914,11 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 </tr>
 <tr>
 <th><strong>Availability</strong></th>
-<th>Send blast is available only on events that belong to a community (events with a group_id whose group belongs to a community). On standalone events the Send blast entry point is hidden on both the event detail and the Manage hub.</th>
+<th>~~Send blast is available only on events that belong to a community (events with a group_id whose group belongs to a community). On standalone events the Send blast entry point is hidden on both the event detail and the Manage hub.~~ *(amended, D6)* Send blast is available on every event, group-less included, from both the event detail and the Manage hub.</th>
 </tr>
 <tr>
 <th><strong>Customisation level</strong></th>
-<th>The customisation level is gated by the community tier (source of truth: Profile &amp; Settings doc, section 7.6). Starter — the template is sent as-is; the organizer can only choose recipients and channels (no title / description editing). Basic and Community Pro — the organizer can fully customise title and description before sending.</th>
+<th>The customisation level is gated by the community tier (source of truth: Profile &amp; Settings doc, section 7.6). Starter — the template is sent as-is; the organizer can only choose recipients and channels (no title / description editing). Basic and Community Pro — the organizer can fully customise title and description before sending. *(amended, D6 / B10)* “Customisation” is the community’s `custom_broadcasts` feature (Basic and above) on a group event, and the **organizer’s account plan** (Jammer+) on a group-less one. It is enforced server-side: without it only an unedited template is accepted (`blast_customization_required`). Without it, tapping the locked customisation opens the plan prompt (UX-GLOB-10).</th>
 </tr>
 <tr>
 <th><strong>Entry points</strong></th>
@@ -883,11 +952,11 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 </tr>
 <tr>
 <th><strong>Your blasts tab</strong></th>
-<th>A list of every blast previously sent by this organizer on any event they manage (newest first). Each row shows the blast image, title, the source event, and the date sent. Tap Select on any row → opens the Customize your blast modal prefilled with that blast’s content. Empty state: “You haven’t sent any blasts yet. Pick a template to start.”</th>
+<th>~~A list of every blast previously sent by this organizer on any event they manage (newest first).~~ *(amended, UX-MEVT-18)* The blasts the organizer **saved** (“Save blast” when sending) — reusable and editable (“Save changes to this blast”, no duplicate) and deletable. On a group event they are shared by the community’s organizers (edit / delete: the creator while a member, or a community admin); on a group-less event they belong to the organizer. Each row shows the blast image, title, the source event, and the date sent. Tap Select on any row → opens the Customize your blast modal prefilled with that blast’s content. Empty state: “You haven’t sent any blasts yet. Pick a template to start.”</th>
 </tr>
 <tr>
 <th><strong>Source data</strong></th>
-<th>Templates come from blast_templates (admin-managed). Your blasts come from event_blasts filtered by sender_id = current organizer.</th>
+<th>Templates come from blast_templates (admin-managed). ~~Your blasts come from event_blasts filtered by sender_id = current organizer.~~ *(amended)* Your blasts come from `saved_blasts` (migration 0124); event_blasts stays the send history, listed under the composer with the email delivery state and Retry.</th>
 </tr>
 </thead>
 <tbody>
@@ -913,11 +982,11 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 </tr>
 <tr>
 <th><strong>Send to</strong></th>
-<th>A “Send to” selector preset to All members (the only option in the MVP).</th>
+<th>A “Send to” selector preset to All members (the only option in the MVP). *(amended, D6)* Options: All (every participant — invited, interested, confirmed, waiting list — plus pending invitees with an account), Confirmed only, Invited only, Waiting list.</th>
 </tr>
 <tr>
 <th><strong>Channels</strong></th>
-<th>Two checkboxes: Email and Whatsapp. At least one must be selected to enable Send.</th>
+<th>Two checkboxes: Email and Whatsapp. At least one must be selected to enable Send. *(amended, D6)* WhatsApp is sent from the organizer’s own device: Send opens WhatsApp (`wa.me`, or the share sheet) with the title and description prefilled; there is no WhatsApp Business API. Email goes through the send-blast Edge Function.</th>
 </tr>
 <tr>
 <th><strong>Send</strong></th>
@@ -947,7 +1016,7 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 </tr>
 <tr>
 <th><strong>Image</strong></th>
-<th>A large image area at the top showing the selected template’s image. Tap to replace (opens the file picker).</th>
+<th>A large image area at the top showing the selected template’s image. Tap to replace (opens the file picker). *(amended)* Not shipped yet: templates have no artwork (`image_path` NULL) and there is no bucket for blast images, so a placeholder is shown and the image is not replaceable.</th>
 </tr>
 <tr>
 <th><strong>Title field</strong></th>
@@ -959,11 +1028,11 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 </tr>
 <tr>
 <th><strong>Send to</strong></th>
-<th>“Send to” selector preset to All members (the only option in the MVP).</th>
+<th>“Send to” selector preset to All members (the only option in the MVP). *(amended, D6)* All / Confirmed only / Invited only / Waiting list, as in 4.10b.</th>
 </tr>
 <tr>
 <th><strong>Channels</strong></th>
-<th>Two checkboxes: Email and Whatsapp. At least one must be selected to enable Send.</th>
+<th>Two checkboxes: Email and Whatsapp. At least one must be selected to enable Send. *(amended, D6)* WhatsApp is sent from the organizer’s own device: Send opens WhatsApp (`wa.me`, or the share sheet) with the title and description prefilled; there is no WhatsApp Business API. Email goes through the send-blast Edge Function.</th>
 </tr>
 <tr>
 <th><strong>Send</strong></th>
@@ -993,11 +1062,11 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 </tr>
 <tr>
 <th><strong>Recipients</strong></th>
-<th>The blast is dispatched to every event_participants of the event (status = invited, interested, confirmed, or waiting_list) whose corresponding profile has the chosen channel enabled in user_settings (notifications_email or notifications_whatsapp — see Profile doc 6.2). Members who have the channel disabled are silently skipped; the organizer is not told which members were skipped.</th>
+<th>The blast is dispatched to every event_participants of the event (status = invited, interested, confirmed, or waiting_list) whose corresponding profile has the chosen channel enabled in user_settings (notifications_email or notifications_whatsapp — see Profile doc 6.2). Members who have the channel disabled are silently skipped; the organizer is not told which members were skipped. *(amended, D6)* The audience is the chosen Send to scope; the sender is never in it and deleted accounts are skipped. The email opt-in still applies; WhatsApp has no per-recipient opt-in because the organizer shares the text themselves.</th>
 </tr>
 <tr>
 <th><strong>Audit</strong></th>
-<th>Every send writes an event_blasts row with sender_id, event_id, source_template_id (nullable), title, description, channels (array), sent_to_count, sent_at.</th>
+<th>Every send writes an event_blasts row with sender_id, event_id, source_template_id (nullable), title, description, channels (array), sent_to_count, sent_at. *(amended)* Plus send_to and audience_count; sent_to_count is the number of email recipients. A WhatsApp share is recorded in delivery_log as `shared`.</th>
 </tr>
 </thead>
 <tbody>
@@ -1017,7 +1086,7 @@ A recurring event is a weekly series with no end date. ~~Occurrences within a ro
 </tr>
 <tr>
 <th><strong>Entry</strong></th>
-<th>The Export Attendance &amp; Revenue data action on the Manage Event hub. Available on every event regardless of tier.</th>
+<th>The Export Attendance &amp; Revenue data action on the Manage Event hub. Available on every event regardless of tier. *(amended, UX-MEVT-19 / D16)* And regardless of status — completed events included.</th>
 </tr>
 <tr>
 <th><strong>Sheet title</strong></th>
@@ -1076,36 +1145,38 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed JM (Join / Manage).
 | JM-20 | Past the join cutoff the event is closed — no new confirmations. | **Must** |  |
 | JM-21 | A “X hours left to join” countdown targets the join cutoff, not the event start. | Should | *(amended)* Only within 24 h of the cutoff. UX-JEVT-04 |
 | JM-22 | Events can be shared; private-event links show a no-access page to non-invitees. *(amended)* Share is the native share sheet; the no-access page closes with ✕ to Home — no Try again. | Should | UX-JEVT-06/07 |
-| JM-23 | The organizer reaches a Manage Event hub with summary, stats, edit entry points, and the action row (Share / Add to calendar / Send blast / Export / Duplicate / Cancel). | **Must** |  |
-| JM-24 | event_type and specification are immutable; every other variable is editable. | **Must** |  |
-| JM-25 | Manage players (rotation) has Confirmed / Invited / Waiting list tabs. | **Must** |  |
-| JM-26 | Removing a confirmed player prompts “remove from confirmed list” vs “remove from event”. | **Must** |  |
-| JM-27 | The organizer can Mark as confirmed an invited or waiting-list player. | **Must** |  |
+| JM-23 | The organizer reaches a Manage Event hub with summary, stats, edit entry points, and the action row (Share / Add to calendar / Send blast / Export / Duplicate / Cancel). *(amended)* A dashboard: read-only format / modality / group chips, cards (Event name, Preferences, Scoring, Confirmed and Paid donuts, Location & courts, Date, Activity, Next occurrences), actions Share / Add to calendar / Send blast / Export / Start event, footer Duplicate / Cancel; reached from a settings icon on the event page. | **Must** | UX-MEVT-01, UX-MEVT-03, D16 |
+| JM-24 | event_type and specification are immutable; every other variable is editable. *(amended)* One sheet per setting (General Info, Preferences, Scoring, Location & Courts, Date & Time), scheduled events only; the organizer role and the group are not editable. | **Must** | UX-MEVT-04..08, D8 |
+| JM-25 | Manage players (rotation) has Confirmed / Invited / Waiting list tabs. *(amended)* Order Confirmed · Waiting list · Invited; Waiting list only when full or queued; mixed events split Confirmed into Women / Men. | **Must** | UX-MEVT-10, 12, 25 |
+| JM-26 | Removing a confirmed player prompts “remove from confirmed list” vs “remove from event”. *(amended)* Private events only; a public group event offers “remove from event” only. The removed player is notified. | **Must** | D3 |
+| JM-27 | The organizer can Mark as confirmed an invited ~~or waiting-list~~ player. *(amended)* Not a waiting-list player (`waitlist_not_confirmable`). Confirming respects capacity and the mixed halves, sets stand-by past the regular spots, works for an invitee with no roster row, and notifies the player. | **Must** | D2, UX-MEVT-25 |
 | JM-28 | Manually-added players are event-scoped; Mixed events require name + gender, others name only. *(amended)* They are guests: confirmed for that event only, no history or ranking, not reusable. Added by the organizer (wizard, Manage players) or by a player as their partner on a team event. The email / phone invitee is removed. | **Must** | Decision 7, migration 0113 |
 | JM-29 | Manage players (team) has a Team view and a Player view. | **Must** |  |
 | JM-30 | Adding an unconfirmed player to a team auto-confirms them, with a confirm modal. | **Must** |  |
 | JM-31 | A team with one player stays unpaired; a team with two players confirms both. | **Must** |  |
 | JM-32 | Switch player swaps two players’ positions across teams / invited / waiting lists. | **Must** |  |
-| JM-33 | The payment list tracks paid / pending; informational only, no in-app payment. | **Must** |  |
-| JM-34 | Recurring events can be cancelled “only this” or “this and upcoming”. | **Must** | *(amended)* Only the next occurrence exists (§4.6). |
-| JM-35 | The organizer can Join as a player / Leave as a player without cancelling the event. | **Must** |  |
-| JM-36 | Private group events invite only group members; private standalone events can invite any user. | **Must** | Standalone default = followed users. |
+| JM-33 | The payment list tracks paid / pending; informational only, no in-app payment. *(amended)* Per-player `paid_amount` credit: a fee rise makes earlier payers Pending for the difference; guests owe the fee; Mark all as paid covers confirmed players only. | **Must** | UX-MEVT-16, D9 |
+| JM-34 | Recurring events can be cancelled “only this” or “this and upcoming”. *(amended)* Manage Event lists the next 4 occurrences (Upcoming / Scheduled); an Upcoming one can be moved, cancelled or sent now (per-date exceptions); edits ask “this occurrence only” / “this and upcoming”; Repeat every week is a toggle. | **Must** | *(amended)* Only the next occurrence exists as a row (§4.6). UX-MEVT-08/21/22, D5, migration 0123 |
+| JM-35 | The organizer can Join as a player / Leave as a player without cancelling the event. *(amended)* The organizer is always eligible for their own event (no invitation or group membership needed); the organizer role is not editable after creation. | **Must** | UX-MEVT-02, D8 |
+| JM-36 | Private group events invite only group members; private standalone events can invite any user. *(amended)* Standalone candidates: My connections (mutual follows), Following, then Others once a name is typed; blocked users and anyone already invited (declined included) or on the roster are excluded. Public group events accept no invitations. | **Must** | Standalone default = followed users. UX-MEVT-13, D12 |
 | JM-37 | Removing or adding a player never changes whether the event counts toward the ranking. | **Must** | Only is_private decides. |
-| JM-38 | The Manage view surfaces pending actions (set up teams, add players). | Should |  |
-| JM-39 | Duplicate event opens a modal with Name, Thumbnail, Date, and Time pickers; every other field is inherited from the source event. | Should | *(amended)* A duplicate is a one-off (no series). |
-| JM-40 | An Activity log records roster and edit changes on the event. | Could |  |
-| JM-41 | Send blast is available only on events that belong to a community; the entry points are hidden on standalone events. | **Must** |  |
-| JM-42 | Send a blast (Basic / Community Pro) has Templates and Your blasts tabs and opens a Customize modal with editable title, description, send-to, and channels (Email / Whatsapp). | **Must** |  |
-| JM-43 | Send a blast (Starter) shows the default template read-only and only lets the organizer pick send-to and channels. | **Must** | See Profile doc 7.6. |
-| JM-44 | A blast is dispatched only on channels the recipient has enabled in user_settings; opted-out recipients are silently skipped. | **Must** |  |
-| JM-45 | Every send inserts an event_blasts row (sender_id, event_id, source_template_id, title, description, channels, sent_to_count, sent_at). The “Your blasts” tab reads from this table. | **Must** |  |
-| JM-46 | Export Attendance & Revenue opens a bottom sheet with Download CSV and Send CSV to my email; one must be picked to enable Confirm. | **Must** |  |
-| JM-48 | *(new, amended)* Mixed events split capacity floor(capacity / 2) per gender on every confirming path; a player needs a gender to join a mixed event. | **Must** | Decision 8 |
+| JM-38 | The Manage view surfaces pending actions (set up teams, add players). *(amended)* A collapsible card on the organizer’s event page: teams not set up, spots open, payments outstanding, location not defined, courts not reserved. | Should | UX-MEVT-24, D13 |
+| JM-39 | Duplicate event opens a modal with Name, Thumbnail, Date, and Time pickers; every other field is inherited from the source event. *(amended)* Location and courts are editable too; nothing carries over (players, invitations, waiting list, teams, payments); the start is required and in the future. | Should | *(amended)* A duplicate is a one-off (no series). UX-MEVT-20, D4 |
+| JM-40 | An Activity log records roster and edit changes on the event. *(amended)* Written server-side only, for players (joined, left, confirmed, removed, guest added, waiting list joined / claimed), invitations and partner invitations (sent, accepted, declined), teams, payments (paid, unpaid, all paid, fee changed), configuration (edited, recurrence on / off) and the event (started, score entered / edited, not played, finished, results published, ranking changed, cancelled). Full screen, newest first, who / what / when. | Could | UX-MEVT-17, D15 — shipped |
+| JM-41 | ~~Send blast is available only on events that belong to a community; the entry points are hidden on standalone events.~~ *(amended)* Send blast is available on every event, group-less included. | **Must** | D6 |
+| JM-42 | Send a blast (Basic / Community Pro) has Templates and Your blasts tabs and opens a Customize modal with editable title, description, send-to, and channels (Email / Whatsapp). *(amended)* Customisation = the community’s `custom_broadcasts` feature, or the organizer’s Jammer+ plan on a group-less event, enforced server-side. | **Must** | D6, B10 |
+| JM-43 | Send a blast (Starter) shows the default template read-only and only lets the organizer pick send-to and channels. *(amended)* A Templates grid; the selected template is sent unedited; customisation opens the plan prompt. Send to: all / confirmed / invited / waiting list. | **Must** | See Profile doc 7.6. D6 |
+| JM-44 | A blast is dispatched only on channels the recipient has enabled in user_settings; opted-out recipients are silently skipped. *(amended)* Email only; WhatsApp opens the organizer’s own WhatsApp with the text prefilled (no per-recipient opt-in, no Business API). | **Must** | D6 |
+| JM-45 | Every send inserts an event_blasts row (sender_id, event_id, source_template_id, title, description, channels, sent_to_count, sent_at). ~~The “Your blasts” tab reads from this table.~~ *(amended)* Plus send_to and audience_count. “Your blasts” reads `saved_blasts` — blasts the organizer chose to save, reusable, editable and deletable. | **Must** | UX-MEVT-18, migration 0124 |
+| JM-46 | Export Attendance & Revenue opens a bottom sheet with Download CSV and Send CSV to my email; one must be picked to enable Confirm. *(amended)* Available on every status, completed included. | **Must** | UX-MEVT-19, D16 |
+| JM-48 | *(new, amended)* Mixed events split capacity floor(capacity / 2) per gender on every confirming path; a player needs a gender to join a mixed event. *(amended 2026-09-29)* The caps also bind the organizer’s Mark as confirmed, confirm-invitee and Add manually. | **Must** | Decision 8; UX-MEVT-25 |
 | JM-49 | *(new, amended)* A read-only Player list (Confirmed / Waiting list / Invited tabs, guest tag) is visible to anyone who can see the event. | **Must** | UX-JEVT-08, decision 14 |
 | JM-50 | *(new, amended)* Invitees can decline an invitation; leaving a private event returns the leaver’s invitation to pending. | **Must** | UX-JEVT-03 |
 | JM-51 | *(new, amended)* Recurring occurrences materialise automatically `invite_lead_days` before they start (hourly `pg_cron`); the organizer must still be a group member. | **Must** | Decision 10, migration 0117; see Create Event EV-09 |
 | JM-52 | *(new, amended)* Other users’ phone numbers are never readable. | **Must** | Migration 0115 |
-| JM-47 | The exported CSV contains one row per participant with name, user_type, status, is_standby, joined_at, confirmed_at, has_paid, paid_at, fee_amount; member email and mobile are NOT included. | **Must** |  |
+| JM-47 | The exported CSV contains one row per participant with name, user_type, status, is_standby, joined_at, confirmed_at, has_paid, paid_at, fee_amount; member email and mobile are NOT included. | **Must** | *(amended)* Any event status (D16). |
+| JM-53 | *(new, amended 2026-09-29)* Every organizer change goes through an RPC: clients cannot write `events`, `event_series`, `event_invitations`, `event_series_exceptions` or `event_activity` directly. | **Must** | B1, B11; migrations 0121, 0122 |
+| JM-54 | *(new, amended 2026-09-29)* Organizer roster tools (remove, add manually, confirm, team assignment, switch, revoke invitation) work only on a scheduled event and serialise on the event’s roster lock with joins and the start. | **Must** | B2, B7; migration 0121 |
 
 ## Database schema
 
@@ -1339,6 +1410,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE event_activity;
 ## Row Level Security policies
 
 Policies are membership / participation based. event_courts, event_invitations, event_teams, event_activity all follow the same pattern: read for anyone who can read the parent event; write for the event organizer. The non-obvious tables are shown below.
+
+*(amended 2026-09-29, JM-53)* Organizer writes no longer go through RLS: INSERT / UPDATE / DELETE on `events` and `event_series` (0121) and on `event_invitations` (0122) are revoked from clients, and `log_event_activity` is dropped — activity rows are written by triggers and RPCs. The policies below that grant organizer writes on those tables are superseded.
 
 **event_participants**
 
