@@ -13,12 +13,15 @@ export function UpgradePrompt({
   onClose,
   title,
   canManage,
+  body,
 }: {
   open: boolean;
   onClose: () => void;
   /** The limit that was hit, e.g. "Recurring events need Community Pro." */
   title: string;
   canManage: boolean;
+  /** Replaces the community-plan line — e.g. a group-less event's account plan (Jammer+). */
+  body?: string;
 }) {
   const { t } = useT('community');
   return (
@@ -26,7 +29,7 @@ export function UpgradePrompt({
       open={open}
       onClose={onClose}
       title={title}
-      body={canManage ? t('upgradeBodyAdmin') : t('upgradeBodyMember')}
+      body={body ?? (canManage ? t('upgradeBodyAdmin') : t('upgradeBodyMember'))}
       confirmLabel={t('upgradeOk')}
       onConfirm={onClose}
     />
