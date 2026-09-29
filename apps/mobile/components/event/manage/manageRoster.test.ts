@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   eventCapacityOf,
   headerAction,
+  interestedRemoveMode,
   invitedActions,
   manageRoster,
   removeModes,
@@ -122,14 +123,28 @@ describe('manageRoster', () => {
 });
 
 describe('invitedActions', () => {
-  const row = { key: 'k', participantId: null, userId: 'u', name: 'A', avatarPath: null, guest: false, standby: false, side: null };
-  it('confirms an invitee with an account; removes only a row the RPC can reach', () => {
-    expect(invitedActions(row, { team: false })).toEqual({ confirm: true, remove: false });
-    expect(invitedActions({ ...row, participantId: 'p' }, { team: false })).toEqual({ confirm: true, remove: true });
+  const row = manageRoster(ev(), [], [{ invitation_id: 'i1', user_id: 'u9', full_name: 'Ana', avatar_url: null, invitee_name: null }]).invited[0]!;
+  it('confirms an invitee with an account; a row is removed, an invitation revoked (0127)', () => {
+    expect(invitedActions(row)).toEqual({ confirm: true, remove: 'invitation' });
+    expect(invitedActions({ ...row, participantId: 'p', invitationId: null })).toEqual({ confirm: true, remove: 'participant' });
   });
-  it('never confirms a manual invitee, nor anyone on a team event (M3 places them in a team)', () => {
-    expect(invitedActions({ ...row, userId: null }, { team: false }).confirm).toBe(false);
-    expect(invitedActions(row, { team: true }).confirm).toBe(false);
+  it('never confirms a manual invitee', () => {
+    expect(invitedActions({ ...row, userId: null }).confirm).toBe(false);
+    expect(invitedActions({ ...row, userId: null }).remove).toBe('invitation');
+  });
+});
+
+describe('interested (UX-MEVT-14)', () => {
+  it('lists interested rows on their own tab and never as confirmed or invited', () => {
+    const r = manageRoster(ev({ specification: 'team' }), [p({ status: 'interested' }), p()], []);
+    expect(r.interested.map((x) => x.name)).toHaveLength(1);
+    expect(r.confirmed).toHaveLength(1);
+    expect(r.invited).toHaveLength(0);
+  });
+  it('Remove sends back to Invited, except on a public group event (D3)', () => {
+    expect(interestedRemoveMode(ev({ group_id: 'g', is_private: true }))).toBe('to_invited');
+    expect(interestedRemoveMode(ev({ group_id: null, is_private: true }))).toBe('to_invited');
+    expect(interestedRemoveMode(ev({ group_id: 'g', is_private: false }))).toBe('from_event');
   });
 });
 

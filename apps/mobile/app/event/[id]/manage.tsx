@@ -23,6 +23,7 @@ import {
   useEventCourts,
   useEventInvitations,
   useEventParticipants,
+  useEventTeams,
   useEventSeries,
   useSetEventRanking,
 } from '@padel/api';
@@ -111,6 +112,7 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
   const nowMs = useNow();
   const id = event.id;
   const { data: participantsData } = useEventParticipants(id);
+  const { data: teamsData } = useEventTeams(id);
   const { data: invitationsData } = useEventInvitations(id);
   const { data: series } = useEventSeries(id);
   const { data: courtIds } = useEventCourts(id);
@@ -128,6 +130,7 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
   const [busy, setBusy] = useState(false);
 
   const participants = participantsData ?? [];
+  const completeTeams = (teamsData ?? []).filter((tm) => tm.player_a != null && tm.player_b != null).length;
   const recurring = event.series_id != null && series != null && series.is_active;
   const lang = i18n.language;
   const onToggleRanking = (on: boolean) =>
@@ -183,6 +186,8 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
     <DashCard
       title={t('dashConfirmedTitle')}
       a11yValue={t('dashRatio', { n: ps.totalIn, total: ps.totalCapacity })}
+      // UX-MEVT-26: a team event adds how many pairs are complete under the count.
+      detail={event.specification === 'team' ? t('dashTeamsComplete', { count: completeTeams }) : undefined}
       onPress={() => router.push(`/event/${id}/manage-players` as Href)}
       testID="manage-confirmed"
       half

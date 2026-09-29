@@ -778,6 +778,20 @@ export const useSetEventRanking = (eventId: string) => {
   });
 };
 
+/**
+ * Everything a team-slot change can move (organizer team tools, 0071 / 0121 / 0127): the teams,
+ * the roster tabs (a completed pair confirms both; a lone occupant goes to Invited), the pending
+ * invitations an invitee's placement accepts, the event's counts and the activity log.
+ */
+function invalidateTeamRoster(qc: ReturnType<typeof useQueryClient>, eventId: string) {
+  qc.invalidateQueries({ queryKey: qk.event(eventId) });
+  qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
+  qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+  qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+  qc.invalidateQueries({ queryKey: qk.eventInvitedPlayers(eventId) });
+  qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
+}
+
 export const useAssignToTeam = (eventId: string) => {
   const db = useDb();
   const qc = useQueryClient();
@@ -796,11 +810,7 @@ export const useAssignToTeam = (eventId: string) => {
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
-      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
-      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
-    },
+    onSuccess: () => invalidateTeamRoster(qc, eventId),
   });
 };
 
@@ -815,11 +825,7 @@ export const useRemoveFromTeam = (eventId: string) => {
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
-      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
-      qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
-    },
+    onSuccess: () => invalidateTeamRoster(qc, eventId),
   });
 };
 
@@ -835,9 +841,51 @@ export const useSwitchPlayers = (eventId: string) => {
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
     },
+    onSuccess: () => invalidateTeamRoster(qc, eventId),
+  });
+};
+
+/**
+ * The Switch player sheet's invited branch (organizer_switch_with_invitee, 0127): the invitee
+ * takes the participant's slot — confirmed once the pair is complete — and the participant goes
+ * back to Invited, in one transaction. Returns the invitee's participant id.
+ */
+export const useSwitchWithInvitee = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { participantId: string; userId: string }) => {
+      const { data, error } = await db.rpc('organizer_switch_with_invitee', {
+        p_event_id: eventId,
+        p_participant_id: input.participantId,
+        p_user_id: input.userId,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data;
+    },
+    onSuccess: () => invalidateTeamRoster(qc, eventId),
+  });
+};
+
+/**
+ * Withdraw a pending invitation that has no roster row (organizer_revoke_invitation, 0127) — the
+ * Invited tab's Remove for someone who never answered. Nobody is notified.
+ */
+export const useRevokeInvitation = (eventId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { invitationId: string }) => {
+      const { error } = await db.rpc('organizer_revoke_invitation', {
+        p_event_id: eventId,
+        p_invitation_id: input.invitationId,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.eventTeams(eventId) });
-      qc.invalidateQueries({ queryKey: qk.eventParticipants(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitations(eventId) });
+      qc.invalidateQueries({ queryKey: qk.eventInvitedPlayers(eventId) });
+      qc.invalidateQueries({ queryKey: ['event', eventId, 'invite-candidates'] });
       qc.invalidateQueries({ queryKey: qk.eventActivity(eventId) });
     },
   });
