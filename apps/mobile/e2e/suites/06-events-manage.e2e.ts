@@ -2,11 +2,11 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
 import { backGesture, clearText, scrollUntilVisible, tap, typeText } from '../driver/actions';
-import { expectVisible } from '../driver/expect';
+import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { CONFIG } from '../driver/config';
 import { screenshot } from '../driver/sim';
-import { loginAs, tabTo } from '../driver/flows';
+import { loginAs, switchUser, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
@@ -125,7 +125,6 @@ describe('06 event manage (organizer)', () => {
     const m = manifest();
     // The Paid card only renders for fee-enabled events. E1 "Tuesday Americano" is the seeded
     // one with a fee, and maria organizes it.
-    const { switchUser } = await import('../driver/flows');
     await switchUser('maria');
     await openManage(/tuesday americano/i);
     await tap({ id: 'manage-paid' });
@@ -161,5 +160,107 @@ describe('06 event manage (organizer)', () => {
     await expectVisible({ text: /activity/i }, { timeout: 20_000 });
     // "{actor} marked everyone as paid" must be listed.
     await expectVisible({ text: /marked everyone as paid|marked .* as paid/i }, { timeout: 20_000 });
+  });
+
+  // --- Manage players, Invite, Add manually (UX-MEVT-10..13) ---------------------------------
+
+  type Part = { user_id: string | null; guest_name: string | null; status: string };
+  const participantsOf = (eventId: string) =>
+    select('event_participants', `event_id=eq.${eventId}&select=user_id,guest_name,status`) as Promise<Part[]>;
+  const openManagePlayers = async (name: RegExp) => {
+    await openManage(name);
+    await tap({ id: 'manage-confirmed' });
+    await expectVisible({ text: /^manage players$/i }, { timeout: 20_000 });
+  };
+
+  it('public group event: the header adds a guest manually, straight onto Confirmed', async () => {
+    const m = manifest();
+    await switchUser('alex');
+    await openManagePlayers(/weekly friday social/i); // E5, public g1 event
+    // Confirmed n/capacity (UX-MEVT-10).
+    await expectVisible({ text: /^confirmed \d+\/\d+$/i }, { timeout: 15_000 });
+    await shot('05-manage-players.png');
+    await tap({ id: 'manage-players-add' }); // "+ Add manually" on a public group event
+    await expectVisible({ id: 'sheet-add-manual-save' }, { timeout: 15_000 });
+    await shot('06-add-manually.png');
+    await typeText({ id: 'add-manual-name' }, 'Guest Gil');
+    await tap({ id: 'sheet-add-manual-save' });
+    await pollUntil(
+      () => participantsOf(m.events.e5),
+      (rows) => rows.some((r) => r.guest_name === 'Guest Gil' && r.status === 'confirmed'),
+      { label: 'guest added and confirmed', timeoutMs: 20_000 },
+    );
+    await scrollUntilVisible({ text: /^guest gil$/i }, { maxSwipes: 6 });
+  });
+
+  it('public group event: removing a confirmed player offers "Remove from event" only (D3)', async () => {
+    const m = manifest();
+    await scrollUntilVisible({ text: /^joão pereira$/i }, { maxSwipes: 6 });
+    await tap({ text: /^joão pereira$/i });
+    await expectVisible({ id: 'action-sheet-from_event' }, { timeout: 15_000 });
+    expect(query(await snapshot(), { id: 'action-sheet-to_invited' }), 'no invited state on a public group event').toBeUndefined();
+    await shot('07-remove-public.png');
+    await tap({ id: 'action-sheet-from_event' });
+    await pollUntil(
+      () => participantsOf(m.events.e5),
+      (rows) => !rows.some((r) => r.user_id === m.users.joao),
+      { label: 'joão removed from the event', timeoutMs: 20_000 },
+    );
+  });
+
+  it('private event: Invite searches, selects and sends (UX-MEVT-13)', async () => {
+    const m = manifest();
+    await switchUser('nina');
+    await openManagePlayers(/secret standalone/i); // E8, nina's private group-less event
+    await tap({ id: 'manage-players-add' }); // "+ Invite"
+    await expectVisible({ id: 'event-invite-search' }, { timeout: 15_000 });
+    await typeText({ id: 'event-invite-search' }, 'Maria');
+    await expectVisible({ id: `event-invite-row-${m.users.maria}` }, { timeout: 20_000 });
+    await tap({ id: `event-invite-row-${m.users.maria}` });
+    await shot('08-invite.png');
+    await tap({ id: 'event-invite-send' });
+    await pollUntil(
+      () => select('event_invitations', `event_id=eq.${m.events.e8}&invitee_id=eq.${m.users.maria}&select=status`),
+      (rows) => (rows as { status: string }[])[0]?.status === 'pending',
+      { label: 'maria invited', timeoutMs: 20_000 },
+    );
+    await expectVisible({ text: /^manage players$/i }, { timeout: 20_000 });
+    // The success banner sits over the top of the screen for 4 s; the next test taps the tabs.
+    await expectGone({ text: /^invite sent\.$/i }, { timeout: 15_000 });
+  });
+
+  it('private event: an invitee is marked as confirmed from the Invited tab', async () => {
+    const m = manifest();
+    await tap({ id: 'manage-players-tabs-invited' });
+    await expectVisible({ text: /^maria santos$/i }, { timeout: 20_000 });
+    await tap({ text: /^maria santos$/i });
+    await expectVisible({ id: 'action-sheet-confirm' }, { timeout: 15_000 });
+    await tap({ id: 'action-sheet-confirm' });
+    await pollUntil(
+      () => participantsOf(m.events.e8),
+      (rows) => rows.some((r) => r.user_id === m.users.maria && r.status === 'confirmed'),
+      { label: 'maria confirmed by the organizer', timeoutMs: 20_000 },
+    );
+    await expectGone({ text: /is confirmed\.$/i }, { timeout: 15_000 });
+  });
+
+  it('private event: "Remove from confirmed list" sends the player back to Invited', async () => {
+    const m = manifest();
+    await tap({ id: 'manage-players-tabs-confirmed' });
+    await expectVisible({ text: /^maria santos$/i }, { timeout: 20_000 });
+    await tap({ text: /^maria santos$/i });
+    await expectVisible({ id: 'action-sheet-to_invited' }, { timeout: 15_000 });
+    await shot('09-remove-private.png');
+    await tap({ id: 'action-sheet-to_invited' });
+    await pollUntil(
+      async () => ({
+        parts: await participantsOf(m.events.e8),
+        invs: (await select('event_invitations', `event_id=eq.${m.events.e8}&invitee_id=eq.${m.users.maria}&select=status`)) as {
+          status: string;
+        }[],
+      }),
+      ({ parts, invs }) => !parts.some((r) => r.user_id === m.users.maria) && invs[0]?.status === 'pending',
+      { label: 'maria back to a pending invitation', timeoutMs: 20_000 },
+    );
   });
 });
