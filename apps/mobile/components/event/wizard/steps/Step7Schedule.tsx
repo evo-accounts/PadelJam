@@ -28,7 +28,7 @@ import { colors, radius, space } from '../../../../theme';
 import { Card, Chip, SwitchRow, Text } from '../../../ui';
 
 /** The weekly series a recurring event carries, derived from its start and duration. */
-function deriveSeries(
+export function deriveSeries(
   startsAt: string | undefined,
   durationMinutes: number,
   inviteLeadDays: InviteLeadDays,
@@ -66,11 +66,14 @@ export function Step7Schedule({
   recurring = false,
 }: WizardStepProps & {
   /**
-   * `edit`: Manage Event's Edit Date & Time sheet (UX-MEVT-08). The Repeat every week toggle is
-   * shown read-only there until recurrence editing ships with migration 0123 (M5).
+   * `edit`: Manage Event's Edit Date & Time sheet (UX-MEVT-08) — Repeat every week is a real
+   * toggle there (`draft.series` on / off; the sheet turns it into set_event_recurrence).
+   * `occurrence`: one Upcoming occurrence of a series (UX-MEVT-22) — its date and time only: no
+   * Repeat card (it already belongs to a series) and no duration (update_occurrence_slot moves
+   * the start alone).
    */
-  context?: 'wizard' | 'edit';
-  /** Edit only: whether the event belongs to an active weekly series. */
+  context?: 'wizard' | 'edit' | 'occurrence';
+  /** Edit only: whether the event already belongs to an active weekly series (its lead is kept). */
   recurring?: boolean;
 }) {
   const { t } = useT('event');
@@ -134,44 +137,31 @@ export function Step7Schedule({
         ) : null}
       </Card>
 
-      <Card padding="md" style={styles.card}>
-        <Text variant="sectionTitle">{t('durationCardTitle')}</Text>
-        <View style={styles.chips}>
-          {DURATION_PRESETS.map((m) => (
-            <Chip
-              key={m}
-              label={t('minutesValue', { count: m })}
-              selected={draft.durationMinutes === m}
-              onPress={() => pickDuration(m)}
-              testID={`duration-${m}`}
-            />
-          ))}
-          <Chip
-            label={custom ? t('durationCustomValue', { count: draft.durationMinutes }) : t('durationCustom')}
-            selected={custom}
-            onPress={() => setCustomOpen(true)}
-            testID="duration-custom"
-          />
-        </View>
-      </Card>
-
-      {/* TODO(0123, M5): turn recurrence on/off from the sheet (set_event_recurrence). Until then it
-          is shown as it is, and cannot be changed here — never a toggle that does nothing. */}
-      {context === 'edit' && draft.groupId ? (
+      {context === 'occurrence' ? null : (
         <Card padding="md" style={styles.card}>
-          <SwitchRow
-            label={t('repeatLabel')}
-            description={t('repeatEditLater')}
-            value={recurring}
-            onValueChange={() => undefined}
-            disabled
-            testID="repeat-weekly"
-          />
+          <Text variant="sectionTitle">{t('durationCardTitle')}</Text>
+          <View style={styles.chips}>
+            {DURATION_PRESETS.map((m) => (
+              <Chip
+                key={m}
+                label={t('minutesValue', { count: m })}
+                selected={draft.durationMinutes === m}
+                onPress={() => pickDuration(m)}
+                testID={`duration-${m}`}
+              />
+            ))}
+            <Chip
+              label={custom ? t('durationCustomValue', { count: draft.durationMinutes }) : t('durationCustom')}
+              selected={custom}
+              onPress={() => setCustomOpen(true)}
+              testID="duration-custom"
+            />
+          </View>
         </Card>
-      ) : null}
+      )}
 
       {/* Recurrence is group-only; a standalone event has nobody to re-invite (plan-capped on create). */}
-      {context === 'wizard' && draft.groupId ? (
+      {context !== 'occurrence' && draft.groupId ? (
         <Card padding="md" style={styles.card}>
           <SwitchRow
             label={t('repeatLabel')}
@@ -182,7 +172,8 @@ export function Step7Schedule({
             }
             testID="repeat-weekly"
           />
-          {repeatOn ? (
+          {/* An existing series keeps its own lead; only a new one picks it. */}
+          {repeatOn && !(context === 'edit' && recurring) ? (
             <View style={styles.lead}>
               <Text variant="label">{t('inviteLeadLabel')}</Text>
               <View style={styles.chips}>

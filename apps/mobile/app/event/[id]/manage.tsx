@@ -6,7 +6,7 @@
  *   header    back · "Manage Event"; format, modality and group as read-only chips (UX-MEVT-09)
  *   cards     Event name → General Info · Preferences | Scoring · Confirmed | Paid (donuts —
  *             two lists that never merge) · Location → Location & Courts · Date → Date & Time ·
- *             Activity (full screen)
+ *             Activity (full screen) · Next occurrences (a recurring event, UX-MEVT-22)
  *   actions   Share, Add to calendar, Send blast, Export, Start event
  *   footer    Duplicate | Cancel
  *
@@ -25,6 +25,7 @@ import {
   useEventParticipants,
   useEventTeams,
   useEventSeries,
+  useGroup,
   useSetEventRanking,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
@@ -40,6 +41,8 @@ import { DuplicateEventSheet } from '@/components/event/manage/DuplicateEventShe
 import { EDIT_SHEET_KINDS, EventEditSheet, type EditSheetKind } from '@/components/event/manage/EventEditSheet';
 import { formatLabel, modalityLabel, preferencesSummary, scoringLabel } from '@/components/event/manage/eventLabels';
 import { ExportSheet } from '@/components/event/manage/ExportSheet';
+import { NextOccurrences } from '@/components/event/manage/NextOccurrences';
+import { RecurringCapPrompt } from '@/components/event/manage/RecurringCapPrompt';
 import { useStartFlow } from '@/components/event/manage/useStartFlow';
 import { addToCalendar } from '@/lib/eventCalendar';
 import { shareEvent } from '@/lib/eventShare';
@@ -118,6 +121,8 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
   const { data: courtIds } = useEventCourts(id);
   const setRanking = useSetEventRanking(id);
   const startFlow = useStartFlow(id, event);
+  const { data: group } = useGroup(event.group_id);
+  const [capPrompt, setCapPrompt] = useState(false);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   // A sheet asked for on arrival opens once the push has settled: a Modal presented mid-transition
   // can be dropped by UIKit.
@@ -127,7 +132,6 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
     return () => clearTimeout(handle);
   }, [initialSheet]);
   const [calendarBusy, setCalendarBusy] = useState(false);
-  const [busy, setBusy] = useState(false);
 
   const participants = participantsData ?? [];
   const completeTeams = (teamsData ?? []).filter((tm) => tm.player_a != null && tm.player_b != null).length;
@@ -165,21 +169,6 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
     }).finally(() => setCalendarBusy(false));
     if (result === 'denied') banner.show(t('calendarDenied'));
     else if (result === 'error') banner.show(t('calendarError'));
-  };
-  const onStart = async () => {
-    if (startFlow.blocker) {
-      banner.show(startFlow.blocker);
-      return;
-    }
-    setBusy(true);
-    try {
-      await startFlow.start();
-      router.push(`/event/${id}/live` as Href);
-    } catch (e) {
-      banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
-    } finally {
-      setBusy(false);
-    }
   };
 
   const confirmedCard = (
@@ -299,6 +288,7 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
               testID="manage-date"
             />
             {activityCard}
+            {recurring ? <NextOccurrences eventId={id} /> : null}
 
             <View style={styles.actions}>
               <Button label={t('shareAction')} variant="secondary" fullWidth onPress={onShare} testID="manage-share" />
@@ -323,8 +313,8 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
                 <Button
                   label={t('startCta')}
                   fullWidth
-                  loading={busy || startFlow.pending}
-                  onPress={() => void onStart()}
+                  loading={startFlow.pending}
+                  onPress={startFlow.onStart}
                   testID="manage-start"
                 />
               ) : null}
@@ -352,14 +342,24 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
           event={event}
           confirmedMain={confirmedMain}
           recurring={recurring}
+          inviteLeadDays={series?.invite_lead_days}
           courtIds={courtIds}
           onClose={() => setSheet(null)}
           onSaved={() => {
             setSheet(null);
             banner.show(t('eventSavedToast'), 'success');
           }}
+          onUpgrade={() => {
+            setSheet(null);
+            // Let the edit sheet's Modal finish dismissing before the next one presents.
+            setTimeout(() => setCapPrompt(true), 450);
+          }}
         />
       ) : null}
+      {capPrompt && group ? (
+        <RecurringCapPrompt communityId={group.community_id} onClose={() => setCapPrompt(false)} />
+      ) : null}
+      {startFlow.sheet}
       {sheet === 'export' ? (
         <ExportSheet
           event={event}

@@ -26,6 +26,8 @@ export interface SeedManifest {
     // in infra/seed/seed-e2e.mjs. e9/e10/e12 carry NO invitations; e11 is the
     // only time-scored event, which is what gates the live screen's Timer tab.
     e9: string; e10: string; e11: string; e12: string;
+    // e13: an in-progress TEAM event with round 1 scored — the team leaderboard (UX-MEVT-27).
+    e13: string;
   };
 }
 

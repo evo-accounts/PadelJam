@@ -39,7 +39,6 @@ import {
   useLeaveWaitingList,
   useMyProfile,
   useEnsureChannel,
-  useMaterializeOccurrence,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
@@ -64,13 +63,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { streamClient } from '@/lib/streamClient';
 import { useNow } from '@/lib/useNow';
 import { useGoBack } from '@/lib/useGoBack';
-import { pendingActions } from '@/lib/pendingActions';
+import { pendingActions, teamsIncomplete } from '@/lib/pendingActions';
 import { avatarUrl } from '@/lib/community-images';
 import { addToCalendar } from '@/lib/eventCalendar';
 import { openInMaps } from '@/lib/eventLocation';
-import { eventSubtitle, eventWhen } from '@/lib/eventFormat';
+import { eventSubtitle } from '@/lib/eventFormat';
 import { shareEvent } from '@/lib/eventShare';
-import { PendingActionsSheet } from '../../../components/event/PendingActionsSheet';
+import { PendingActionsCard } from '../../../components/event/PendingActionsCard';
 import { useStartFlow } from '../../../components/event/manage/useStartFlow';
 import {
   EditResponseSheet,
@@ -92,7 +91,6 @@ import {
   Avatar,
   Badge,
   Button,
-  Card,
   Chip,
   EmptyState,
   emptyIcon,
@@ -139,7 +137,6 @@ export default function EventDetailScreen() {
   const declineInvitation = useDeclineEventInvitation(id);
   const startFlow = useStartFlow(id, event);
   const ensureChannel = useEnsureChannel();
-  const materialize = useMaterializeOccurrence(id);
 
   const [busy, setBusy] = useState(false);
   const [lockedSheetOpen, setLockedSheetOpen] = useState(false);
@@ -198,9 +195,24 @@ export default function EventDetailScreen() {
   const { me, myInvite, isOrganizer, joinClosed, leaveLocked, joinCutoffMs } = ps;
   const status = event.status;
 
-  // --- Pending actions: the server counts status='confirmed' regardless of is_standby ---
-  const startConfirmedCount = participants.filter((p) => p.status === 'confirmed').length;
-  const confirmedTeamCount = (teamsData ?? []).filter((tm) => tm.is_confirmed).length;
+  // --- Pending actions (UX-MEVT-24): organizer only, while scheduled ---
+  const confirmedRows = participants.filter((p) => p.status === 'confirmed');
+  const pending =
+    isOrganizer && status === 'scheduled'
+      ? pendingActions({
+          eventId: id,
+          specification: event.specification,
+          openSpots: ps.totalCapacity - ps.totalIn,
+          teamsIncomplete: teamsIncomplete(
+            confirmedRows.map((p) => p.id),
+            teamsData ?? [],
+          ),
+          feeEnabled: event.entrance_fee_enabled,
+          unpaid: confirmedRows.filter((p) => !p.has_paid).length,
+          hasLocation: event.has_location,
+          courtsReserved: event.courts_reserved,
+        })
+      : [];
 
   // --- Body values ---
   const lang = i18n.language;
@@ -229,12 +241,8 @@ export default function EventDetailScreen() {
   // Only non-scheduled statuses get a badge: "Upcoming" said nothing (UX-JEVT-01).
   const statusBadge = eventStatusKey(status, event.starts_at);
 
-  // --- Recurring series (5G-6 + A1): tag + clickable next-occurrence card ---
-  // The card must show EXACTLY what materialize_occurrence creates: source.starts_at + 7 days.
+  // Recurring series: the tag. Its next occurrences are listed on Manage Event (UX-MEVT-22).
   const isRecurring = event.series_id != null && series != null && series.is_active;
-  const nextOccurrenceIso = isRecurring
-    ? new Date(new Date(event.starts_at).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    : null;
 
   const hasOwnChat = event.is_private || event.group_id == null;
 
@@ -361,19 +369,6 @@ export default function EventDetailScreen() {
     });
     if (ok) await onLeave();
   };
-  // A blocked start answers the tap with its reason (UX-GLOB-06) rather than a disabled button.
-  const onStart = () => {
-    if (startFlow.blocker) return banner.show(startFlow.blocker);
-    return run(async () => {
-      await startFlow.start();
-      router.push(`/event/${id}/live` as Href);
-    });
-  };
-  const onOpenNextOccurrence = () =>
-    run(async () => {
-      const newId = await materialize.mutateAsync();
-      router.push(`/event/${newId}/manage` as Href);
-    });
   const openEventChat = async () => {
     if (ensureChannel.isPending) return;
     try {
@@ -469,7 +464,14 @@ export default function EventDetailScreen() {
       if (status === 'scheduled') {
         if (startHere) {
           rows.push(
-            <Button key="start" label={t('startCta')} fullWidth loading={busy} onPress={onStart} testID="event-start" />,
+            <Button
+              key="start"
+              label={t('startCta')}
+              fullWidth
+              loading={busy || startFlow.pending}
+              onPress={startFlow.onStart}
+              testID="event-start"
+            />,
           );
         }
         // An organizer who plays and is still looking for a partner (UX-JEVT-13).
@@ -789,22 +791,6 @@ export default function EventDetailScreen() {
           />
         </View>
 
-        {nextOccurrenceIso ? (
-          <View style={styles.section}>
-            <Card onPress={isOrganizer ? onOpenNextOccurrence : undefined} testID="event-next-occurrence">
-              <Text variant="label" tone="muted">
-                {t('nextOccurrenceTitle')}
-              </Text>
-              <Text variant="bodyStrong">{eventWhen(nextOccurrenceIso, lang)}</Text>
-              {isOrganizer ? (
-                <Text variant="caption" tone="muted">
-                  {materialize.isPending ? t('materializeOccurrenceLoading') : t('materializeOccurrenceHint')}
-                </Text>
-              ) : null}
-            </Card>
-          </View>
-        ) : null}
-
         {organizer ? (
           <View style={styles.section}>
             <PersonCard
@@ -820,20 +806,6 @@ export default function EventDetailScreen() {
           <View style={styles.section}>
             <LocationCard place={place} onPress={() => void openInMaps(place).catch(() => undefined)} />
           </View>
-        ) : null}
-
-        {/* Pending actions (JM-38) — organizer only, while scheduled. */}
-        {isOrganizer && status === 'scheduled' ? (
-          <PendingActionsSheet
-            actions={pendingActions({
-              eventId: id,
-              specification: event.specification,
-              numCourts: event.num_courts,
-              confirmedCount: startConfirmedCount,
-              confirmedTeamCount,
-              hasLocation: event.has_location,
-            })}
-          />
         ) : null}
 
         {hasOwnChat ? (
@@ -854,6 +826,9 @@ export default function EventDetailScreen() {
         ) : null}
       </ScrollView>
 
+      {/* Pinned under the scroll, above the bottom actions (UX-MEVT-24). */}
+      <PendingActionsCard actions={pending} />
+
       {bottomArea != null ? (
         <View style={styles.bottomBar} testID="event-bottom-area">
           {bottomArea}
@@ -867,6 +842,7 @@ export default function EventDetailScreen() {
         onChat={onMessageOrganizer}
         chatLoading={busy}
       />
+      {startFlow.sheet}
       <TeamEventSheet visible={teamSheetOpen} onClose={() => setTeamSheetOpen(false)} onChoose={onTeamChoice} />
       <EditResponseSheet
         visible={editSheetOpen}

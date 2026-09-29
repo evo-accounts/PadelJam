@@ -1,4 +1,4 @@
-import { updateEventSchema, useUpdateEvent, type EventDetail } from '@padel/api';
+import { updateEventSchema, useUpdateEvent, type EventDetail, type UpdateEventScope } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { geocodeQuery } from '@padel/utils';
 
@@ -16,13 +16,14 @@ import { locationChanged, updateValues } from './eventDraft';
  *
  * A newly picked thumbnail is uploaded first; a changed location is geocoded again so the event's
  * point follows it (a failed lookup keeps the stored point — update_event leaves it when no
- * coordinates are sent).
+ * coordinates are sent). `scope` is a recurring event's answer to "this occurrence only / this and
+ * upcoming" (UX-MEVT-08/22); omitted = only this one.
  */
 export function useSaveEvent(event: EventDetail) {
   const uid = useSession().session?.user.id;
   const update = useUpdateEvent(event.id);
 
-  return async (d: EventDraft, opts: { courts?: { courtName: (n: number) => string } } = {}): Promise<void> => {
+  return async (d: EventDraft, opts: { courts?: { courtName: (n: number) => string }; scope?: UpdateEventScope } = {}): Promise<void> => {
     let thumbnailPath: string | undefined;
     if (d.thumbnail && uid) {
       thumbnailPath = await uploadCommunityImage(supabase, 'event-thumbnails', uid, d.thumbnail.uri, d.thumbnail.mimeType);
@@ -34,6 +35,6 @@ export function useSaveEvent(event: EventDetail) {
     }
     const parsed = updateEventSchema.safeParse(updateValues(d, { thumbnailPath, coords, courts: opts.courts }));
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'unknown_error');
-    await update.mutateAsync({ values: parsed.data, groupId: event.group_id });
+    await update.mutateAsync({ values: parsed.data, groupId: event.group_id, scope: opts.scope });
   };
 }

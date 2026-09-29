@@ -1,8 +1,11 @@
+import { join } from 'node:path';
 import { beforeAll, describe, it } from 'vitest';
 import { query, queryAll, snapshot } from '../driver/a11y';
 import { scrollUntilVisible, tap, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
+import { CONFIG } from '../driver/config';
+import { screenshot } from '../driver/sim';
 import { loginAs, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
@@ -164,5 +167,30 @@ describe('07b live timer (time-scored event)', () => {
     if (after?.AXLabel === control.AXLabel) {
       throw new Error(`timer control did not change state (still "${control.AXLabel}")`);
     }
+  });
+});
+
+/**
+ * A team event's leaderboard ranks TEAMS (UX-MEVT-27, decision 11, 0125): one row per pair, both
+ * players named together ("A & B") with the team's result. E13 "Pair Showdown" is seeded in
+ * progress with round 1 scored (sofia + bruno v joão + rita). Signed in as alex from the first block.
+ */
+describe('07c team leaderboard (team event)', () => {
+  it('lists each pair as one row, both players together', async () => {
+    await tabTo('Events');
+    await scrollUntilVisible({ text: /pair showdown/i }, { maxSwipes: 8 });
+    await tap({ text: /pair showdown/i });
+    await expectVisible({ text: /pair showdown/i }, { timeout: 20_000 });
+    await scrollUntilVisible({ text: /view matches/i }, { maxSwipes: 8 });
+    await tap({ text: /view matches/i });
+    await expectVisible({ text: /leaderboard/i }, { timeout: 20_000 });
+    await tap({ text: /leaderboard/i });
+    await expectVisible({ text: /^(sofia costa|bruno almeida) & (sofia costa|bruno almeida)$/i }, { timeout: 15_000 });
+    await expectVisible({ text: /^(joão pereira|rita fernandes) & (joão pereira|rita fernandes)$/i });
+    // No individual row for a player of a pair.
+    const tree = await snapshot();
+    const solo = queryAll(tree, { text: /^(sofia costa|bruno almeida|joão pereira|rita fernandes)$/i });
+    if (solo.length > 0) throw new Error(`a team event's leaderboard still lists a player alone: ${solo[0]!.AXLabel}`);
+    await screenshot(join(CONFIG.artifactsDir, 'manage-event', '16-team-leaderboard.png'));
   });
 });

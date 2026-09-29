@@ -1,13 +1,13 @@
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { query, snapshot } from '../driver/a11y';
+import { query, snapshot, type AxElement } from '../driver/a11y';
 import { backGesture, clearText, scrollUntilVisible, tap, typeText } from '../driver/actions';
 import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { CONFIG } from '../driver/config';
 import { screenshot } from '../driver/sim';
 import { loginAs, switchUser, tabTo } from '../driver/flows';
-import { select } from '../fixtures/db';
+import { psql, rest, select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
 
@@ -478,5 +478,157 @@ describe('06 event manage (organizer)', () => {
     expect(rows[0]!.source_template_id).not.toBeNull();
     await tap({ id: 'blast-sent-ok' });
     await expectVisible({ id: 'manage-name' }, { timeout: 15_000 });
+  });
+
+
+  // --- Pending actions, start flow, recurring occurrences (UX-MEVT-22..24, M5) ---------------
+
+  /**
+   * Each M5 test signs in as the user it needs and opens its own screen, so it does not depend on
+   * where the test before it stopped. `signedIn` skips the (slow) sign-out when already that user.
+   */
+  let signedIn: string | null = null;
+  const as = async (key: 'alex' | 'maria' | 'nina') => {
+    if (signedIn === key) return;
+    await switchUser(key);
+    signedIn = key;
+  };
+
+  /** Open an event this user organizes on its event page (not Manage). */
+  const openEventPage = async (name: RegExp) => {
+    await tabTo('Events');
+    await tap({ text: /organizing/i });
+    await scrollUntilVisible({ text: name }, { maxSwipes: 8 });
+    await tap({ text: name });
+    await expectVisible({ text: name }, { timeout: 20_000 });
+  };
+
+  it('pending actions: a collapsed card with the count; each row opens what resolves it (UX-MEVT-24)', async () => {
+    const m = manifest();
+    await as('alex');
+    // E10 "Cutoff No Invites": alex alone on a 1-court event (5 of 6 spots open). Courts not
+    // reserved is the wizard's "Have not reserved yet" (decision 13).
+    await psql(`update events set courts_reserved = false where id = '${m.events.e10}'`);
+    await openEventPage(/cutoff no invites/i);
+    const toggle = await expectVisible({ id: 'pending-actions-toggle' }, { timeout: 20_000 });
+    expect(toggle.AXLabel ?? '', 'titled with the number of pending actions').toMatch(/2 pending actions/i);
+    // Collapsed by default.
+    expect(query(await snapshot(), { id: 'pending-action-spots' }), 'collapsed by default').toBeUndefined();
+    await tap({ id: 'pending-actions-toggle' });
+    await expectVisible({ id: 'pending-action-spots' }, { timeout: 10_000 });
+    await expectVisible({ id: 'pending-action-courts' });
+    await shot('30-pending-actions.png');
+    await tap({ id: 'pending-action-courts' });
+    // Location & Courts, opened on arrival (manage?sheet=location).
+    await expectVisible({ id: 'sheet-location-save' }, { timeout: 20_000 });
+    await tap({ id: 'sheet-location-cancel' });
+    await expectGone({ id: 'sheet-location-save' }, { timeout: 10_000 });
+  });
+
+  it('start event: fewer than 4 players is a blocking sheet with no way to start anyway (UX-MEVT-23)', async () => {
+    const m = manifest();
+    await as('alex');
+    // Start works any time from Manage Event (an early start, decision 1).
+    await openManage(/cutoff no invites/i); // E10: alex alone
+    await scrollUntilVisible({ id: 'manage-start' }, { maxSwipes: 10 });
+    await tap({ id: 'manage-start' });
+    // The blocker's line is plain text (a Text's testID never reaches the tree): match its copy.
+    await expectVisible({ text: /^can't start yet$/i, type: 'Heading' }, { timeout: 20_000 });
+    await expectVisible({ text: /at least 4 confirmed players/i });
+    expect(query(await snapshot(), { id: 'start-anyway' }), 'a blocker offers no start anyway').toBeUndefined();
+    await expectVisible({ id: 'start-manage-players' });
+    await shot('31-start-blocked.png');
+    await tap({ id: 'start-close' });
+    await expectGone({ id: 'start-close' }, { timeout: 10_000 });
+    const rows = (await select('events', `id=eq.${m.events.e10}&select=status`)) as { status: string }[];
+    expect(rows[0]?.status, 'still scheduled').toBe('scheduled');
+  });
+
+  it('start event: below capacity warns, and "Start anyway" starts it (UX-MEVT-23)', async () => {
+    const m = manifest();
+    // Four confirmed on a six-spot event: startable, two spots open. Inside the join cut-off, so
+    // written directly (as the seed back-dates events).
+    await rest('/rest/v1/event_participants', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      body: ['joao', 'sofia', 'bruno'].map((k) => ({
+        event_id: m.events.e10,
+        user_id: m.users[k],
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString(),
+      })),
+    });
+    await as('alex');
+    await openManage(/cutoff no invites/i);
+    await scrollUntilVisible({ id: 'manage-start' }, { maxSwipes: 10 });
+    await tap({ id: 'manage-start' });
+    await expectVisible({ text: /^start the event\?$/i, type: 'Heading' }, { timeout: 20_000 });
+    await expectVisible({ text: /2 spots are still open/i });
+    await expectVisible({ id: 'start-add-players' });
+    await shot('32-start-warning.png');
+    await tap({ id: 'start-anyway' });
+    await pollUntil(
+      () => select('events', `id=eq.${m.events.e10}&select=status`),
+      (rows) => (rows as { status: string }[])[0]?.status === 'in_progress',
+      { label: 'event started', timeoutMs: 25_000 },
+    );
+    await expectVisible({ text: /round 1/i }, { timeout: 20_000 });
+  });
+
+  it('recurring event: saving Preferences asks this occurrence only / this and upcoming (UX-MEVT-22)', async () => {
+    await as('alex');
+    await openManage(/weekly friday social/i); // E5, recurring
+    await tap({ id: 'manage-preferences' });
+    await expectVisible({ id: 'sheet-preferences-save' }, { timeout: 15_000 });
+    await tap({ id: 'sheet-preferences-save' });
+    await expectVisible({ id: 'edit-scope-this_and_upcoming' }, { timeout: 10_000 });
+    await expectVisible({ id: 'edit-scope-only_this' });
+    await shot('33-edit-scope.png');
+    await tap({ id: 'sheet-preferences-save' });
+    await expectGone({ id: 'edit-scope-only_this' }, { timeout: 15_000 });
+  });
+
+  it('recurring event: Next occurrences lists the series; "Send invitation now" makes one Scheduled (UX-MEVT-22)', async () => {
+    const m = manifest();
+    const seriesOf = async () =>
+      ((await select('events', `id=eq.${m.events.e5}&select=series_id`)) as { series_id: string }[])[0]!.series_id;
+    const series = await seriesOf();
+    const occurrencesInDb = () =>
+      select('events', `series_id=eq.${series}&deleted_at=is.null&select=id,starts_at`) as Promise<
+        { id: string; starts_at: string }[]
+      >;
+    const before = (await occurrencesInDb()).length;
+
+    await as('alex');
+    await openManage(/weekly friday social/i);
+
+    await scrollUntilVisible({ text: /^next occurrences$/i }, { maxSwipes: 10 });
+    const cards = (tree: AxElement[]) => tree.filter((e) => (e.AXUniqueId ?? '').startsWith('manage-occurrence-'));
+    const upcoming = cards(await snapshot()).find((e) => /upcoming/i.test(e.AXLabel ?? ''));
+    if (!upcoming) throw new Error('no Upcoming occurrence card on a recurring event');
+    const cardId = upcoming.AXUniqueId!;
+    await shot('34-next-occurrences.png');
+    await tap({ id: cardId });
+    await expectVisible({ id: 'occurrence-settings' }, { timeout: 20_000 });
+    // No participation on an occurrence nobody has been invited to yet.
+    expect(query(await snapshot(), { id: 'event-manage-players' }), 'no players on an occurrence').toBeUndefined();
+    await shot('35-occurrence.png');
+    await tap({ id: 'occurrence-settings' });
+    await expectVisible({ id: 'action-sheet-send' }, { timeout: 10_000 });
+    await expectVisible({ id: 'action-sheet-cancel' });
+    await tap({ id: 'action-sheet-send' });
+    await expectVisible({ id: 'confirm-sheet-confirm' }, { timeout: 10_000 });
+    await tap({ id: 'confirm-sheet-confirm' });
+    await pollUntil(occurrencesInDb, (rows) => rows.length === before + 1, {
+      label: 'the occurrence materialised',
+      timeoutMs: 25_000,
+    });
+    // Back on Manage Event, the same slot now reads Scheduled.
+    const card = await expectVisible({ id: cardId }, { timeout: 20_000 });
+    await pollUntil(
+      async () => query(await snapshot(), { id: cardId })?.AXLabel ?? card.AXLabel ?? '',
+      (label) => /scheduled/i.test(label),
+      { label: 'the card reads Scheduled', timeoutMs: 15_000 },
+    );
   });
 });

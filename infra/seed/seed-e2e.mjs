@@ -556,6 +556,21 @@ async function main() {
   }) });
   console.log(`  E12 team, no invitations = ${e12}`);
 
+  // E13 — in-progress TEAM event, organizer alex (organizing_only): two pairs on one court, round
+  // 1 scored, so the live leaderboard ranks teams ("A & B", UX-MEVT-27 / 0125). Mexicano: start_event
+  // seeds round 1 server-side by pair (0126), no client schedule needed. Named without "partner"
+  // (see E12) and without "mexicano" (suite 07 finds E3 by /live mexicano/).
+  const e13 = await rpc(jwt('alex'), 'create_event', { p_payload: baseEvent({
+    name: 'Pair Showdown', specification: 'team', event_type: 'mexicano', organizer_role: 'organizing_only',
+    starts_at: hoursFromNow(8),
+  }) });
+  await rpc(jwt('sofia'), 'choose_partner', { p_event_id: e13, p_partner_user: id('bruno') });
+  await rpc(jwt('joao'), 'choose_partner', { p_event_id: e13, p_partner_user: id('rita') });
+  await rpc(jwt('alex'), 'start_event', { p_event_id: e13 });
+  await patchEvent(e13, { starts_at: hoursFromNow(-1) });
+  await scoreRound(jwt('alex'), e13);
+  console.log(`  E13 in-progress team = ${e13}`);
+
   // 8) Review Club: three completed events so can_review_community unlocks (reviewer: joao).
   for (let i = 0; i < 3; i++) {
     await completedEvent('tiago', gR, `Review League #${i + 1}`, 14 - i * 3, ['joao', 'sofia', 'bruno']);
@@ -568,7 +583,7 @@ async function main() {
     users: Object.fromEntries(Object.entries(U).map(([k, v]) => [k, v.id])),
     communities: { A: commA, C: commC, P: commP, R: commR, S: commS },
     groups: { g1, g2, g3, gR, gS },
-    events: { e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12 },
+    events: { e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13 },
   };
   console.log(`\nE2E_MANIFEST ${JSON.stringify(manifest)}`);
 
