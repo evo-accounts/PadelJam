@@ -57,6 +57,12 @@ describe('draftFromEvent / updateValues', () => {
     expect(parsed.locationLat).toBeUndefined();
   });
 
+  it('normalises the stored +00:00 offset to the Z form the schema accepts', () => {
+    const e = { ...base, starts_at: '2026-10-06T18:00:00+00:00' } as unknown as EventDetail;
+    const v = updateEventSchema.parse(updateValues(draftFromEvent(e)));
+    expect(v.startsAt).toBe('2026-10-06T18:00:00.000Z');
+  });
+
   it('carries a registry venue as its id, with the manual columns cleared by the builder', () => {
     const e = { ...base, venue_id: '00000000-0000-4000-8000-000000000001', venue: { name: 'Padel Club', address: 'Av 2' } } as unknown as EventDetail;
     const d = draftFromEvent(e);

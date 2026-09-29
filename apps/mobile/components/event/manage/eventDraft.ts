@@ -32,7 +32,8 @@ export function draftFromEvent(e: EventDetail): EventDraft {
     manualLocationName: e.venue?.name ?? e.manual_location_name ?? undefined,
     manualLocationAddress: e.venue_id ? (e.venue?.address ?? undefined) : (e.manual_location_address ?? undefined),
     numCourts: e.num_courts,
-    startsAt: e.starts_at,
+    // PostgREST answers `…+00:00`; updateEventSchema's datetime() takes only the `Z` form.
+    startsAt: new Date(e.starts_at).toISOString(),
     durationMinutes: e.duration_minutes,
     allowStandby: e.allow_standby,
     standbySpots: e.standby_spots ?? undefined,
