@@ -43,6 +43,9 @@ const KNOWN = [
   // 0123: acting on a recurring event's occurrence slot (not a slot / already sent / cancelled),
   // and a 'this and upcoming' date move onto another occurrence's week.
   'occurrence_not_found', 'occurrence_materialised', 'occurrence_cancelled', 'occurrence_conflict',
+  // 0127: the Teams tab (a team past the event's bound, a bad slot), switching a player who is in no
+  // team, revoking an invitation whose invitee is already on the roster.
+  'invalid_team', 'invalid_slot', 'not_in_team', 'invitee_in_roster',
   'match_not_found', 'score_locked', 'invalid_participant', 'invalid_mode',
   'recurring_events', 'not_cancellable', 'invalid_scope', 'not_editable', 'standby_below_roster', 'series_inactive', 'courts_below_roster', 'not_retryable',
   // community reviews: gate RPC codes the review screen translates directly

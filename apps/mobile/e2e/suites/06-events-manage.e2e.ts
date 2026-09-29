@@ -263,4 +263,163 @@ describe('06 event manage (organizer)', () => {
       { label: 'maria back to a pending invitation', timeoutMs: 20_000 },
     );
   });
+  it('private event: a pending invitation without a roster row is withdrawn from the Invited tab (0127)', async () => {
+    const m = manifest();
+    // Still nina on E8: maria's invitation is pending again and she has no roster row.
+    await tap({ id: 'manage-players-tabs-invited' });
+    await expectVisible({ text: /^maria santos$/i }, { timeout: 20_000 });
+    await tap({ text: /^maria santos$/i });
+    await expectVisible({ id: 'action-sheet-remove' }, { timeout: 15_000 });
+    await tap({ id: 'action-sheet-remove' });
+    await expectVisible({ id: 'confirm-sheet-confirm' }, { timeout: 15_000 });
+    await shot('10-revoke-invitation.png');
+    await tap({ id: 'confirm-sheet-confirm' });
+    await pollUntil(
+      () => select('event_invitations', `event_id=eq.${m.events.e8}&invitee_id=eq.${m.users.maria}&select=status`),
+      (rows) => (rows as unknown[]).length === 0,
+      { label: "maria's invitation withdrawn", timeoutMs: 20_000 },
+    );
+    await expectGone({ text: /^maria santos$/i }, { timeout: 15_000 });
+  });
+
+  // --- Team management (UX-MEVT-14, 15, 26) --------------------------------------------------
+  //
+  // E2 "Team Cup": maria organizes; 1 court + 2 stand-by spots = 3 teams. Seeded: sofia + bruno
+  // are team 1; rita is interested (her partner request to alex is pending).
+
+  type TeamRow = { team_number: number; player_a_id: string | null; player_b_id: string | null; is_confirmed: boolean };
+  const teamsOf = (eventId: string) =>
+    select('event_teams', `event_id=eq.${eventId}&select=team_number,player_a_id,player_b_id,is_confirmed&order=team_number`) as Promise<
+      TeamRow[]
+    >;
+  type Row = { id: string; user_id: string | null; guest_name: string | null; status: string };
+  const rosterOf = (eventId: string) =>
+    select('event_participants', `event_id=eq.${eventId}&select=id,user_id,guest_name,status`) as Promise<Row[]>;
+  const pidOf = async (eventId: string, userId: string) => (await rosterOf(eventId)).find((r) => r.user_id === userId)!.id;
+
+  it('team event: the Confirmed card counts complete teams; Manage players opens on Teams (UX-MEVT-26)', async () => {
+    const m = manifest();
+    await switchUser('maria');
+    await openManage(/team cup/i);
+    const card = query(await snapshot(), { id: 'manage-confirmed' });
+    expect(card?.AXLabel ?? '', 'the Confirmed card names the complete teams').toMatch(/1 complete team/i);
+    await tap({ id: 'manage-confirmed' });
+    await expectVisible({ text: /^manage players$/i }, { timeout: 20_000 });
+    await expectVisible({ id: 'teams-summary' }, { timeout: 20_000 });
+    const summary = query(await snapshot(), { id: 'teams-summary' });
+    expect(summary?.AXLabel ?? '', 'two empty teams: four open slots, none half-formed').toMatch(/^4 open slots$/i);
+    const rita = await pidOf(m.events.e2, m.users.rita!);
+    await expectVisible({ id: `team-unassigned-${rita}` }, { timeout: 15_000 });
+    await shot('11-teams.png');
+  });
+
+  it('team event: an Interested player is confirmed into a team from the Players tab (UX-MEVT-14)', async () => {
+    const m = manifest();
+    const rita = await pidOf(m.events.e2, m.users.rita!);
+    await tap({ id: 'manage-players-view-players' });
+    await tap({ id: 'manage-players-tabs-interested' });
+    await expectVisible({ id: `manage-player-${rita}` }, { timeout: 15_000 });
+    await shot('12-interested.png');
+    await tap({ id: `manage-player-${rita}` });
+    await expectVisible({ id: 'action-sheet-confirm' }, { timeout: 15_000 });
+    await tap({ id: 'action-sheet-confirm' });
+    await expectVisible({ id: 'pick-team-2' }, { timeout: 15_000 });
+    await shot('13-pick-team.png');
+    await tap({ id: 'pick-team-2' });
+    await pollUntil(
+      () => teamsOf(m.events.e2),
+      (rows) => rows.some((r) => r.team_number === 2 && r.player_a_id === rita),
+      { label: 'rita in team 2', timeoutMs: 20_000 },
+    );
+    await expectGone({ id: `manage-player-${rita}` }, { timeout: 15_000 });
+  });
+
+  it('team event: "+" adds a guest manually into the open slot, completing the pair (D7)', async () => {
+    const m = manifest();
+    const rita = await pidOf(m.events.e2, m.users.rita!);
+    await expectGone({ text: /is in team 2\.$/i }, { timeout: 15_000 });
+    await tap({ id: 'manage-players-view-teams' });
+    await scrollUntilVisible({ id: 'team-slot-2-b-add' }, { maxSwipes: 4 });
+    await tap({ id: 'team-slot-2-b-add' });
+    await expectVisible({ id: 'sheet-select-player-save' }, { timeout: 15_000 });
+    await shot('14-select-player.png');
+    await tap({ id: 'select-player-add-manually' });
+    await expectVisible({ id: 'team-guest-name' }, { timeout: 15_000 });
+    await typeText({ id: 'team-guest-name' }, 'Guest Gus');
+    await tap({ id: 'sheet-team-guest-save' });
+    await pollUntil(
+      async () => ({ teams: await teamsOf(m.events.e2), roster: await rosterOf(m.events.e2) }),
+      ({ teams, roster }) => {
+        const gus = roster.find((r) => r.guest_name === 'Guest Gus');
+        const t2 = teams.find((r) => r.team_number === 2);
+        return !!gus && t2?.player_b_id === gus.id && !!t2.is_confirmed && roster.find((r) => r.id === rita)?.status === 'confirmed';
+      },
+      { label: 'Guest Gus completes team 2, rita confirmed', timeoutMs: 20_000 },
+    );
+  });
+
+  it('team event: ✕ → "Remove from team" sends the player back to Invited (UX-MEVT-15)', async () => {
+    const m = manifest();
+    const rita = await pidOf(m.events.e2, m.users.rita!);
+    await expectGone({ text: /was added to team 2\.$/i }, { timeout: 15_000 });
+    await scrollUntilVisible({ id: 'team-slot-2-a-remove' }, { maxSwipes: 4 });
+    await tap({ id: 'team-slot-2-a-remove' });
+    await expectVisible({ id: 'action-sheet-from_team' }, { timeout: 15_000 });
+    await shot('15-remove-player.png');
+    await tap({ id: 'action-sheet-from_team' });
+    await pollUntil(
+      async () => ({ teams: await teamsOf(m.events.e2), roster: await rosterOf(m.events.e2) }),
+      ({ teams, roster }) =>
+        !teams.some((r) => r.player_a_id === rita || r.player_b_id === rita) &&
+        roster.find((r) => r.id === rita)?.status === 'invited',
+      { label: 'rita out of team 2, invited', timeoutMs: 20_000 },
+    );
+  });
+
+  it('team event: "+" places an invited player through Select and Confirm player (UX-MEVT-15)', async () => {
+    const m = manifest();
+    const rita = await pidOf(m.events.e2, m.users.rita!);
+    await expectGone({ text: /is back on the invited list\.$/i }, { timeout: 15_000 });
+    await scrollUntilVisible({ id: 'team-slot-2-a-add' }, { maxSwipes: 4 });
+    await tap({ id: 'team-slot-2-a-add' });
+    await expectVisible({ id: `select-player-row-${rita}` }, { timeout: 15_000 });
+    await tap({ id: `select-player-row-${rita}` });
+    // Not confirmed: the sheet asks first, in place.
+    await expectVisible({ id: 'sheet-confirm-player-save' }, { timeout: 15_000 });
+    await shot('16-confirm-player.png');
+    await tap({ id: 'sheet-confirm-player-save' });
+    await expectVisible({ id: `select-player-unpick-${rita}` }, { timeout: 15_000 });
+    await tap({ id: 'sheet-select-player-save' });
+    await pollUntil(
+      async () => ({ teams: await teamsOf(m.events.e2), roster: await rosterOf(m.events.e2) }),
+      ({ teams, roster }) =>
+        teams.some((r) => r.team_number === 2 && r.player_a_id === rita && r.is_confirmed) &&
+        roster.find((r) => r.id === rita)?.status === 'confirmed',
+      { label: 'rita back in team 2, confirmed with the pair', timeoutMs: 20_000 },
+    );
+  });
+
+  it('team event: the switch icon swaps two players between teams (UX-MEVT-15)', async () => {
+    const m = manifest();
+    const rita = await pidOf(m.events.e2, m.users.rita!);
+    const sofia = await pidOf(m.events.e2, m.users.sofia!);
+    await expectGone({ text: /is in team 2\.$/i }, { timeout: 15_000 });
+    const before = (await teamsOf(m.events.e2)).find((r) => r.team_number === 1)!;
+    const slot = before.player_a_id === sofia ? 'a' : 'b';
+    await scrollUntilVisible({ id: `team-slot-1-${slot}-switch` }, { direction: 'down', maxSwipes: 4 });
+    await tap({ id: `team-slot-1-${slot}-switch` });
+    await expectVisible({ id: `switch-player-row-${rita}` }, { timeout: 15_000 });
+    await tap({ id: `switch-player-row-${rita}` });
+    await shot('17-switch-player.png');
+    await tap({ id: 'sheet-switch-player-save' });
+    await pollUntil(
+      () => teamsOf(m.events.e2),
+      (rows) => {
+        const t1 = rows.find((r) => r.team_number === 1);
+        const t2 = rows.find((r) => r.team_number === 2);
+        return (slot === 'a' ? t1?.player_a_id : t1?.player_b_id) === rita && t2?.player_a_id === sofia;
+      },
+      { label: 'rita and sofia switched', timeoutMs: 20_000 },
+    );
+  });
 });

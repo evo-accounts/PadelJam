@@ -3190,9 +3190,17 @@ export type Database = {
         Args: { p_mode: string; p_participant_id: string }
         Returns: undefined
       }
+      organizer_revoke_invitation: {
+        Args: { p_event_id: string; p_invitation_id: string }
+        Returns: undefined
+      }
       organizer_switch_players: {
         Args: { p_a: string; p_b: string; p_event_id: string }
         Returns: undefined
+      }
+      organizer_switch_with_invitee: {
+        Args: { p_event_id: string; p_participant_id: string; p_user_id: string }
+        Returns: string
       }
       partner_request_summary: {
         Args: Record<PropertyKey, never>

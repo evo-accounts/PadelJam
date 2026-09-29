@@ -258,8 +258,10 @@ await run('organizer removal of a paired player takes their confirmed guest part
   const [a, b, c] = [await user('orm-a'), await user('orm-b'), await user('orm-c')];
   const org = await user('orm-org');
   const ev = await create(org, {
+    // Two courts: the organizer, their guest and two pairs are 6 players — on one court (4 spots)
+    // completing b's pair would pass capacity, which organizer_assign_to_team refuses since 0127.
     specification: 'team', organizer_role: 'organizing_and_playing', invitees: invitees(a, b, c),
-    guests: [{ name: 'Org Guest' }],
+    guests: [{ name: 'Org Guest' }], num_courts: 2,
   });
   assert((await rpc(a.jwt, 'choose_guest_partner', { p_event_id: ev, p_name: 'A Guest' })) === 'confirmed', 'a pairs with a guest');
   const orgGuest = (await guestRows(ev)).find((r) => r.guest_name === 'Org Guest');

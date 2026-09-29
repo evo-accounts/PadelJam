@@ -14,20 +14,31 @@
  *   Confirmed    — Remove → sheet: "Remove from confirmed list" (back to invited) and "Remove from
  *                  event"; a public group event has no invited state, so only the latter (D3).
  *   Invited      — Mark as confirmed (a roster row: organizer_mark_confirmed; an invitee without
- *                  one: organizer_confirm_invitee) and Remove.
+ *                  one: organizer_confirm_invitee) and Remove (a roster row: organizer_remove_
+ *                  participant; a pending invitation without one: organizer_revoke_invitation, 0127).
  *   Waiting list — Remove only, in queue order (D2: the organizer never confirms a waiting player).
  * Every action needs a scheduled event; after that the lists are read-only.
  *
- * Team events: the Confirmed tab is still the team builder (TeamManage) and Mark as confirmed is
- * hidden — confirming there means picking a team, which is M3's team management (UX-MEVT-14/15).
+ * Team events (UX-MEVT-14, 15, 26) open on two views, Teams and Players:
+ *   Teams    — TeamsTab: the team blocks, the unassigned row, drag-and-drop and "+" (Select
+ *              player sheet), the switch icon (Switch player sheet) and ✕ (Remove player: from the
+ *              team → Invited, or from the event).
+ *   Players  — the tabs above plus Interested: players who want to play without a pair. Their
+ *              swipe is Confirm (which team? → placed, confirmed with the pair); the tap sheet adds
+ *              Remove (back to Invited; out of the event on a public group event, D3). Mark as
+ *              confirmed on Invited asks for the team the same way.
  */
 import {
+  useAssignToTeam,
   useConfirmInvitee,
   useEvent,
   useEventInvitedPlayers,
   useEventParticipants,
+  useEventTeams,
   useMarkConfirmed,
+  useRemoveFromTeam,
   useRemoveParticipant,
+  useRevokeInvitation,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
@@ -39,6 +50,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddManualSheet } from '@/components/event/manage/AddManualSheet';
 import {
   headerAction,
+  interestedRemoveMode,
   invitedActions,
   manageRoster,
   removeModes,
@@ -47,7 +59,20 @@ import {
   type ManageRow,
   type ManageSide,
 } from '@/components/event/manage/manageRoster';
-import { TeamManage } from '@/components/event/TeamManage';
+import { SelectPlayerSheet } from '@/components/event/manage/SelectPlayerSheet';
+import { SwitchPlayerSheet } from '@/components/event/manage/SwitchPlayerSheet';
+import {
+  openSlotsOf,
+  selectCandidates,
+  switchCandidates,
+  teamBoard,
+  teamOfParticipant,
+  teamsWithOpenSlot,
+  type BoardPlayer,
+  type BoardTeam,
+  type Slot,
+} from '@/components/event/manage/teamBoard';
+import { TeamsTab } from '@/components/event/manage/TeamsTab';
 import { avatarUrl } from '@/lib/community-images';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors, space } from '../../../theme';
@@ -67,10 +92,15 @@ import {
   type SheetAction,
 } from '../../../components/ui';
 
-type Tab = 'confirmed' | 'waiting' | 'invited';
+type Tab = 'confirmed' | 'waiting' | 'invited' | 'interested';
+type TeamView = 'teams' | 'players';
+/** Who a team placement is for: a roster row, or a pending invitee without one. */
+type Placeable = { participantId: string | null; userId: string | null; name: string | null; confirmed: boolean };
+type TeamSheet = { kind: 'select'; team: number } | { kind: 'switch'; team: number; participantId: string } | null;
 
 export default function ManagePlayersScreen() {
   const { t } = useT('event');
+  const { t: tc } = useT('common');
   const router = useRouter();
   const goBack = useGoBack();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -85,8 +115,14 @@ export default function ManagePlayersScreen() {
   const markConfirmed = useMarkConfirmed(id);
   const confirmInvitee = useConfirmInvitee(id);
   const removeParticipant = useRemoveParticipant(id);
+  const revokeInvitation = useRevokeInvitation(id);
+  const teamsQuery = useEventTeams(id);
+  const assign = useAssignToTeam(id);
+  const removeFromTeam = useRemoveFromTeam(id);
 
   const [picked, setPicked] = useState<Tab>('confirmed');
+  const [view, setView] = useState<TeamView>('teams');
+  const [teamSheet, setTeamSheet] = useState<TeamSheet>(null);
   const [side, setSide] = useState<ManageSide>('female');
   const [addingManual, setAddingManual] = useState(false);
 
@@ -113,7 +149,10 @@ export default function ManagePlayersScreen() {
   const mixed = event.specification === 'mixed';
   const action = headerAction(event);
   // The waiting list can empty while its tab is open (a claim, a removal): fall back to Confirmed.
-  const tab: Tab = picked === 'waiting' && !roster.showWaiting ? 'confirmed' : picked;
+  // Interested exists on team events only.
+  const tab: Tab =
+    (picked === 'waiting' && !roster.showWaiting) || (picked === 'interested' && !team) ? 'confirmed' : picked;
+  const board = teamBoard(event, participants.data ?? [], teamsQuery.data ?? []);
 
   const openInvite = () => router.push(`/event/${id}/invite` as Href);
   const openAdd = () => (action === 'invite' ? openInvite() : setAddingManual(true));
@@ -175,14 +214,170 @@ export default function ManagePlayersScreen() {
     }
   };
 
+  /** Pending invitation without a roster row: withdrawn, nobody notified (0127). */
+  const askRevoke = async (row: ManageRow) => {
+    if (row.invitationId == null) return;
+    const ok = await confirm({
+      title: t('mpRemoveTitle', { name: nameOf(row) }),
+      body: t('mpRevokeBody'),
+      confirmLabel: t('removeCta'),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await revokeInvitation.mutateAsync({ invitationId: row.invitationId });
+      banner.show(t('mpRevokedToast', { name: nameOf(row) }), 'success');
+    } catch (e) {
+      fail(e);
+    }
+  };
+  const removeInvited = (row: ManageRow) =>
+    invitedActions(row).remove === 'invitation' ? askRevoke(row) : askRemoveFromEvent(row);
+
+  // --- Team events (UX-MEVT-14, 15) ---------------------------------------------------------
+
+  const teamName = (n: number) => t('teamLabel', { n });
+
+  /** Put someone in a slot: a roster row is assigned, a pending invitee confirmed into it. */
+  const placeIn = async (who: Placeable, target: BoardTeam, slot: Slot) => {
+    try {
+      if (who.participantId != null) {
+        await assign.mutateAsync({ participantId: who.participantId, teamNumber: target.number, slot });
+      } else if (who.userId != null) {
+        await confirmInvitee.mutateAsync({ userId: who.userId, teamNumber: target.number, slot });
+      } else {
+        return;
+      }
+      banner.show(t('tmAssignedToast', { name: who.name ?? '—', team: teamName(target.number) }), 'success');
+    } catch (e) {
+      fail(e);
+    }
+  };
+
+  const teamOption = (tm: BoardTeam) => {
+    const mate = tm.a ?? tm.b;
+    return mate
+      ? t('tmTeamOptionWith', { team: teamName(tm.number), name: mate.name ?? '—' })
+      : t('tmTeamOptionEmpty', { team: teamName(tm.number) });
+  };
+
+  /**
+   * "Which team?" (UX-MEVT-14): the teams with an open slot. `ask` routes a player who is not
+   * confirmed through "Confirm player" first — the unassigned row's tap; Confirm / Mark as
+   * confirmed already say it.
+   */
+  const pickTeam = async (who: Placeable, ask: boolean) => {
+    // Someone alone in a team (an Invited row) is moved: their own team is not an option.
+    const open = teamsWithOpenSlot(board).filter(
+      (tm) => who.participantId == null || (tm.a?.participantId !== who.participantId && tm.b?.participantId !== who.participantId),
+    );
+    if (open.length === 0) {
+      banner.show(t('tmNoOpenTeam'));
+      return;
+    }
+    const name = who.name ?? '—';
+    const key = await show({
+      title: t('mpPickTeamTitle', { name }),
+      actions: open.map((tm) => ({
+        key: String(tm.number),
+        label: teamOption(tm),
+        testID: `pick-team-${tm.number}`,
+        confirm:
+          ask && !who.confirmed
+            ? { title: t('tmConfirmPlayerTitle'), body: t('tmConfirmPlayerBody', { name }), confirmLabel: tc('confirm') }
+            : undefined,
+      })),
+    });
+    const target = open.find((tm) => String(tm.number) === key);
+    if (target) await placeIn(who, target, openSlotsOf(target)[0]!);
+  };
+
+  const placeableOf = (row: ManageRow, confirmed: boolean): Placeable => ({
+    participantId: row.participantId,
+    userId: row.userId,
+    name: row.name,
+    confirmed,
+  });
+  const placeableOfPlayer = (p: BoardPlayer): Placeable => ({
+    participantId: p.participantId,
+    userId: p.userId,
+    name: p.name,
+    confirmed: p.status === 'confirmed',
+  });
+
+  /** A card dropped on an empty slot: someone not yet confirmed is asked about first. */
+  const onDrop = async (p: BoardPlayer, target: BoardTeam, slot: Slot) => {
+    if (p.status !== 'confirmed') {
+      const ok = await confirm({
+        title: t('tmConfirmPlayerTitle'),
+        body: t('tmConfirmPlayerBody', { name: p.name ?? '—' }),
+        confirmLabel: tc('confirm'),
+      });
+      if (!ok) return;
+    }
+    await placeIn(placeableOfPlayer(p), target, slot);
+  };
+
+  /** The ✕ on a filled slot (UX-MEVT-15): out of the team (→ Invited) or out of the event. */
+  const askRemoveFromSlot = async (p: BoardPlayer, tm: BoardTeam) => {
+    const name = p.name ?? '—';
+    const key = await show({
+      title: t('mpRemoveTitle', { name }),
+      actions: [
+        // A guest has no invited state to go back to: they leave the event.
+        ...(p.guest ? [] : [{ key: 'from_team', label: t('tmRemoveFromTeam') }]),
+        { key: 'from_event', label: t('mpRemoveFromEvent'), destructive: true, selfConfirm: true },
+      ],
+    });
+    try {
+      if (key === 'from_team') {
+        await removeFromTeam.mutateAsync({ participantId: p.participantId });
+        banner.show(t('tmRemovedFromTeamToast', { name, team: teamName(tm.number) }), 'success');
+      } else if (key === 'from_event') {
+        await removeParticipant.mutateAsync({ participantId: p.participantId, mode: 'from_event', targetName: name });
+        banner.show(t('mpRemovedToast', { name }), 'success');
+      }
+    } catch (e) {
+      fail(e);
+    }
+  };
+
+  /** Interested → Remove (UX-MEVT-14): back to Invited; out of the event on a public group event. */
+  const removeInterested = async (row: ManageRow) => {
+    const mode = interestedRemoveMode(event);
+    if (mode === 'from_event') {
+      await askRemoveFromEvent(row);
+      return;
+    }
+    const ok = await confirm({
+      title: t('mpRemoveTitle', { name: nameOf(row) }),
+      body: t('mpInterestedRemoveBody'),
+      confirmLabel: t('tmRemoveToInvited'),
+      destructive: true,
+    });
+    if (ok) await remove(row, 'to_invited');
+  };
+
+  /** Invited → Mark as confirmed: on a team event, which team first (UX-MEVT-14). */
+  const confirmInvited = (row: ManageRow) => (team ? pickTeam(placeableOf(row, false), false) : markAsConfirmed(row));
+
   const openRowSheet = async (row: ManageRow, kind: Tab) => {
     const actions: SheetAction[] = [];
     if (row.userId != null && !row.guest) actions.push({ key: 'profile', label: t('mpSeeProfile') });
     if (scheduled && kind === 'confirmed') actions.push(...removeOptions());
     if (scheduled && kind === 'invited') {
-      const can = invitedActions(row, { team });
+      const can = invitedActions(row);
       if (can.confirm) actions.push({ key: 'confirm', label: t('mpMarkConfirmed') });
       if (can.remove) actions.push({ key: 'remove', label: t('mpRemoveFromEvent'), destructive: true, selfConfirm: true });
+    }
+    if (scheduled && kind === 'interested') {
+      actions.push({ key: 'confirm', label: t('mpConfirmCta') });
+      actions.push({
+        key: 'remove',
+        label: interestedRemoveMode(event) === 'to_invited' ? t('tmRemoveToInvited') : t('mpRemoveFromEvent'),
+        destructive: true,
+        selfConfirm: true,
+      });
     }
     if (scheduled && kind === 'waiting') {
       actions.push({ key: 'remove', label: t('mpRemoveFromEvent'), destructive: true, selfConfirm: true });
@@ -195,8 +390,12 @@ export default function ManagePlayersScreen() {
     const key = await show({ title: nameOf(row), actions });
     if (key === 'profile' && row.userId) openProfile(row.userId);
     else if (key === 'to_invited' || key === 'from_event') await remove(row, key);
-    else if (key === 'confirm') await markAsConfirmed(row);
-    else if (key === 'remove') await askRemoveFromEvent(row);
+    else if (key === 'confirm') await (kind === 'interested' ? pickTeam(placeableOf(row, false), false) : confirmInvited(row));
+    else if (key === 'remove') {
+      if (kind === 'interested') await removeInterested(row);
+      else if (kind === 'invited') await removeInvited(row);
+      else await askRemoveFromEvent(row);
+    }
   };
 
   /** The one action a swipe reveals, or null for a row with nothing to do. */
@@ -204,9 +403,13 @@ export default function ManagePlayersScreen() {
     if (!scheduled) return null;
     if (kind === 'confirmed') return { label: t('removeCta'), run: () => void askRemoveConfirmed(row), destructive: true };
     if (kind === 'waiting') return { label: t('removeCta'), run: () => void askRemoveFromEvent(row), destructive: true };
-    const can = invitedActions(row, { team });
-    if (can.confirm) return { label: t('mpMarkConfirmed'), run: () => void markAsConfirmed(row), destructive: false };
-    if (can.remove) return { label: t('removeCta'), run: () => void askRemoveFromEvent(row), destructive: true };
+    // SwipeRow reveals ONE action (its rule 2): Confirm; Remove is on the row's tap sheet.
+    if (kind === 'interested') {
+      return { label: t('mpConfirmCta'), run: () => void pickTeam(placeableOf(row, false), false), destructive: false };
+    }
+    const can = invitedActions(row);
+    if (can.confirm) return { label: t('mpMarkConfirmed'), run: () => void confirmInvited(row), destructive: false };
+    if (can.remove) return { label: t('removeCta'), run: () => void removeInvited(row), destructive: true };
     return null;
   };
 
@@ -214,12 +417,13 @@ export default function ManagePlayersScreen() {
 
   const renderRow = (row: ManageRow, kind: Tab, index: number) => {
     const name = nameOf(row);
+    const seat = team && row.participantId != null ? teamOfParticipant(board, row.participantId) : null;
     const subtitle =
       kind === 'waiting'
         ? [t('mpQueuePosition', { n: index + 1 }), mixed ? sideLabel(row.side) : undefined].filter(Boolean).join(' · ')
-        : row.standby
-          ? t('playersListStandby')
-          : undefined;
+        : [seat ? t('tmKindTeam', { team: teamName(seat.number) }) : undefined, row.standby ? t('playersListStandby') : undefined]
+            .filter(Boolean)
+            .join(' · ') || undefined;
     const swipe = swipeOf(row, kind);
     const hasSheet = scheduled || (row.userId != null && !row.guest);
     const content = (
@@ -250,6 +454,7 @@ export default function ManagePlayersScreen() {
       // No count until the list has loaded: "Invited 0" would claim nobody is invited.
       label: invitedQuery.data ? t('mpTabInvited', { n: roster.invited.length }) : t('playersTabInvitedPlain'),
     },
+    ...(team ? [{ value: 'interested' as const, label: t('mpTabInterested', { n: roster.interested.length }) }] : []),
   ];
 
   const addAction =
@@ -284,6 +489,18 @@ export default function ManagePlayersScreen() {
         />
       );
     }
+  } else if (tab === 'interested') {
+    rows = roster.interested;
+    if (rows.length === 0) {
+      empty = (
+        <EmptyState
+          icon={emptyIcon('person.2')}
+          title={t('mpInterestedEmpty')}
+          body={t('mpInterestedEmptyBody')}
+          testID="manage-players-interested-empty"
+        />
+      );
+    }
   } else {
     rows = roster.invited;
     if (rows.length === 0) {
@@ -300,7 +517,18 @@ export default function ManagePlayersScreen() {
   }
 
   const loading = participants.isLoading || (tab === 'invited' && invitedQuery.isLoading);
-  const teamBuilder = team && tab === 'confirmed';
+  const teamsView = team && view === 'teams';
+
+  // The open team sheet, re-derived from the live board so it follows every refetch.
+  const sheetTeam = teamSheet ? board.teams.find((tm) => tm.number === teamSheet.team) : undefined;
+  const sheetPlayer =
+    teamSheet?.kind === 'switch' && sheetTeam
+      ? ([sheetTeam.a, sheetTeam.b].find((p) => p?.participantId === teamSheet.participantId) ?? null)
+      : null;
+  const closeTeamSheet = (message?: string) => {
+    setTeamSheet(null);
+    if (message) banner.show(message, 'success');
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -322,7 +550,20 @@ export default function ManagePlayersScreen() {
         }
       />
       <View style={styles.head}>
-        <Segmented options={tabOptions} value={tab} onChange={setPicked} singleLine testID="manage-players-tabs" />
+        {team ? (
+          <Segmented
+            options={[
+              { value: 'teams' as const, label: t('mpViewTeams') },
+              { value: 'players' as const, label: t('mpViewPlayers') },
+            ]}
+            value={view}
+            onChange={setView}
+            testID="manage-players-view"
+          />
+        ) : null}
+        {teamsView ? null : (
+          <Segmented options={tabOptions} value={tab} onChange={setPicked} singleLine testID="manage-players-tabs" />
+        )}
         {mixed && tab === 'confirmed' && roster.sideCounts && roster.perSide != null ? (
           <Segmented
             options={[
@@ -336,15 +577,49 @@ export default function ManagePlayersScreen() {
           />
         ) : null}
       </View>
-      <ScrollView contentContainerStyle={[styles.content, !teamBuilder && empty != null && listEmptyContent]}>
-        {loading ? (
+      {teamsView ? (
+        loading || teamsQuery.isLoading ? (
           <ActivityIndicator color={colors.foreground} style={styles.loading} />
-        ) : teamBuilder ? (
-          <TeamManage eventId={id} numCourts={event.num_courts} participants={participants.data ?? []} />
         ) : (
-          (empty ?? rows.map((row, i) => renderRow(row, tab, i)))
-        )}
-      </ScrollView>
+          <TeamsTab
+            board={board}
+            editable={scheduled}
+            onAdd={(tm) => setTeamSheet({ kind: 'select', team: tm.number })}
+            onSwitch={(p, tm) => setTeamSheet({ kind: 'switch', team: tm.number, participantId: p.participantId })}
+            onRemove={(p, tm) => void askRemoveFromSlot(p, tm)}
+            onPlace={(p, tm, slot) => void onDrop(p, tm, slot)}
+            onPickTeam={(p) => void pickTeam(placeableOfPlayer(p), true)}
+          />
+        )
+      ) : (
+        <ScrollView contentContainerStyle={[styles.content, empty != null && listEmptyContent]}>
+          {loading ? (
+            <ActivityIndicator color={colors.foreground} style={styles.loading} />
+          ) : (
+            (empty ?? rows.map((row, i) => renderRow(row, tab, i)))
+          )}
+        </ScrollView>
+      )}
+
+      {teamSheet?.kind === 'select' && sheetTeam ? (
+        <SelectPlayerSheet
+          eventId={id}
+          team={sheetTeam}
+          candidates={selectCandidates(participants.data ?? [], invitedQuery.data ?? [], board)}
+          onClose={() => closeTeamSheet()}
+          onDone={closeTeamSheet}
+        />
+      ) : null}
+      {teamSheet?.kind === 'switch' && sheetTeam && sheetPlayer ? (
+        <SwitchPlayerSheet
+          eventId={id}
+          player={sheetPlayer}
+          team={sheetTeam}
+          candidates={switchCandidates(participants.data ?? [], invitedQuery.data ?? [], board, sheetPlayer.participantId)}
+          onClose={() => closeTeamSheet()}
+          onDone={closeTeamSheet}
+        />
+      ) : null}
 
       {addingManual ? (
         <AddManualSheet
