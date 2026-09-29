@@ -208,7 +208,7 @@ function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: 
   ) : null;
   const activityCard = (
     <DashCard
-      title={t('activityLogCta')}
+      title={t('activityTitle')}
       onPress={() => router.push(`/event/${id}/activity` as Href)}
       testID="manage-activity"
     />

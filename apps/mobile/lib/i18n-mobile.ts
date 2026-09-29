@@ -2519,13 +2519,9 @@ const mobileEvent = {
 
     // --- Phase 5G-3: Team management ---
     continue: 'Continuar',
-    activityTeamAssigned: '{{actor}} atribuiu {{target}}',
-    activityTeamSwitched: '{{actor}} trocou jogadores',
-    activityTeamRemoved: '{{actor}} removeu {{target}} de uma equipa',
 
     // --- Phase 5G-2: Activity log ---
     activityTitle: 'Atividade',
-    activityLogCta: 'Registo de atividade',
     activityEmpty: 'Ainda não há atividade.',
     activityEmptyBody: 'As alterações a este evento ficam registadas aqui.',
     // UX-MEVT-17 (M4): who / what / when — the actor is the entry title, so no {{actor}} here.
@@ -3370,13 +3366,9 @@ const mobileEvent = {
 
     // --- Phase 5G-3: Team management ---
     continue: 'Continuar',
-    activityTeamAssigned: '{{actor}} atribuiu {{target}}',
-    activityTeamSwitched: '{{actor}} trocou jogadores',
-    activityTeamRemoved: '{{actor}} removeu {{target}} de um time',
 
     // --- Phase 5G-2: Activity log ---
     activityTitle: 'Atividade',
-    activityLogCta: 'Registro de atividades',
     activityEmpty: 'Ainda não há atividade.',
     activityEmptyBody: 'As alterações neste evento ficam registradas aqui.',
     // UX-MEVT-17 (M4): who / what / when — the actor is the entry title, so no {{actor}} here.
@@ -4221,13 +4213,9 @@ const mobileEvent = {
 
     // --- Phase 5G-3: Team management ---
     continue: 'Continue',
-    activityTeamAssigned: '{{actor}} assigned {{target}}',
-    activityTeamSwitched: '{{actor}} switched players',
-    activityTeamRemoved: '{{actor}} removed {{target}} from a team',
 
     // --- Phase 5G-2: Activity log ---
     activityTitle: 'Activity',
-    activityLogCta: 'Activity log',
     activityEmpty: 'No activity yet.',
     activityEmptyBody: 'Changes to this event are logged here.',
     // UX-MEVT-17 (M4): who / what / when — the actor is the entry title, so no {{actor}} here.
