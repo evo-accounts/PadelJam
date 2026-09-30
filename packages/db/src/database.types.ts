@@ -2779,6 +2779,93 @@ export type Database = {
           viewer_state: string
         }[]
       }
+      // --- Discovery search (migration 0129) ---
+      search_players: {
+        Args: { p_q: string | null; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          full_name: string
+          avatar_url: string | null
+          dominant_hand: string | null
+          court_side: string | null
+          viewer_state: string
+          total_count: number
+        }[]
+      }
+      search_events: {
+        Args: { p_q: string | null; p_filters?: Json; p_sort?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          event: Database['public']['Tables']['events']['Row']
+          distance_m: number | null
+          viewer_state: string
+          total_count: number
+        }[]
+      }
+      search_groups: {
+        Args: { p_q: string | null; p_filters?: Json; p_sort?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          community_id: string
+          community_name: string
+          name: string
+          is_general: boolean
+          is_private: boolean
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          thumbnail_path: string | null
+          updated_at: string
+          member_count: number
+          distance_m: number | null
+          viewer_state: string
+          total_count: number
+        }[]
+      }
+      search_communities: {
+        Args: { p_q: string | null; p_filters?: Json; p_sort?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          tenant_id: string
+          name: string
+          description: string | null
+          type: string
+          privacy: string
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          location: string | null
+          thumbnail_path: string | null
+          cover_image_path: string | null
+          cancellation_rules_enabled: boolean
+          cancellation_rules_text: string | null
+          updated_at: string
+          member_count: number
+          distance_m: number | null
+          viewer_state: string
+          total_count: number
+        }[]
+      }
+      search_suggest: {
+        Args: { p_q: string | null; p_limit?: number }
+        Returns: { kind: string; id: string; label: string }[]
+      }
+      search_for_you_terms: {
+        Args: Record<PropertyKey, never>
+        Returns: { kind: string; value: string }[]
+      }
+      search_norm: {
+        Args: { p: string }
+        Returns: string
+      }
+      search_rank: {
+        Args: { p_name: string; p_q: string }
+        Returns: number | null
+      }
+      search_pattern: {
+        Args: { p_q: string }
+        Returns: string
+      }
       my_events: {
         Args: { p_filter?: string; p_limit?: number; p_offset?: number; p_include_past?: boolean }
         Returns: {
