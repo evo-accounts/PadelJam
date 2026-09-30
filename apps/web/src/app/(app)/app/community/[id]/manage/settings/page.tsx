@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
-import { useCommunities, useCommunity, useUpdateCommunity } from '@padel/api';
+import { useCommunities, useCommunity, useSetCommunityLocation, useUpdateCommunity, type LocationPoint } from '@padel/api';
+import { PlacePicker } from '@/components/community/PlacePicker';
+import { parseEwkbPoint, samePoint } from '@/lib/geo-point';
 import { uploadCommunityImage } from '@/lib/upload';
 import { communityImageUrl } from '@/lib/community-images';
 import { Button } from '@/components/ui/button';
@@ -29,6 +31,7 @@ export default function ManageSettingsPage() {
   const mine = useCommunities();
   const c = useCommunity(id);
   const update = useUpdateCommunity(id);
+  const setLocationRpc = useSetCommunityLocation(id);
   const { t } = useT('community');
 
   const role = (mine.data ?? []).find((r) => r.community?.id === id)?.role;
@@ -40,6 +43,7 @@ export default function ManageSettingsPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+  const [point, setPoint] = useState<LocationPoint | null>(null);
   const [type, setType] = useState<CommunityType>('club');
   const [privacy, setPrivacy] = useState<Privacy>('public');
   const [rulesEnabled, setRulesEnabled] = useState(false);
@@ -59,6 +63,7 @@ export default function ManageSettingsPage() {
     setName(c.data.name ?? '');
     setDescription(c.data.description ?? '');
     setLocation(c.data.location ?? '');
+    setPoint(parseEwkbPoint(c.data.location_point));
     setType((c.data.type as CommunityType) ?? 'club');
     setPrivacy((c.data.privacy as Privacy) ?? 'public');
     setRulesEnabled(c.data.cancellation_rules_enabled ?? false);
@@ -104,11 +109,22 @@ export default function ManageSettingsPage() {
     } catch {
       // Image upload failed; proceed to save the rest of the settings.
     }
+    // The place (D2) is written apart from the rest: label and point go together through
+    // set_community_location, and only when one of them changed.
+    const label = location.trim();
+    const placeChanged =
+      label !== (c.data?.location ?? '') || !samePoint(point, parseEwkbPoint(c.data?.location_point));
+    try {
+      if (placeChanged) await setLocationRpc.mutateAsync({ location: label || null, point });
+    } catch (err) {
+      setError(t(err instanceof Error && err.message === 'invalid_location' ? 'invalid_location' : 'saveError'));
+      setBusy(false);
+      return;
+    }
     try {
       await update.mutateAsync({
         name,
         description: description || null,
-        location: location || null,
         type,
         privacy,
         cancellation_rules_enabled: rulesEnabled,
@@ -158,7 +174,12 @@ export default function ManageSettingsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="location">{t('locationLabel')}</Label>
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
+              <PlacePicker
+                id="location"
+                value={{ label: location, point }}
+                onLabelChange={setLocation}
+                onPointChange={setPoint}
+              />
             </div>
 
             <div className="space-y-2">

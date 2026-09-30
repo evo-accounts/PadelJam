@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { useT } from '@padel/i18n';
-import { createCommunitySchema, useCreateCommunity, useCanCreateCommunity } from '@padel/api';
+import { createCommunitySchema, useCreateCommunity, useCanCreateCommunity, type LocationPoint } from '@padel/api';
+import { PlacePicker } from '@/components/community/PlacePicker';
 import { uploadCommunityImage } from '@/lib/upload';
 import { supabase } from '@/lib/supabase/client';
 import type { TypedClient } from '@padel/db';
@@ -35,6 +36,7 @@ export default function CreateCommunityPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+  const [point, setPoint] = useState<LocationPoint | null>(null);
   const [type, setType] = useState<CommunityType>('club');
   const [privacy, setPrivacy] = useState<Privacy>('public');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -79,6 +81,7 @@ export default function CreateCommunityPage() {
       name,
       description: description || undefined,
       location: location || undefined,
+      locationPoint: point ?? undefined,
       type,
       privacy,
       rules: { enabled: rulesEnabled, text: rulesText || undefined },
@@ -111,8 +114,8 @@ export default function CreateCommunityPage() {
         warn = true;
       }
       router.push(`/app/community/${id}/created${warn ? '?warn=1' : ''}`);
-    } catch {
-      setError(t('createError'));
+    } catch (err) {
+      setError(t(err instanceof Error && err.message === 'invalid_location' ? 'invalid_location' : 'createError'));
     } finally {
       setBusy(false);
     }
@@ -157,7 +160,12 @@ export default function CreateCommunityPage() {
 
             <div className="space-y-2">
               <Label htmlFor="location">{t('locationLabel')}</Label>
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
+              <PlacePicker
+                id="location"
+                value={{ label: location, point }}
+                onLabelChange={setLocation}
+                onPointChange={setPoint}
+              />
             </div>
 
             <div className="space-y-2">
