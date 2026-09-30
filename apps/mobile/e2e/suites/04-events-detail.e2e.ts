@@ -1,9 +1,9 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
 import { backGesture, scrollUntilVisible, tap } from '../driver/actions';
-import { expectVisible } from '../driver/expect';
+import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
-import { deepLink, loginAs, switchUser, tabTo } from '../driver/flows';
+import { deepLink, findFromHome, loginAs, switchUser, tabTo } from '../driver/flows';
 import { psql, select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
@@ -38,14 +38,15 @@ describe('04 event detail & membership', () => {
 
   /**
    * Open any event the user can see (including ones they are not part of) via
-   * Home → Find Event, which lists all visible events. The Events tab only ever
+   * Home → Find Event, which opens Explore's search on Events: every visible event. The Events tab only ever
    * shows events you organize or are going to.
    */
   const openAnyEvent = async (name: RegExp) => {
-    await tabTo('Home');
-    await tap({ text: /find event/i });
+    await findFromHome('findEvent');
     await scrollUntilVisible({ text: name }, { maxSwipes: 10 });
     await tap({ text: name });
+    // The name is on the result row too, so it proves nothing: the search bar leaving does.
+    await expectGone({ id: 'explore-search-cancel' }, { timeout: 15_000 });
     await expectVisible({ text: name }, { timeout: 20_000 });
   };
 

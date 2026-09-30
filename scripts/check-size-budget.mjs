@@ -37,7 +37,7 @@ const SKIP_DIRS = new Set(['node_modules', 'theme', '.expo', 'ios', 'android', '
  * The ratchet. Lower it whenever a pull request takes screens onto `Text` and
  * the `radius` tokens; never raise it.
  */
-const BUDGET = Number(process.env.SIZE_BUDGET ?? 171);
+const BUDGET = Number(process.env.SIZE_BUDGET ?? 167);
 
 const PATTERN = /\b(fontSize|borderRadius)\s*:\s*-?\d/g;
 

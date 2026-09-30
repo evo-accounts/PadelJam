@@ -1,5 +1,5 @@
-import { snapshot, query, describeSelector, type Selector } from './a11y';
-import { scrollUntilVisible, tap, typeText } from './actions';
+import { keyboardTop, snapshot, query, describeSelector, type Selector } from './a11y';
+import { scrollUntilVisible, swipe, tap, typeText } from './actions';
 import { captureFailure, expectVisible, waitFor } from './expect';
 import { latestOtp } from '../fixtures/mailpit';
 import { PERSONAS, type PersonaKey } from '../fixtures/personas';
@@ -84,6 +84,30 @@ export async function tabTo(name: 'Home' | 'Events' | 'Explore' | 'Community' | 
   await ensureTabs();
   await tap({ text: new RegExp(`^${name}, tab`) });
   await sleep(600);
+}
+
+/**
+ * Home → one of the Find quick actions, which lands on Explore in search mode with that tab
+ * chosen and the input focused (UX-HOME-01, D11). Ends with the keyboard put away again.
+ *
+ * This is how a test reaches an event it is NOT part of — the Events tab lists only your own.
+ */
+export async function findFromHome(action: 'findEvent' | 'findGroup' | 'findCommunity'): Promise<void> {
+  await tabTo('Home');
+  const quick = { id: `home-quick-${action}` };
+  await scrollUntilVisible(quick, { direction: 'down', maxSwipes: 4 });
+  await tap(quick);
+  await expectVisible({ id: 'explore-search-cancel' }, { timeout: 15_000 });
+  // Wait for the focus to land (keyboard up), then drag the list to put the keyboard away (the
+  // list uses keyboardDismissMode="on-drag"), so what follows taps rows rather than keys. With
+  // the keyboard up, keyboardTop() reads the top row of KEYS, but the predictive bar above them
+  // is part of the keyboard too: a row lying under that bar looks tappable, and the tap lands in
+  // the bar (seen on a short result list, where nothing needed scrolling first).
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline && keyboardTop(await snapshot()) == null) await sleep(300);
+  await swipe('down', { fromY: 450 });
+  const gone = Date.now() + 5_000;
+  while (Date.now() < gone && keyboardTop(await snapshot()) != null) await sleep(300);
 }
 
 /**

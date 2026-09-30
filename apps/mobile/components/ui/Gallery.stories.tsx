@@ -415,7 +415,7 @@ export function Overview() {
             community={GALLERY_COMMUNITY}
             orientation="vertical"
             onOpen={() => {}}
-            onRequestJoin={() => {}}
+            action={<Button label="Join" size="sm" onPress={() => {}} />}
           />
         </Row>
         <Text variant="label" tone="muted" style={styles.cardKindLabel}>
@@ -425,7 +425,7 @@ export function Overview() {
           community={GALLERY_COMMUNITY}
           orientation="horizontal"
           onOpen={() => {}}
-          onRequestJoin={() => {}}
+          action={<Button label="Request" size="sm" onPress={() => {}} />}
         />
 
         <Text variant="label" tone="muted" style={styles.cardKindLabel}>

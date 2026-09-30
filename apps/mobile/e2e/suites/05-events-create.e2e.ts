@@ -68,7 +68,8 @@ describe('05 event create wizard', () => {
 
   it('opens on Group: a progress bar, no step counter, no Next, and your groups (B14)', async () => {
     await tabTo('Home');
-    await tap({ text: /create event/i });
+    // The Create Event quick action (the FAB, labelled "Create event", opens the same wizard).
+    await tap({ id: 'home-quick-quickCreate' });
     await onStep(/^group$/i, 20_000);
     // Opened from Home, with no community: the list still shows the groups alex may create in.
     await expectVisible({ text: /tuesday night league/i, type: 'Button' }, { timeout: 15_000 });

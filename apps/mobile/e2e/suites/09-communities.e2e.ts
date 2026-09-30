@@ -1,10 +1,10 @@
-import { beforeAll, describe, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
 import { backGesture, scrollUntilVisible, tap, typeText } from '../driver/actions';
 import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall, relaunch } from '../driver/app';
 import { loginAs, switchUser, tabTo } from '../driver/flows';
-import { select } from '../fixtures/db';
+import { rest, select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
 
@@ -62,6 +62,18 @@ describe('09 communities', () => {
     await tap({ id: 'community-switcher-trigger' });
     await tap({ text: name });
     await expectVisible({ text: name }, { timeout: 20_000 });
+  };
+
+  /**
+   * Explore → See all communities: every recommended community as a full-width
+   * row (UX-EXPL-03). The rail itself holds fixed-width vertical cards, so one
+   * further along sits off screen to the right; the list has them all.
+   */
+  const openExploreCommunities = async () => {
+    await tabTo('Explore');
+    await scrollUntilVisible({ id: 'explore-see-all-communities' }, { maxSwipes: 6 });
+    await tap({ id: 'explore-see-all-communities' });
+    await sleep(800);
   };
 
   it('community home shows its five tabs and seeded posts', async () => {
@@ -219,34 +231,50 @@ describe('09 communities', () => {
   });
 
   /**
-   * The preview's already-requested state, and the cancel that UX-COMM-04 hangs
-   * off the same button.
+   * Request on a request-to-join community's card, then the preview's
+   * already-requested state and the cancel that UX-COMM-04 hangs off the same
+   * button.
    *
-   * pedro's request for C is SEEDED pending (`seed-e2e.mjs` calls
-   * `join_community` for him), so the preview must open on "Requested" rather
-   * than offering to request again — which is what it did before the preview
-   * knew standing at all. Tapping it cancels, and the action falls back to
-   * "Request to join": one button, two states, which is the whole item.
+   * pedro's request for C is SEEDED pending, and since 0128 the explore rail and
+   * list leave out communities you already asked to join (B4) — so C would not
+   * be there to find. Withdrawing the seeded request server-side puts C back,
+   * and the request then goes through the card's own action (UX-EXPL-02, B1:
+   * "Request", never "Request to join" to a member or a requester).
+   *
+   * The preview must then open on "Requested" rather than offering to request
+   * again. Tapping it cancels, and the action falls back to "Request to join":
+   * one button, two states, which is the whole item.
    */
-  it('a request-to-join community shows an outsider their pending request, and cancels it', async () => {
+  it('a request-to-join community: Request on its card, then the preview shows the pending request and cancels it', async () => {
     const m = manifest();
-    // pedro is not a member of C "Cascais Social" (his seeded request is pending).
+    // pedro is not a member of C "Cascais Social".
     // Logout starts from the Profile tab, so we must be on a tab screen first.
     await returnToTabs();
     await switchUser('pedro');
-    // pedro belongs to no community, so the Community tab lists nothing for
-    // him — reach it through Explore instead.
-    await tabTo('Explore');
-    // The "For you" rails now hold fixed-width vertical cards, so a community
-    // further down the rail sits off screen to the right. Switch to the
-    // Communities chip (first "Communities" match in the tree) instead: it
-    // renders every community as a full-width card in a vertical list.
-    await tap({ text: /^communities$/i, type: 'Button' });
-    await sleep(800);
-    await scrollUntilVisible({ text: /cascais social/i }, { maxSwipes: 8 });
+    await rest(
+      `/rest/v1/community_join_requests?community_id=eq.${m.communities.C}&user_id=eq.${m.users.pedro}`,
+      { method: 'DELETE', prefer: 'return=minimal' },
+    );
+    await openExploreCommunities();
+    const request = { id: `community-join-${m.communities.C}` };
+    await scrollUntilVisible(request, { maxSwipes: 8 });
+    expect((await expectVisible(request)).AXLabel, 'a request-to-join card offers Request').toBe('Request');
+    await tap(request);
+    await expectVisible({ label: 'Requested' }, { timeout: 15_000 });
+    await pollUntil(
+      () =>
+        select(
+          'community_join_requests',
+          `community_id=eq.${m.communities.C}&user_id=eq.${m.users.pedro}&status=eq.pending&select=id`,
+        ),
+      (rows) => (rows as unknown[]).length === 1,
+      { label: 'pending request filed from the card', timeoutMs: 20_000 },
+    );
+
+    // The card stays, resolved, and its body still opens the preview.
     await tap({ text: /cascais social/i });
 
-    // Seeded pending: the action says so rather than offering a second request.
+    // Pending: the action says so rather than offering a second request.
     await expectVisible({ label: 'Requested', type: 'Button' }, { timeout: 20_000 });
 
     // And tapping it withdraws the request (cancel_join_request, migration 0099).
@@ -273,15 +301,17 @@ describe('09 communities', () => {
    * SEEDED post through it is the proof.
    *
    * pedro is still on the preview for C from the test above, so this starts by
-   * going back out to Explore. A "Join" button rather than "Request to join" is
-   * also how we know the preview read A's privacy as public.
+   * going back out to Explore's See all communities. A "Join" button rather than
+   * "Request to join" is also how we know the preview read A's privacy as public.
    */
   it('a public community lets an outsider read its posts from the preview', async () => {
+    const m = manifest();
     await returnToTabs();
-    await tabTo('Explore');
-    await tap({ text: /^communities$/i, type: 'Button' });
-    await sleep(800);
-    await scrollUntilVisible({ text: /lisbon padel club/i }, { maxSwipes: 8 });
+    await openExploreCommunities();
+    // A is public, so its card offers Join (B1: public communities used to get no action at all).
+    const join = { id: `community-join-${m.communities.A}` };
+    await scrollUntilVisible(join, { maxSwipes: 8 });
+    expect((await expectVisible(join)).AXLabel, 'a public card offers Join').toBe('Join');
     await tap({ text: /lisbon padel club/i });
 
     // Public, and pedro is no member of it: the plain Join action, not a request.

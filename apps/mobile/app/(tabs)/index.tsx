@@ -12,19 +12,24 @@ import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CreateEventFab } from '@/components/CreateEventFab';
+import { CreateEventFab, FAB_CLEARANCE } from '@/components/CreateEventFab';
 import { ChatHeaderButtonIcon } from '@/components/chat/ChatHeaderButton';
 import { EventCard } from '@/components/event/EventCard';
 import { GroupCard } from '@/components/group/GroupCard';
 import { NotificationBellIcon } from '@/components/NotificationBell';
+import { exploreSearchHref } from '@/lib/exploreLinks';
 import { colors, palette } from '../../theme';
-import { Button, Card, EmptyState, Text, TopBar } from '../../components/ui';
+import { Button, Card, EmptyState, emptyIcon, Text, TopBar } from '../../components/ui';
 
+/**
+ * UX-HOME-01: Home carries no search of its own — its quick actions are the way in. Create opens
+ * the wizard; each Find opens Explore with the input focused and that tab chosen (D11).
+ */
 const QUICK_ACTIONS = [
   { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: '/event/create' },
-  { key: 'findEvent', icon: 'calendar', android: 'event', href: '/search?tab=events' },
-  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: '/search?tab=groups' },
-  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: '/search?tab=communities' },
+  { key: 'findEvent', icon: 'calendar', android: 'event', href: exploreSearchHref('events') },
+  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: exploreSearchHref('groups') },
+  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: exploreSearchHref('communities') },
 ] as const;
 
 export default function HomeScreen() {
@@ -58,12 +63,6 @@ export default function HomeScreen() {
             label: t('title', { ns: 'notifications' }),
             onPress: () => router.push('/notifications' as never),
           },
-          {
-            icon: <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={22} tintColor={colors.foreground} />,
-            label: t('search', { ns: 'discovery' }),
-            onPress: () => router.push('/search' as never),
-            testID: 'header-search',
-          },
         ]}
       />
       <ScrollView contentContainerStyle={styles.content}>
@@ -79,9 +78,10 @@ export default function HomeScreen() {
             style={styles.quickCard}
             onPress={() => router.push(a.href as never)}
             accessibilityRole="button"
+            testID={`home-quick-${a.key}`}
           >
             <SymbolView name={{ ios: a.icon, android: a.android, web: a.android }} size={24} tintColor={colors.primary} />
-            <Text variant="label">{t(a.key)}</Text>
+            <Text variant="label" numberOfLines={2} style={styles.quickLabel}>{t(a.key)}</Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -92,11 +92,28 @@ export default function HomeScreen() {
         <Text variant="caption" tone="muted">{t('loadError')}</Text>
       ) : hasActivity ? (
         <>
-          <SectionHeader title={t('nextEvents')} onSeeAll={() => router.push('/(tabs)/events' as never)} t={t} />
+          {/* Overview rails of vertical cards, each with a See all (UX-HOME-01, UX-GLOB-09). */}
+          <SectionHeader
+            title={t('nextEvents')}
+            onSeeAll={() => router.push('/(tabs)/events' as never)}
+            t={t}
+            testID="home-next-events-see-all"
+          />
           {events.length === 0 ? (
-            <Text variant="caption" tone="muted">{t('eventsEmpty')}</Text>
+            // D11: the standard empty state with a way out. Not platform-wide events — the
+            // no-activity view below is where those are surfaced.
+            <EmptyState
+              icon={emptyIcon('calendar')}
+              title={t('eventsEmpty')}
+              action={{
+                label: t('findEventsCta'),
+                onPress: () => router.push(exploreSearchHref('events') as never),
+                testID: 'home-next-events-find',
+              }}
+              testID="home-next-events-empty"
+            />
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={styles.railWrap}>
               {events.slice(0, 8).map((e: { id: string }) => (
                 <EventCard
                   key={e.id}
@@ -109,21 +126,41 @@ export default function HomeScreen() {
             </ScrollView>
           )}
 
-          {/* "My Groups" is a plain vertical stack (no ScrollView), so it takes
-              full-width horizontal cards, not the rail's vertical ones. */}
-          <SectionHeader title={t('myGroups')} onSeeAll={() => router.push('/groups' as never)} t={t} />
+          <SectionHeader
+            title={t('myGroups')}
+            onSeeAll={() => router.push('/groups' as never)}
+            t={t}
+            testID="home-groups-see-all"
+          />
           {groups.length === 0 ? (
-            <Text variant="caption" tone="muted">{t('groupsEmpty')}</Text>
+            <EmptyState
+              icon={emptyIcon('person.3')}
+              title={t('groupsEmpty')}
+              action={{
+                label: t('findGroupsCta'),
+                onPress: () => router.push(exploreSearchHref('groups') as never),
+                testID: 'home-groups-find',
+              }}
+              testID="home-groups-empty"
+            />
           ) : (
-            groups.slice(0, 5).map((g) => (
-              <GroupCard
-                key={g.group_id}
-                group={g as never}
-                memberCount={g.member_count}
-                orientation="horizontal"
-                onPress={() => router.push(`/group/${g.group_id}` as never)}
-              />
-            ))
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={styles.railWrap}>
+              {groups.slice(0, 8).map((g) => (
+                <GroupCard
+                  key={g.group_id}
+                  group={{
+                    id: g.group_id,
+                    name: g.name,
+                    thumbnail_path: g.thumbnail_path,
+                    is_private: g.is_private,
+                    archived_at: g.archived_at,
+                    community_name: g.community_name,
+                  }}
+                  orientation="vertical"
+                  onPress={() => router.push(`/group/${g.group_id}` as never)}
+                />
+              ))}
+            </ScrollView>
           )}
         </>
       ) : (
@@ -139,15 +176,17 @@ function SectionHeader({
   title,
   onSeeAll,
   t,
+  testID,
 }: {
   title: string;
   onSeeAll: () => void;
   t: (k: string) => string;
+  testID?: string;
 }) {
   return (
     <View style={styles.sectionHeader}>
       <Text variant="heading" style={styles.sectionTitle}>{title}</Text>
-      <Button label={t('seeAll')} variant="tertiary" size="sm" onPress={onSeeAll} />
+      <Button label={t('seeAll')} variant="tertiary" size="sm" onPress={onSeeAll} testID={testID} />
     </View>
   );
 }
@@ -193,7 +232,7 @@ function NoActivityView({
           action={{ label: t('createEventCta'), onPress: () => router.push('/event/create' as never) }}
         />
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={styles.railWrap}>
           {evRows.map((e: { id: string }) => (
             <EventCard
               key={e.id}
@@ -216,7 +255,9 @@ function NoActivityView({
               accessibilityElementsHidden
             />
           }
-          title={t('groupsEmpty')}
+          // B5: this is the SUGGESTIONS rail, so "you're not in any groups" was the wrong sentence —
+          // it read as a statement about the viewer's memberships, not about what we could offer.
+          title={t('discoverGroupsEmpty')}
           // No action: the audit asks for a "Create Group" CTA, and groups can
           // only be created INSIDE a community (/community/[id]/group-create).
           // "Explore groups" was standing in for a button that should create,
@@ -242,7 +283,7 @@ function NoActivityView({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, gap: 8, paddingBottom: 100 },
+  content: { padding: 16, gap: 8, paddingBottom: FAB_CLEARANCE },
   quickScrollWrapper: { marginHorizontal: -16, marginBottom: 8 },
   quickScroll: { paddingHorizontal: 16, gap: 10 },
   quickCard: {
@@ -252,24 +293,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: colors.card,
     borderRadius: 12,
-    minWidth: 80,
+    // One size for all four (UX-HOME-01), so the row reads as a set rather than as four labels.
+    width: 104,
+    minHeight: 88,
     shadowColor: colors.foreground,
     shadowOpacity: 0.04,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
+  quickLabel: { textAlign: 'center' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 8 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginTop: 16, marginBottom: 8 },
-  rail: { gap: 12, paddingRight: 16 },
+  rail: { gap: 12, paddingHorizontal: 16 },
+  // Full-bleed rails: the cards scroll to the screen edge rather than stopping at the padding.
+  railWrap: { marginHorizontal: -16 },
   banner: { backgroundColor: palette.purple[100], borderRadius: 12, padding: 16, marginTop: 8, gap: 4 },
-  empty: { color: colors.mutedForeground, fontSize: 14, paddingVertical: 8 },
-  emptyCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 8,
-  },
 });

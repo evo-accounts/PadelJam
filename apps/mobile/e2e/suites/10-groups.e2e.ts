@@ -1,6 +1,6 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
-import { scrollUntilVisible, tap } from '../driver/actions';
+import { scrollUntilVisible, swipe, tap } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { deepLink, loginAs, switchUser, tabTo } from '../driver/flows';
@@ -29,9 +29,20 @@ describe('10 groups', () => {
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
   });
 
+  // Home's My groups is a rail of fixed-width cards (UX-HOME-01), sorted by name, so a given
+  // group may sit off screen to the right: bring the row into view, then swipe the rail left
+  // until the card is fully on screen. (Your Groups, its See all, is rails too, and its per-
+  // community "Show all" opens the community home, whose posts mention the group by name.)
   const openGroup = async (name: RegExp) => {
     await tabTo('Home');
-    await scrollUntilVisible({ text: name }, { maxSwipes: 8 });
+    await scrollUntilVisible({ id: 'home-groups-see-all' }, { maxSwipes: 8 });
+    await scrollUntilVisible({ text: name }, { maxSwipes: 4 });
+    for (let i = 0; i < 6; i++) {
+      const el = query(await snapshot(), { text: name });
+      if (!el) throw new Error(`no ${name} card in the My groups rail`);
+      if (el.frame.x >= 0 && el.frame.x + el.frame.width <= 402) break;
+      await swipe('left', { fromY: Math.round(el.frame.y + el.frame.height / 2) });
+    }
     await tap({ text: name });
     await expectVisible({ text: name }, { timeout: 20_000 });
   };

@@ -3,6 +3,7 @@ import {
   PRIVACY,
   createCommunitySchema,
   useCommunity,
+  useSetCommunityLocation,
   useUpdateCommunity,
 } from '@padel/api';
 import { useT } from '@padel/i18n';
@@ -15,14 +16,16 @@ import { ImagePickerRow } from '@/components/community/ImagePickerRow';
 import { PrivacyCards } from '@/components/community/PrivacyCards';
 import { RulesToggle } from '@/components/community/RulesToggle';
 import { SegmentedType } from '@/components/community/SegmentedType';
+import { LocationSheet } from '@/components/profile/LocationSheet';
 import { coverUrl, thumbnailUrl } from '@/lib/community-images';
 import { supabase } from '@/lib/supabase';
 import { pickAndValidateImage, uploadCommunityImage, type PickedImage } from '@/lib/storage';
 import { validateCommunityForm, type CommunityFormFieldKey } from '@/lib/communityFormValidate';
 import { useDirty } from '@/lib/useDirty';
 import { useFieldErrors } from '@/lib/useFieldErrors';
+import type { ResolvedPlace } from '@/lib/useGeocodeSearch';
 import { colors, space } from '../../../../theme';
-import { Button, Field, Text, TopBar, useBanner } from '../../../../components/ui';
+import { Button, Field, ListRow, Text, TopBar, useBanner } from '../../../../components/ui';
 
 type CommunityType = (typeof COMMUNITY_TYPES)[number];
 type Privacy = (typeof PRIVACY)[number];
@@ -37,10 +40,14 @@ export default function ManageSettingsScreen() {
 
   const { data: community } = useCommunity(id);
   const updateCommunity = useUpdateCommunity(id);
+  const setCommunityLocation = useSetCommunityLocation(id);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
+  // D2: the location is a PICKED place (label + point), never free text. Null = not changed here;
+  // the saved label is shown until a new place is picked.
+  const [place, setPlace] = useState<ResolvedPlace | null>(null);
+  const [locationOpen, setLocationOpen] = useState(false);
   const [type, setType] = useState<CommunityType>('club');
   const [privacy, setPrivacy] = useState<Privacy>('public');
   // Newly-picked local images (uploaded on save). Null = keep existing path.
@@ -56,7 +63,6 @@ export default function ManageSettingsScreen() {
     if (community && !prefilled) {
       setName(community.name ?? '');
       setDescription(community.description ?? '');
-      setLocation(community.location ?? '');
       setType((community.type as CommunityType) ?? 'club');
       setPrivacy((community.privacy as Privacy) ?? 'public');
       setRulesEnabled(community.cancellation_rules_enabled ?? false);
@@ -65,7 +71,8 @@ export default function ManageSettingsScreen() {
     }
   }, [community, prefilled]);
 
-  const pending = updateCommunity.isPending;
+  const pending = updateCommunity.isPending || setCommunityLocation.isPending;
+  const location = place ? place.label : (community?.location ?? '');
 
   const initial = useMemo(
     () => ({
@@ -107,7 +114,6 @@ export default function ManageSettingsScreen() {
     const parsed = createCommunitySchema.safeParse({
       name: name.trim(),
       description: description.trim() || undefined,
-      location: location.trim() || undefined,
       type,
       privacy,
       rules: { enabled: rulesEnabled, text: rulesText.trim() || undefined },
@@ -144,7 +150,6 @@ export default function ManageSettingsScreen() {
       await updateCommunity.mutateAsync({
         name: parsed.data.name,
         description: parsed.data.description ?? null,
-        location: parsed.data.location ?? null,
         type: parsed.data.type,
         privacy: parsed.data.privacy,
         thumbnail_path: thumbnailPath,
@@ -153,6 +158,15 @@ export default function ManageSettingsScreen() {
         // When rules are disabled, force the text to null; otherwise persist the entered text.
         cancellation_rules_text: rulesEnabled ? rulesText.trim() : null,
       });
+      // Label and point go together through set_community_location (0128), never as a plain
+      // column write: a new label must not sit on the old place's coordinates. A lookup that could
+      // not place the text hands back null coordinates, which keeps the label and clears the point.
+      if (place) {
+        await setCommunityLocation.mutateAsync({
+          location: place.label.trim() || null,
+          point: place.lat != null && place.lng != null ? { lat: place.lat, lng: place.lng } : null,
+        });
+      }
       router.back();
     } catch (e) {
       const code = e instanceof Error ? e.message : 'unknown_error';
@@ -192,13 +206,15 @@ export default function ManageSettingsScreen() {
           containerStyle={styles.field}
         />
 
-        <Field
-          label={t('locationLabel')}
-          value={location}
-          onChangeText={setLocation}
-          placeholder={t('locationPlaceholder')}
-          editable={!pending}
-          containerStyle={styles.field}
+        {/* A picked place, not free text (D2): the same picker as the profile location. */}
+        <Text variant="label" tone="muted" style={styles.label}>{t('locationLabel')}</Text>
+        <ListRow
+          title={location || t('locationPlaceholder')}
+          variant="plain"
+          onPress={() => setLocationOpen(true)}
+          disabled={pending}
+          style={styles.field}
+          testID="settings-location"
         />
 
         <Text variant="label" tone="muted" style={styles.label}>{t('typeLabel')}</Text>
@@ -242,6 +258,8 @@ export default function ManageSettingsScreen() {
         <Button label={t('save')} size="lg" fullWidth loading={pending} onPress={submit} />
       </View>
       </KeyboardAvoidingView>
+
+      <LocationSheet visible={locationOpen} onClose={() => setLocationOpen(false)} onPick={setPlace} />
     </SafeAreaView>
   );
 }

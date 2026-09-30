@@ -12,9 +12,9 @@ import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CreateEventFab } from '@/components/CreateEventFab';
+import { CreateEventFab, FAB_CLEARANCE } from '@/components/CreateEventFab';
 import { EventCard } from '@/components/event/EventCard';
 import { useStoredFlag } from '@/lib/useStoredFlag';
 import { colors, space } from '../../theme';
@@ -32,7 +32,6 @@ const FILTERS = ['all', 'organizing', 'going', 'pending'] as const satisfies rea
 export default function EventsScreen() {
   const { t } = useT('events');
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<MyEventsFilter>('all');
   const [includePast, setIncludePast, pastHydrated] = useStoredFlag('events.showPast', false);
   // Wait for the remembered toggle: fetching with the default first would load (and flash) the
@@ -89,7 +88,7 @@ export default function EventsScreen() {
         <FlashList
           data={rows}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={[{ padding: space[4], paddingBottom: insets.bottom + 96 }, listEmptyContent]}
+          contentContainerStyle={[{ padding: space[4], paddingBottom: FAB_CLEARANCE }, listEmptyContent]}
           ItemSeparatorComponent={() => <View style={styles.gap} />}
           ListEmptyComponent={
             query.isError ? (
