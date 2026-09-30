@@ -329,6 +329,12 @@ standby spots a 5th player joins CONFIRMED (`is_standby`), never waitlisted.
   once it has persisted 10 s, and `freshInstall` reboots the simulator for it (at
   most twice per suite, logged as `[e2e] freshInstall: accessibility tree wedged`).
   Mid-test it is reported, never rebooted away. Detection is in `driver/axWedge.ts`.
+  A reboot is not over at `bootstatus`: `sim.reboot()` waits until the device can
+  launch Settings (booting once more if it cannot), and the first launch of the
+  app after it retries twice.
+- A command that hangs is reported as `failed (timed out after Ns and was killed)`,
+  not `failed (1)` with no output — which is what it looked like before 2026-09-30.
+  A hung `describe-all` is slowness, not a wedge, and does not trigger a reboot.
 
 ## When a failure names something unrelated, suspect this
 

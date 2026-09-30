@@ -11,6 +11,35 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export const APP_PATH = process.env.E2E_APP_PATH
   ?? `${__dirname}/../../.e2e-derived/Build/Products/Release-iphonesimulator/PadelJam.app`;
 
+/** Waits before the 2nd and 3rd post-reboot launch attempts. */
+export const POST_REBOOT_LAUNCH_BACKOFF_MS = [5_000, 15_000] as const;
+
+/**
+ * Launch our app. Normally one attempt: a launch failure on a settled device is
+ * real news and must surface. Straight after a reboot, a generic failure is
+ * retried with backoff, on shorter attempts — the device has just proved it can
+ * launch Settings (sim.waitUntilLaunchable), but CI run 36713494350 showed a
+ * freshly booted simulator is not yet trustworthy.
+ */
+async function launchApp(args: string[], afterReboot: boolean): Promise<void> {
+  if (!afterReboot) return sim.launch({ args });
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await sim.launch({ args, timeoutMs: 45_000 });
+    } catch (e) {
+      const wait = POST_REBOOT_LAUNCH_BACKOFF_MS[attempt];
+      // Not-registered has its own escalation in relaunch; the budget is finite.
+      if (e instanceof sim.AppNotRegisteredError || wait === undefined) throw e;
+      console.warn(
+        `[e2e] relaunch: launch failed right after a simulator reboot — retrying in ${wait / 1000}s `
+          + `(${attempt + 1}/${POST_REBOOT_LAUNCH_BACKOFF_MS.length})\n${e instanceof Error ? e.message : String(e)}`,
+      );
+      await sleep(wait);
+      await sim.terminate();
+    }
+  }
+}
+
 /**
  * Launch with deterministic English so text selectors are stable.
  *
@@ -19,13 +48,15 @@ export const APP_PATH = process.env.E2E_APP_PATH
  * 2026-09-12/13; `launch`'s 30 s of retries is not enough). Escalate in two
  * steps: reinstall the .app (in place — data is kept), then reboot the device
  * and install again. Each step is logged so a run that needed it stands out.
+ *
+ * `afterReboot`: the caller just rebooted the simulator (see launchApp).
  */
-export async function relaunch(opts: { extraArgs?: string[] } = {}): Promise<void> {
+export async function relaunch(opts: { extraArgs?: string[]; afterReboot?: boolean } = {}): Promise<void> {
   await sim.terminate();
   await sleep(1000);
   const args = ['-AppleLanguages', '("en")', '-AppleLocale', 'en_US', ...(opts.extraArgs ?? [])];
   try {
-    await sim.launch({ args });
+    await launchApp(args, opts.afterReboot ?? false);
   } catch (e) {
     if (!(e instanceof sim.AppNotRegisteredError)) throw e;
     console.warn('[e2e] relaunch: SpringBoard does not know the bundle — reinstalling the app');
@@ -35,10 +66,9 @@ export async function relaunch(opts: { extraArgs?: string[] } = {}): Promise<voi
     } catch (e2) {
       if (!(e2 instanceof sim.AppNotRegisteredError)) throw e2;
       console.warn('[e2e] relaunch: still unknown after reinstall — rebooting the simulator');
-      await sim.shutdown();
-      await sim.boot();
+      await sim.reboot();
       await sim.install(APP_PATH);
-      await sim.launch({ args });
+      await launchApp(args, true);
     }
   }
   await sleep(2000); // splash minimum is 600ms; give boot routing room
@@ -66,10 +96,8 @@ async function rebootForWedgedAccessibility(): Promise<void> {
     `[e2e] freshInstall: accessibility tree wedged (describe-all empty for ${WEDGE_PERSIST_MS / 1000}s+ with the app `
       + `launched) — rebooting the simulator (${wedgeReboots}/${MAX_WEDGE_REBOOTS} this suite)`,
   );
-  await sim.shutdown();
-  await sim.boot(); // waits on `simctl bootstatus -b`
+  await sim.reboot(); // returns once the device can launch apps again
   await restartCompanion(); // it lost its simulator; respawn before the next describe-all
-  await sim.overrideStatusBar(); // the shutdown cleared the override run.mjs set
   resetAccessibilityWedge();
 }
 
@@ -80,12 +108,14 @@ export async function freshInstall(): Promise<void> {
   }
   // Purges count stale-session retries only; wedge reboots have their own
   // budget above, so the loop is bounded by 3 + MAX_WEDGE_REBOOTS passes.
+  let afterReboot = false;
   for (let purges = 0; purges < 3;) {
     await sim.terminate();
     await sim.uninstall();
     await sim.keychainReset(); // SecureStore session survives uninstall otherwise
     await sim.install(APP_PATH);
-    await relaunch();
+    await relaunch({ afterReboot });
+    afterReboot = false;
     // Verify the purge took: a truly fresh install boots to welcome (or sign-in).
     const { waitFor } = await import('./expect');
     const { landed, wedged } = await waitFor(
@@ -106,6 +136,7 @@ export async function freshInstall(): Promise<void> {
         );
       }
       await rebootForWedgedAccessibility();
+      afterReboot = true;
       continue;
     }
     purges++;

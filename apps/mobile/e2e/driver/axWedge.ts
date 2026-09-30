@@ -20,6 +20,21 @@ import type { AxElement } from './a11y';
  * fullscreen dialog", and suite 04's hook on the same run saw it once and
  * recovered on the next purge. Only a wedge that PERSISTS counts — see
  * WedgeTracker.
+ *
+ * The zero-size application also means "no window on screen yet", so an app
+ * stuck on its launch screen looks the same: suite 98 on run 36713494350 sat
+ * on the launch placeholder for about a minute and was detected. freshInstall's
+ * reboot is still the right answer there; mid-test it is only ever reported.
+ *
+ * A describe-all that TIMES OUT does not count, either way — decided
+ * 2026-09-30 on run 36713494350, where three calls ended "failed (1)" with no
+ * output. That was our own 30 s timeout killing a hung call (proc.ts now says
+ * so). Suite 08's hook lost its 20 s loginAs wait to one, yet the capture right
+ * after it read a healthy 21-element tree mid-navigation, and the next four
+ * suites passed without a reboot; suite 01 hit one mid-test and its next test
+ * passed. A hang is a slow bridge, not a wedged one, so it neither starts nor
+ * clears the clock. Revisit only if a run shows hangs that persist AND a
+ * reboot curing them.
  */
 
 /** idb's stderr when the AX bridge has no translation for the device. */
