@@ -261,6 +261,7 @@ export type Database = {
           description: string | null
           id: string
           location: string | null
+          location_point: unknown
           name: string
           privacy: string
           tenant_id: string
@@ -278,6 +279,7 @@ export type Database = {
           description?: string | null
           id?: string
           location?: string | null
+          location_point?: unknown
           name: string
           privacy?: string
           tenant_id: string
@@ -295,6 +297,7 @@ export type Database = {
           description?: string | null
           id?: string
           location?: string | null
+          location_point?: unknown
           name?: string
           privacy?: string
           tenant_id?: string
@@ -2563,6 +2566,8 @@ export type Database = {
           p_cover_image_path?: string
           p_description?: string
           p_location?: string
+          p_location_lat?: number | null
+          p_location_lng?: number | null
           p_name: string
           p_privacy?: string
           p_thumbnail_path?: string
@@ -2570,6 +2575,17 @@ export type Database = {
         }
         Returns: string
       }
+      set_community_location: {
+        Args: {
+          p_community_id: string
+          p_lat: number | null
+          p_lng: number | null
+          p_location: string | null
+        }
+        Returns: undefined
+      }
+      follow_player: { Args: { p_user: string }; Returns: string }
+      unfollow_player: { Args: { p_user: string }; Returns: string }
       create_event: { Args: { p_payload: Json }; Returns: string }
       create_group: {
         Args: {
@@ -2717,6 +2733,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          distance_m: number | null
           id: string
           location: string | null
           name: string
@@ -2725,13 +2742,8 @@ export type Database = {
           thumbnail_path: string | null
           type: string
           updated_at: string
+          viewer_state: string
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "communities"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       explore_events: {
         Args: { p_limit?: number; p_offset?: number }
@@ -2745,19 +2757,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          distance_m: number | null
           id: string
           is_general: boolean
           is_private: boolean
           name: string
           thumbnail_path: string | null
           updated_at: string
+          viewer_state: string
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "groups"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       explore_players: {
         Args: { p_limit?: number; p_offset?: number }
@@ -2768,6 +2776,7 @@ export type Database = {
           full_name: string
           id: string
           shared_count: number
+          viewer_state: string
         }[]
       }
       my_events: {

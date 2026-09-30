@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
-import { useDb } from '../client';
+import { useDb, mapPgError } from '../client';
+import type { PlayerViewerState } from '../discovery/queries';
 import { qk } from '../query-keys';
 
 /**
@@ -50,6 +51,54 @@ export const useUnfollow = () => {
       if (error) throw error;
     },
     onSuccess: (_d, targetId) => invalidateFollow(qc, uid, targetId),
+  });
+};
+
+/**
+ * Follow / unfollow through the 0128 RPCs, for Explore and search cards (D9).
+ *
+ * Unlike `useFollow`'s direct `follows` insert, `follow_player` refuses a block in EITHER direction
+ * (`blocked`) and yourself (`cannot_follow_self`), and both RPCs return the new state
+ * ('following' / 'none') so a card that flipped optimistically can reconcile with the server.
+ * Errors arrive as `mapPgError` codes.
+ *
+ * Besides every follow list, the explore player queries are invalidated: the rail excludes people
+ * the viewer follows (D8), so a followed card leaves the rail on the next fetch.
+ */
+const invalidateExplorePlayers = (qc: QueryClient) =>
+  qc.invalidateQueries({ queryKey: qk.explorePlayers });
+
+export const useFollowPlayer = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (targetId: string) => {
+      const { data, error } = await db.rpc('follow_player', { p_user: targetId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as PlayerViewerState;
+    },
+    onSuccess: (_d, targetId) => {
+      invalidateFollow(qc, uid, targetId);
+      invalidateExplorePlayers(qc);
+    },
+  });
+};
+
+export const useUnfollowPlayer = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (targetId: string) => {
+      const { data, error } = await db.rpc('unfollow_player', { p_user: targetId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as PlayerViewerState;
+    },
+    onSuccess: (_d, targetId) => {
+      invalidateFollow(qc, uid, targetId);
+      invalidateExplorePlayers(qc);
+    },
   });
 };
 

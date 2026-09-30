@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
 import { useDb, mapPgError } from '../client';
 import { qk } from '../query-keys';
-import type { CreateCommunityInput } from '../schemas';
+import type { CreateCommunityInput, LocationPoint } from '../schemas';
 
 // ---------------------------------------------------------------------------
 // RPC mutations
@@ -26,6 +26,12 @@ export const useCreateCommunity = () => {
         p_cover_image_path: input.coverImagePath,
         p_cancellation_rules_enabled: input.rules.enabled,
         p_cancellation_rules_text: input.rules.text,
+        // Sent only with a point: PostgREST resolves a function by its argument NAMES, so naming
+        // p_location_lat against a database without migration 0128 (the E2E stack before it is
+        // applied, or hosted before the paste) would fail every create, point or not.
+        ...(input.locationPoint
+          ? { p_location_lat: input.locationPoint.lat, p_location_lng: input.locationPoint.lng }
+          : {}),
       });
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
       return data;
@@ -33,6 +39,36 @@ export const useCreateCommunity = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.communities });
       qc.invalidateQueries({ queryKey: qk.canCreate });
+    },
+  });
+};
+
+/**
+ * Write a community's location — label and point together (migration 0128, D2).
+ *
+ * `communities.location_point` is a PostGIS geography, so it never rides in a plain `communities`
+ * UPDATE: `set_community_location` builds the point server-side and overwrites label AND point as a
+ * pair, which keeps a new label from sitting on an old place's coordinates. A null point clears the
+ * coordinates and keeps the label. Admin-only (`forbidden` otherwise).
+ */
+export const useSetCommunityLocation = (communityId: string) => {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (place: { location: string | null; point: LocationPoint | null }) => {
+      const { error } = await db.rpc('set_community_location', {
+        p_community_id: communityId,
+        p_lat: place.point?.lat ?? null,
+        p_lng: place.point?.lng ?? null,
+        p_location: place.location,
+      });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.community(communityId) });
+      qc.invalidateQueries({ queryKey: qk.communities });
+      // Distance ranks the community and group rails.
+      qc.invalidateQueries({ queryKey: ['explore'] });
     },
   });
 };
