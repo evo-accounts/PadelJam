@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,9 @@ import { Button } from '@/components/ui/button';
  * The standard empty state (UX-GLOB-03) on web: a muted icon, a title, an optional line, and an
  * optional action that leads out of the empty condition. The same dashed box the event and group
  * screens already draw inline, as one primitive for Home (UX-HOME-01) and Explore to share.
+ *
+ * `action` is the common case, a link. An action that is not a plain link — Explore's "Create
+ * event", which may open a community picker (D10) — goes in `children` instead.
  */
 export function EmptyState({
   icon: Icon,
@@ -13,12 +17,14 @@ export function EmptyState({
   body,
   action,
   testId,
+  children,
 }: {
   icon?: LucideIcon;
   title: string;
   body?: string;
   action?: { label: string; href: string; testId?: string };
   testId?: string;
+  children?: ReactNode;
 }) {
   return (
     <div
@@ -35,6 +41,7 @@ export function EmptyState({
           </Link>
         </Button>
       ) : null}
+      {children ? <div className="mt-1">{children}</div> : null}
     </div>
   );
 }

@@ -2,20 +2,10 @@
 import { forwardRef, type ComponentPropsWithoutRef } from 'react';
 import Link from 'next/link';
 import { Building2, CalendarSearch, CirclePlus, Users, type LucideIcon } from 'lucide-react';
-import { useCommunities, useEventCreatableGroups } from '@padel/api';
 import { useT } from '@padel/i18n';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Skeleton } from '@/components/ui/skeleton';
 import { exploreSearchHref } from '@/lib/explore-links';
 import { cn } from '@/lib/utils';
-import { createEventTargets } from './create-event-targets';
+import { CreateEventMenu } from './CreateEventMenu';
 
 /** Every quick action is the same card, link or menu trigger alike (UX-HOME-01: consistent size). */
 const CARD =
@@ -45,63 +35,18 @@ function QuickActionLink({ icon: Icon, label, href, testId }: { icon: LucideIcon
   );
 }
 
-/**
- * Create Event. Web's wizard is opened from a community, so with exactly one community to create
- * in the card goes straight there; otherwise it opens a menu: the communities to pick from, or —
- * with none — a pointer to the communities page, where you can join or create one.
- */
+/** Create Event: the shared create-event control, dressed as a quick action card. */
 function CreateEventAction() {
   const { t } = useT('home');
-  const communities = useCommunities();
-  const creatable = useEventCreatableGroups();
-  const loading = communities.isLoading || creatable.isLoading;
-  const targets = createEventTargets(communities.data ?? [], creatable.data ?? []);
   const label = t('quickCreate');
-
-  if (!loading && targets.length === 1) {
-    return (
-      <QuickActionLink
-        icon={CirclePlus}
-        label={label}
-        href={`/app/community/${targets[0]!.id}/event-create`}
-        testId="home-quick-create"
-      />
-    );
-  }
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <QuickActionButton icon={CirclePlus} label={label} data-testid="home-quick-create" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64" data-testid="home-quick-create-menu">
-        {loading ? (
-          <div className="flex flex-col gap-2 p-2">
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-2/3" />
-          </div>
-        ) : targets.length === 0 ? (
-          <>
-            <DropdownMenuLabel className="font-normal text-muted-foreground">{t('createEventNone')}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/app/community">{t('goToCommunities')}</Link>
-            </DropdownMenuItem>
-          </>
-        ) : (
-          <>
-            <DropdownMenuLabel className="font-normal text-muted-foreground">{t('createEventIn')}</DropdownMenuLabel>
-            {targets.map((c) => (
-              <DropdownMenuItem key={c.id} asChild>
-                <Link href={`/app/community/${c.id}/event-create`} data-testid={`home-quick-create-${c.id}`}>
-                  <Building2 aria-hidden />
-                  <span className="truncate">{c.name}</span>
-                </Link>
-              </DropdownMenuItem>
-            ))}
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <CreateEventMenu
+      testId="home-quick-create"
+      trigger={<QuickActionButton icon={CirclePlus} label={label} data-testid="home-quick-create" />}
+      renderLink={(href) => (
+        <QuickActionLink icon={CirclePlus} label={label} href={href} testId="home-quick-create" />
+      )}
+    />
   );
 }
 
