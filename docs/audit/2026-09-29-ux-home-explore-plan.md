@@ -272,7 +272,9 @@ gain columns; the recreated create RPC takes the same named arguments (the two n
 settings screens still write `communities.location` directly. The new code needs the migrations **first**:
 web from main (W2 calls `follow_player` / `set_community_location` / the new explore columns, W3 the
 `search_*` RPCs) and the next TestFlight build with M1–M3. So paste all three before deploying web from main
-and before that build goes out.
+and before that build goes out. The repo is connected to Vercel (`padel-jam-web`), so if its production
+deployment follows main and points at hosted, W2 and W3 are already live there and Explore on the hosted web
+fails until 0128 and 0129 are in. In that case paste them now.
 
 1. **0128** `0128_explore_viewer_state.sql` — drops and recreates `explore_players`, `explore_communities`,
    `explore_groups` and `create_community_with_personal_tenant`; adds `communities.location_point`,
