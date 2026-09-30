@@ -201,6 +201,7 @@ export default function CreateCommunityPage() {
               <input
                 id="thumbnail"
                 type="file"
+                className="max-w-full"
                 accept="image/*"
                 onChange={(e) => onThumbnailChange(e.target.files?.[0] ?? null)}
               />
@@ -215,6 +216,7 @@ export default function CreateCommunityPage() {
               <input
                 id="cover"
                 type="file"
+                className="max-w-full"
                 accept="image/*"
                 onChange={(e) => onCoverChange(e.target.files?.[0] ?? null)}
               />

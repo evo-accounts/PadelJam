@@ -215,6 +215,7 @@ export default function ManageSettingsPage() {
               <input
                 id="thumbnail"
                 type="file"
+                className="max-w-full"
                 accept="image/*"
                 onChange={(e) => onThumbChange(e.target.files?.[0] ?? null)}
               />
@@ -233,6 +234,7 @@ export default function ManageSettingsPage() {
               <input
                 id="cover"
                 type="file"
+                className="max-w-full"
                 accept="image/*"
                 onChange={(e) => onCoverChange(e.target.files?.[0] ?? null)}
               />
