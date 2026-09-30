@@ -13,7 +13,7 @@ The audit found that the app has no consistent header, no bottom-sheet component
 | Question | Decision |
 |---|---|
 | Sequencing | Foundations first (one PR), then one PR per rule, all nine. |
-| Search (UX-GLOB-08) | Follow the new rule, reversing PR #79: search is its own screen, reached from a header icon on Home, Events and Explore. |
+| Search (UX-GLOB-08) | Follow the new rule, reversing PR #79: search is its own screen, reached from a header icon on Home, Events and Explore. *Superseded 2026-09-29 by the Home & Explore audit: search is inline on Explore again; see §7.* |
 | Paid features (UX-GLOB-10) | Granted on request and reversible. The community upgrade grants Community Pro from Manage Community; Jammer+ gets a Plan row in Profile settings reusing the paywall. Two security-definer RPCs. |
 | Password rules (UX-GLOB-07) | Enforced on the client and on the server (auth config and the complete-account function). Existing passwords keep working. |
 | Bottom sheet implementation | In-house, on React Native `Modal`. No `@gorhom/bottom-sheet`. |
@@ -124,6 +124,15 @@ A `PasswordField` primitive in `components/ui`: a `Field` with `secureTextEntry`
 Used on create-account, recovery and change-password with rules, and on the sign-in password screen with the eye only. Server: `password_requirements = "lower_upper_letters_digits_symbols"` in `infra/supabase/config.toml`, and the complete-account function validates with the same regex set before calling the admin API. Hosted needs the same setting under Authentication → Providers → Email (Password requirements), recorded in the hand-off.
 
 ## 7. Search entry point (UX-GLOB-08)
+
+> **Superseded 2026-09-29 by the Home & Explore UX audit** (UX-HOME-01, UX-EXPL-01;
+> `docs/audit/2026-09-29-ux-home-explore.md`, decisions in `docs/audit/2026-09-29-ux-home-explore-plan.md`).
+> There is no search icon on any header any more, and no separate search screen. The one global search is an
+> inline input under the Explore title; Home's Find quick actions open it focused on the matching tab
+> (`/(tabs)/explore?search=1&tab=…`). Search runs server-side (migrations 0129, 0130), with For you and Recent
+> searches, suggestions, and results tabs All / Events / Groups / Communities (#257 web, #260 mobile).
+> `app/search.tsx` is kept only as a redirect to that URL (D12, #260). The context-scoped inputs listed below still
+> stay where they are. The paragraph below is kept as the record of what #107 shipped.
 
 A new `app/search.tsx` screen: `nav` bar with a search `Field` in place of the title (autofocused), the five tab chips from Explore (For you, Events, Groups, Communities, People) and `ExploreList` for the active tab. It accepts `?tab=` and `?q=`. Home, Events and Explore get a magnifying-glass `top` action that pushes `/search`. The Home quick actions route to `/search?tab=events|groups|communities`. Explore loses its embedded input and its chip row scrolls the curated rails only. `app/explore/[type].tsx` renders `ExploreList` instead of its own copy, so "see all" and search share one list. The five context-scoped inputs (group members, group invite, community invite, new chat, followers and following) stay where they are.
 
