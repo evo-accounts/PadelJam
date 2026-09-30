@@ -1,7 +1,8 @@
 // infra/supabase/tests/discovery-search.test.mjs
 //
 // Migration 0129 — server-side discovery search, suggestions and For-you terms (UX Audit — Home &
-// Explore, decisions D1, D2, D4, D6, D7, D8, D9, D13; bug B3).
+// Explore, decisions D1, D2, D4, D6, D7, D8, D9, D13; bug B3) — and 0130, which also matches venue,
+// event and community location text, ranked below every name match.
 //
 // Every call goes through PostgREST with a real user's JWT: the search functions are `security
 // definer`, so the predicates inside them are the only fence. Each run searches for its own random
@@ -305,6 +306,54 @@ await run('search_for_you_terms: city, formats near me, recommended communities'
   assert(kinds.join() === [...kinds].sort((a, b) => ['city', 'format', 'community'].indexOf(a) - ['city', 'format', 'community'].indexOf(b)).join(),
     'ordered city, formats, communities');
   assert(rows.filter((r) => r.kind === 'community').length <= 4, 'at most four communities');
+});
+
+await run('0130: location matches — venue/event location, community location, group via community — rank below names', async () => {
+  // A random "city", so only this run's rows can match it.
+  const CITY = newTok();
+  const [viewer, owner, o2] = await Promise.all([user('ds-lv'), user('ds-lo'), user('ds-l2')]);
+  const cNamed = await community(owner, `${CITY} Smashers`, 'public', { p_location: 'Porto' });
+  const cLoc = await community(o2, `Riverside ${letters()}`, 'public', { p_location: `${CITY}, Portugal` });
+  await insert('community_subscriptions', { community_id: cNamed, dimension: 'community', plan_id: 'community_pro', status: 'active', provider: 'manual' });
+  const gid = await generalGroup(cNamed);
+  const gLoc = await generalGroup(cLoc);
+  const [venue] = await insert('venues', { name: `${CITY} Padel Arena`, address: 'Rua 1', created_by: owner.id });
+  const ev = (over) => rpc(owner.jwt, 'create_event', { p_payload: eventPayload(gid, over) });
+  // The name match starts LAST, so only the rank can put it first.
+  const eNamed = await ev({ name: `${CITY} Night`, starts_at: at(6 * DAY) });
+  const eVenue = await ev({ name: `Friday ${letters()}`, venue_id: venue.id, manual_location_name: null,
+    manual_location_address: null, starts_at: at(2 * DAY) });
+  const eManual = await ev({ name: `Sunday ${letters()}`, manual_location_address: `Av. ${CITY} 12`, starts_at: at(1 * DAY) });
+  const eNone = await ev({ name: `Monday ${letters()}`, starts_at: at(3 * DAY) });
+
+  // Events: the venue (name) and the event's own address match, below the name match.
+  const evs = await search(viewer, 'search_events', CITY);
+  const e = ids(evs);
+  assert(e.includes(eVenue), 'an event at a venue in the city is found');
+  assert(e.includes(eManual), 'an event whose own address names the city is found');
+  assert(!e.includes(eNone), 'an event with no match anywhere is not');
+  assert(e[0] === eNamed, `the name match ranks first, got ${JSON.stringify(evs.map((r) => r.event.name))}`);
+  assert(Number(evs[0].total_count) === 3, 'total_count counts location matches');
+  // Other sorts are unchanged: 'date' is soonest first, location matches included.
+  const byDate = ids(await search(viewer, 'search_events', CITY, { p_sort: 'date' }));
+  assert(byDate.join() === [eManual, eVenue, eNamed].join(), 'date sort keeps starts_at order');
+
+  // Communities: location match below the name match.
+  const cs = ids(await search(viewer, 'search_communities', CITY));
+  assert(cs.includes(cLoc), 'a community located in the city is found');
+  assert(cs[0] === cNamed && cs.indexOf(cLoc) > 0, 'the named community ranks above the located one');
+
+  // Groups: via the parent community's location, below a group whose name matches.
+  const gs = ids(await search(viewer, 'search_groups', CITY));
+  assert(gs.includes(gLoc), 'a group of a community located in the city is found');
+  assert(gs.indexOf(gid) >= 0 && gs.indexOf(gid) < gs.indexOf(gLoc), 'the named group ranks above the located one');
+
+  // Suggestions stay entity-name based: no venue or location-only hit.
+  const sug = await rpc(viewer.jwt, 'search_suggest', { p_q: CITY, p_limit: 20 });
+  const sIds = sug.map((r) => r.id);
+  assert(sIds.includes(eNamed) && sIds.includes(cNamed), 'name matches are suggested');
+  assert(![eVenue, eManual, cLoc, gLoc, venue.id].some((id) => sIds.includes(id)), `location-only matches are not suggested: ${JSON.stringify(sug)}`);
+  assert(sug.every((r) => r.label.toLowerCase().includes(CITY)), 'every label contains the query');
 });
 
 await run('anon cannot call any search RPC', async () => {
