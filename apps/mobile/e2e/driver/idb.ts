@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { CONFIG } from './config';
-import { run, runOk } from './proc';
+import { describeFailure, run, runOk } from './proc';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -8,9 +8,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * idb talks to a per-device `idb_companion` over a unix socket. The companion
  * dies with the simulator (or when CoreSimulator restarts), leaving every call
  * failing with "Connection lost"/"Connection refused". Respawn it on the socket
- * path the client expects, then retry once.
+ * path the client expects, then retry once. Exported for the wedged-AX reboot
+ * in app.ts, which knows the companion just lost its simulator.
  */
-async function restartCompanion(): Promise<void> {
+export async function restartCompanion(): Promise<void> {
   const sock = `/tmp/idb/${CONFIG.udid}_companion.sock`;
   await run('pkill', ['-f', `idb_companion.*${CONFIG.udid}`]);
   await sleep(1500);
@@ -29,7 +30,7 @@ export async function idb(args: string[], timeoutMs = 30_000): Promise<string> {
   if (first.code === 0) return first.stdout;
   const err = `${first.stderr}${first.stdout}`;
   if (!/Connection lost|Connection refused|No Companion Connected|Failed to connect to companion/i.test(err)) {
-    throw new Error(`${CONFIG.idbPath} ${argv.join(' ')} failed (${first.code}):\n${err}`);
+    throw new Error(describeFailure(CONFIG.idbPath, argv, first));
   }
   console.warn('[e2e] idb companion unreachable — restarting it');
   await restartCompanion();
