@@ -123,7 +123,9 @@ Found during implementation (fixed in the PR named):
 | B12 | Web: `SidebarInset` had no `min-w-0`, so a wide child pushed the whole inset, header buttons included, past the viewport | `apps/web` app shell | #254 |
 | B13 | Web dark mode: the selected filter chip (primary on primary) was near-invisible | W3 filter chips | #257 (semantic colours) |
 | B14 | Main's E2E suite 03 (search-icon test) and suite 09 (pending-request test) broke once 0128 / 0129 were on the local stack | E2E suites 03, 09 | #259 |
-| B15 | A second Home Find to the same tab while Explore stayed mounted did not re-focus the input (M1 open item) | mobile Explore route | #260 (arrival stamp `at`) — open |
+| B15 | A second Home Find to the same tab while Explore stayed mounted did not re-focus the input (M1 open item) | mobile Explore route | #260 (arrival stamp `at`) |
+| B16 | The mobile E2E job timeout (90 min) had no headroom: a fully green run (#260) took 89.75 min for 136 tests in 16 suites, and #262's first run was cut off at 90 | `.github/workflows/e2e-mobile.yml` | #262 (120 min) |
+| B17 | About 80 minutes into a serial run the simulator's accessibility tree went empty (idb "No translation object returned", or a single zero-size `AXApplication`), even though the app sat on its welcome screen. The driver read that as "stale session survived keychain reset (saw "")" and burned 3 × 30 s per fresh-install suite until the job timed out. Restarting `idb_companion` did not help; a simulator reboot did | E2E driver `freshInstall` / `snapshot` | #263 (persistent-wedge detection + at most 2 reboots per suite) |
 
 ## PR sequence
 
@@ -194,8 +196,9 @@ location picker (D2).
 
 ## Status (2026-09-30)
 
-Migrations are 0128–0130: the two planned plus **0130** (search also matches location, B11). Web shipped as
-W1–W3; mobile M1 is merged, **M2 and M3 are still open** — flip them to merged when they land.
+**Complete.** Migrations are 0128–0130: the two planned plus **0130** (search also matches location, B11), all
+applied to hosted on 2026-09-30. Web shipped as W1–W3 and mobile as M1–M3. Mobile users get M1–M3 with the next
+TestFlight build.
 
 | Step | Scope | PR | State |
 |------|-------|----|-------|
@@ -204,8 +207,9 @@ W1–W3; mobile M1 is merged, **M2 and M3 are still open** — flip them to merg
 | 0129 | Discovery search — `unaccent` + `pg_trgm`, `search_norm` / `search_rank`, trigram indexes, `search_players / _events / _groups / _communities` (filters, sorts, `total_count`, `viewer_state`), `search_suggest`, `search_for_you_terms` (D1, D2, D4, D6–D9, D13; B3) | #255 | merged |
 | 0130 | Search also matches venue / event location text and community location, ranked below name matches; `communities_location_trgm_idx` (B11) | #258 | merged |
 | M1 | Mobile Home + Explore feed: header, quick actions, Next Events / My Groups rails, FAB offset and off Explore, inline search entry, rails + See all with Follow / Join / Request, community location picker (UX-HOME-01, UX-EXPL-01..03; B1, B2, B5, B6, B8, B9, B14; D2) | #259 | merged |
-| M2 | Mobile search states: For you + Recent searches, suggestions, All / typed results, back arrow, `/search` redirect, server-side `ExploreList` (UX-EXPL-04..06; B3, B15; D5, D6, D7, D12) | #260 | open |
-| M3 | Mobile results by type + filters: count, Filter sheet per tab, applied chips, stepped distance (UX-EXPL-07, 08; D13) | — (not yet opened) | open |
+| M2 | Mobile search states: For you + Recent searches, suggestions, All / typed results, back arrow, `/search` redirect, server-side `ExploreList` (UX-EXPL-04..06; B3, B15; D5, D6, D7, D12) | #260 | merged |
+| M3 | Mobile results by type + filters: count, Filter sheet per tab, applied chips, stepped distance, `DateField` min/max; E2E job timeout 90 → 120 min (UX-EXPL-07, 08; D13; B16) | #262 | merged |
+| E2E | Driver recovers from a wedged simulator accessibility tree (B17) | #263 | merged when its E2E is green |
 | W1 | Web Home: quick actions, Next Events and My Groups rails, EmptyStates (UX-HOME-01 web; B12) | #254 | merged |
 | W2 | Web Explore feed + See all with Follow / Join, community location picker (UX-EXPL-01..03 web; B10; D2) | #256 | merged |
 | W3 | Web search states, results and per-tab filters (UX-EXPL-04..08 web; B13) | #257 | merged |
@@ -256,9 +260,16 @@ The PR sequence above is kept as planned; this table is authoritative for what s
 
 ## Hosted hand-off
 
-The account cannot `db push`; the product owner pastes each file into the dashboard SQL editor **in this
-order** and records each one in `supabase_migrations.schema_migrations` after it succeeds. Hosted is current
-through 0127.
+**Done 2026-09-30.** The product owner pasted 0128, 0129 and 0130 in order and recorded all three. A
+combined check returned `true` for all seven probes: `follow_player`, `set_community_location`,
+`search_players`, `search_suggest`, the 0130 index, `communities.location_point`, and anon blocked. From
+outside, every new RPC called with its real arguments and the publishable key answers `42501 permission denied`,
+which means it exists and anon is revoked.
+
+**Ordering lesson:** web W2 / W3 were merged before this paste, and production web deploys from main against
+hosted. Paste hosted migrations **before** merging a web PR that calls new RPCs. The account cannot `db push`;
+the product owner pastes each file into the dashboard SQL editor **in this order** and records each one in
+`supabase_migrations.schema_migrations` after it succeeds. Before this batch, hosted was current through 0127.
 
 **Order: 0128 → 0129 → 0130.** 0129 needs 0128 (`communities.location_point`); 0130 recreates three of 0129's
 functions. None of the three files has an explicit `begin` / `commit`: paste each **whole file as one script**
@@ -272,9 +283,8 @@ gain columns; the recreated create RPC takes the same named arguments (the two n
 settings screens still write `communities.location` directly. The new code needs the migrations **first**:
 web from main (W2 calls `follow_player` / `set_community_location` / the new explore columns, W3 the
 `search_*` RPCs) and the next TestFlight build with M1–M3. So paste all three before deploying web from main
-and before that build goes out. The repo is connected to Vercel (`padel-jam-web`), so if its production
-deployment follows main and points at hosted, W2 and W3 are already live there and Explore on the hosted web
-fails until 0128 and 0129 are in. In that case paste them now.
+and before that build goes out. (Production web deploys from main against hosted, which is why the paste was
+done on 2026-09-30 as soon as the gap was noticed; see the ordering lesson above.)
 
 1. **0128** `0128_explore_viewer_state.sql` — drops and recreates `explore_players`, `explore_communities`,
    `explore_groups` and `create_community_with_personal_tenant`; adds `communities.location_point`,
@@ -367,4 +377,18 @@ end-to-end check is the app itself: Explore → type a community's name → it a
 - **No community location backfill** — existing communities have no point until an admin re-saves the
   location, so they sort last on Distance and drop out of distance filters. **Proposal:** nudge admins
   (e.g. a pending-action row in Manage Community) rather than geocoding free text server-side.
-- **M2 (#260) and M3** are still open; flip their rows to merged here when they land.
+- **Mobile Filter sheet scroll** — in the simulator, quick flicks over the chip rows did not scroll the sheet;
+  slow drags did. E2E passes with the driver's scrolling. **Proposal:** check on a device with the TestFlight
+  build. If it reproduces, let the chip rows pass vertical pans through to the sheet's scroll view.
+- **Distance filtering is unexercised against seed data** — no seeded upcoming event has a `location_point` or
+  a venue locally, so "Up to N km" on Events always returns 0 in demos and E2E. Real wizard events do get a
+  point. **Proposal:** give the demo / E2E seed venues coordinates and point the seeded events at them, then add
+  one E2E assertion for a distance-filtered result.
+- **Filter logic exists twice** — mobile `components/explore/search/searchFilters.ts` copies web's
+  `search-filters.ts` (state ↔ RPC JSON, chip labels). **Proposal:** move the platform-neutral part into
+  `packages/api/src/discovery/` next to `compactSearchFilters`, so the two apps cannot drift.
+- **Confirm #263 in real runs** — the wedge recovery only runs when the wedge happens. **Proposal:** search the
+  next few full-run logs for `[e2e] freshInstall: accessibility tree wedged`. A reboot followed by passing suites
+  confirms it. `still wedged after 2 simulator reboots` means restarting CoreSimulatorService in `run.mjs` is the
+  next step.
+- **TestFlight** — M1–M3 reach users with the next EAS build (hosted is already on 0130).
