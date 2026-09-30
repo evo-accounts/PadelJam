@@ -1,8 +1,22 @@
 # Communities Module — Create, View, Join & Manage
 
-*Padel Jam — Version 1.2 • May 2026 • Empty state redesign, cover image, cancellation rules*
+*Padel Jam — Version 1.3 • September 2026 • Location amended by the Home & Explore UX audit (2026-09-29)*
+
+*Changelog — v1.3 (2026-09-30): location becomes a picked place with a map point (D2); see the block below. v1.2 (May 2026): empty state redesign, cover image, cancellation rules.*
 
 This document defines the Communities module of Padel Jam — the top of the product hierarchy. A community is a club, team, or group of friends; it contains groups, hosts a posts feed, and carries reviews. Subscription rules for who can own how many communities, and which community tier confers which capabilities, live in the Profile & Settings document (section 7.6) — this doc references them. The Explore / discovery screen and the Profile module are specified separately.
+
+> **Amended 2026-09-29 by the Home & Explore UX audit** (`docs/audit/2026-09-29-ux-home-explore.md`, decision D2
+> in `docs/audit/2026-09-29-ux-home-explore-plan.md`, migration 0128). **A community's location is a picked
+> place with a point.** Create Community and Community Settings replace the free-text field with the location
+> picker (mobile: the profile `LocationSheet`; web: a label plus the browser's current position — the web has no
+> geocoder yet). `location` keeps the place's label and the new `location_point geography(point)` its
+> coordinates. The point is written by the create RPC (`p_location_lat` / `p_location_lng`, only sent when a
+> point was picked) and by `set_community_location` (admins only; label and point together; null coordinates
+> clear the point and keep the label). There is no backfill: existing communities get a point when an admin
+> next saves the location. The point drives distance in Explore and search — for the community and its groups;
+> a community without one sorts last on Distance and drops out under a distance filter. Search also matches the
+> `location` label, below name matches (0130).
 
 **Confirmed design decisions**
 
@@ -154,7 +168,7 @@ Ten tables. profiles, groups and events are referenced as foreign keys and defin
 </tr>
 <tr>
 <th><strong>Location</strong></th>
-<th>Optional, free text. The form shows an info icon noting that adding a location is strongly recommended — it helps the community surface in proximity-based suggestions (empty state Suggested communities, Explore, Discovery sort).</th>
+<th>Optional, <s>free text</s> <em>(amended, D2)</em> a place picked with the location picker, stored as a label plus a map point. The form shows an info icon noting that adding a location is strongly recommended — it helps the community surface in proximity-based suggestions (empty state Suggested communities, Explore, Discovery sort).</th>
 </tr>
 <tr>
 <th><strong>Type</strong></th>
@@ -797,7 +811,7 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed CM (Communities).
 | CM-40 | A community member who has participated in at least 3 events in the community can write one review (rating + text), editable. | **Must** |  |
 | CM-41 | The community’s average rating is shown on About and available to discovery. | **Must** |  |
 | CM-42 | A community can be shared via link and QR code. | Could |  |
-| CM-43 | Location is optional but the form surfaces an info icon explaining it helps the community appear in proximity-based suggestions. | Should |  |
+| CM-43 | *(amended)* Location is optional, picked with the location picker (a label plus a map point, not free text); the form surfaces an info icon explaining it helps the community appear in proximity-based suggestions and distance search. | Should | D2 (Home & Explore audit), migration 0128 |
 | CM-44 | When a shared community link is opened and the community has more than one group, the receiver picks one or more groups to join along with the community. | **Must** |  |
 
 ## Database schema
@@ -812,7 +826,8 @@ profiles, groups and events are referenced as foreign keys and defined in their 
 | created_by | UUID | No | FK profiles — the creator (becomes owner) |
 | name | TEXT | No |  |
 | description | TEXT | Yes |  |
-| location | TEXT | Yes |  |
+| location | TEXT | Yes | *(amended, D2)* the picked place's label |
+| location_point | GEOGRAPHY(POINT) | Yes | *(amended, D2 — migration 0128)* the picked place's point; the apps write it through the create RPC and `set_community_location` |
 | type | TEXT | No | CHECK IN (club, team, group_of_friends) |
 | thumbnail_path | TEXT | Yes | Supabase Storage path |
 | cover_image_path | TEXT | Yes | Supabase Storage path; default rendered server-side if null |

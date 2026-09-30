@@ -29,6 +29,18 @@ This document defines the Groups module of Padel Jam: creating a group, joining 
 > - **Inviting** reaches anyone — community members, the people you follow, anyone found by name; someone
 >   outside the community joins both on accepting. Invitations can be declined.
 
+> **Amended 2026-09-29 by the Home & Explore UX audit** (`docs/audit/2026-09-29-ux-home-explore.md`, decisions
+> in `docs/audit/2026-09-29-ux-home-explore-plan.md`). **Nothing in the group model changes.** The audit asked for
+> a "Request" action on group cards and a Public / Request to join / Private privacy filter for groups; the
+> product owner kept groups at two privacy states (D1), so GR-06..09 stand:
+>
+> - Group cards in Explore and search show **Join** (→ Joined, which also joins the community, GR-09) or
+>   **Open** for the viewer's own groups — never Request.
+> - The Groups search filter has **no Privacy** option. Search returns public groups plus the viewer's own
+>   private ones; other private groups never appear.
+> - A group has no location of its own: distance in Explore and search is its community's point (see the
+>   Communities doc, D2).
+
 **Confirmed design decisions**
 
 - A group always lives inside a community — there is no standalone group.
@@ -326,7 +338,7 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed GR (Groups).
 | GR-05 | There is no add-members step at creation; members are invited afterwards. | **Must** |  |
 | GR-06 | A private group is invisible to the community and joinable only by invitation. | **Must** |  |
 | GR-07 | A public group can be joined directly by any community member. | **Must** |  |
-| GR-08 | There is no request-to-join at the group level. | **Must** |  |
+| GR-08 | There is no request-to-join at the group level. | **Must** | Kept against the Home & Explore audit's group "Request" (D1, 2026-09-29) |
 | GR-09 | Joining a group also adds the user to the group’s community. | **Must** |  |
 | GR-10 | Inviting someone to a group brings them into the community too, shown via a confirmation. | **Must** |  |
 | GR-11 | A private-group link opened by a non-invited user shows a no-access page. | **Should** |  |
