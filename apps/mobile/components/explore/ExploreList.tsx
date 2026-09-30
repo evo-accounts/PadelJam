@@ -177,6 +177,9 @@ function ExploreListBody({
       contentContainerStyle={[styles.list, listEmptyContent]}
       keyboardDismissMode={keyboardDismissMode}
       keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+      // With the search keyboard up, the last results would otherwise sit under it with no way to
+      // scroll them clear on a short list. iOS insets the scroller by the keyboard's height.
+      automaticallyAdjustKeyboardInsets={keyboardDismissMode != null}
       ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListEmptyComponent={
         list.isError ? (

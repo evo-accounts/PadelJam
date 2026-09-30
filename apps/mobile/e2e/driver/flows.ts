@@ -1,5 +1,5 @@
 import { keyboardTop, snapshot, query, describeSelector, type Selector } from './a11y';
-import { scrollUntilVisible, tap, typeText } from './actions';
+import { scrollUntilVisible, swipe, tap, typeText } from './actions';
 import { captureFailure, expectVisible, waitFor } from './expect';
 import { latestOtp } from '../fixtures/mailpit';
 import { PERSONAS, type PersonaKey } from '../fixtures/personas';
@@ -88,8 +88,7 @@ export async function tabTo(name: 'Home' | 'Events' | 'Explore' | 'Community' | 
 
 /**
  * Home → one of the Find quick actions, which lands on Explore in search mode with that tab
- * chosen and the input focused (UX-HOME-01, D11). Ends with the keyboard up: a swipe dismisses
- * it (the list uses `on-drag`), and a tap on a row goes through (`handled`).
+ * chosen and the input focused (UX-HOME-01, D11). Ends with the keyboard put away again.
  *
  * This is how a test reaches an event it is NOT part of — the Events tab lists only your own.
  */
@@ -99,12 +98,16 @@ export async function findFromHome(action: 'findEvent' | 'findGroup' | 'findComm
   await scrollUntilVisible(quick, { direction: 'down', maxSwipes: 4 });
   await tap(quick);
   await expectVisible({ id: 'explore-search-cancel' }, { timeout: 15_000 });
-  // Let the focus land and the keyboard finish coming up before anything taps the list: a tap
-  // that lands while the keyboard is still animating in is swallowed (seen on a freshly mounted
-  // Explore after switchUser — the result stayed on screen and the event never opened).
+  // Wait for the focus to land (keyboard up), then drag the list to put the keyboard away (the
+  // list uses keyboardDismissMode="on-drag"), so what follows taps rows rather than keys. With
+  // the keyboard up, keyboardTop() reads the top row of KEYS, but the predictive bar above them
+  // is part of the keyboard too: a row lying under that bar looks tappable, and the tap lands in
+  // the bar (seen on a short result list, where nothing needed scrolling first).
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline && keyboardTop(await snapshot()) == null) await sleep(300);
-  await sleep(600);
+  await swipe('down', { fromY: 450 });
+  const gone = Date.now() + 5_000;
+  while (Date.now() < gone && keyboardTop(await snapshot()) != null) await sleep(300);
 }
 
 /**
