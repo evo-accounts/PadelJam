@@ -74,7 +74,11 @@ function Section({ title, hint, children }: { title: string; hint?: string | nul
   );
 }
 
-/** Chips: pressed = selected. Single-select for Sort, multi for the rest. */
+/**
+ * Chips: pressed = selected. Single-select for Sort, multi for the rest. Drawn on the semantic
+ * `primary` / `card` colours rather than Button variants, so selected and unselected stay
+ * distinguishable in both themes (the button tokens are light-only).
+ */
 function Chips<T extends string>({
   options,
   selected,
@@ -95,19 +99,20 @@ function Chips<T extends string>({
       {options.map((v) => {
         const on = selected.includes(v);
         return (
-          <Button
+          <button
             key={v}
             type="button"
-            size="sm"
-            variant={on ? 'primary' : 'secondary'}
             aria-pressed={on}
-            className={cn('rounded-full')}
+            className={cn(
+              'inline-flex h-8 items-center rounded-full border px-3 text-sm font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
+              on ? 'border-primary bg-primary text-primary-foreground' : 'bg-card text-foreground hover:bg-muted/50',
+            )}
             disabled={disabled?.(v)}
             onClick={() => onPress(v)}
             data-testid={`${testId}-${v}`}
           >
             {label(v)}
-          </Button>
+          </button>
         );
       })}
     </div>

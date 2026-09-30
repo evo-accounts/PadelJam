@@ -1,6 +1,6 @@
 'use client';
 import { Suspense, useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from '@padel/auth';
 import type { ForYouTerm } from '@padel/api';
 import { useT } from '@padel/i18n';
@@ -41,6 +41,14 @@ function searchHref(q: string | null, tab: ExploreSearchTab): string {
 }
 
 /**
+ * Search state changes go through the History API, which Next's router keeps `useSearchParams` in
+ * sync with. Unlike `router.push` there is no server round trip, so the URL (and so the screen)
+ * updates at once and a tab switch can never race an in-flight query change.
+ */
+const pushUrl = (href: string) => window.history.pushState(null, '', href);
+const replaceUrl = (href: string) => window.history.replaceState(null, '', href);
+
+/**
  * Explore (UX-EXPL-01) and its search (UX-EXPL-04..08).
  *
  * The URL holds what a reload or Back must restore: `search=1` (search mode), `q` (the query that
@@ -57,7 +65,6 @@ function searchHref(q: string | null, tab: ExploreSearchTab): string {
  */
 function ExploreScreen() {
   const { t } = useT('explore');
-  const router = useRouter();
   const params = useSearchParams();
   const uid = useSession().session?.user.id;
   const { recents, add: addRecent, remove: removeRecent, clear: clearRecents } = useRecentSearches(uid);
@@ -98,7 +105,7 @@ function ExploreScreen() {
     setDraft(text);
     setEditing(false);
     input.current?.blur();
-    router.push(searchHref(text, nextTab), { scroll: false });
+    pushUrl(searchHref(text, nextTab));
   };
 
   const runTerm = (term: ForYouTerm) => {
@@ -108,14 +115,14 @@ function ExploreScreen() {
       setDraft('');
       setEditing(false);
       input.current?.blur();
-      router.push(searchHref('', 'events'), { scroll: false });
+      pushUrl(searchHref('', 'events'));
     } else {
       run(term.value);
     }
   };
 
   const activate = () => {
-    if (!searching) router.push(searchHref(null, 'all'), { scroll: false });
+    if (!searching) pushUrl(searchHref(null, 'all'));
   };
 
   const cancel = () => {
@@ -123,7 +130,7 @@ function ExploreScreen() {
     setEditing(false);
     setFilters(EMPTY_SEARCH_FILTERS);
     input.current?.blur();
-    router.replace('/app/explore', { scroll: false });
+    replaceUrl('/app/explore');
   };
 
   const back = () => {
@@ -174,7 +181,7 @@ function ExploreScreen() {
           <SearchResults
             q={ran ?? ''}
             tab={tab}
-            onTab={(next) => router.replace(searchHref(ran ?? '', next), { scroll: false })}
+            onTab={(next) => replaceUrl(searchHref(ran ?? '', next))}
             filters={filters}
             onFilters={setFilters}
           />
