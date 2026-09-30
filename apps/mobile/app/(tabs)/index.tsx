@@ -17,19 +17,22 @@ import { ChatHeaderButtonIcon } from '@/components/chat/ChatHeaderButton';
 import { EventCard } from '@/components/event/EventCard';
 import { GroupCard } from '@/components/group/GroupCard';
 import { NotificationBellIcon } from '@/components/NotificationBell';
-import { exploreSearchHref } from '@/lib/exploreLinks';
+import { exploreSearchHref, type ExploreSearchTab } from '@/lib/exploreLinks';
 import { colors, palette } from '../../theme';
 import { Button, Card, EmptyState, emptyIcon, Text, TopBar } from '../../components/ui';
+
+/** A Find into Explore's search, stamped so a repeat Find re-focuses the input (see exploreLinks). */
+const findHref = (tab: ExploreSearchTab) => exploreSearchHref(tab, { at: Date.now() });
 
 /**
  * UX-HOME-01: Home carries no search of its own — its quick actions are the way in. Create opens
  * the wizard; each Find opens Explore with the input focused and that tab chosen (D11).
  */
 const QUICK_ACTIONS = [
-  { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: '/event/create' },
-  { key: 'findEvent', icon: 'calendar', android: 'event', href: exploreSearchHref('events') },
-  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: exploreSearchHref('groups') },
-  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: exploreSearchHref('communities') },
+  { key: 'quickCreate', icon: 'plus.circle.fill', android: 'add_circle', href: () => '/event/create' },
+  { key: 'findEvent', icon: 'calendar', android: 'event', href: () => findHref('events') },
+  { key: 'findGroup', icon: 'person.3.fill', android: 'groups', href: () => findHref('groups') },
+  { key: 'findCommunity', icon: 'building.2.fill', android: 'location_city', href: () => findHref('communities') },
 ] as const;
 
 export default function HomeScreen() {
@@ -76,7 +79,7 @@ export default function HomeScreen() {
           <Pressable
             key={a.key}
             style={styles.quickCard}
-            onPress={() => router.push(a.href as never)}
+            onPress={() => router.push(a.href() as never)}
             accessibilityRole="button"
             testID={`home-quick-${a.key}`}
           >
@@ -107,7 +110,7 @@ export default function HomeScreen() {
               title={t('eventsEmpty')}
               action={{
                 label: t('findEventsCta'),
-                onPress: () => router.push(exploreSearchHref('events') as never),
+                onPress: () => router.push(findHref('events') as never),
                 testID: 'home-next-events-find',
               }}
               testID="home-next-events-empty"
@@ -138,7 +141,7 @@ export default function HomeScreen() {
               title={t('groupsEmpty')}
               action={{
                 label: t('findGroupsCta'),
-                onPress: () => router.push(exploreSearchHref('groups') as never),
+                onPress: () => router.push(findHref('groups') as never),
                 testID: 'home-groups-find',
               }}
               testID="home-groups-empty"
