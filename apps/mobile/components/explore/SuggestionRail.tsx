@@ -6,8 +6,9 @@ import { EmptyState, emptyIcon } from '../ui';
 
 type Props<T> = {
   title: string;
-  seeAllLabel: string;
-  onSeeAll: () => void;
+  seeAllLabel?: string;
+  /** Omitted for a section with nowhere to go (search's Players row, UX-EXPL-06). */
+  onSeeAll?: () => void;
   data: T[];
   isLoading: boolean;
   isError: boolean;
@@ -62,9 +63,11 @@ export function SuggestionRail<T>({
     <View style={styles.section}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
-        <Pressable onPress={onSeeAll} accessibilityRole="button" hitSlop={8} testID={seeAllTestID}>
-          <Text style={styles.seeAll}>{seeAllLabel}</Text>
-        </Pressable>
+        {onSeeAll ? (
+          <Pressable onPress={onSeeAll} accessibilityRole="button" hitSlop={8} testID={seeAllTestID}>
+            <Text style={styles.seeAll}>{seeAllLabel}</Text>
+          </Pressable>
+        ) : null}
       </View>
       {isLoading ? (
         <ActivityIndicator color={colors.foreground} style={styles.state} />
