@@ -12,7 +12,7 @@ import {
 import { CONFIG } from '../driver/config';
 import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
-import { loginAs, switchUser, tabTo } from '../driver/flows';
+import { findFromHome, loginAs, switchUser, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
@@ -88,20 +88,34 @@ describe('03 home & tabs', () => {
     await tap({ text: /^all$/i });
   });
 
-  it('Find Event opens Explore in search mode on Events, and Cancel returns to the feed (D11)', async () => {
+  it('Find Event opens Explore search on the Events results, focused, and Cancel returns to the feed (D11)', async () => {
     await tabTo('Home');
     await swipe('down');
     await tap({ id: 'home-quick-findEvent' });
-    // Explore's own input, focused, with Cancel beside it and the Events tab chosen.
+    // Explore's own input, focused, with Cancel beside it and the Events results tab chosen: the
+    // empty query's results, i.e. every visible upcoming event, ready to narrow.
     await expectVisible({ id: 'explore-search-cancel' }, { timeout: 15_000 });
     await pollUntil(async () => keyboardTop(await snapshot()), (top) => top != null, {
       label: 'the search input is focused (keyboard up)',
       timeoutMs: 10_000,
     });
-    await expectVisible({ id: 'explore-search-tab-events' });
+    const events = await expectVisible({ id: 'explore-results-tab-events' });
+    expect(events.traits ?? [], 'Events is the chosen tab').toContain('Selected');
     await tap({ id: 'explore-search-cancel' });
     await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
     await expectVisible({ id: 'explore-see-all-events' }, { timeout: 15_000 });
+
+    // A second Find to the same tab, while Explore stayed mounted, focuses the input again (M1 left
+    // it unfocused because the route params were identical).
+    await tabTo('Home');
+    await tap({ id: 'home-quick-findEvent' });
+    await expectVisible({ id: 'explore-results-tab-events' }, { timeout: 15_000 });
+    await pollUntil(async () => keyboardTop(await snapshot()), (top) => top != null, {
+      label: 'the input is focused again on a repeat Find',
+      timeoutMs: 10_000,
+    });
+    await tap({ id: 'explore-search-cancel' });
+    await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
   });
 
   it('explore is a feed under an inline search input: no chip bar, no FAB, See all opens the list', async () => {
@@ -141,24 +155,102 @@ describe('03 home & tabs', () => {
     await expectVisible({ label: 'Following' });
   });
 
-  it('the search input finds a player by name in the People tab', async () => {
+  it('search: suggestions while typing, All results with players, back to suggestions (UX-EXPL-05/06)', async () => {
     await tabTo('Explore');
     await tap({ id: 'explore-search-input' });
     await expectVisible({ id: 'explore-search-cancel' }, { timeout: 10_000 });
-    await tap({ id: 'explore-search-tab-players' });
-    // rita (Rita Fernandes) shares community A with alex and is not followed, so she is a
-    // candidate. The typed value is itself "rita", so only a player CARD (a Button) counts.
+    // Nothing typed: the tab bar exists only once a query has run.
+    expect(query(await snapshot(), { id: 'explore-results-tab-all' }), 'no tab bar before a run').toBeUndefined();
+
+    // rita (Rita Fernandes) is onboarded and not blocked, so her name is suggested (D7, D8).
     await typeText({ id: 'explore-search-input' }, 'rita');
+    await expectVisible({ id: 'explore-suggestion-typed' }, { timeout: 10_000 });
+    const suggestion = await expectVisible({ text: /^rita fernandes, player$/i }, { timeout: 15_000 });
+    await tap({ id: suggestion.AXUniqueId! });
+
+    // The full search for that name, on All: Players first, with her card.
+    await expectVisible({ id: 'explore-results-tab-all' }, { timeout: 15_000 });
+    await expectVisible({ text: /^players$/i }, { timeout: 15_000 });
     const deadline = Date.now() + 20_000;
-    let results: AxElement[] = [];
+    let cards: AxElement[] = [];
     while (Date.now() < deadline) {
-      results = queryAll(await snapshot(), { text: /rita fernandes/i }).filter(
+      cards = queryAll(await snapshot(), { text: /rita fernandes/i }).filter(
         (el) => el.AXUniqueId !== 'explore-search-input' && el.type === 'Button',
       );
-      if (results.length >= 1) break;
+      if (cards.length >= 1) break;
       await new Promise((r) => setTimeout(r, CONFIG.pollIntervalMs));
     }
-    expect(results.length, 'a player result card for "rita"').toBeGreaterThanOrEqual(1);
+    expect(cards.length, 'a player card for "Rita Fernandes" on All').toBeGreaterThanOrEqual(1);
+
+    // A typed tab for the same query: no event is called that.
+    await tap({ id: 'explore-results-tab-events' });
+    await expectVisible({ text: /no events for "rita fernandes"/i }, { timeout: 15_000 });
+
+    // The back arrow returns to the suggestions for what was run.
+    await tap({ id: 'explore-search-back' });
+    await expectVisible({ id: 'explore-suggestion-typed' }, { timeout: 10_000 });
+    expect(query(await snapshot(), { id: 'explore-results-tab-all' }), 'the tab bar leaves with the results').toBeUndefined();
+    await tap({ id: 'explore-search-cancel' });
+    await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
+  });
+
+  it('search: the run query is a recent search that re-runs, and ✕ removes it (UX-EXPL-04)', async () => {
+    await tabTo('Explore');
+    await tap({ id: 'explore-search-input' });
+    await expectVisible({ id: 'explore-search-cancel' }, { timeout: 10_000 });
+    // The previous test ran "Rita Fernandes": most recent first, with Clear all.
+    await expectVisible({ id: 'explore-recents-clear' }, { timeout: 10_000 });
+    const recent = await expectVisible({ id: 'explore-recent-0' });
+    expect(recent.AXLabel).toMatch(/^rita fernandes$/i);
+    await tap({ id: 'explore-recent-0' });
+    await expectVisible({ id: 'explore-results-tab-all' }, { timeout: 15_000 });
+    await expectVisible({ text: /^players$/i }, { timeout: 15_000 });
+
+    // Leave and come back in: the empty query shows the recents again, where ✕ removes one.
+    await tap({ id: 'explore-search-cancel' });
+    await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
+    await tap({ id: 'explore-search-input' });
+    await expectVisible({ id: 'explore-recent-0' }, { timeout: 10_000 });
+    await tap({ id: 'explore-recent-remove-0' });
+    // It was the only one: the whole block goes.
+    await expectGone({ id: 'explore-recents-clear' }, { timeout: 10_000 });
+    await tap({ id: 'explore-search-cancel' });
+    await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
+  });
+
+  it('search: a typed tab counts and filters its results, and keeps its filters per tab (UX-EXPL-07/08)', async () => {
+    await findFromHome('findCommunity');
+    await expectVisible({ id: 'explore-communities-results-filter' }, { timeout: 15_000 });
+    // The empty query on Communities: every visible community, counted.
+    await expectVisible({ text: /^\d+ results?$/i }, { timeout: 15_000 });
+    await scrollUntilVisible({ text: /lisbon padel club/i }, { maxSwipes: 6 });
+
+    // Filter → Privacy: Request to join → Apply. Cascais Social is the seeded request-to-join one.
+    await tap({ id: 'explore-communities-results-filter' });
+    await expectVisible({ id: 'explore-filter-communities-apply' }, { timeout: 10_000 });
+    await scrollUntilVisible({ id: 'explore-filter-communities-privacy-request_to_join' }, { maxSwipes: 4 });
+    await tap({ id: 'explore-filter-communities-privacy-request_to_join' });
+    await tap({ id: 'explore-filter-communities-apply' });
+    await expectGone({ id: 'explore-filter-communities-apply' }, { timeout: 10_000 });
+
+    // Applied: a removable chip, the button shows the count, and only matching rows remain.
+    const chip = await expectVisible({ id: 'explore-communities-results-chip-0' }, { timeout: 10_000 });
+    expect(chip.AXLabel).toMatch(/remove filter: request to join/i);
+    await expectVisible({ text: /cascais social/i }, { timeout: 15_000 });
+    await expectGone({ text: /lisbon padel club/i }, { timeout: 10_000 });
+    expect((await expectVisible({ id: 'explore-communities-results-filter' })).AXLabel).toMatch(/1 filter applied/i);
+
+    // Filters are per tab: All has none, and coming back to Communities restores the chip.
+    await tap({ id: 'explore-results-tab-all' });
+    await expectGone({ id: 'explore-communities-results-chip-0' }, { timeout: 10_000 });
+    await tap({ id: 'explore-results-tab-communities' });
+    await expectVisible({ id: 'explore-communities-results-chip-0' }, { timeout: 10_000 });
+
+    // ✕ on the chip removes the filter: the chip row collapses and the public ones are back.
+    await tap({ id: 'explore-communities-results-chip-0' });
+    await expectGone({ id: 'explore-communities-results-chip-0' }, { timeout: 10_000 });
+    await scrollUntilVisible({ text: /lisbon padel club/i }, { maxSwipes: 6 });
+    await swipe('down');
     await tap({ id: 'explore-search-cancel' });
     await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
   });

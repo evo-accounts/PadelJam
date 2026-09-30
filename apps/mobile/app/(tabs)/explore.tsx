@@ -1,23 +1,36 @@
 /**
- * Explore — the recommendation feed and the one place to search (UX-EXPL-01..03).
+ * Explore — the recommendation feed and the one place to search (UX-EXPL-01..06).
  *
  * A `top` title with no actions (no search icon here or anywhere, which reverses UX-GLOB-08), a
  * full-width search input under it, and below that the feed: Players, Events, Communities and
  * Groups, each a rail of vertical cards with a See all. No chip bar and no FAB — tabs belong to
- * search, and creating an event is Home's (D11).
+ * search results, and creating an event is Home's (D11).
  *
- * Search mode is driven by the route: `?search=1&tab=events|groups|communities` is how Home's Find
- * actions and empty states arrive (D11), with the input focused and the tab chosen. Tapping the
- * input sets the same param and Cancel clears it, so a second Find from Home re-enters search
- * even though the tab screen stayed mounted. What search mode shows is an M1 stop-gap — the
- * existing client-side list for one kind — which M2 replaces with the real search states.
+ * Search is a small state machine, the same as web's Explore page:
+ *
+ *   feed         not searching
+ *   start        searching, nothing typed: For you chips + Recent searches (EXPL-04)
+ *   suggestions  something typed, not run yet: typeahead rows (EXPL-05)
+ *   results      a query run: the tab bar, All or a typed tab (EXPL-06/07)
+ *
+ * Focusing the input enters search (start); Cancel leaves it from any state. Typing after a run
+ * returns to suggestions, and so does the back arrow left of the input. The typed text is shared
+ * by every tab; each typed tab keeps its own filters (D13).
+ *
+ * The route is how other screens ARRIVE: `?search=1&tab=…[&q=…]&at=…` (see `exploreSearchHref`).
+ * Home's Find actions carry no `q` and open that tab's results for the empty query — everything,
+ * ready to narrow — with the input focused. `at` makes each arrival distinct, because this tab
+ * stays mounted and a repeated Find would otherwise change nothing (M1 left the input unfocused on
+ * a second Find to the same tab). After arrival the state is the screen's own.
  */
 import {
   useExploreCommunities,
   useExploreEvents,
   useExploreGroups,
   useExplorePlayers,
+  type ForYouTerm,
 } from '@padel/api';
+import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -33,47 +46,125 @@ import {
   PlayerFollowAction,
   useStickyRows,
 } from '@/components/explore/ExploreActions';
-import { ExploreList, SEARCH_KINDS, type ExploreKind } from '@/components/explore/ExploreList';
 import { ExploreSearchBar } from '@/components/explore/ExploreSearchBar';
 import { PlayerCard } from '@/components/explore/PlayerCard';
+import { SearchResults } from '@/components/explore/search/SearchResults';
+import { SearchStart } from '@/components/explore/search/SearchStart';
+import { SearchSuggestions } from '@/components/explore/search/SearchSuggestions';
+import {
+  EMPTY_EVENTS_FILTERS,
+  EMPTY_SEARCH_FILTERS,
+  typesForFormat,
+  type SearchFilterState,
+} from '@/components/explore/search/searchFilters';
 import { SuggestionRail } from '@/components/explore/SuggestionRail';
 import { GroupCard } from '@/components/group/GroupCard';
-import { Chip, TopBar } from '@/components/ui';
+import { TopBar } from '@/components/ui';
+import { isExploreSearchTab, type ExploreSearchTab } from '@/lib/exploreLinks';
+import { useRecentSearches } from '@/lib/recentSearches';
+import { useDebounced } from '@/lib/useDebounced';
 import { colors, space } from '../../theme';
 
-type SearchKind = (typeof SEARCH_KINDS)[number];
-const isSearchKind = (v: unknown): v is SearchKind => SEARCH_KINDS.includes(v as SearchKind);
+/** The typeahead waits this long after the last keystroke (D7). */
+const SUGGEST_DEBOUNCE_MS = 150;
+
+type Mode = 'feed' | 'start' | 'suggestions' | 'results';
 
 export default function ExploreScreen() {
   const { t } = useT('discovery');
-  const router = useRouter();
-  const params = useLocalSearchParams<{ search?: string; tab?: string; q?: string }>();
+  const params = useLocalSearchParams<{ search?: string; tab?: string; q?: string; at?: string }>();
+  const uid = useSession().session?.user.id;
+  const { recents, add: addRecent, remove: removeRecent, clear: clearRecents } = useRecentSearches(uid);
   const input = useRef<TextInput>(null);
-  const [query, setQuery] = useState(params.q ?? '');
 
-  const active = params.search === '1';
-  // The param picks the tab; a chip overrides it until the param itself changes, so a later
-  // "Find Group" from Home still lands on Groups rather than on whatever chip was last tapped.
-  // `all` (web's default, and M2's) has no list of its own yet: it reads as Events.
-  const [picked, setPicked] = useState<{ from: string | undefined; kind: SearchKind } | null>(null);
-  const fromParam: SearchKind = isSearchKind(params.tab) ? params.tab : 'events';
-  const kind = picked && picked.from === params.tab ? picked.kind : fromParam;
+  const [searching, setSearching] = useState(false);
+  const [tab, setTab] = useState<ExploreSearchTab>('all');
+  /** The query that was run; null until one is. */
+  const [ran, setRan] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+  /** True once the input is edited (or Back is pressed) after a run: suggestions replace results. */
+  const [editing, setEditing] = useState(false);
+  const [filters, setFilters] = useState<SearchFilterState>(EMPTY_SEARCH_FILTERS);
+  const suggestText = useDebounced(draft, SUGGEST_DEBOUNCE_MS);
 
-  // Arriving with ?search=1 focuses the input. A nudge after mount rather than `autoFocus`: the
+  // An arrival through the route (Home's Find, the /search redirect). Adjusted while rendering
+  // rather than in an effect, so the first frame already shows the arrived-at state.
+  const arrival =
+    params.search === '1' ? [params.tab, params.q === undefined ? '-' : `q:${params.q}`, params.at].join('|') : null;
+  const [seenArrival, setSeenArrival] = useState<string | null>(null);
+  if (arrival !== null && arrival !== seenArrival) {
+    setSeenArrival(arrival);
+    const nextTab: ExploreSearchTab = isExploreSearchTab(params.tab) ? params.tab : 'all';
+    const nextRan = params.q ?? (nextTab !== 'all' ? '' : null);
+    setSearching(true);
+    setTab(nextTab);
+    setRan(nextRan);
+    setDraft(nextRan ?? '');
+    setEditing(false);
+    setFilters(EMPTY_SEARCH_FILTERS);
+  }
+
+  // Arriving without a query focuses the input. A nudge after mount rather than `autoFocus`: the
   // input exists before the tab switch finishes, and a focus fired mid-transition is dropped.
+  const focusOnArrival = arrival !== null && params.q === undefined;
   useEffect(() => {
-    if (params.search !== '1') return;
+    if (!focusOnArrival) return;
     const id = setTimeout(() => input.current?.focus(), 50);
     return () => clearTimeout(id);
-  }, [params.search, params.tab]);
+  }, [arrival, focusOnArrival]);
 
-  const activate = () => router.setParams({ search: '1' });
+  const run = (q: string) => {
+    const text = q.trim();
+    if (text) addRecent(text);
+    setDraft(text);
+    setRan(text);
+    setEditing(false);
+    input.current?.blur();
+  };
+
+  const runTerm = (term: ForYouTerm) => {
+    if (term.kind === 'format') {
+      // A format chip is a filter, not text: the Events tab, every specification of that type.
+      setFilters((f) => ({ ...f, events: { ...EMPTY_EVENTS_FILTERS, types: typesForFormat(term.value) } }));
+      setTab('events');
+      setDraft('');
+      setRan('');
+      setEditing(false);
+      input.current?.blur();
+    } else {
+      run(term.value);
+    }
+  };
+
+  const activate = () => {
+    setSearching(true);
+    setTab('all');
+    setRan(null);
+    setDraft('');
+    setEditing(false);
+  };
+
   const cancel = () => {
     input.current?.blur();
-    setQuery('');
-    setPicked(null);
-    router.setParams({ search: '0', q: '' });
+    setSearching(false);
+    setRan(null);
+    setDraft('');
+    setEditing(false);
+    setFilters(EMPTY_SEARCH_FILTERS);
   };
+
+  const back = () => {
+    setEditing(true);
+    input.current?.focus();
+  };
+
+  const mode: Mode = !searching
+    ? 'feed'
+    : ran !== null && !editing
+      ? 'results'
+      : draft.trim()
+        ? 'suggestions'
+        : 'start';
 
   return (
     <ExploreActionsProvider>
@@ -81,58 +172,36 @@ export default function ExploreScreen() {
         <TopBar variant="top" title={t('title')} />
         <ExploreSearchBar
           ref={input}
-          value={query}
-          onChangeText={setQuery}
-          active={active}
+          value={draft}
+          onChangeText={(v) => {
+            setDraft(v);
+            setEditing(true);
+          }}
+          active={searching}
           onActivate={activate}
           onCancel={cancel}
+          onSubmit={() => {
+            if (draft.trim()) run(draft);
+          }}
+          onBack={mode === 'results' ? back : undefined}
         />
-        {active ? (
-          <SearchState
-            kind={kind}
-            query={query}
-            onPick={(k) => setPicked({ from: params.tab, kind: k })}
-          />
-        ) : (
+        {mode === 'feed' ? (
           <Feed />
+        ) : mode === 'start' ? (
+          <SearchStart
+            recents={recents}
+            onRunTerm={runTerm}
+            onRunQuery={run}
+            onRemoveRecent={removeRecent}
+            onClearRecents={clearRecents}
+          />
+        ) : mode === 'suggestions' ? (
+          <SearchSuggestions typed={draft} debounced={suggestText} onRun={run} />
+        ) : (
+          <SearchResults q={ran ?? ''} tab={tab} onTab={setTab} filters={filters} onFilters={setFilters} />
         )}
       </SafeAreaView>
     </ExploreActionsProvider>
-  );
-}
-
-/** M1's search mode: one kind at a time, filtered client-side. M2 replaces this body. */
-function SearchState({
-  kind,
-  query,
-  onPick,
-}: {
-  kind: ExploreKind;
-  query: string;
-  onPick: (k: SearchKind) => void;
-}) {
-  const { t } = useT('discovery');
-  return (
-    <>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.chips}
-        style={styles.chipsWrap}
-      >
-        {SEARCH_KINDS.map((k) => (
-          <Chip
-            key={k}
-            label={t(`tab_${k}`)}
-            selected={kind === k}
-            onPress={() => onPick(k)}
-            testID={`explore-search-tab-${k}`}
-          />
-        ))}
-      </ScrollView>
-      <ExploreList kind={kind} query={query} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" />
-    </>
   );
 }
 
@@ -252,8 +321,6 @@ function Feed() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  chipsWrap: { flexGrow: 0 },
-  chips: { flexDirection: 'row', gap: space[2], paddingHorizontal: space[4], paddingBottom: space[3] },
   // The tab bar is not absolute (screens stop above it), so this only has to clear the last rail's
   // shadow and leave breathing room — there is no FAB to clear any more (UX-EXPL-02).
   content: { paddingTop: space[2], gap: space[2], paddingBottom: space[10] },

@@ -87,8 +87,9 @@ export async function tabTo(name: 'Home' | 'Events' | 'Explore' | 'Community' | 
 }
 
 /**
- * Home → one of the Find quick actions, which lands on Explore in search mode with that tab
- * chosen and the input focused (UX-HOME-01, D11). Ends with the keyboard put away again.
+ * Home → one of the Find quick actions, which lands on Explore's search results for that tab — the
+ * empty query, so every visible row of that kind — with the input focused (UX-HOME-01, D11). Ends
+ * with the keyboard put away again.
  *
  * This is how a test reaches an event it is NOT part of — the Events tab lists only your own.
  */

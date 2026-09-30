@@ -113,7 +113,10 @@ jobs:
     # rest on how GitHub coerces null.
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 90
+    # 120, not 90: by 2026-09-30 a fully green run took 89.75 min (136 tests, 16 suites), so 90 left no
+    # headroom for a single slow suite or driver retry (#262's run was cut off at 90 while late suites
+    # retried a stuck simulator). Revisit if green runs approach this again.
+    timeout-minutes: 120
 
     env:
       # Point at Xcode without `sudo xcode-select`, which would change the

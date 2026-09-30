@@ -26,23 +26,11 @@ import { colors } from '../../theme';
 export type ExploreKind = 'players' | 'events' | 'communities' | 'groups';
 
 /**
- * The chip strip of the legacy `/search` screen (UX-GLOB-08), which M1 leaves
- * in place with nothing linking to it; M2 turns that route into a redirect to
- * Explore's search. `foryou` there means "people".
- */
-export const EXPLORE_TABS = ['foryou', 'events', 'groups', 'communities', 'players'] as const;
-export type ExploreTab = (typeof EXPLORE_TABS)[number];
-
-/**
- * The kinds Explore's search state offers as tabs, in the audit's order (UX-EXPL-06). `people` is
- * an M1 stop-gap: until the "All" tab arrives with 0129 / M2, a player is only findable here.
- */
-export const SEARCH_KINDS = ['events', 'groups', 'communities', 'players'] as const satisfies readonly ExploreKind[];
-
-/**
  * The paginated list for one explore kind: the See-all screens
- * (`app/explore/[type].tsx`, UX-EXPL-03), the interim search state on the
- * Explore tab, and `/search` until M2 turns it into a redirect.
+ * (`app/explore/[type].tsx`, UX-EXPL-03). It lists recommendations and does not
+ * search — B3: it used to filter the rows already loaded by name, so a match on
+ * page 3 was invisible until scrolled. Search is Explore's own, on the server
+ * (`components/explore/search`, migration 0129).
  *
  * B2: this used to call all four list hooks whatever `kind` was, so every list
  * screen fetched four lists. Each kind is now its own component calling only
@@ -52,13 +40,7 @@ export const SEARCH_KINDS = ['events', 'groups', 'communities', 'players'] as co
  * Rows are the horizontal cards of UX-GLOB-09 with the inline actions of
  * UX-EXPL-02: Follow on players, Join / Request on communities, Join on groups.
  */
-type ListProps = {
-  kind: ExploreKind;
-  query?: string;
-  /** Passed by the search states: the input stays focused while the list is dragged or tapped. */
-  keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
-  keyboardShouldPersistTaps?: boolean | 'always' | 'never' | 'handled';
-};
+type ListProps = { kind: ExploreKind };
 
 export function ExploreList(props: ListProps) {
   switch (props.kind) {
@@ -104,27 +86,12 @@ const STICKY_KIND: Record<ExploreKind, ActionKind | null> = {
   groups: 'groups',
 };
 
-function ExploreListBody({
-  kind,
-  query = '',
-  keyboardDismissMode,
-  keyboardShouldPersistTaps,
-  list,
-}: ListProps & { list: InfiniteList }) {
+function ExploreListBody({ kind, list }: ListProps & { list: InfiniteList }) {
   const { t } = useT('discovery');
   const router = useRouter();
 
   const all = (list.data?.pages.flat() ?? []) as ReadonlyArray<Record<string, unknown> & { id: string }>;
-  const loaded = useStickyRows(STICKY_KIND[kind], all);
-
-  // Client-side, over what is already loaded (B3: server search arrives with 0129 / M2).
-  const q = query.trim().toLowerCase();
-  const rows = q
-    ? loaded.filter((item) => {
-        const name = (item.name ?? item.full_name ?? '') as string;
-        return name.toLowerCase().includes(q);
-      })
-    : loaded;
+  const rows = useStickyRows(STICKY_KIND[kind], all);
 
   const emptyKey = {
     players: 'emptyPlayers',
@@ -175,11 +142,6 @@ function ExploreListBody({
       data={rows}
       keyExtractor={(item) => item.id}
       contentContainerStyle={[styles.list, listEmptyContent]}
-      keyboardDismissMode={keyboardDismissMode}
-      keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-      // With the search keyboard up, the last results would otherwise sit under it with no way to
-      // scroll them clear on a short list. iOS insets the scroller by the keyboard's height.
-      automaticallyAdjustKeyboardInsets={keyboardDismissMode != null}
       ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListEmptyComponent={
         list.isError ? (
@@ -188,16 +150,6 @@ function ExploreListBody({
             tone="error"
             title={t('loadError', { ns: 'common' })}
             action={{ label: t('retry', { ns: 'common' }), onPress: () => void list.refetch() }}
-            testID="empty-explore"
-          />
-        ) : q ? (
-          // A query that matches nothing is not the same as having nothing —
-          // saying "no communities yet" to someone who typed "zzz" is wrong.
-          <EmptyState
-            fill
-            icon={emptyIcon('magnifyingglass')}
-            title={t('noMatches')}
-            body={t('tryBroaderSearch')}
             testID="empty-explore"
           />
         ) : (
