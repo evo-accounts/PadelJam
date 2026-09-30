@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
-import { useJoinGroup, type ExploreGroup } from '@padel/api';
+import { useJoinGroup, type ExploreGroup, type SearchGroup } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { GroupThumb } from '@/components/group/GroupThumb';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,8 @@ export function ExploreGroupCard({
   group,
   orientation = 'vertical',
 }: {
-  group: ExploreGroup;
+  /** A search row also names its community, shown as the first line (UX-EXPL-07). */
+  group: ExploreGroup | SearchGroup;
   orientation?: CardOrientation;
 }) {
   const { t } = useT('explore');
@@ -90,7 +91,7 @@ export function ExploreGroupCard({
           className={orientation === 'vertical' ? 'size-16 rounded-xl text-lg' : 'size-11'}
         />
       }
-      meta={[group.description, distanceLabel(t, group.distance_m)]}
+      meta={['community_name' in group ? group.community_name : null, group.description, distanceLabel(t, group.distance_m)]}
       action={action}
       testId={`explore-group-${group.id}`}
     />
