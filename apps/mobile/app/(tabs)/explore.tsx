@@ -198,7 +198,7 @@ export default function ExploreScreen() {
         ) : mode === 'suggestions' ? (
           <SearchSuggestions typed={draft} debounced={suggestText} onRun={run} />
         ) : (
-          <SearchResults q={ran ?? ''} tab={tab} onTab={setTab} filters={filters} />
+          <SearchResults q={ran ?? ''} tab={tab} onTab={setTab} filters={filters} onFilters={setFilters} />
         )}
       </SafeAreaView>
     </ExploreActionsProvider>

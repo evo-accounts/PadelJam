@@ -12,7 +12,7 @@ import {
 import { CONFIG } from '../driver/config';
 import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
-import { loginAs, switchUser, tabTo } from '../driver/flows';
+import { findFromHome, loginAs, switchUser, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
 import { pollUntil } from '../fixtures/poll';
 import { manifest, resetDb } from '../fixtures/seed';
@@ -214,6 +214,43 @@ describe('03 home & tabs', () => {
     await tap({ id: 'explore-recent-remove-0' });
     // It was the only one: the whole block goes.
     await expectGone({ id: 'explore-recents-clear' }, { timeout: 10_000 });
+    await tap({ id: 'explore-search-cancel' });
+    await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
+  });
+
+  it('search: a typed tab counts and filters its results, and keeps its filters per tab (UX-EXPL-07/08)', async () => {
+    await findFromHome('findCommunity');
+    await expectVisible({ id: 'explore-communities-results-filter' }, { timeout: 15_000 });
+    // The empty query on Communities: every visible community, counted.
+    await expectVisible({ text: /^\d+ results?$/i }, { timeout: 15_000 });
+    await scrollUntilVisible({ text: /lisbon padel club/i }, { maxSwipes: 6 });
+
+    // Filter → Privacy: Request to join → Apply. Cascais Social is the seeded request-to-join one.
+    await tap({ id: 'explore-communities-results-filter' });
+    await expectVisible({ id: 'explore-filter-communities-apply' }, { timeout: 10_000 });
+    await scrollUntilVisible({ id: 'explore-filter-communities-privacy-request_to_join' }, { maxSwipes: 4 });
+    await tap({ id: 'explore-filter-communities-privacy-request_to_join' });
+    await tap({ id: 'explore-filter-communities-apply' });
+    await expectGone({ id: 'explore-filter-communities-apply' }, { timeout: 10_000 });
+
+    // Applied: a removable chip, the button shows the count, and only matching rows remain.
+    const chip = await expectVisible({ id: 'explore-communities-results-chip-0' }, { timeout: 10_000 });
+    expect(chip.AXLabel).toMatch(/remove filter: request to join/i);
+    await expectVisible({ text: /cascais social/i }, { timeout: 15_000 });
+    await expectGone({ text: /lisbon padel club/i }, { timeout: 10_000 });
+    expect((await expectVisible({ id: 'explore-communities-results-filter' })).AXLabel).toMatch(/1 filter applied/i);
+
+    // Filters are per tab: All has none, and coming back to Communities restores the chip.
+    await tap({ id: 'explore-results-tab-all' });
+    await expectGone({ id: 'explore-communities-results-chip-0' }, { timeout: 10_000 });
+    await tap({ id: 'explore-results-tab-communities' });
+    await expectVisible({ id: 'explore-communities-results-chip-0' }, { timeout: 10_000 });
+
+    // ✕ on the chip removes the filter: the chip row collapses and the public ones are back.
+    await tap({ id: 'explore-communities-results-chip-0' });
+    await expectGone({ id: 'explore-communities-results-chip-0' }, { timeout: 10_000 });
+    await scrollUntilVisible({ text: /lisbon padel club/i }, { maxSwipes: 6 });
+    await swipe('down');
     await tap({ id: 'explore-search-cancel' });
     await expectGone({ id: 'explore-search-cancel' }, { timeout: 10_000 });
   });
