@@ -30,11 +30,13 @@ describe('10 groups', () => {
   });
 
   // Home's My groups is a rail of fixed-width cards (UX-HOME-01), sorted by name, so a given
-  // group may sit off screen to the right. Its See all lists every group full width.
+  // group may sit off screen to the right. So does Your Groups (its See all), one rail per
+  // community — whose own "Show all" is the full-width list. Every group opened here is in A.
   const openGroup = async (name: RegExp) => {
     await tabTo('Home');
     await scrollUntilVisible({ id: 'home-groups-see-all' }, { maxSwipes: 8 });
     await tap({ id: 'home-groups-see-all' });
+    await tap({ label: 'Show all groups in Lisbon Padel Club' });
     await scrollUntilVisible({ text: name }, { maxSwipes: 8 });
     await tap({ text: name });
     await expectVisible({ text: name }, { timeout: 20_000 });

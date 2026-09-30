@@ -37,7 +37,9 @@ describe('03 home & tabs', () => {
     const cards = (await snapshot()).filter((el) => el.AXUniqueId?.startsWith('group-card-'));
     expect(cards.length, 'group cards in the My groups rail').toBeGreaterThanOrEqual(1);
     await tap({ id: 'home-groups-see-all' });
-    await scrollUntilVisible({ text: /tuesday night league/i }, { maxSwipes: 6 });
+    // See all lands on Your Groups, which lists every group (a rail per community).
+    await expectVisible({ text: 'Your Groups', type: 'Heading' }, { timeout: 15_000 });
+    await expectVisible({ text: /tuesday night league/i });
     await backGesture();
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 15_000 });
   });
