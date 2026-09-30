@@ -1,7 +1,7 @@
 import { beforeAll, describe, it } from 'vitest';
 import { query, snapshot } from '../driver/a11y';
 import { backGesture, scrollUntilVisible, tap } from '../driver/actions';
-import { expectVisible } from '../driver/expect';
+import { expectGone, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { deepLink, findFromHome, loginAs, switchUser, tabTo } from '../driver/flows';
 import { psql, select } from '../fixtures/db';
@@ -45,6 +45,8 @@ describe('04 event detail & membership', () => {
     await findFromHome('findEvent');
     await scrollUntilVisible({ text: name }, { maxSwipes: 10 });
     await tap({ text: name });
+    // The name is on the result row too, so it proves nothing: the search bar leaving does.
+    await expectGone({ id: 'explore-search-cancel' }, { timeout: 15_000 });
     await expectVisible({ text: name }, { timeout: 20_000 });
   };
 

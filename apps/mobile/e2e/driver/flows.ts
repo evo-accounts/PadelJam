@@ -1,4 +1,4 @@
-import { snapshot, query, describeSelector, type Selector } from './a11y';
+import { keyboardTop, snapshot, query, describeSelector, type Selector } from './a11y';
 import { scrollUntilVisible, tap, typeText } from './actions';
 import { captureFailure, expectVisible, waitFor } from './expect';
 import { latestOtp } from '../fixtures/mailpit';
@@ -99,6 +99,12 @@ export async function findFromHome(action: 'findEvent' | 'findGroup' | 'findComm
   await scrollUntilVisible(quick, { direction: 'down', maxSwipes: 4 });
   await tap(quick);
   await expectVisible({ id: 'explore-search-cancel' }, { timeout: 15_000 });
+  // Let the focus land and the keyboard finish coming up before anything taps the list: a tap
+  // that lands while the keyboard is still animating in is swallowed (seen on a freshly mounted
+  // Explore after switchUser — the result stayed on screen and the event never opened).
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline && keyboardTop(await snapshot()) == null) await sleep(300);
+  await sleep(600);
 }
 
 /**
