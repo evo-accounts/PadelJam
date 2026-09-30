@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Check } from 'lucide-react';
-import { useFollowPlayer, type ExplorePlayer, type PlayerViewerState } from '@padel/api';
+import { useFollowPlayer, type ExplorePlayer, type PlayerViewerState, type SearchPlayer } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -17,12 +17,15 @@ import { ExploreCard, RESOLVED, actionErrorText, actionWidth, type CardOrientati
  * direction; the card keeps the state the server returned until the list refetches — and since
  * the rails leave out people you follow (D8), that refetch usually takes the card away.
  * Unfollowing is not offered here; it stays on the profile.
+ *
+ * Search results (UX-EXPL-06) use it too: a search row has no `shared_count`, so that line is
+ * simply absent there.
  */
 export function PlayerCard({
   player,
   orientation = 'vertical',
 }: {
-  player: ExplorePlayer;
+  player: ExplorePlayer | SearchPlayer;
   orientation?: CardOrientation;
 }) {
   const { t } = useT('explore');
@@ -67,7 +70,7 @@ export function PlayerCard({
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
       }
-      meta={[player.shared_count > 0 ? t('inCommon', { count: player.shared_count }) : null]}
+      meta={['shared_count' in player && player.shared_count > 0 ? t('inCommon', { count: player.shared_count }) : null]}
       action={action}
       testId={`explore-player-${player.id}`}
     />
