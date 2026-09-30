@@ -3,6 +3,7 @@ import { useSession } from '@padel/auth';
 import { useDb, mapPgError } from '../client';
 import type { PlayerViewerState } from '../discovery/queries';
 import { qk } from '../query-keys';
+import { setCachedPlayerViewerState } from './followCache';
 
 /**
  * Follow/unfollow/block change the target's and the actor's profile counts and follow lists — and,
@@ -62,11 +63,11 @@ export const useUnfollow = () => {
  * ('following' / 'none') so a card that flipped optimistically can reconcile with the server.
  * Errors arrive as `mapPgError` codes.
  *
- * Besides every follow list, the explore player queries are invalidated: the rail excludes people
- * the viewer follows (D8), so a followed card leaves the rail on the next fetch.
+ * Besides invalidating every follow list, the new state is written into every cached explore and
+ * search player row (`setCachedPlayerViewerState`) rather than refetching them: the rail excludes
+ * people the viewer follows (D8), so a refetch pulled the card away a moment after it said
+ * "Following". The rail drops them on its next ordinary refetch.
  */
-const invalidateExplorePlayers = (qc: QueryClient) =>
-  qc.invalidateQueries({ queryKey: qk.explorePlayers });
 
 export const useFollowPlayer = () => {
   const db = useDb();
@@ -78,9 +79,9 @@ export const useFollowPlayer = () => {
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
       return data as PlayerViewerState;
     },
-    onSuccess: (_d, targetId) => {
+    onSuccess: (state, targetId) => {
       invalidateFollow(qc, uid, targetId);
-      invalidateExplorePlayers(qc);
+      setCachedPlayerViewerState(qc, targetId, state);
     },
   });
 };
@@ -95,9 +96,9 @@ export const useUnfollowPlayer = () => {
       if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
       return data as PlayerViewerState;
     },
-    onSuccess: (_d, targetId) => {
+    onSuccess: (state, targetId) => {
       invalidateFollow(qc, uid, targetId);
-      invalidateExplorePlayers(qc);
+      setCachedPlayerViewerState(qc, targetId, state);
     },
   });
 };
