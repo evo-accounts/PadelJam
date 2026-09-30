@@ -322,6 +322,13 @@ standby spots a 5th player joins CONFIRMED (`is_standby`), never waitlisted.
   remounted the whole subtree, re-running Boot's splash routing. `loginAs` is
   single-attempt and fails loudly if a bounce ever reappears — do not add retries.
 - QR/share deep links use `padeljam://` while the app scheme is `mobile://`.
+- Wedged accessibility tree (2026-09-30, ~80 min into a full run): the app is on
+  screen but `describe-all` fails with "No translation object returned" or returns
+  one zero-size `AXApplication`. Only a simulator reboot clears it — a reinstall or
+  a companion restart does not. `waitFor` reports it as `AccessibilityWedgedError`
+  once it has persisted 10 s, and `freshInstall` reboots the simulator for it (at
+  most twice per suite, logged as `[e2e] freshInstall: accessibility tree wedged`).
+  Mid-test it is reported, never rebooted away. Detection is in `driver/axWedge.ts`.
 
 ## When a failure names something unrelated, suspect this
 

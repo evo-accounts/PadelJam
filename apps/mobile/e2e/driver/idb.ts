@@ -8,9 +8,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * idb talks to a per-device `idb_companion` over a unix socket. The companion
  * dies with the simulator (or when CoreSimulator restarts), leaving every call
  * failing with "Connection lost"/"Connection refused". Respawn it on the socket
- * path the client expects, then retry once.
+ * path the client expects, then retry once. Exported for the wedged-AX reboot
+ * in app.ts, which knows the companion just lost its simulator.
  */
-async function restartCompanion(): Promise<void> {
+export async function restartCompanion(): Promise<void> {
   const sock = `/tmp/idb/${CONFIG.udid}_companion.sock`;
   await run('pkill', ['-f', `idb_companion.*${CONFIG.udid}`]);
   await sleep(1500);
