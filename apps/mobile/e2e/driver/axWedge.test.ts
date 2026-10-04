@@ -50,12 +50,12 @@ describe('isWedgedTree', () => {
   });
 
   it('is not a populated tree, even if the application entry had no area', () => {
-    expect(isWedgedTree([app(402, 874), button('Start now', 700)])).toBe(false);
-    expect(isWedgedTree([app(0, 0), button('Start now', 700)])).toBe(false);
+    expect(isWedgedTree([app(402, 874), button('Get started', 700)])).toBe(false);
+    expect(isWedgedTree([app(0, 0), button('Get started', 700)])).toBe(false);
   });
 
   it('is not a lone zero-size element that is not the application', () => {
-    expect(isWedgedTree([{ ...button('Start now', 0), frame: { x: 0, y: 0, width: 0, height: 0 } }])).toBe(false);
+    expect(isWedgedTree([{ ...button('Get started', 0), frame: { x: 0, y: 0, width: 0, height: 0 } }])).toBe(false);
   });
 
   it('is not an empty or malformed reply', () => {

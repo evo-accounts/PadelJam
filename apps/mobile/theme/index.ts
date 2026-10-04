@@ -69,6 +69,18 @@ export const space = sharedSpace;
 export const weight = sharedWeight;
 
 /**
+ * The top-corner radius of the welcome screen's sheet — Figma's
+ * `border radius/4xl` variable, which resolves to 26 in the PJAM Mobile file
+ * (Tailwind's own `4xl` is 32, so the NAME is not a reliable guide to the value).
+ *
+ * Deliberately a mobile constant rather than a step on the shared `radius`
+ * ladder: web has no sheet like this, and a `radius['4xl']` in `@padel/ui` would
+ * oblige `globals.css` to grow a `--radius-4xl` nobody consumes. If a second
+ * surface wants it, that is the day to promote it.
+ */
+export const sheetRadius = 26;
+
+/**
  * Type styles, named by ROLE rather than by size.
  *
  * Mobile currently uses 17 distinct font sizes across 613 declarations; naming
@@ -100,6 +112,17 @@ export const type = {
   buttonXs: role(sharedText.xs, sharedWeight.medium),
   button: role(sharedText.sm, sharedWeight.medium),
   buttonLg: role(sharedText.base, sharedWeight.medium),
+  // The welcome slides' title and the paragraph under it: `text-4xl` bold and
+  // `text-lg` regular. Neither size was on any role (the largest was `display`,
+  // 30/36), and the design calls for them as a PAIR, so they arrive as a pair.
+  //
+  // WHERE A FONT SWAP GOES. The design draws the title in Atelia, which is
+  // deferred (single Regular weight, licence unresolved) — so today both render in
+  // the system face. When Atelia lands, `heroTitle` is the one line that changes:
+  // add `fontFamily` here and drop its `fontWeight`, because RN does not
+  // synthesise a bold from a face that ships only Regular. No call site moves.
+  heroTitle: role(sharedText['4xl'], sharedWeight.bold),
+  heroBody: role(sharedText.lg, sharedWeight.normal),
 } as const;
 
 export type TypeRole = keyof typeof type;

@@ -119,14 +119,16 @@ export async function freshInstall(): Promise<void> {
     // Verify the purge took: a truly fresh install boots to welcome (or sign-in).
     const { waitFor } = await import('./expect');
     const { landed, wedged } = await waitFor(
-      { text: /Start now|Login or Sign Up|Complete your account|Home/ },
+      // `^Get started$`, anchored: the phrase also ends a sentence of the community
+      // empty state, so only the welcome button's exact label counts as welcome.
+      { text: /^Get started$|Login or Sign Up|Complete your account|Home/ },
       { timeout: 30_000 },
     ).then(
       (el) => ({ landed: el, wedged: false }),
       (e: unknown) => ({ landed: null, wedged: e instanceof AccessibilityWedgedError }),
     );
     const label = landed?.AXLabel ?? '';
-    if (/start now|login or sign up/i.test(label)) return;
+    if (/^get started$|login or sign up/i.test(label)) return;
     if (wedged) {
       // Before 2026-09-30 this read as `stale session … (saw "")` and burned
       // every purge; another purge cannot fix it, so do not spend one.

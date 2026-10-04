@@ -1,33 +1,48 @@
 /**
  * Illustration — the named slots the sign-in flow reserves for artwork.
  *
- * The artwork does not exist yet, and waiting for it would either block the
+ * Some artwork does not exist yet, and waiting for it would either block the
  * screens or scatter throwaway emoji across them. So the registry below holds
- * both halves of each slot: the `source` the real asset will occupy (present,
- * commented out, so dropping it in is one line) and the `glyph` the placeholder
- * shows until then. Nothing at a call site changes when the art lands.
+ * both halves of each slot: the `source` the real asset occupies (absent, with
+ * the line commented out, until it lands — dropping it in is one line) and the
+ * `glyph` the placeholder shows until then. Nothing at a call site changes when
+ * the art arrives. The three welcome slides are the first slots to have landed.
  *
  * A placeholder deliberately looks like a placeholder — a muted rounded block —
  * rather than like a finished empty state. If it shipped by accident it should
  * be obvious in a screenshot, not plausible.
+ *
+ * THREE SIZES, TWO RENDERERS. `hero` and `inline` are spot illustrations: the
+ * whole picture, letterboxed with `contain` by RN's own `Image`. `cover` is the
+ * welcome screen's full-bleed art: it fills a box whose shape the CALLER decides
+ * (a flex child that gets taller on an iPad and shorter on an SE), so the image
+ * is cropped rather than letterboxed — and cropping needs to know WHERE, which
+ * is why each entry carries a `position`, kept on the face of the mascot, and
+ * why `cover` goes through `expo-image` (`contentPosition`) while the other two
+ * stay on RN `Image`, untouched.
  */
-import { Image, StyleSheet, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
+import { Image as ExpoImage, type ImageContentPosition } from 'expo-image';
+import { Image, StyleSheet, View, type ImageRequireSource, type ViewStyle } from 'react-native';
 
 import { colors, radius } from '../../theme';
 import { Text } from './Text';
 
 export type IllustrationName =
   | 'welcomeFind'
-  | 'welcomeCommunity'
-  | 'welcomePlay'
+  | 'welcomeJoin'
+  | 'welcomeExplore'
   | 'passwordChanged'
   | 'communityCreated'
   | 'blastSent';
 
 export type IllustrationProps = {
   name: IllustrationName;
-  /** 'hero' fills the space it is given (min 180, max 320); 'inline' is a 120pt square. */
-  size?: 'hero' | 'inline';
+  /**
+   * 'hero' fills the space it is given (min 180, max 320); 'inline' is a 120pt
+   * square; 'cover' is full-bleed art that crops to whatever box the caller gives
+   * it (`style` must size it — a `flex: 1` child, say).
+   */
+  size?: 'hero' | 'inline' | 'cover';
   /**
    * Describe the art ONLY when it carries meaning the surrounding copy does not.
    * Omitted, the illustration is decorative and is hidden from assistive tech —
@@ -38,17 +53,42 @@ export type IllustrationProps = {
   testID?: string;
 };
 
+type Entry = {
+  /** A `require()` result. Absent while the slot is a placeholder. */
+  source?: ImageRequireSource;
+  glyph: string;
+  /**
+   * Where `cover` keeps the image when it has to crop (CSS `object-position`).
+   * Horizontal is centred everywhere — the crop on a tall phone is a few points.
+   * Vertical is the mascot's face: on a short phone (iPhone SE, art box ~299pt
+   * against a 458pt-tall image at that width) the box shows barely two thirds of
+   * the picture, and a centred crop would behead the fox.
+   */
+  position?: ImageContentPosition;
+};
+
 /**
  * Name -> artwork. Uncomment the `source` line when the asset lands; the
  * placeholder branch then stops being reached and nothing else moves.
  */
-const REGISTRY: Record<IllustrationName, { source?: ImageSourcePropType; glyph: string }> = {
-  // source: require('../../assets/illustrations/welcome-find.png'),
-  welcomeFind: { glyph: '🎾' },
-  // source: require('../../assets/illustrations/welcome-community.png'),
-  welcomeCommunity: { glyph: '👥' },
-  // source: require('../../assets/illustrations/welcome-play.png'),
-  welcomePlay: { glyph: '🏆' },
+const REGISTRY: Record<IllustrationName, Entry> = {
+  // All three welcome files are 1170x1428 (390x476 at 3x), opaque, with no baked
+  // corners — the sheet's rounded top edge is drawn over them by welcome.tsx.
+  welcomeFind: {
+    source: require('../../assets/illustrations/welcome-find.webp'),
+    glyph: '🎾',
+    position: { top: '62%', left: '50%' },
+  },
+  welcomeJoin: {
+    source: require('../../assets/illustrations/welcome-join.webp'),
+    glyph: '👥',
+    position: { top: '50%', left: '50%' },
+  },
+  welcomeExplore: {
+    source: require('../../assets/illustrations/welcome-explore.webp'),
+    glyph: '🏆',
+    position: { top: '58%', left: '50%' },
+  },
   // source: require('../../assets/illustrations/password-changed.png'),
   passwordChanged: { glyph: '✅' },
   // UX-COMM-02 asks for a generic success image, explicitly unrelated to the
@@ -61,7 +101,7 @@ const REGISTRY: Record<IllustrationName, { source?: ImageSourcePropType; glyph: 
 export function Illustration({ name, size = 'hero', accessibilityLabel, style, testID }: IllustrationProps) {
   const art = REGISTRY[name];
   const decorative = !accessibilityLabel;
-  const box = size === 'hero' ? styles.hero : styles.inline;
+  const box = size === 'hero' ? styles.hero : size === 'cover' ? styles.cover : styles.inline;
 
   // Hidden from BOTH trees when decorative: iOS honours accessibilityElementsHidden,
   // Android importantForAccessibility, and a decorative image announced as
@@ -75,9 +115,20 @@ export function Illustration({ name, size = 'hero', accessibilityLabel, style, t
   return (
     <View style={[box, !art.source && styles.placeholder, style]} testID={testID} {...a11y}>
       {art.source ? (
-        <Image source={art.source} resizeMode="contain" style={styles.image} />
+        size === 'cover' ? (
+          // `priority="high"`: this is the first thing on the first screen.
+          <ExpoImage
+            source={art.source}
+            contentFit="cover"
+            contentPosition={art.position}
+            priority="high"
+            style={StyleSheet.absoluteFill}
+          />
+        ) : (
+          <Image source={art.source} resizeMode="contain" style={styles.image} />
+        )
       ) : (
-        <Text variant={size === 'hero' ? 'display' : 'title'}>{art.glyph}</Text>
+        <Text variant={size === 'inline' ? 'title' : 'display'}>{art.glyph}</Text>
       )}
     </View>
   );
@@ -86,6 +137,9 @@ export function Illustration({ name, size = 'hero', accessibilityLabel, style, t
 const styles = StyleSheet.create({
   hero: { flex: 1, alignSelf: 'stretch', minHeight: 180, maxHeight: 320, alignItems: 'center', justifyContent: 'center' },
   inline: { width: 120, height: 120, alignItems: 'center', justifyContent: 'center' },
+  // No size of its own: the caller's `style` gives it one. `overflow: hidden`
+  // because the image is absolutely filled and cropped, not letterboxed.
+  cover: { alignSelf: 'stretch', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   image: { width: '100%', height: '100%' },
   placeholder: {
     backgroundColor: colors.muted,

@@ -13,3 +13,23 @@ export const pageIndex = (offsetX: number, width: number, count: number): number
   const raw = Math.round(offsetX / width);
   return Math.min(count - 1, Math.max(0, raw));
 };
+
+/**
+ * Whether a change of the displayed page has to move the ScrollView itself.
+ *
+ * `swipedTo` is the page the USER's finger last reported through `onScroll`, or
+ * `null` if nothing has since been consumed. When `current` is that same page,
+ * the ScrollView is already there — or, mid-drag, is deliberately somewhere
+ * between two pages under the user's finger — and calling `scrollTo` on it is the
+ * bug this exists to prevent: `current` flips at the half-way rounding threshold
+ * while the finger is still down, and an animated `scrollTo` to the new page's
+ * offset then fights the drag, so the pager lurches toward the page it just
+ * rounded to instead of following the finger.
+ *
+ * Anything else — a controlled caller moving `index`, a rotation changing the
+ * width — still scrolls. The caller clears `swipedTo` after EVERY consult, not
+ * only a skip: left set, a later "Back" to that same page would be taken for the
+ * user's own swipe and silently not scroll.
+ */
+export const shouldScrollTo = (current: number, swipedTo: number | null): boolean =>
+  swipedTo === null || current !== swipedTo;

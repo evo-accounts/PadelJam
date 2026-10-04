@@ -708,16 +708,24 @@ function GallerySignInDemo() {
       </Row>
 
       <Text variant="label" tone="muted" style={styles.cardKindLabel}>
-        Illustration — hero and inline
+        Illustration — hero, inline and cover
       </Text>
-      {/* Both are PLACEHOLDERS until the artwork lands — a muted block with a
-          glyph is meant to look unfinished, so it cannot ship unnoticed. */}
-      <Illustration name="welcomeFind" size="hero" style={styles.stacked} />
+      {/* Hero and inline sample the slots that are still PLACEHOLDERS — a muted
+          block with a glyph is meant to look unfinished, so it cannot ship
+          unnoticed. The welcome slides' entries used to stand in here and now
+          hold real artwork, which would have silently turned this into a
+          picture-frame test; `passwordChanged` and `communityCreated` have none
+          yet. */}
+      <Illustration name="passwordChanged" size="hero" style={styles.stacked} />
       <Row>
-        <Illustration name="welcomeCommunity" size="inline" />
-        <Illustration name="welcomePlay" size="inline" />
+        <Illustration name="communityCreated" size="inline" />
         <Illustration name="passwordChanged" size="inline" />
       </Row>
+      {/* Cover is full-bleed art that crops to the box it is given, so it needs
+          one: a fixed-height wrapper here, a flex child on the welcome screen. */}
+      <View style={styles.coverSample}>
+        <Illustration name="welcomeFind" size="cover" style={styles.coverFill} />
+      </View>
 
       <Text variant="label" tone="muted" style={styles.cardKindLabel}>
         Checkbox
@@ -832,6 +840,8 @@ const styles = StyleSheet.create({
   },
   typeRow: { marginBottom: space[2] },
   cardKindLabel: { marginTop: space[4], marginBottom: space[2] },
+  coverSample: { height: 200, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space[3] },
+  coverFill: { flex: 1 },
   switchRow: { paddingHorizontal: space[4], paddingVertical: space[3] },
   radiusItem: { alignItems: 'center', gap: space[1] },
   radiusBox: {

@@ -9,11 +9,21 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /**
  * Wait past the splash for either the welcome screen or the sign-in screen;
  * tap through welcome when present. Ends on sign-in.
+ *
+ * Welcome has two buttons, "Get started" and "Sign in", and both replace to the
+ * same combined "Login or Sign Up" screen (UX-AUTH-01). This takes the primary
+ * one, which is what a first-time user does; suite 01 pins that the secondary
+ * lands in the same place.
+ *
+ * The match is on the EXACT label, anchored, on purpose: "get started" also ends
+ * a sentence of the community empty state, which a bare /Get started/ would match
+ * as well as the button. (The same care applies to "Sign in", a prefix of "Sign
+ * in with password": suite 01 asserts it by exact label.) The tap goes by testID.
  */
 export async function passWelcomeIfPresent(): Promise<void> {
-  const el = await waitFor({ text: /Start now|Login or Sign Up/i }, { timeout: 30_000 });
-  if (/start now/i.test(el.AXLabel ?? '')) {
-    await tap({ text: /start ?now/i });
+  const el = await waitFor({ text: /^Get started$|Login or Sign Up/i }, { timeout: 30_000 });
+  if (/^get started$/i.test(el.AXLabel ?? '')) {
+    await tap({ id: 'welcome-start' });
     await expectVisible({ label: 'Login or Sign Up' });
   }
 }

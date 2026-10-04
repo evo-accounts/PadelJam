@@ -12,7 +12,7 @@
  */
 import { Text as RNText, StyleSheet, type TextProps as RNTextProps } from 'react-native';
 
-import { colors, type } from '../../theme';
+import { colors, palette, type } from '../../theme';
 
 /** Type roles, from the shared scale. `title` here is `text-2xl` on web. */
 export type TextVariant = keyof typeof type;
@@ -20,15 +20,21 @@ export type TextVariant = keyof typeof type;
 /**
  * Semantic colour, not a hue. `inverse` is for text sitting on a filled
  * surface (a primary button, a dark card) — it is NOT "white".
+ *
+ * `cardForeground` and `soft` are the welcome slides' title and body colours
+ * (purple-900 and slate-500). Neither is one of the tones above: `muted` is
+ * slate-700 and `subtle` slate-400, and the design sits between them.
  */
 export type TextTone =
   | 'default'
   | 'muted'
+  | 'soft'
   | 'subtle'
   | 'inverse'
   | 'primary'
   | 'destructive'
-  | 'success';
+  | 'success'
+  | 'cardForeground';
 
 type Props = Omit<RNTextProps, 'style'> & {
   variant?: TextVariant;
@@ -45,11 +51,19 @@ type Props = Omit<RNTextProps, 'style'> & {
 const tones: Record<TextTone, string> = {
   default: colors.foreground,
   muted: colors.mutedForeground,
+  // slate-500, straight from the ramp: `light` has no semantic token for it, and
+  // adding one means a change in packages/ui that web would also have to absorb
+  // (see the note in theme/index.ts on reaching for `palette`). Lives here, in
+  // one line, until a second screen wants it.
+  soft: palette.slate[500],
   subtle: colors.ring,
   inverse: colors.card,
   primary: colors.primary,
   destructive: colors.destructive,
   success: colors.successStrong,
+  // purple-900 — the one semantic slot that holds it; the title reads as "text
+  // on a card" even though the sheet's fill is `background`, not `card`.
+  cardForeground: colors.cardForeground,
 };
 
 export function Text({ variant = 'body', tone = 'default', style, ...rest }: Props) {
@@ -68,6 +82,8 @@ const styles = StyleSheet.create({
   label: type.label,
   caption: type.caption,
   hint: type.hint,
+  heroTitle: type.heroTitle,
+  heroBody: type.heroBody,
   buttonXs: type.buttonXs,
   button: type.button,
   buttonLg: type.buttonLg,

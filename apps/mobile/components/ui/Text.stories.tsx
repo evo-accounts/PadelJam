@@ -17,5 +17,18 @@ export const Title: Story = { args: { variant: 'title' } };
 export const Heading: Story = { args: { variant: 'heading' } };
 export const Label: Story = { args: { variant: 'label' } };
 export const Hint: Story = { args: { variant: 'hint' } };
+// The welcome slides' pair: 36/40 bold in purple-900, then 18/28 regular in slate-500.
+export const HeroTitle: Story = {
+  args: { variant: 'heroTitle', tone: 'cardForeground', children: 'Find games near you' },
+};
+export const HeroBody: Story = {
+  args: {
+    variant: 'heroBody',
+    tone: 'soft',
+    children: 'Take a peek at nearby padel courts. Your next match might be closer than you think.',
+  },
+};
 export const Muted: Story = { args: { tone: 'muted' } };
+export const Soft: Story = { args: { tone: 'soft' } };
+export const CardForeground: Story = { args: { tone: 'cardForeground' } };
 export const Destructive: Story = { args: { tone: 'destructive' } };
