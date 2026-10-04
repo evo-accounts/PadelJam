@@ -62,7 +62,7 @@ vi.mock('./idb', () => ({
     if (h.tree === 'noTranslation') throw new Error('idb ui describe-all failed (exit 1):\nstderr: No translation object returned for simulator.');
     const app = (width: number, height: number) => ({ type: 'Application', role: 'AXApplication', AXLabel: 'PadelJam', frame: { x: 0, y: 0, width, height } });
     if (h.tree === 'wedged') return JSON.stringify([app(0, 0)]);
-    return JSON.stringify([app(402, 874), { type: 'Button', role: 'AXButton', AXLabel: 'Start now', frame: { x: 16, y: 700, width: 370, height: 52 } }]);
+    return JSON.stringify([app(402, 874), { type: 'Button', role: 'AXButton', AXLabel: 'Get started', frame: { x: 16, y: 700, width: 370, height: 52 } }]);
   },
 }));
 
@@ -166,6 +166,6 @@ describe('waitFor / expectGone on a wedged tree', () => {
   it('expectGone never passes on a wedged (empty) read', async () => {
     h.tree = 'wedged';
     const { expectGone } = await import('./expect');
-    await expect(drive(expectGone({ text: 'Start now' }, { timeout: 12_000 }))).rejects.toThrow(/accessibility tree wedged/);
+    await expect(drive(expectGone({ text: 'Get started' }, { timeout: 12_000 }))).rejects.toThrow(/accessibility tree wedged/);
   });
 });
