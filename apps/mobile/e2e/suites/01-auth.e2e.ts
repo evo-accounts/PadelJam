@@ -682,5 +682,5 @@ describe('01 auth', () => {
         + 'instead of sign-in (UX-AUTH-09 — recovery must not continue into a signed-in session)',
       );
     }
-  });
+  }, 300_000); // ~20 typing steps: ~205s measured on a loaded host, past the 180s default.
 });
