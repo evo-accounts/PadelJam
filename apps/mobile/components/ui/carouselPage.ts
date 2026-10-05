@@ -33,3 +33,14 @@ export const pageIndex = (offsetX: number, width: number, count: number): number
  */
 export const shouldScrollTo = (current: number, swipedTo: number | null): boolean =>
   swipedTo === null || current !== swipedTo;
+
+/**
+ * The page a screen-reader swipe moves to: VoiceOver's swipe up on an `adjustable` element is
+ * `increment` (next), swipe down is `decrement` (previous). Clamped at both ends, like the pager
+ * itself, which does not wrap; any other action leaves the page where it is.
+ */
+export const stepPage = (current: number, action: string, count: number): number => {
+  if (count <= 0) return 0;
+  const delta = action === 'increment' ? 1 : action === 'decrement' ? -1 : 0;
+  return Math.min(count - 1, Math.max(0, current + delta));
+};

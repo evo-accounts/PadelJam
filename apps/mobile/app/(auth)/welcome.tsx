@@ -94,6 +94,12 @@
  * recycled by Fabric into a Pressable on a later screen, which then reads as
  * AXGenericElement rather than Button — the onboarding "Left" tile did, and
  * broke suite 02. Texts are safe (they recycle only into Texts). Keep it that way.
+ *
+ * So VoiceOver pages the slides through the current slide's TITLE TEXT, not a
+ * View: it is `adjustable`, reads "title. body" and "Page N of 3", and a swipe
+ * up / down moves to the next / previous slide (`stepPage`). The controlled
+ * `Carousel` scrolls itself when `index` changes from outside. The body Text is
+ * hidden, since the title's label already carries it.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useT } from '@padel/i18n';
@@ -108,6 +114,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, sheetRadius, space, type } from '../../theme';
 import { Button, Carousel, Illustration, Text, type IllustrationName } from '../../components/ui';
 import { DOT_SIZE, Dots } from '../../components/ui/Dots';
+import { stepPage } from '../../components/ui/carouselPage';
 
 type Slide = { art: IllustrationName; title: string; body: string };
 
@@ -163,6 +170,7 @@ const keepLastTwoWords = (text: string) => text.replace(/ (\S+)$/, ' $1');
 
 export default function WelcomeScreen() {
   const { t } = useT('auth');
+  const { t: tc } = useT('common');
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, fontScale } = useWindowDimensions();
@@ -255,6 +263,12 @@ export default function WelcomeScreen() {
                         lineBreakStrategyIOS="push-out"
                         textBreakStrategy="balanced"
                         style={styles.title}
+                        accessible={current}
+                        accessibilityRole="adjustable"
+                        accessibilityLabel={`${slide.title}. ${slide.body}`}
+                        accessibilityValue={{ text: tc('pageProgress', { current: i + 1, total: slides.length }) }}
+                        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+                        onAccessibilityAction={(e) => setIndex(stepPage(index, e.nativeEvent.actionName, slides.length))}
                       >
                         {slide.title}
                       </Text>
@@ -265,6 +279,8 @@ export default function WelcomeScreen() {
                       numberOfLines={bodyLines}
                       maxFontSizeMultiplier={BODY_MAX_SCALE}
                       style={styles.centred}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no"
                     >
                       {slide.body}
                     </Text>

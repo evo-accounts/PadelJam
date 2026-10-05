@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pageIndex, shouldScrollTo } from './carouselPage';
+import { pageIndex, shouldScrollTo, stepPage } from './carouselPage';
 
 describe('pageIndex', () => {
   it('maps an exact page offset to that page', () => {
@@ -73,5 +73,21 @@ describe('shouldScrollTo', () => {
     expect(consult(1)).toBe(false); // the swipe's own state change
     expect(consult(2)).toBe(true); // "Next"
     expect(consult(1)).toBe(true); // "Back" — would be false if swipedTo had stuck
+  });
+});
+
+describe('stepPage', () => {
+  it('moves one page forward on increment and back on decrement', () => {
+    expect(stepPage(0, 'increment', 3)).toBe(1);
+    expect(stepPage(2, 'decrement', 3)).toBe(1);
+  });
+
+  it('stops at both ends instead of wrapping', () => {
+    expect(stepPage(2, 'increment', 3)).toBe(2);
+    expect(stepPage(0, 'decrement', 3)).toBe(0);
+  });
+
+  it('ignores any other action', () => {
+    expect(stepPage(1, 'activate', 3)).toBe(1);
   });
 });
