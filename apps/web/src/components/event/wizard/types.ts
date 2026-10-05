@@ -32,6 +32,11 @@ export interface WebWizardDraft extends WizardDraft {
    * or no location. Undefined until one is chosen — the step then opens on the registry list.
    */
   locationMode?: 'registry' | 'manual' | 'none';
+  /**
+   * A manual venue's point, set only by picking an address search result (the `geocode` edge
+   * function). Typing in the address clears it, so a new address never keeps old coordinates.
+   */
+  manualLocationPoint?: { lat: number; lng: number };
   /** A manual venue's optional court names, one per court (blank = unnamed). */
   manualCourtNames?: string[];
   /** A registry venue's ticked courts ("Select courts"); undefined = "Have not reserved yet". */

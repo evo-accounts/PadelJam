@@ -28,6 +28,7 @@ const cleared: Partial<WebWizardDraft> = {
   venueId: undefined,
   manualLocationName: undefined,
   manualLocationAddress: undefined,
+  manualLocationPoint: undefined,
   manualCourtNames: undefined,
   courtIds: undefined,
 };
@@ -70,6 +71,25 @@ export const backToVenueList = (): Partial<WebWizardDraft> => ({
   locationMode: undefined,
   hasLocation: false,
 });
+
+/** Typing in the manual address: the point picked for the old text no longer applies. */
+export const setManualAddress = (address: string): Partial<WebWizardDraft> => ({
+  manualLocationAddress: address,
+  manualLocationPoint: undefined,
+});
+
+/** Picking an address search result: its short label becomes the address, its point the event's. */
+export const pickManualAddress = (label: string, point: { lat: number; lng: number }): Partial<WebWizardDraft> => ({
+  manualLocationAddress: label.slice(0, 200),
+  manualLocationPoint: point,
+});
+
+/** The point a manual venue sends as `location_lat`/`location_lng`; none for a registry venue or no location. */
+export function manualPointPayload(d: WebWizardDraft): { locationLat?: number; locationLng?: number } {
+  const p = d.manualLocationPoint;
+  if (d.venueId || d.locationMode !== 'manual' || !p) return {};
+  return { locationLat: p.lat, locationLng: p.lng };
+}
 
 export const clampCourts = (n: number) => Math.min(COURTS_MAX, Math.max(COURTS_MIN, Math.round(n)));
 
@@ -197,7 +217,8 @@ export const detailsErrors = (d: WebWizardDraft): string[] => (d.name.trim().len
  * address sent as none, a registry venue's ticked courts, a manual venue's court names, and the
  * invite half — platform players invited, guests confirmed; none on a path without Invite players
  * (a public group event, decision 5) or on "I will invite later" (`later`).
- * The web has no geocoder, so the event's point is left empty.
+ * A manual venue whose address was picked from the address search (the `geocode` edge function)
+ * sends that point; otherwise — typed address, registry venue, no location — the point is left empty.
  */
 export function webCreateInput(
   d: WebWizardDraft,
@@ -219,6 +240,7 @@ export function webCreateInput(
     // "Have not reserved yet" → a "Courts not reserved" pending action (0122, UX-MEVT-24).
     courtsReserved: courtsReserved(d),
     manualCourtNames: manualCourtNamesPayload(d, courtNamePlaceholder),
+    ...manualPointPayload(d),
     ...invitePayload(d, opts),
   };
 }
