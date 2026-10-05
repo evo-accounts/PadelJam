@@ -5,7 +5,7 @@
 // POST { q: string, lang?: string } → 200 { results: { label, lat, lng }[] } (at most 5)
 //   400 { error: 'bad_query' } — q shorter than 3 or longer than 200 characters after trimming
 //   401 — no signed-in caller (verify_jwt stays on, and the user is checked here too)
-//   405 — anything but POST
+//   405 — anything but POST (OPTIONS answers the CORS preflight)
 //   502 { error: 'upstream' } — Nominatim failed or answered non-OK
 //
 // The throttle and cache are per isolate: good enough for the web's explicit-search traffic, not a
@@ -25,14 +25,23 @@ import {
   type Place,
 } from '../_shared/geocode.ts';
 
+// The web app calls this straight from the browser (supabase.functions.invoke), so it must answer
+// the CORS preflight and tag every response; the gateway does not do it for us.
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 const cache = new BoundedCache<Place[]>(CACHE_MAX);
 const throttled = createThrottle(MIN_GAP_MS);
 
 Deno.serve(async (req) => {
-  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: CORS });
 
   const url = Deno.env.get('SUPABASE_URL')!;
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -42,7 +51,7 @@ Deno.serve(async (req) => {
     data: { user },
     error,
   } = await userClient.auth.getUser();
-  if (error || !user) return new Response('Unauthorized', { status: 401 });
+  if (error || !user) return new Response('Unauthorized', { status: 401, headers: CORS });
 
   let body: { q?: unknown; lang?: unknown };
   try {
