@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors, palette } from '../../theme';

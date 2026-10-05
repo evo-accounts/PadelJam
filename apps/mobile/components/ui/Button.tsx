@@ -17,14 +17,15 @@
 import {
   ActivityIndicator,
   Pressable,
-  // The label needs the tone's own colour, which `Text`'s semantic `tone`s
-  // deliberately cannot express. Role and colour both still come from tokens.
-  Text as RNText,
   StyleSheet,
   View,
   type PressableProps,
   type ViewStyle,
 } from 'react-native';
+
+// The label needs the tone's own colour, which `Text`'s semantic `tone`s
+// deliberately cannot express. Role and colour both still come from tokens.
+import { Text as RNText } from './native';
 
 import {
   BUTTON_DISABLED_OPACITY,

@@ -48,19 +48,20 @@
  *    strategy (Android: "balanced"), which never leaves one word alone on the
  *    last line. The design breaks every title in two by hand — "Find games / near
  *    you", "Create or join / in seconds", "Explore your / padel community" — and
- *    no single width reproduces all three greedily (on device, slide 1 needs
- *    < 271, slide 3 needs >= 285); a width that makes slide 3 right plus push-out
- *    makes all three right, in every locale. The title does not grow with Dynamic
- *    Type: at 1.2x "padel community" no longer fits that width, and the line it
+ *    no single width reproduces all three greedily. The design's own 316 box makes
+ *    slide 3 right (in Atelia "padel community" is 297, and "Explore your padel"
+ *    does not fit), and push-out then makes all three right, in every locale —
+ *    checked on 402, 390 and 375pt screens. The title does not grow with Dynamic
+ *    Type: a larger "padel community" no longer fits that width, and the line it
  *    would drop is exactly the orphan the width exists to prevent.
  *  - The body is 18pt everywhere and gets a THIRD reserved line wherever two may
- *    not hold it: a copy column under 350 wide (four of the nine bodies need three
- *    lines on a 375pt iPhone — SE, mini — in the system font, which is wider than
- *    the design's face), or any Dynamic Type size above the default, where it
- *    grows up to BODY_MAX_SCALE. The reservation is per device, not per slide, so
- *    the art still does not move as you swipe; on those devices a two-line body
- *    simply has a line of air under it. Its last two words are glued together
- *    (`keepLastTwoWords`) so a three-line body does not end on one word.
+ *    not hold it: a copy column under 350 wide (some of the nine bodies need three
+ *    lines on a 375pt iPhone — SE, mini), or any Dynamic Type size above the
+ *    default, where it grows up to BODY_MAX_SCALE. The reservation is per
+ *    device, not per slide, so the art still does not move as you swipe; on those
+ *    devices a two-line body simply has a line of air under it. Its last two
+ *    words are glued together (`keepLastTwoWords`) so a three-line body does not
+ *    end on one word.
  *    NOT `adjustsFontSizeToFit`: on Fabric (RN 0.85) `minimumFontScale` is parsed
  *    but never read, and the shrink search stops at about 50% or 75% for
  *    multi-line text — on device a pt-BR body came out at half size on an SE, and
@@ -119,14 +120,16 @@ const SHEET_PAD_BOTTOM_MIN = space[5];
 
 const TITLE_BLOCK = type.heroTitle.lineHeight * 2;
 /**
- * Wide enough for "padel community" (285 on device), narrow enough to break
- * before "padel" (304) — see the header. Push-out then fixes slides 1 and 2.
+ * The design's own title box. In Atelia "padel community" is 297 on device, and
+ * "Explore your padel" does not fit, so slide 3 breaks where the design breaks
+ * it — see the header. Push-out then fixes slides 1 and 2.
  */
-const TITLE_MAX_WIDTH = 296;
+const TITLE_MAX_WIDTH = 316;
 const TITLE_BODY_GAP = space[3];
 /**
  * The narrowest copy column every body fits in two lines at 18pt: measured on a
- * 390pt iPhone (column 350), the tightest with 2.7 to spare. Narrower gets three.
+ * 390pt iPhone (column 350), first in the system face and again in Outfit, which
+ * sets this copy at much the same width. Narrower gets three.
  */
 const BODY_TWO_LINE_MIN_WIDTH = 350;
 /**

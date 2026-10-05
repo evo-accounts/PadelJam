@@ -1,5 +1,6 @@
 import { useT } from '@padel/i18n';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { colors } from '../../theme';
 import { BottomSheet } from '../ui';

@@ -167,4 +167,30 @@ export default [
       'a11y/glyph-button-needs-label': 'error',
     },
   },
+
+  {
+    // No text in the system face. React Native has no global default font, so a
+    // raw `Text` or `TextInput` renders in SF Pro however carefully the theme
+    // names Outfit. `components/ui/native` is the same pair with the family
+    // already applied; it is the one file allowed to import the originals.
+    //
+    // Type-only imports (`type TextInputProps`) are fine — they render nothing.
+    files: ['**/*.tsx'],
+    ignores: ['components/ui/native.tsx'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react-native',
+              importNames: ['Text', 'TextInput'],
+              allowTypeImports: true,
+              message: "Import Text/TextInput from '@/components/ui/native' (or use ui/Text), so it renders in Outfit.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

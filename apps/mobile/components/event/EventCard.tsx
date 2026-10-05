@@ -1,6 +1,7 @@
 import { eventStatusKey, useGroupEvents } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { colors, palette } from '../../theme';
 import { Badge, Card } from '../../components/ui';
 import { eventWhen } from '../../lib/eventFormat';

@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { CommunityThumb } from '@/components/community/SuggestedCommunityCard';
 import { coverUrl, thumbnailUrl } from '@/lib/community-images';

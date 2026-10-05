@@ -11,7 +11,8 @@
  * failure can never be hidden behind help text.
  */
 import { forwardRef } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { TextInput } from './native';
 
 import { colors, radius, space, type } from '../../theme';
 import { Text } from './Text';

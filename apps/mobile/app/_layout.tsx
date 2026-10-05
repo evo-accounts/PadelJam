@@ -22,7 +22,8 @@ import type { i18n as I18n } from 'i18next';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { useT } from '@padel/i18n';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -35,7 +36,7 @@ import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { usePushTapRouting } from '@/lib/usePushTapRouting';
 import { initSentry } from '@/lib/sentry';
 import { supabase } from '@/lib/supabase';
-import { colors } from '../theme';
+import { colors, font } from '../theme';
 
 // DSN-guarded; no-op locally / without a DSN. Safe at module scope.
 initSentry();
@@ -247,10 +248,22 @@ export function Boot() {
   );
 }
 
+// React Navigation draws its own text (the tab bar's labels, the community top
+// tabs) from the theme's `fonts`, and the stock themes name the system face.
+// Same themes, same weights, our family.
+const withFace = (theme: typeof DefaultTheme): typeof DefaultTheme => ({
+  ...theme,
+  fonts: Object.fromEntries(
+    Object.entries(theme.fonts).map(([name, style]) => [name, { ...style, fontFamily: font.sans }]),
+  ) as typeof theme.fonts,
+});
+const lightNav = withFace(DefaultTheme);
+const darkNav = withFace(DarkTheme);
+
 function RootNav({ children }: { children: ReactNode }) {
   const colorScheme = useColorScheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? darkNav : lightNav}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />

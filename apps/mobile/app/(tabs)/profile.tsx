@@ -2,7 +2,8 @@ import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
-import { ScrollView, Text } from 'react-native';
+import { ScrollView } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProfileView } from '@/components/profile/ProfileView';

@@ -1,7 +1,8 @@
 import { useAbility, useEventResultSummary, useToggleLike } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { PostImage } from '@/components/community/PostImage';
 import { avatarUrl } from '@/lib/community-images';

@@ -21,10 +21,9 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
+import { Text, TextInput } from '@/components/ui/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShareResultsModal } from '@/components/event/ShareResultsModal';

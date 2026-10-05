@@ -10,7 +10,8 @@
  * If a design seems to need a size that is not here, the answer is a new role in
  * `apps/mobile/theme`, agreed once, not a one-off number at the call site.
  */
-import { Text as RNText, StyleSheet, type TextProps as RNTextProps } from 'react-native';
+import { StyleSheet, type TextProps as RNTextProps } from 'react-native';
+import { Text as RNText } from './native';
 
 import { colors, palette, type } from '../../theme';
 

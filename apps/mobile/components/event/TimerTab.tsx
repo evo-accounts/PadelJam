@@ -1,6 +1,7 @@
 import { useEventTimer, useSetEventTimer } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { useNow } from '@/lib/useNow';
 import { colors } from '../../theme';

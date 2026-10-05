@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { colors, palette, sheetRadius, space, type } from '../../theme';
+import { colors, font, palette, sheetRadius, space, type } from '../../theme';
 
 /**
  * The welcome screen's geometry is ARITHMETIC over these roles — the copy block,
@@ -11,10 +11,12 @@ import { colors, palette, sheetRadius, space, type } from '../../theme';
 describe('hero type roles', () => {
   // Asserted field by field, not as an object literal: `size:check` counts any
   // `fontSize: <number>` it finds outside theme/, tests included.
-  it('heroTitle is 36/40 bold — Figma "Tailwind/4XL/Bold"', () => {
+  it('heroTitle is Atelia 36/40 — the design\'s serif slot', () => {
+    expect(type.heroTitle.fontFamily).toBe('Atelia');
     expect(type.heroTitle.fontSize).toBe(36);
     expect(type.heroTitle.lineHeight).toBe(40);
-    expect(type.heroTitle.fontWeight).toBe('700');
+    // Atelia ships only Regular; a bold request would be silently ignored.
+    expect(type.heroTitle.fontWeight).toBe('400');
   });
 
   it('heroBody is 18/28 regular', () => {
@@ -26,6 +28,16 @@ describe('hero type roles', () => {
   it('two lines of each, plus the design\'s two 12s, make Figma\'s 160pt text frame', () => {
     const frame = type.heroTitle.lineHeight * 2 + space[3] + type.heroBody.lineHeight * 2 + space[3];
     expect(frame).toBe(160);
+  });
+});
+
+describe('type faces', () => {
+  // A role without a family renders in the system face — the whole point of
+  // embedding Outfit is lost one style at a time, and silently.
+  it('every role names a family, and only heroTitle is not Outfit', () => {
+    for (const [name, style] of Object.entries(type)) {
+      expect(style.fontFamily, name).toBe(name === 'heroTitle' ? font.display : font.sans);
+    }
   });
 });
 

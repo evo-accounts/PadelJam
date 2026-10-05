@@ -1,6 +1,7 @@
 import { useEventResultSummary } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { colors } from '../../theme';
 
 /** Presentational standings card, sized for image capture (rendered off-screen by ShareResultsModal). */

@@ -10,7 +10,8 @@
  * A glyph size is not on the type scale (it is a box, not a line of prose), so
  * the three values live here, once, the way `IconButton` holds its own.
  */
-import { Pressable, StyleSheet, Text as RNText, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Text as RNText } from './native';
 
 import { palette } from '../../theme';
 
