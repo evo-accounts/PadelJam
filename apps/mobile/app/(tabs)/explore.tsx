@@ -56,7 +56,7 @@ import {
   EMPTY_SEARCH_FILTERS,
   typesForFormat,
   type SearchFilterState,
-} from '@/components/explore/search/searchFilters';
+} from '@padel/api';
 import { SuggestionRail } from '@/components/explore/SuggestionRail';
 import { GroupCard } from '@/components/group/GroupCard';
 import { TopBar } from '@/components/ui';

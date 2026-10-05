@@ -1,6 +1,7 @@
 'use client';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { formatDistanceKm } from '@padel/api';
 import { cn } from '@/lib/utils';
 
 export type CardOrientation = 'vertical' | 'horizontal';
@@ -86,11 +87,11 @@ export function ExploreCard({
   );
 }
 
-/** "Nearby" under a kilometre, whole kilometres beyond; nothing when either side has no point. */
+/** "Nearby" under a kilometre, then `formatDistanceKm`; nothing when either side has no point. */
 export function distanceLabel(t: Translate, metres: number | null | undefined): string | null {
   if (metres == null) return null;
   if (metres < 1000) return t('distanceNear');
-  return t('distanceKm', { km: Math.round(metres / 1000) });
+  return t('distanceKm', { km: formatDistanceKm(metres) });
 }
 
 /** The copy for a failed card action: the RPC's error code when there is a line for it. */

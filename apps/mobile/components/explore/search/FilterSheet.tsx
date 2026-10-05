@@ -35,7 +35,7 @@ import {
   type EventsFilterState,
   type ExploreSearchTypedTab,
   type GroupsFilterState,
-} from './searchFilters';
+} from '@padel/api';
 
 type Bodies = {
   events: EventsFilterState;

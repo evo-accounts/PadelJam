@@ -18,6 +18,8 @@ export * from './venues/mutations';
 export * from './round-gen';
 export * from './discovery/queries';
 export * from './discovery/search';
+export * from './discovery/searchFilters';
+export * from './discovery/useViewerHasLocation';
 export * from './profile/queries';
 export * from './profile/mutations';
 export * from './settings/queries';

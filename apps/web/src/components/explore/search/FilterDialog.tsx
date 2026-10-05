@@ -22,7 +22,7 @@ import {
   type EventsFilterState,
   type ExploreSearchTypedTab,
   type GroupsFilterState,
-} from './search-filters';
+} from '@padel/api';
 
 /**
  * The Filter sheet (UX-EXPL-08) — on web a Radix dialog, as every sheet is (UX-GLOB-02): titled

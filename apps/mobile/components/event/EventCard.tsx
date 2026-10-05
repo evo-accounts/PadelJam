@@ -1,4 +1,4 @@
-import { eventStatusKey, useGroupEvents } from '@padel/api';
+import { eventStatusKey, formatDistanceKm, useGroupEvents } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/native';
@@ -58,7 +58,7 @@ export function EventCard({
       ? null
       : event.distance_m < 1000
         ? td('distanceNear')
-        : td('distanceKm', { km: (event.distance_m / 1000).toFixed(1) });
+        : td('distanceKm', { km: formatDistanceKm(event.distance_m) });
 
   // Derived from status AND the clock: an event stays 'scheduled' until someone
   // taps start, so a 19:00 event at 19:01 must not still read "Upcoming".

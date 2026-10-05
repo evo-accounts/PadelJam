@@ -38,8 +38,8 @@ import {
   type EventsFilterState,
   type GroupsFilterState,
   type SearchFilterState,
-} from './search-filters';
-import { useViewerHasLocation } from './useViewerHasLocation';
+} from '@padel/api';
+import { useViewerHasLocation } from '@padel/api';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 

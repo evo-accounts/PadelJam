@@ -55,8 +55,8 @@ import {
   type EventsFilterState,
   type GroupsFilterState,
   type SearchFilterState,
-} from './searchFilters';
-import { useViewerHasLocation } from './useViewerHasLocation';
+} from '@padel/api';
+import { useViewerHasLocation } from '@padel/api';
 
 const TAB_LABEL = {
   all: 'tabAll',
