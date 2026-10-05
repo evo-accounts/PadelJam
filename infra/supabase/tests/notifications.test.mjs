@@ -1,5 +1,5 @@
 // infra/supabase/tests/notifications.test.mjs
-import { user, rpc, sel, del, expectError, assert, run } from './lib.mjs';
+import { user, rpc, sel, del, insert, expectError, assert, run } from './lib.mjs';
 
 const hoursFromNow = (h) => new Date(Date.now() + h * 3600_000).toISOString();
 
@@ -160,19 +160,20 @@ await run('a confirmation performed by the organizer does not notify the organiz
   const waiter = await user('h4');
   const eventId = await rpc(org.jwt, 'create_event', { p_payload: payload(groupId, {}) });
   await del('event_invitations', `event_id=eq.${eventId}`);
-  for (const p of players) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
-  await rpc(waiter.jwt, 'join_group', { p_group_id: groupId });
-  assert((await rpc(waiter.jwt, 'join_event', { p_event_id: eventId })) === 'waiting_list', 'fifth player waits');
-  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 4, 'four player-initiated confirmations');
-  // The organizer promotes the waiter from the roster: waiting_list → confirmed, performed by the organizer.
-  const [row] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${waiter.id}&select=id`);
-  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: row.id });
-  const [after] = await sel('event_participants', `id=eq.${row.id}&select=status`);
-  assert(after.status === 'confirmed', 'waiter is now confirmed');
-  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 4, 'organizer-performed confirmation adds nothing');
+  for (const p of players.slice(0, 3)) { await rpc(p.jwt, 'join_group', { p_group_id: groupId }); await rpc(p.jwt, 'join_event', { p_event_id: eventId }); }
+  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 3, 'three player-initiated confirmations');
+  // 0122 (B12): the organizer confirms a pending invitee from the roster (the waiting list is
+  // not confirmable any more). Performed by the organizer → no participant_confirmed for them.
+  await insert('event_invitations', { event_id: eventId, invitee_id: waiter.id, invited_by: org.id });
+  const pid = await rpc(org.jwt, 'organizer_confirm_invitee', { p_event_id: eventId, p_user_id: waiter.id });
+  const [after] = await sel('event_participants', `id=eq.${pid}&select=status`);
+  assert(after.status === 'confirmed', 'invitee is now confirmed');
+  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 3, 'organizer-performed confirmation adds nothing');
+  assert((await notifs(waiter.id, 'organizer_confirmed', eventId)).length === 1, 'the player is told');
   // Re-confirming an already confirmed row is a no-op too.
-  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: row.id });
-  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 4, 'still four');
+  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: pid });
+  assert((await notifs(org.id, 'participant_confirmed', eventId)).length === 3, 'still three');
+  assert((await notifs(waiter.id, 'organizer_confirmed', eventId)).length === 1, 'and no second notice');
 });
 
 await run('finishing twice does not publish results twice', async () => {
@@ -188,7 +189,8 @@ await run('finishing twice does not publish results twice', async () => {
   const matches = await sel('event_matches', `round_id=eq.${rounds[0].id}&select=id`);
   for (const m of matches) await rpc(org.jwt, 'submit_score', { p_match_id: m.id, p_side_a: 24, p_side_b: 16, p_not_played: false });
   await rpc(org.jwt, 'finish_event', { p_event_id: eventId, p_finish_message: null, p_counts_override: true });
-  await rpc(org.jwt, 'finish_event', { p_event_id: eventId, p_finish_message: 'edited', p_counts_override: true });
+  // Since 0121 (B6) a completed event cannot be finished again at all.
+  await expectError(() => rpc(org.jwt, 'finish_event', { p_event_id: eventId, p_finish_message: 'edited', p_counts_override: true }), 'event_not_in_progress');
   assert((await notifs(players[0].id, 'results_published', eventId)).length === 1, 'one results_published after two finishes');
 });
 

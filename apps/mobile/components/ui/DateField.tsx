@@ -2,9 +2,9 @@
  * A date row that opens the platform picker — for UX-SET-02's date of birth.
  *
  * There was no date input in the app worth reusing. `profile/edit.tsx` asked for a typed
- * `YYYY-MM-DD` and validated it with a regex, and the only date UI anywhere,
- * `components/event/wizard/DateTimePicker.tsx`, is a rolling 30-day-FORWARD chip strip — correct
- * for scheduling a match, structurally incapable of expressing a birthday.
+ * `YYYY-MM-DD` and validated it with a regex, and the only date UI anywhere, the event wizard's
+ * day picker, is a rolling FORWARD strip of days — correct for scheduling a match, structurally
+ * incapable of expressing a birthday.
  *
  * Hence the native module. `maximumDate` is today, because a date of birth cannot be in the
  * future, and that is a constraint worth enforcing in the control rather than in a validator the
@@ -30,6 +30,9 @@ export function DateField({
   onChange,
   placeholder,
   confirmLabel,
+  displayValue,
+  minimumDate,
+  maximumDate = 'today',
   testID,
 }: {
   label: string;
@@ -39,13 +42,26 @@ export function DateField({
   placeholder: string;
   /** Copy for the iOS sheet's commit button. */
   confirmLabel: string;
+  /** How the chosen day reads in the row (e.g. a localized date). Defaults to the raw value. */
+  displayValue?: string;
+  /** The earliest pickable day, if any (Explore's date filter: today). */
+  minimumDate?: Date;
+  /**
+   * The latest pickable day. 'today' (the default) suits a date of birth; `null` is no limit, for
+   * a date in the future (Explore's date filter).
+   */
+  maximumDate?: Date | 'today' | null;
   testID?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Date | null>(null);
   // Parsed as UTC noon rather than midnight: a midnight local date one timezone west of UTC is
   // the previous day once serialised back, which silently shifts a birthday by a day.
-  const asDate = value ? new Date(`${value}T12:00:00`) : new Date(1990, 0, 1);
+  const max = maximumDate === 'today' ? new Date() : (maximumDate ?? undefined);
+  // A birthday picker opens on 1990; a forward-looking one on its first pickable day.
+  const fallback = maximumDate === 'today' ? new Date(1990, 0, 1) : (minimumDate ?? new Date());
+  const asDate = value ? new Date(`${value}T12:00:00`) : fallback;
+  const shown = value ? (displayValue ?? value) : placeholder;
 
   return (
     <View style={styles.container}>
@@ -55,11 +71,11 @@ export function DateField({
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={label}
-        accessibilityValue={{ text: value ?? placeholder }}
+        accessibilityValue={{ text: shown }}
         testID={testID}
       >
         <Text variant="body" tone={value ? 'default' : 'muted'}>
-          {value ?? placeholder}
+          {shown}
         </Text>
       </Pressable>
 
@@ -68,7 +84,8 @@ export function DateField({
           value={asDate}
           mode="date"
           display="default"
-          maximumDate={new Date()}
+          minimumDate={minimumDate}
+          maximumDate={max}
           onChange={(event, next) => {
             setOpen(false);
             if (event.type === 'dismissed' || !next) return;
@@ -83,7 +100,8 @@ export function DateField({
             value={draft ?? asDate}
             mode="date"
             display="spinner"
-            maximumDate={new Date()}
+            minimumDate={minimumDate}
+            maximumDate={max}
             // The spinner reports every tick. Committing on each one would fire a write per flick
             // of the wheel, so it is held here and committed by Done.
             onChange={(_event, next) => next && setDraft(next)}

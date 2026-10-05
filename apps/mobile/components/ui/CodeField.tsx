@@ -25,7 +25,8 @@
  * slot, so a validation failure can never hide behind help text.
  */
 import { useState } from 'react';
-import { StyleSheet, TextInput, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { TextInput } from './native';
 
 import { colors, radius, space } from '../../theme';
 import { boxStates, sanitiseCode, type BoxState } from './codeInput';

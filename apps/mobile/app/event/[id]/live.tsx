@@ -21,10 +21,9 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
+import { Text, TextInput } from '@/components/ui/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShareResultsModal } from '@/components/event/ShareResultsModal';
@@ -164,7 +163,7 @@ export default function EventLiveScreen() {
           <Text style={styles.noAccessBody}>{t('noAccessBody')}</Text>
           <Button
             label={t('back')}
-            variant="outline"
+            variant="secondary"
             onPress={() => router.back()}
           />
         </View>
@@ -180,7 +179,7 @@ export default function EventLiveScreen() {
           <Text style={styles.noAccessBody}>{t('waitingToStart')}</Text>
           <Button
             label={t('back')}
-            variant="outline"
+            variant="secondary"
             onPress={() => router.back()}
           />
         </View>
@@ -202,7 +201,14 @@ export default function EventLiveScreen() {
   // Plain-text results summary for the share sheet.
   const resultsSummary = [
     `🏆 ${event.name}`,
-    ...standings.map((s) => `${s.rank}. ${participantById.get(s.entity_id)?.name ?? '—'} (${s.points})`),
+    // A team row's entity_id is the event_teams id (0125): name the pair, not a participant.
+    ...standings.map((s) => {
+      const name = s.is_team
+        ? [s.name_a, s.name_b].filter(Boolean).join(' & ') ||
+          t('teamLabel', { n: teamNumberById.get(s.entity_id) ?? s.team_number ?? 0 })
+        : (participantById.get(s.entity_id)?.name ?? '—');
+      return `${s.rank}. ${name} (${s.points})`;
+    }),
   ].join('\n');
 
   // --- Matches for the selected round, sorted by court ---
@@ -531,25 +537,36 @@ export default function EventLiveScreen() {
               <Text style={[styles.colRecord, styles.boardHeader]}>{t('recordCol')}</Text>
             </View>
             {standings.map((s) => {
-              const info = s.is_team ? null : participantById.get(s.entity_id);
+              // A team event ranks pairs (UX-MEVT-27, 0125): both players together, "A & B", with
+              // the team's result. Individual rows (every other modality) are one player.
+              const members = (s.is_team ? [s.participant_a_id, s.participant_b_id] : [s.entity_id])
+                .filter((pid): pid is string => pid != null)
+                .map((pid) => ({ pid, info: participantById.get(pid) }));
+              const teamName = [s.name_a ?? members[0]?.info?.name, s.name_b ?? members[1]?.info?.name]
+                .filter(Boolean)
+                .join(' & ');
               const name = s.is_team
-                ? t('teamLabel', { n: teamNumberById.get(s.entity_id) ?? 0 })
-                : (info?.name ?? '—');
+                ? teamName || t('teamLabel', { n: teamNumberById.get(s.entity_id) ?? s.team_number ?? 0 })
+                : (members[0]?.info?.name ?? '—');
               return (
                 <View key={s.entity_id} style={styles.boardRow}>
                   <Text style={styles.colRank}>{s.rank}</Text>
                   <View style={styles.colPlayer}>
-                    {!s.is_team ? (
-                      // Decorative: the standing's name is right beside it as its own Text node.
-                      <Avatar
-                        uri={avatarUrl(info?.avatarUrl)}
-                        name={name}
-                        colourKey={info?.colourKey}
-                        size="sm"
-                        decorative
-                      />
-                    ) : null}
-                    <Text style={styles.colPlayerText} numberOfLines={1}>
+                    {/* Decorative: the standing's name is right beside them as its own Text node. */}
+                    <View style={styles.boardAvatars}>
+                      {members.map(({ pid, info }, i) => (
+                        <Avatar
+                          key={pid}
+                          uri={avatarUrl(info?.avatarUrl)}
+                          name={info?.name ?? name}
+                          colourKey={info?.colourKey}
+                          size="sm"
+                          decorative
+                          style={i > 0 ? styles.boardAvatarOverlap : undefined}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.colPlayerText} numberOfLines={s.is_team ? 2 : 1}>
                       {name}
                     </Text>
                   </View>
@@ -703,7 +720,7 @@ export default function EventLiveScreen() {
           <View style={styles.modalActions}>
             <Button
               label={t('rankingExcludeCta')}
-              variant="outline"
+              variant="secondary"
               disabled={busy}
               onPress={() => onFinish(false)}
             />
@@ -840,6 +857,8 @@ const styles = StyleSheet.create({
   },
   colRank: { width: 40, fontSize: 15, fontWeight: '700', color: colors.foreground },
   colPlayer: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  boardAvatars: { flexDirection: 'row' },
+  boardAvatarOverlap: { marginLeft: -10, borderWidth: 2, borderColor: colors.card },
   colPlayerText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
   colPoints: { width: 56, textAlign: 'right', fontSize: 15, fontWeight: '700', color: colors.foreground },
   colRecord: { width: 72, textAlign: 'right', fontSize: 14, color: colors.mutedForeground },

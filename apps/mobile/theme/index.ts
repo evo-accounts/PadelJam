@@ -69,6 +69,39 @@ export const space = sharedSpace;
 export const weight = sharedWeight;
 
 /**
+ * The top-corner radius of the welcome screen's sheet — Figma's
+ * `border radius/4xl` variable, which resolves to 26 in the PJAM Mobile file
+ * (Tailwind's own `4xl` is 32, so the NAME is not a reliable guide to the value).
+ *
+ * Deliberately a mobile constant rather than a step on the shared `radius`
+ * ladder: web has no sheet like this, and a `radius['4xl']` in `@padel/ui` would
+ * oblige `globals.css` to grow a `--radius-4xl` nobody consumes. If a second
+ * surface wants it, that is the day to promote it.
+ */
+export const sheetRadius = 26;
+
+/**
+ * The two faces, by the family names the native build registers them under
+ * (`expo-font` in app.json embeds the files in assets/fonts).
+ *
+ * `sans` is Outfit, the design system's text face and the one web already loads
+ * through next/font. It ships the five static weights mobile uses (400–800), so
+ * `fontWeight` keeps meaning what it says: iOS picks the matching file inside
+ * the family, and the plugin gives Android an XML family with the same weights.
+ *
+ * `display` is Atelia, which ships a single Regular: a title face, never body
+ * text. Do not pair it with a heavier weight — RN does not synthesise bold, so
+ * the request is quietly ignored and the title renders Regular anyway.
+ *
+ * Every `type` role carries a family, and `components/ui/native` puts `sans` on
+ * any raw Text or TextInput, so nothing falls back to the system face.
+ */
+export const font = {
+  sans: 'Outfit',
+  display: 'Atelia',
+} as const;
+
+/**
  * Type styles, named by ROLE rather than by size.
  *
  * Mobile currently uses 17 distinct font sizes across 613 declarations; naming
@@ -82,8 +115,11 @@ export const weight = sharedWeight;
  * stylesheet (`display: type.display`) or spread (`{...type.body, color}`)
  * instead of every call site rewriting the same three keys.
  */
-const role = (step: { size: number; lineHeight: number }, fontWeight: TextStyle['fontWeight']) =>
-  ({ fontSize: step.size, lineHeight: step.lineHeight, fontWeight }) satisfies TextStyle;
+const role = (
+  step: { size: number; lineHeight: number },
+  fontWeight: TextStyle['fontWeight'],
+  fontFamily: string = font.sans,
+) => ({ fontFamily, fontSize: step.size, lineHeight: step.lineHeight, fontWeight }) satisfies TextStyle;
 
 export const type = {
   display: role(sharedText['3xl'], sharedWeight.bold),
@@ -95,6 +131,20 @@ export const type = {
   label: role(sharedText.sm, sharedWeight.semibold),
   caption: role(sharedText.sm, sharedWeight.normal),
   hint: role(sharedText.xs, sharedWeight.normal),
+  // Button labels are Outfit Medium in the design system, at the size the
+  // button's own metrics pick (packages/ui button.ts) — hence three steps.
+  buttonXs: role(sharedText.xs, sharedWeight.medium),
+  button: role(sharedText.sm, sharedWeight.medium),
+  buttonLg: role(sharedText.base, sharedWeight.medium),
+  // The welcome slides' title and the paragraph under it: `text-4xl` and
+  // `text-lg` regular. Neither size was on any role (the largest was `display`,
+  // 30/36), and the design calls for them as a PAIR, so they arrive as a pair.
+  //
+  // The title is the design's serif slot, Atelia. It ships only Regular, so the
+  // weight is Regular too — see `font` above for why asking for bold would be
+  // a lie the renderer quietly ignores.
+  heroTitle: role(sharedText['4xl'], sharedWeight.normal, font.display),
+  heroBody: role(sharedText.lg, sharedWeight.normal),
 } as const;
 
 export type TypeRole = keyof typeof type;

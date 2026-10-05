@@ -120,7 +120,7 @@ export function WriteReviewSheet({
           />
           <Button
             label={tc('cancel')}
-            variant="ghost"
+            variant="tertiary"
             fullWidth
             disabled={isPending}
             onPress={onClose}

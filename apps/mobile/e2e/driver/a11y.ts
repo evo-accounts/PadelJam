@@ -1,4 +1,5 @@
 import { idbDescribeAll } from './idb';
+import { AccessibilityWedgedError, WedgeTracker, isWedgedDescribeError, isWedgedTree } from './axWedge';
 
 /** One element from `idb ui describe-all --json`. */
 export interface AxElement {
@@ -39,9 +40,34 @@ export interface Selector {
   nth?: number;
 }
 
+/**
+ * Every snapshot records whether the AX bridge looked wedged (see axWedge.ts).
+ * Once that has persisted, snapshot and waitFor raise AccessibilityWedgedError
+ * so the test sees what happened; only freshInstall, which is discarding the
+ * app's state anyway, reboots the simulator for it. Nothing reboots mid-test.
+ */
+const wedge = new WedgeTracker();
+
+/** describe-all has answered "wedged" continuously for WEDGE_PERSIST_MS. */
+export const accessibilityWedged = (): boolean => wedge.isWedged();
+/** The latest conclusive describe-all was wedged, however briefly. */
+export const lastSnapshotWedged = (): boolean => wedge.lastReadWedged;
+/** Forget the wedge — after a reboot the clock must start again. */
+export const resetAccessibilityWedge = (): void => wedge.reset();
+
 export async function snapshot(): Promise<AxElement[]> {
-  const raw = await idbDescribeAll();
+  let raw: string;
+  try {
+    raw = await idbDescribeAll();
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    if (!isWedgedDescribeError(message)) throw e;
+    wedge.observe(true);
+    // One of these can be a passing system dialog; only a persistent one earns the type.
+    throw wedge.isWedged() ? new AccessibilityWedgedError(message) : e;
+  }
   const parsed = JSON.parse(raw) as AxElement[];
+  wedge.observe(isWedgedTree(parsed));
   return parsed.filter((e) => e && e.frame && e.frame.width > 0 && e.frame.height > 0);
 }
 

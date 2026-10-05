@@ -71,7 +71,7 @@ export type Database = {
           id: string
           title: string
           description: string
-          image_path: string
+          image_path: string | null
           category: string | null
           is_default: boolean
           is_active: boolean
@@ -81,7 +81,7 @@ export type Database = {
           id?: string
           title: string
           description: string
-          image_path: string
+          image_path: string | null
           category?: string | null
           is_default?: boolean
           is_active?: boolean
@@ -91,7 +91,7 @@ export type Database = {
           id?: string
           title?: string
           description?: string
-          image_path?: string
+          image_path?: string | null
           category?: string | null
           is_default?: boolean
           is_active?: boolean
@@ -111,6 +111,7 @@ export type Database = {
           channels: string[]
           send_to: string
           sent_to_count: number
+          audience_count: number | null
           sent_at: string
         }
         Insert: {
@@ -124,6 +125,7 @@ export type Database = {
           channels: string[]
           send_to?: string
           sent_to_count?: number
+          audience_count?: number | null
           sent_at?: string
         }
         Update: {
@@ -137,6 +139,7 @@ export type Database = {
           channels?: string[]
           send_to?: string
           sent_to_count?: number
+          audience_count?: number | null
           sent_at?: string
         }
         Relationships: [
@@ -162,6 +165,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_blasts: {
+        Row: { id: string; community_id: string | null; owner_user_id: string | null; created_by: string | null;
+               source_template_id: string | null; title: string; description: string; image_path: string | null;
+               created_at: string; updated_at: string }
+        Insert: { id?: string; community_id?: string | null; owner_user_id?: string | null; created_by?: string | null;
+                  source_template_id?: string | null; title: string; description: string; image_path?: string | null;
+                  created_at?: string; updated_at?: string }
+        Update: { id?: string; community_id?: string | null; owner_user_id?: string | null; created_by?: string | null;
+                  source_template_id?: string | null; title?: string; description?: string; image_path?: string | null;
+                  created_at?: string; updated_at?: string }
+        Relationships: []
       }
       user_settings: {
         Row: { user_id: string; notifications_push: boolean; notifications_whatsapp: boolean; notifications_email: boolean; updated_at: string }
@@ -246,6 +261,7 @@ export type Database = {
           description: string | null
           id: string
           location: string | null
+          location_point: unknown
           name: string
           privacy: string
           tenant_id: string
@@ -263,6 +279,7 @@ export type Database = {
           description?: string | null
           id?: string
           location?: string | null
+          location_point?: unknown
           name: string
           privacy?: string
           tenant_id: string
@@ -280,6 +297,7 @@ export type Database = {
           description?: string | null
           id?: string
           location?: string | null
+          location_point?: unknown
           name?: string
           privacy?: string
           tenant_id?: string
@@ -900,6 +918,7 @@ export type Database = {
           guest_gender: string | null
           guest_name: string | null
           has_paid: boolean
+          paid_amount: number
           id: string
           invited_by: string | null
           is_standby: boolean
@@ -916,6 +935,7 @@ export type Database = {
           guest_gender?: string | null
           guest_name?: string | null
           has_paid?: boolean
+          paid_amount?: number
           id?: string
           invited_by?: string | null
           is_standby?: boolean
@@ -932,6 +952,7 @@ export type Database = {
           guest_gender?: string | null
           guest_name?: string | null
           has_paid?: boolean
+          paid_amount?: number
           id?: string
           invited_by?: string | null
           is_standby?: boolean
@@ -1014,6 +1035,7 @@ export type Database = {
           day_of_week: number
           deleted_at: string | null
           duration_minutes: number
+          grid_anchor: string | null
           group_id: string
           id: string
           invite_lead_days: number
@@ -1026,6 +1048,7 @@ export type Database = {
           day_of_week: number
           deleted_at?: string | null
           duration_minutes: number
+          grid_anchor?: string | null
           group_id: string
           id?: string
           invite_lead_days: number
@@ -1038,6 +1061,7 @@ export type Database = {
           day_of_week?: number
           deleted_at?: string | null
           duration_minutes?: number
+          grid_anchor?: string | null
           group_id?: string
           id?: string
           invite_lead_days?: number
@@ -1058,6 +1082,38 @@ export type Database = {
             columns: ["organizer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_series_exceptions: {
+        Row: {
+          cancelled: boolean
+          created_at: string
+          series_id: string
+          slot_date: string
+          starts_at_override: string | null
+        }
+        Insert: {
+          cancelled?: boolean
+          created_at?: string
+          series_id: string
+          slot_date: string
+          starts_at_override?: string | null
+        }
+        Update: {
+          cancelled?: boolean
+          created_at?: string
+          series_id?: string
+          slot_date?: string
+          starts_at_override?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_series_exceptions_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "event_series"
             referencedColumns: ["id"]
           },
         ]
@@ -1153,6 +1209,7 @@ export type Database = {
         Row: {
           allow_standby: boolean
           counts_for_ranking: boolean
+          courts_reserved: boolean
           created_at: string
           deleted_at: string | null
           description: string | null
@@ -1182,6 +1239,7 @@ export type Database = {
           scoring_mode: string
           scoring_value: number | null
           series_id: string | null
+          slot_at: string | null
           specification: string
           standby_spots: number | null
           starts_at: string
@@ -1193,6 +1251,7 @@ export type Database = {
         Insert: {
           allow_standby?: boolean
           counts_for_ranking?: boolean
+          courts_reserved?: boolean
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -1222,6 +1281,7 @@ export type Database = {
           scoring_mode: string
           scoring_value?: number | null
           series_id?: string | null
+          slot_at?: string | null
           specification: string
           standby_spots?: number | null
           starts_at: string
@@ -1233,6 +1293,7 @@ export type Database = {
         Update: {
           allow_standby?: boolean
           counts_for_ranking?: boolean
+          courts_reserved?: boolean
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -1262,6 +1323,7 @@ export type Database = {
           scoring_mode?: string
           scoring_value?: number | null
           series_id?: string | null
+          slot_at?: string | null
           specification?: string
           standby_spots?: number | null
           starts_at?: string
@@ -2466,8 +2528,10 @@ export type Database = {
       can_create_group: { Args: { p_community_id: string }; Returns: boolean }
       can_create_post: { Args: { c: string }; Returns: boolean }
       can_customize_blast: { Args: { p_event_id: string }; Returns: boolean }
+      can_customize_event_blast: { Args: { p_event_id: string }; Returns: boolean }
       can_review_community: { Args: { p_community_id: string }; Returns: boolean }
       cancel_event: { Args: { p_event_id: string; p_scope?: string }; Returns: undefined }
+      cancel_occurrence_slot: { Args: { p_series_id: string; p_slot_date: string }; Returns: undefined }
       chat_channel_spec: {
         Args: { p_kind: string; p_id: string }
         Returns: { name: string; member_ids: string[] }[]
@@ -2502,6 +2566,8 @@ export type Database = {
           p_cover_image_path?: string
           p_description?: string
           p_location?: string
+          p_location_lat?: number | null
+          p_location_lng?: number | null
           p_name: string
           p_privacy?: string
           p_thumbnail_path?: string
@@ -2509,6 +2575,17 @@ export type Database = {
         }
         Returns: string
       }
+      set_community_location: {
+        Args: {
+          p_community_id: string
+          p_lat: number | null
+          p_lng: number | null
+          p_location: string | null
+        }
+        Returns: undefined
+      }
+      follow_player: { Args: { p_user: string }; Returns: string }
+      unfollow_player: { Args: { p_user: string }; Returns: string }
       create_event: { Args: { p_payload: Json }; Returns: string }
       create_group: {
         Args: {
@@ -2572,6 +2649,15 @@ export type Database = {
       event_capacity: { Args: { e: string }; Returns: number }
       event_group_community: { Args: { e: string }; Returns: string }
       event_is_visible: { Args: { e: string; u: string }; Returns: boolean }
+      event_engine_roster: {
+        Args: { p_event_id: string }
+        Returns: {
+          participant_id: string
+          gender: string | null
+          team_id: string | null
+          team_number: number | null
+        }[]
+      }
       event_invited_players: {
         Args: { p_event_id: string }
         Returns: {
@@ -2581,6 +2667,30 @@ export type Database = {
           avatar_url: string | null
           invitee_name: string | null
           invited_at: string
+        }[]
+      }
+      event_next_occurrences: {
+        Args: { p_event_id: string; p_limit?: number }
+        Returns: {
+          slot_date: string
+          starts_at: string
+          duration_minutes: number
+          status: string
+          event_id: string | null
+          name: string | null
+          venue_id: string | null
+          location_name: string | null
+          location_address: string | null
+          overridden: boolean
+        }[]
+      }
+      event_invite_candidates: {
+        Args: { p_event_id: string; p_query?: string | null; p_limit?: number }
+        Returns: {
+          id: string
+          full_name: string | null
+          avatar_url: string | null
+          section: string
         }[]
       }
       event_partner_candidates: {
@@ -2604,6 +2714,11 @@ export type Database = {
       may_create_event: { Args: { c: string }; Returns: boolean }
       may_create_group: { Args: { c: string }; Returns: boolean }
       may_invite_to_group: { Args: { g: string; u: string }; Returns: boolean }
+      send_occurrence_now: { Args: { p_series_id: string; p_slot_date: string }; Returns: string }
+      set_event_recurrence: {
+        Args: { p_event_id: string; p_on: boolean; p_invite_lead_days?: number | null }
+        Returns: undefined
+      }
       set_event_timer: {
         Args: { p_event_id: string; p_action: string }
         Returns: undefined
@@ -2618,6 +2733,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          distance_m: number | null
           id: string
           location: string | null
           name: string
@@ -2626,13 +2742,8 @@ export type Database = {
           thumbnail_path: string | null
           type: string
           updated_at: string
+          viewer_state: string
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "communities"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       explore_events: {
         Args: { p_limit?: number; p_offset?: number }
@@ -2646,19 +2757,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          distance_m: number | null
           id: string
           is_general: boolean
           is_private: boolean
           name: string
           thumbnail_path: string | null
           updated_at: string
+          viewer_state: string
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "groups"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       explore_players: {
         Args: { p_limit?: number; p_offset?: number }
@@ -2669,13 +2776,102 @@ export type Database = {
           full_name: string
           id: string
           shared_count: number
+          viewer_state: string
         }[]
+      }
+      // --- Discovery search (migration 0129) ---
+      search_players: {
+        Args: { p_q: string | null; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          full_name: string
+          avatar_url: string | null
+          dominant_hand: string | null
+          court_side: string | null
+          viewer_state: string
+          total_count: number
+        }[]
+      }
+      search_events: {
+        Args: { p_q: string | null; p_filters?: Json; p_sort?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          event: Database['public']['Tables']['events']['Row']
+          distance_m: number | null
+          viewer_state: string
+          total_count: number
+        }[]
+      }
+      search_groups: {
+        Args: { p_q: string | null; p_filters?: Json; p_sort?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          community_id: string
+          community_name: string
+          name: string
+          is_general: boolean
+          is_private: boolean
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          thumbnail_path: string | null
+          updated_at: string
+          member_count: number
+          distance_m: number | null
+          viewer_state: string
+          total_count: number
+        }[]
+      }
+      search_communities: {
+        Args: { p_q: string | null; p_filters?: Json; p_sort?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          tenant_id: string
+          name: string
+          description: string | null
+          type: string
+          privacy: string
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          location: string | null
+          thumbnail_path: string | null
+          cover_image_path: string | null
+          cancellation_rules_enabled: boolean
+          cancellation_rules_text: string | null
+          updated_at: string
+          member_count: number
+          distance_m: number | null
+          viewer_state: string
+          total_count: number
+        }[]
+      }
+      search_suggest: {
+        Args: { p_q: string | null; p_limit?: number }
+        Returns: { kind: string; id: string; label: string }[]
+      }
+      search_for_you_terms: {
+        Args: Record<PropertyKey, never>
+        Returns: { kind: string; value: string }[]
+      }
+      search_norm: {
+        Args: { p: string }
+        Returns: string
+      }
+      search_rank: {
+        Args: { p_name: string; p_q: string }
+        Returns: number | null
+      }
+      search_pattern: {
+        Args: { p_q: string }
+        Returns: string
       }
       my_events: {
         Args: { p_filter?: string; p_limit?: number; p_offset?: number; p_include_past?: boolean }
         Returns: {
           allow_standby: boolean
           counts_for_ranking: boolean
+          courts_reserved: boolean
           created_at: string
           deleted_at: string | null
           description: string | null
@@ -2705,6 +2901,7 @@ export type Database = {
           scoring_mode: string
           scoring_value: number | null
           series_id: string | null
+          slot_at: string | null
           specification: string
           standby_spots: number | null
           starts_at: string
@@ -2827,10 +3024,6 @@ export type Database = {
           is_followed_by: boolean
         }[]
       }
-      log_event_activity: {
-        Args: { p_event_id: string; p_action: string; p_detail?: Json }
-        Returns: undefined
-      }
       block_user: { Args: { p_target: string }; Returns: undefined }
       unblock_user: { Args: { p_target: string }; Returns: undefined }
       list_my_blocks: {
@@ -2880,13 +3073,43 @@ export type Database = {
         Args: {
           p_event_id: string
           p_source_template_id: string | null
-          p_title: string
-          p_description: string
+          p_title: string | null
+          p_description: string | null
           p_image_path: string | null
           p_channels: string[]
+          p_send_to?: string
+          p_save?: boolean
         }
-        Returns: { blast_id: string; sent_to_count: number }[]
+        Returns: { blast_id: string; sent_to_count: number; audience_count: number; share_text: string | null }[]
       }
+      list_saved_blasts: {
+        Args: { p_event_id: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          image_path: string | null
+          source_template_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      save_blast: {
+        Args: {
+          p_event_id: string
+          p_title: string
+          p_description: string
+          p_image_path?: string | null
+          p_source_template_id?: string | null
+        }
+        Returns: string
+      }
+      update_saved_blast: {
+        Args: { p_saved_blast_id: string; p_title: string; p_description: string; p_image_path?: string | null }
+        Returns: undefined
+      }
+      delete_saved_blast: { Args: { p_saved_blast_id: string }; Returns: undefined }
       event_roster_csv: {
         Args: { p_event_id: string }
         Returns: string
@@ -3063,6 +3286,8 @@ export type Database = {
       leave_waiting_list: { Args: { p_event_id: string }; Returns: undefined }
       longtransactionsenabled: { Args: never; Returns: boolean }
       mark_all_paid: { Args: { p_event_id: string }; Returns: undefined }
+      mark_notifications_prompted: { Args: never; Returns: string }
+      mark_onboarded: { Args: never; Returns: string }
       mark_paid: {
         Args: { p_paid: boolean; p_participant_id: string }
         Returns: undefined
@@ -3076,6 +3301,25 @@ export type Database = {
         }
         Returns: undefined
       }
+      organizer_add_guest_to_team: {
+        Args: {
+          p_event_id: string
+          p_team_number: number
+          p_slot: string
+          p_name: string
+          p_gender?: string | null
+        }
+        Returns: string
+      }
+      organizer_confirm_invitee: {
+        Args: {
+          p_event_id: string
+          p_user_id: string
+          p_team_number?: number | null
+          p_slot?: string | null
+        }
+        Returns: string
+      }
       organizer_mark_confirmed: {
         Args: { p_participant_id: string }
         Returns: undefined
@@ -3088,9 +3332,17 @@ export type Database = {
         Args: { p_mode: string; p_participant_id: string }
         Returns: undefined
       }
+      organizer_revoke_invitation: {
+        Args: { p_event_id: string; p_invitation_id: string }
+        Returns: undefined
+      }
       organizer_switch_players: {
         Args: { p_a: string; p_b: string; p_event_id: string }
         Returns: undefined
+      }
+      organizer_switch_with_invitee: {
+        Args: { p_event_id: string; p_participant_id: string; p_user_id: string }
+        Returns: string
       }
       partner_request_summary: {
         Args: Record<PropertyKey, never>
@@ -3769,8 +4021,15 @@ export type Database = {
           entity_id: string
           is_team: boolean
           losses: number
+          name_a: string | null
+          name_b: string | null
+          participant_a_id: string | null
+          participant_b_id: string | null
           points: number
           rank: number
+          team_number: number | null
+          user_a_id: string | null
+          user_b_id: string | null
           wins: number
         }[]
       }
@@ -3778,6 +4037,7 @@ export type Database = {
         Args: { p_event_id: string; p_rounds?: Json }
         Returns: undefined
       }
+      start_event_check: { Args: { p_event_id: string }; Returns: Json }
       start_new_season: { Args: { p_group_id: string }; Returns: number }
       submit_score: {
         Args: {
@@ -3790,7 +4050,8 @@ export type Database = {
       }
       unarchive_group: { Args: { p_group_id: string }; Returns: undefined }
       unlockrows: { Args: { "": string }; Returns: number }
-      update_event: { Args: { p_event_id: string; p_payload: Json }; Returns: undefined }
+      update_event: { Args: { p_event_id: string; p_payload: Json; p_scope?: string }; Returns: undefined }
+      update_occurrence_slot: { Args: { p_series_id: string; p_slot_date: string; p_starts_at: string }; Returns: undefined }
       updategeometrysrid: {
         Args: {
           catalogn_name: string

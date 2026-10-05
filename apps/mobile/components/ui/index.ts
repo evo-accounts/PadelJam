@@ -26,6 +26,8 @@ export { DateField } from './DateField';
 export { CodeField, type CodeFieldProps } from './CodeField';
 export { activeIndex, boxStates, sanitiseCode, type BoxState } from './codeInput';
 export { Dots, type DotsProps } from './Dots';
+export { Donut, type DonutProps } from './Donut';
+export { donutArc } from './donutArc';
 export { EmptyState, listEmptyContent } from './EmptyState';
 export { emptyIcon } from './emptyIcon';
 export { Field } from './Field';

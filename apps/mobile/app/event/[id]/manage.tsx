@@ -1,79 +1,77 @@
+/**
+ * Manage Event (UX-MEVT-03) — an overview, reached from the settings icon on the event page (its
+ * only entry point). Every card opens a sheet holding only that piece of information
+ * (`EventEditSheet`), never the creation steps as one form.
+ *
+ *   header    back · "Manage Event"; format, modality and group as read-only chips (UX-MEVT-09)
+ *   cards     Event name → General Info · Preferences | Scoring · Confirmed | Paid (donuts —
+ *             two lists that never merge) · Location → Location & Courts · Date → Date & Time ·
+ *             Activity (full screen) · Next occurrences (a recurring event, UX-MEVT-22)
+ *   actions   Share, Add to calendar, Send blast, Export, Start event
+ *   footer    Duplicate | Cancel
+ *
+ * Only a scheduled event is editable (update_event refuses anything else): the cards of an event
+ * in progress are read-only. A completed event reduces to the Paid donut, the ranking toggle,
+ * Activity, Export and Duplicate (decision 16). The Paid card is hidden when there is no fee.
+ *
+ * `?sheet=<kind>` opens one of the edit sheets on arrival — the event page's Preferences chip and
+ * the "Add a location" pending action link here that way.
+ */
 import {
-  useAddManualParticipant,
-  useCancelEvent,
-  useDuplicateEvent,
+  type EventDetail,
   useEvent,
+  useEventCourts,
   useEventInvitations,
   useEventParticipants,
-  useMarkAllPaid,
-  useMarkConfirmed,
-  useMarkPaid,
-  useRemoveParticipant,
-  useSendRosterCsvEmail,
+  useEventTeams,
+  useEventSeries,
+  useGroup,
+  useSetEventRanking,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
-import { buildRosterCsv, rosterCsvFilename } from '@padel/utils';
-import * as Clipboard from 'expo-clipboard';
-import * as FileSystem from 'expo-file-system/legacy';
+import { eventPlace, formatEventWhen, mapsQuery, participationState } from '@padel/utils';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import * as Sharing from 'expo-sharing';
-import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { TeamManage } from '@/components/event/TeamManage';
-import { avatarUrl } from '@/lib/community-images';
-import { colors, palette } from '../../../theme';
+import { CancelEventSheet } from '@/components/event/manage/CancelEventSheet';
+import { DuplicateEventSheet } from '@/components/event/manage/DuplicateEventSheet';
+import { EDIT_SHEET_KINDS, EventEditSheet, type EditSheetKind } from '@/components/event/manage/EventEditSheet';
+import { formatLabel, modalityLabel, preferencesSummary, scoringLabel } from '@/components/event/manage/eventLabels';
+import { ExportSheet } from '@/components/event/manage/ExportSheet';
+import { NextOccurrences } from '@/components/event/manage/NextOccurrences';
+import { RecurringCapPrompt } from '@/components/event/manage/RecurringCapPrompt';
+import { useStartFlow } from '@/components/event/manage/useStartFlow';
+import { addToCalendar } from '@/lib/eventCalendar';
+import { shareEvent } from '@/lib/eventShare';
+import { useGoBack } from '@/lib/useGoBack';
+import { useNow } from '@/lib/useNow';
+import { Chevron } from '../../../components/event/EventDetailParts';
+import { colors, space } from '../../../theme';
 import {
-  Avatar,
+  Badge,
   Button,
-  Chip,
+  Card,
+  Donut,
   EmptyState,
-  emptyIcon,
-  Field,
-  Screen,
+  SwitchRow,
   Text,
   TopBar,
-  useActionSheet,
   useBanner,
-  useConfirm,
 } from '../../../components/ui';
 
-/** Display name for a participant row: profile name, then guest name, then dash. */
-function rowName(p: { profiles?: { full_name: string | null } | null; guest_name: string | null }): string {
-  return p.profiles?.full_name ?? p.guest_name ?? '—';
-}
+type Sheet = EditSheetKind | 'export' | 'duplicate' | 'cancel';
 
-export default function EventManageScreen() {
+export default function ManageEventScreen() {
   const { t } = useT('event');
-  const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { t: tcommon } = useT('common');
+  const goBack = useGoBack();
+  const { id, sheet } = useLocalSearchParams<{ id: string; sheet?: string }>();
   const uid = useSession().session?.user.id;
-  const confirm = useConfirm();
-  const show = useActionSheet();
-  const banner = useBanner();
+  const { data: event, isLoading, isError, refetch } = useEvent(id);
 
-  // --- Data ---
-  const { data: event, isLoading } = useEvent(id);
-  const { data: participantsData } = useEventParticipants(id);
-  const { data: invitationsData } = useEventInvitations(id);
-
-  // --- Mutations (all hooks declared before any early return) ---
-  const markConfirmed = useMarkConfirmed(id);
-  const removeParticipant = useRemoveParticipant(id);
-  const addManual = useAddManualParticipant(id);
-  const markPaid = useMarkPaid(id);
-  const markAllPaid = useMarkAllPaid(id);
-  const duplicateEvent = useDuplicateEvent();
-  const cancelEvent = useCancelEvent(id);
-  const sendCsvEmail = useSendRosterCsvEmail(id);
-
-  const [manualName, setManualName] = useState('');
-  const [manualGender, setManualGender] = useState<'male' | 'female' | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  // --- Loading ---
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
@@ -81,463 +79,391 @@ export default function EventManageScreen() {
       </SafeAreaView>
     );
   }
-
-  // --- Organizer guard: no event (RLS) or not the organizer -> back out. ---
-  const isOrganizer = event != null && uid != null && uid === event.organizer_id;
-  if (event == null || !isOrganizer) {
+  if (isError) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
-        <View style={styles.guard}>
-          <Text variant="sectionTitle" style={styles.guardTitle}>{t('forbidden')}</Text>
-          <Button label={t('back')} variant="outline" onPress={() => router.back()} />
-        </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <TopBar onBack={goBack} backLabel={t('back')} title={t('manageEventTitle')} />
+        <EmptyState
+          fill
+          tone="error"
+          title={tcommon('loadError')}
+          action={{ label: tcommon('retry'), onPress: () => void refetch() }}
+          testID="manage-load-error"
+        />
+      </SafeAreaView>
+    );
+  }
+  // Organizer only: no event (RLS) or someone else's.
+  if (event == null || uid == null || uid !== event.organizer_id) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <TopBar onBack={goBack} backLabel={t('back')} title={t('manageEventTitle')} />
+        <EmptyState fill title={t('forbidden')} testID="manage-forbidden" />
       </SafeAreaView>
     );
   }
 
+  const initialSheet = EDIT_SHEET_KINDS.includes(sheet as EditSheetKind) ? (sheet as EditSheetKind) : null;
+  return <Dashboard key={event.id} event={event} initialSheet={initialSheet} />;
+}
+
+function Dashboard({ event, initialSheet }: { event: EventDetail; initialSheet: Sheet | null }) {
+  const { t, i18n } = useT('event');
+  const router = useRouter();
+  const goBack = useGoBack();
+  const banner = useBanner();
+  const nowMs = useNow();
+  const id = event.id;
+  const { data: participantsData } = useEventParticipants(id);
+  const { data: teamsData } = useEventTeams(id);
+  const { data: invitationsData } = useEventInvitations(id);
+  const { data: series } = useEventSeries(id);
+  const { data: courtIds } = useEventCourts(id);
+  const setRanking = useSetEventRanking(id);
+  const startFlow = useStartFlow(id, event);
+  const { data: group } = useGroup(event.group_id);
+  const [capPrompt, setCapPrompt] = useState(false);
+  const [sheet, setSheet] = useState<Sheet | null>(null);
+  // A sheet asked for on arrival opens once the push has settled: a Modal presented mid-transition
+  // can be dropped by UIKit.
+  useEffect(() => {
+    if (initialSheet == null) return;
+    const handle = setTimeout(() => setSheet(initialSheet), 450);
+    return () => clearTimeout(handle);
+  }, [initialSheet]);
+  const [calendarBusy, setCalendarBusy] = useState(false);
+
   const participants = participantsData ?? [];
-  const invitations = invitationsData ?? [];
+  const completeTeams = (teamsData ?? []).filter((tm) => tm.player_a != null && tm.player_b != null).length;
+  const recurring = event.series_id != null && series != null && series.is_active;
+  const lang = i18n.language;
+  const onToggleRanking = (on: boolean) =>
+    void setRanking.mutateAsync(on).catch((e: unknown) => banner.show(t(e instanceof Error ? e.message : 'unknown_error')));
+  const rankingPending = setRanking.isPending;
 
-  // --- Header stats ---
-  const capacity = event.num_courts * 4;
-  const confirmed = participants.filter((p) => p.status === 'confirmed' && !p.is_standby);
-  const standby = participants.filter((p) => p.is_standby);
-  const waiting = participants.filter((p) => p.status === 'waiting_list');
-  const paidCount = participants.filter((p) => p.has_paid).length;
-  const feeEnabled = event.entrance_fee_enabled;
-  const isMixed = event.specification === 'mixed';
+  const status = event.status;
+  const editable = status === 'scheduled';
+  const completed = status === 'completed';
+  const hasFee = event.entrance_fee_enabled;
+  const ps = participationState(event, participants, invitationsData ?? [], event.organizer_id, nowMs);
+  const confirmed = participants.filter((p) => p.status === 'confirmed');
+  const confirmedMain = confirmed.filter((p) => !p.is_standby).length;
+  const paid = confirmed.filter((p) => p.has_paid).length;
+  const anyonePaid = participants.some((p) => p.has_paid);
+  const place = eventPlace(event);
+  const isPublicGroup = event.group_id != null && !event.is_private;
 
-  // --- Action wrapper (serialises mutations + surfaces errors via the banner) ---
-  const run = async (action: () => Promise<unknown>) => {
-    setBusy(true);
-    try {
-      await action();
-    } catch (e) {
-      const code = e instanceof Error ? e.message : 'unknown_error';
-      banner.show(t(code));
-    } finally {
-      setBusy(false);
-    }
+  const open = (s: Sheet) => () => setSheet(s);
+  const edit = (s: EditSheetKind) => (editable ? open(s) : undefined);
+
+  const onShare = () => void shareEvent(id, event.name).catch(() => undefined);
+  const onCalendar = async () => {
+    if (calendarBusy) return;
+    setCalendarBusy(true);
+    const result = await addToCalendar({
+      title: event.name,
+      startsAt: event.starts_at,
+      durationMinutes: event.duration_minutes,
+      location: place ? mapsQuery(place) : null,
+      notes: event.description,
+    }).finally(() => setCalendarBusy(false));
+    if (result === 'denied') banner.show(t('calendarDenied'));
+    else if (result === 'error') banner.show(t('calendarError'));
   };
 
-  const onConfirm = (participantId: string, targetName?: string) =>
-    run(() => markConfirmed.mutateAsync({ participantId, targetName }));
+  const confirmedCard = (
+    <DashCard
+      title={t('dashConfirmedTitle')}
+      a11yValue={t('dashRatio', { n: ps.totalIn, total: ps.totalCapacity })}
+      // UX-MEVT-26: a team event adds how many pairs are complete under the count.
+      detail={event.specification === 'team' ? t('dashTeamsComplete', { count: completeTeams }) : undefined}
+      onPress={() => router.push(`/event/${id}/manage-players` as Href)}
+      testID="manage-confirmed"
+      half
+    >
+      <Donut value={ps.totalIn} total={ps.totalCapacity} accessibilityLabel={t('dashConfirmedTitle')} decorative />
+    </DashCard>
+  );
+  const paidCard = hasFee ? (
+    <DashCard
+      title={t('dashPaidTitle')}
+      a11yValue={t('dashRatio', { n: paid, total: confirmed.length })}
+      onPress={() => router.push(`/event/${id}/payments` as Href)}
+      testID="manage-paid"
+      half
+    >
+      <Donut value={paid} total={confirmed.length} accessibilityLabel={t('dashPaidTitle')} decorative />
+    </DashCard>
+  ) : null;
+  const activityCard = (
+    <DashCard
+      title={t('activityTitle')}
+      onPress={() => router.push(`/event/${id}/activity` as Href)}
+      testID="manage-activity"
+    />
+  );
+  const exportAction = (
+    <Button label={t('exportDataCta')} variant="secondary" fullWidth onPress={open('export')} testID="manage-export" />
+  );
+  const duplicateAction = (
+    <Button
+      label={t('duplicateCta')}
+      variant="secondary"
+      onPress={open('duplicate')}
+      style={styles.flex}
+      testID="manage-duplicate"
+    />
+  );
 
-  const onRemove = async (participantId: string, targetName?: string) => {
-    const key = await show({
-      title: t('removeConfirmTitle'),
-      actions: [
-        { key: 'to_invited', label: t('removeToInvitedCta') },
-        {
-          key: 'from_event',
-          label: t('removeFromEventCta'),
-          destructive: true,
-          confirm: { title: t('removeConfirmTitle'), body: t('removeConfirmBody'), confirmLabel: t('removeFromEventCta') },
-        },
-      ],
-    });
-    if (key === 'to_invited' || key === 'from_event') {
-      void run(() => removeParticipant.mutateAsync({ participantId, mode: key, targetName }));
-    }
-  };
-
-  const onAddManual = () => {
-    const name = manualName.trim();
-    if (name.length === 0) return;
-    void run(async () => {
-      await addManual.mutateAsync({
-        name,
-        gender: isMixed && manualGender != null ? manualGender : undefined,
-      });
-      setManualName('');
-      setManualGender(null);
-    });
-  };
-
-  const onTogglePaid = (participantId: string, paid: boolean, targetName?: string) =>
-    run(() => markPaid.mutateAsync({ participantId, paid, targetName }));
-
-  const onMarkAllPaid = () => run(() => markAllPaid.mutateAsync());
-
-  const onDuplicate = () =>
-    run(async () => {
-      const newId = await duplicateEvent.mutateAsync({
-        eventId: id,
-        groupId: event.group_id,
-      });
-      if (typeof newId === 'string') {
-        router.replace(`/event/${newId}` as Href);
-      }
-    });
-
-  const onExportCsv = () =>
-    run(async () => {
-      const csv = buildRosterCsv(participants, {
-        entrance_fee_enabled: event.entrance_fee_enabled,
-        entrance_fee_amount: event.entrance_fee_amount,
-      });
-      const filename = rosterCsvFilename(event.name, new Date().toISOString().slice(0, 10));
-      const uri = FileSystem.documentDirectory + filename;
-      await FileSystem.writeAsStringAsync(uri, csv);
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: filename });
-      } else {
-        await Clipboard.setStringAsync(csv);
-        banner.show(t('exportUnavailable'));
-      }
-    });
-
-  const onExport = async () => {
-    const key = await show({
-      title: t('exportSheetTitle'),
-      actions: [
-        { key: 'csv', label: t('exportCsvCta') },
-        { key: 'email', label: t('emailCsvCta') },
-      ],
-    });
-    if (key === 'csv') {
-      void onExportCsv();
-    } else if (key === 'email') {
-      void run(async () => {
-        await sendCsvEmail.mutateAsync();
-        banner.show(t('csvEmailed'), 'success');
-      });
-    }
-  };
-
-  const doCancel = (scope: 'only_this' | 'this_and_upcoming') =>
-    run(async () => {
-      await cancelEvent.mutateAsync({ scope });
-      router.back();
-    });
-
-  const onCancelEvent = async () => {
-    if (event.series_id != null) {
-      const key = await show({
-        title: t('cancelRecurringTitle'),
-        actions: [
-          {
-            key: 'only_this',
-            label: t('cancelOnlyThisCta'),
-            destructive: true,
-            confirm: { title: t('cancelRecurringTitle'), confirmLabel: t('cancelOnlyThisCta') },
-          },
-          {
-            key: 'this_and_upcoming',
-            label: t('cancelThisAndUpcomingCta'),
-            destructive: true,
-            confirm: { title: t('cancelRecurringTitle'), confirmLabel: t('cancelThisAndUpcomingCta') },
-          },
-        ],
-      });
-      if (key === 'only_this' || key === 'this_and_upcoming') {
-        void doCancel(key);
-      }
-    } else if (
-      await confirm({
-        title: t('cancelStandardTitle'),
-        body: t('cancelStandardBody'),
-        confirmLabel: t('cancelEventCta'),
-        destructive: true,
-      })
-    ) {
-      void doCancel('only_this');
-    }
-  };
-
-  // --- A single roster row (confirm + remove + optional paid toggle). ---
-  const renderRow = (p: (typeof participants)[number]) => {
-    const name = rowName(p);
-    const showConfirm = p.status !== 'confirmed';
-    return (
-      <View key={p.id} style={styles.row}>
-        {/* Decorative: the participant's name is right beside it as its own Text node. */}
-        <Avatar
-          uri={avatarUrl(p.profiles?.avatar_url)}
-          name={name}
-          colourKey={p.profiles?.id ?? p.user_id}
-          size="sm"
-          decorative
-        />
-        <Text variant="body" numberOfLines={1} style={styles.rowName}>
-          {name}
-        </Text>
-        <View style={styles.rowActions}>
-          {feeEnabled ? (
-            <Chip
-              label={p.has_paid ? t('paidBadge') : t('unpaidBadge')}
-              selected={p.has_paid}
-              disabled={busy}
-              onPress={() =>
-                onTogglePaid(p.id, !p.has_paid, p.profiles?.full_name ?? p.guest_name ?? undefined)
-              }
-            />
-          ) : null}
-          {showConfirm ? (
-            <Button
-              label={t('markConfirmedCta')}
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              onPress={() => onConfirm(p.id, p.profiles?.full_name ?? p.guest_name ?? undefined)}
-            />
-          ) : null}
-          <Button
-            label={t('removeCta')}
-            size="sm"
-            variant="destructive"
-            disabled={busy}
-            onPress={() => onRemove(p.id, p.profiles?.full_name ?? p.guest_name ?? undefined)}
-          />
-        </View>
-      </View>
-    );
-  };
-
-  const hasRoster =
-    confirmed.length > 0 || invitations.length > 0 || waiting.length > 0 || standby.length > 0;
+  const chips = [
+    formatLabel(t, event),
+    event.specification === 'team' ? t('teamFormatBadge') : modalityLabel(t, event),
+    event.group?.name ?? (event.group_id == null ? t('groupBadgeNone') : null),
+  ].filter((c): c is string => c != null);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar title={t('manageTitle')} onBack={() => router.back()} backLabel={t('back')} />
-
-      <Screen scroll padded={false} style={styles.content}>
-        {/* Header stats */}
-        <View style={styles.stats}>
-          <Text variant="bodyStrong">
-            {t('statConfirmed', { confirmed: confirmed.length, capacity })}
-          </Text>
-          {feeEnabled ? (
-            <Text variant="bodyStrong">
-              {t('statPaid', { paid: paidCount, total: participants.length })}
-            </Text>
-          ) : null}
+      <TopBar onBack={goBack} backLabel={t('back')} title={t('manageEventTitle')} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.chips}>
+          {chips.map((c) => (
+            <Badge key={c} label={c} tone="primary" />
+          ))}
         </View>
 
-        {/* TODO(Phase 6f): edit Location & Courts (deferred). */}
-        {event.status === 'scheduled' ? (
-          <View style={styles.section}>
-            <Button
-              label={t('editEventCta')}
-              variant="outline"
-              onPress={() => router.push(`/event/${id}/edit` as never)}
-            />
-          </View>
-        ) : null}
-
-        <View style={styles.section}>
-          <Button
-            label={t('cancelEventCta')}
-            variant="destructive"
-            disabled={busy}
-            onPress={onCancelEvent}
-          />
-
-        </View>
-
-        {/* Add player manually */}
-        <View style={styles.section}>
-          <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('addManualCta')}</Text>
-          <Field
-            containerStyle={styles.fieldSpacing}
-            value={manualName}
-            onChangeText={setManualName}
-            placeholder={t('manualNameLabel')}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-          {isMixed ? (
-            <View style={styles.genderRow}>
-              <Text variant="hint" tone="muted">{t('manualGenderLabel')}</Text>
-              <View style={styles.genderOptions}>
-                {(['male', 'female'] as const).map((g) => (
-                  <Chip
-                    key={g}
-                    label={t(g === 'male' ? 'genderMale' : 'genderFemale')}
-                    selected={manualGender === g}
-                    onPress={() => setManualGender(g)}
-                  />
-                ))}
-              </View>
+        {completed ? (
+          <>
+            {paidCard ? <View style={styles.row}>{paidCard}</View> : null}
+            {isPublicGroup ? (
+              <Card padding="md">
+                <SwitchRow
+                  label={t('rankingToggleLabel')}
+                  value={event.counts_for_ranking}
+                  onValueChange={onToggleRanking}
+                  disabled={rankingPending}
+                  testID="manage-ranking"
+                />
+              </Card>
+            ) : null}
+            {activityCard}
+            <View style={styles.actions}>
+              {exportAction}
+              <View style={styles.row}>{duplicateAction}</View>
             </View>
-          ) : null}
-          <Button
-            label={t('addManualCta')}
-            fullWidth
-            disabled={busy || manualName.trim().length === 0}
-            onPress={onAddManual}
-          />
-        </View>
-
-        {/* Roster */}
-        {event.specification === 'team' ? (
-          <TeamManage eventId={id} numCourts={event.num_courts} participants={participants} />
-        ) : !hasRoster ? (
-          <View style={styles.section}>
-            <EmptyState
-              icon={emptyIcon('person.2')}
-              title={t('noRoster')}
-              body={t('rosterEmptyBody')}
-              action={
-                isOrganizer
-                  ? { label: t('rosterEmptyCta'), onPress: () => router.push(`/event/${id}/blast` as never) }
-                  : undefined
-              }
-              testID="empty-roster"
-            />
-          </View>
+          </>
         ) : (
           <>
-            {confirmed.length > 0 ? (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('rosterConfirmedSection')}</Text>
-                  {feeEnabled ? (
-                    <Button
-                      label={t('markAllPaidCta')}
-                      variant="ghost"
-                      size="sm"
-                      disabled={busy}
-                      onPress={onMarkAllPaid}
-                    />
-                  ) : null}
-                </View>
-                {confirmed.map(renderRow)}
-              </View>
-            ) : null}
+            <DashCard title={t('dashNameTitle')} value={event.name} onPress={edit('general')} testID="manage-name" />
+            <View style={styles.row}>
+              <DashCard
+                title={t('step8Title')}
+                value={preferencesSummary(t, event)}
+                onPress={edit('preferences')}
+                testID="manage-preferences"
+                half
+              />
+              <DashCard
+                title={t('widgetScoring')}
+                value={scoringLabel(t, event)}
+                onPress={edit('scoring')}
+                testID="manage-scoring"
+                half
+              />
+            </View>
+            <View style={styles.row}>
+              {confirmedCard}
+              {paidCard}
+            </View>
+            <DashCard
+              title={t('locationCardTitle')}
+              value={place?.name ?? t('noLocationValue')}
+              detail={t('dashCourts', { count: event.num_courts })}
+              onPress={edit('location')}
+              testID="manage-location"
+            />
+            <DashCard
+              title={t('dateLabel')}
+              value={formatEventWhen(new Date(event.starts_at), event.duration_minutes, lang)}
+              onPress={edit('date')}
+              testID="manage-date"
+            />
+            {activityCard}
+            {recurring ? <NextOccurrences eventId={id} /> : null}
 
-            {invitations.length > 0 ? (
-              <View style={styles.section}>
-                <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('rosterInvitedSection')}</Text>
-                {invitations.map((inv) => {
-                  const name = inv.invitee?.full_name ?? inv.invitee_name ?? '—';
-                  return (
-                    <View key={inv.id} style={styles.row}>
-                      {/* Decorative: the invitee's name is right beside it as its own Text node. */}
-                      <Avatar
-                        uri={avatarUrl(inv.invitee?.avatar_url)}
-                        name={name}
-                        colourKey={inv.invitee?.id ?? inv.invitee_id}
-                        size="sm"
-                        decorative
-                      />
-                      <Text variant="body" numberOfLines={1} style={styles.rowName}>
-                        {name}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : null}
+            <View style={styles.actions}>
+              <Button label={t('shareAction')} variant="secondary" fullWidth onPress={onShare} testID="manage-share" />
+              <Button
+                label={t('addToCalendarAction')}
+                variant="secondary"
+                fullWidth
+                loading={calendarBusy}
+                onPress={() => void onCalendar()}
+                testID="manage-calendar"
+              />
+              {/* Group and group-less events alike (decision 6, migration 0124). */}
+              <Button
+                label={t('sendBlastCta')}
+                variant="secondary"
+                fullWidth
+                onPress={() => router.push(`/event/${id}/blast` as Href)}
+                testID="manage-blast"
+              />
+              {exportAction}
+              {editable ? (
+                <Button
+                  label={t('startCta')}
+                  fullWidth
+                  loading={startFlow.pending}
+                  onPress={startFlow.onStart}
+                  testID="manage-start"
+                />
+              ) : null}
+            </View>
 
-            {waiting.length > 0 ? (
-              <View style={styles.section}>
-                <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('rosterWaitingSection')}</Text>
-                {waiting.map(renderRow)}
-              </View>
-            ) : null}
-
-            {standby.length > 0 ? (
-              <View style={styles.section}>
-                <Text variant="label" tone="muted" style={styles.sectionTitle}>{t('rosterStandbySection')}</Text>
-                {standby.map(renderRow)}
-              </View>
-            ) : null}
+            <View style={styles.row}>
+              {duplicateAction}
+              {editable ? (
+                <Button
+                  label={t('cancelEventCta')}
+                  variant="destructive"
+                  onPress={open('cancel')}
+                  style={styles.flex}
+                  testID="manage-cancel"
+                />
+              ) : null}
+            </View>
           </>
         )}
+      </ScrollView>
 
-        {/* Activity log */}
-        <View style={styles.section}>
-          <Button
-            label={t('activityLogCta')}
-            variant="outline"
-            onPress={() => router.push(`/event/${id}/activity` as never)}
-          />
-        </View>
-
-        {/* Send a blast (community events only) */}
-        {event.group_id != null ? (
-          <View style={styles.section}>
-            <Button
-              label={t('sendBlastCta')}
-              variant="outline"
-              onPress={() => router.push(`/event/${id}/blast` as never)}
-            />
-          </View>
-        ) : null}
-
-        {/* Export attendance CSV */}
-        <View style={styles.section}>
-          <Button
-            label={t('exportCsvCta')}
-            variant="outline"
-            onPress={onExport}
-          />
-        </View>
-
-        {/* Duplicate */}
-        <View style={styles.section}>
-          <Button
-            label={t('duplicateCta')}
-            variant="outline"
-            onPress={onDuplicate}
-          />
-        </View>
-      </Screen>
+      {sheet != null && (EDIT_SHEET_KINDS as readonly string[]).includes(sheet) && editable ? (
+        <EventEditSheet
+          kind={sheet as EditSheetKind}
+          event={event}
+          confirmedMain={confirmedMain}
+          recurring={recurring}
+          inviteLeadDays={series?.invite_lead_days}
+          courtIds={courtIds}
+          onClose={() => setSheet(null)}
+          onSaved={() => {
+            setSheet(null);
+            banner.show(t('eventSavedToast'), 'success');
+          }}
+          onUpgrade={() => {
+            setSheet(null);
+            // Let the edit sheet's Modal finish dismissing before the next one presents.
+            setTimeout(() => setCapPrompt(true), 450);
+          }}
+        />
+      ) : null}
+      {capPrompt && group ? (
+        <RecurringCapPrompt communityId={group.community_id} onClose={() => setCapPrompt(false)} />
+      ) : null}
+      {startFlow.sheet}
+      {sheet === 'export' ? (
+        <ExportSheet
+          event={event}
+          onClose={() => setSheet(null)}
+          onDone={(message, tone) => {
+            setSheet(null);
+            banner.show(message, tone);
+          }}
+        />
+      ) : null}
+      {sheet === 'duplicate' ? (
+        <DuplicateEventSheet
+          event={event}
+          courtIds={courtIds}
+          onClose={() => setSheet(null)}
+          onDuplicated={(newId) => {
+            setSheet(null);
+            banner.show(t('duplicatedToast'), 'success');
+            router.replace(`/event/${newId}` as Href);
+          }}
+        />
+      ) : null}
+      {sheet === 'cancel' ? (
+        <CancelEventSheet
+          event={event}
+          recurring={recurring}
+          anyonePaid={anyonePaid}
+          onClose={() => setSheet(null)}
+          onCancelled={() => {
+            setSheet(null);
+            banner.show(t('cancelledToast'), 'success');
+            goBack();
+          }}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
 
+/**
+ * One dashboard card: its title, the current value as a subtitle, and a chevron when it opens
+ * something. A pressable card is ONE button whose name carries the value ("Scoring, Points · 32"),
+ * so a donut inside it is decorative.
+ */
+function DashCard({
+  title,
+  value,
+  detail,
+  a11yValue,
+  onPress,
+  half = false,
+  children,
+  testID,
+}: {
+  title: string;
+  value?: string;
+  detail?: string;
+  /** What a screen reader hears after the title when the value is drawn (a donut). */
+  a11yValue?: string;
+  onPress?: () => void;
+  half?: boolean;
+  children?: React.ReactNode;
+  testID: string;
+}) {
+  const label = [title, value, detail, a11yValue].filter(Boolean).join(', ');
+  return (
+    <Card
+      padding="md"
+      onPress={onPress}
+      style={[styles.card, half && styles.half]}
+      accessibilityLabel={onPress ? label : undefined}
+      testID={testID}
+    >
+      <View style={styles.cardHead}>
+        <Text variant="label" tone="muted" style={styles.flex} numberOfLines={1}>
+          {title}
+        </Text>
+        {onPress ? <Chevron /> : null}
+      </View>
+      {value ? (
+        <Text variant="bodyStrong" numberOfLines={2}>
+          {value}
+        </Text>
+      ) : null}
+      {detail ? (
+        <Text variant="caption" tone="muted">
+          {detail}
+        </Text>
+      ) : null}
+      {children ? <View style={styles.cardChart}>{children}</View> : null}
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
-  fieldSpacing: { marginBottom: 8 },
   container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-
-  // Guard
-  guard: { paddingHorizontal: 32, alignItems: 'center', gap: 16 },
-  guardTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
-
-  // Top bar
-  content: { paddingBottom: 40 },
-
-  // Stats
-  stats: { backgroundColor: colors.card, paddingHorizontal: 16, paddingVertical: 16, gap: 4 },
-
-  // Sections
-  section: { paddingHorizontal: 16, paddingTop: 20 },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: palette.slate[400],
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-
-  // Input
-
-  // Gender selector
-  genderRow: { marginBottom: 12, gap: 8 },
-  genderOptions: { flexDirection: 'row', gap: 8 },
-
-  // Roster rows
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  rowName: { flex: 1, fontSize: 15, color: colors.foreground, fontWeight: '500' },
-  rowActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-
-  // Paid pill
-
-  // Small action buttons
-
-  // Buttons
+  content: { padding: space[4], gap: space[3], paddingBottom: space[8] },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
+  row: { flexDirection: 'row', gap: space[3] },
+  flex: { flex: 1 },
+  card: { gap: space[1] },
+  half: { flex: 1 },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  cardChart: { alignItems: 'center', paddingTop: space[2] },
+  actions: { gap: space[2], marginTop: space[2] },
 });

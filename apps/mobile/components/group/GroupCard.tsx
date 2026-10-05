@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { thumbnailUrl } from '@/lib/community-images';
 import { colors, palette } from '../../theme';
@@ -32,6 +33,11 @@ export type GroupCardGroup = {
  * card for a rail (thumbnail on top, name below); `horizontal` (the default)
  * is the full-width row this component always was. Same content either way —
  * only the layout switches.
+ *
+ * `action` (UX-EXPL-02: Join on Explore) sits BESIDE the tappable body, never
+ * inside it: an accessible Pressable swallows its children on iOS, so a nested
+ * button is unreachable to VoiceOver and to the E2E driver. With an action the
+ * card is a plain View holding the body and the action as siblings.
  */
 export function GroupCard({
   group,
@@ -39,10 +45,12 @@ export function GroupCard({
   onPress,
   orientation = 'horizontal',
   railWidth = 160,
+  action,
 }: {
   group: GroupCardGroup;
   memberCount?: number;
   onPress?: () => void;
+  action?: React.ReactNode;
   orientation?: 'vertical' | 'horizontal';
   railWidth?: number;
 }) {
@@ -50,14 +58,8 @@ export function GroupCard({
   const thumb = thumbnailUrl(group.thumbnail_path);
 
   if (orientation === 'vertical') {
-    return (
-      <Pressable
-        style={[styles.cardVertical, { width: railWidth }]}
-        onPress={onPress}
-        disabled={!onPress}
-        accessibilityRole="button"
-        testID={`group-card-${group.id}`}
-      >
+    const body = (
+      <>
         {thumb ? (
           <Image
             source={{ uri: thumb }}
@@ -73,18 +75,39 @@ export function GroupCard({
         <Text style={styles.nameVertical} numberOfLines={2}>
           {group.name}
         </Text>
+      </>
+    );
+    if (action) {
+      return (
+        <View style={[styles.cardVertical, { width: railWidth }]}>
+          <Pressable
+            style={styles.bodyVertical}
+            onPress={onPress}
+            disabled={!onPress}
+            accessibilityRole="button"
+            testID={`group-card-${group.id}`}
+          >
+            {body}
+          </Pressable>
+          {action}
+        </View>
+      );
+    }
+    return (
+      <Pressable
+        style={[styles.cardVertical, { width: railWidth }]}
+        onPress={onPress}
+        disabled={!onPress}
+        accessibilityRole="button"
+        testID={`group-card-${group.id}`}
+      >
+        {body}
       </Pressable>
     );
   }
 
-  return (
-    <Pressable
-      style={styles.card}
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole="button"
-      testID={`group-card-${group.id}`}
-    >
+  const body = (
+    <>
       {thumb ? (
         <Image source={{ uri: thumb }} style={styles.thumb} contentFit="cover" transition={120} />
       ) : (
@@ -110,6 +133,35 @@ export function GroupCard({
           ) : null}
         </View>
       </View>
+    </>
+  );
+
+  if (action) {
+    return (
+      <View style={styles.card}>
+        <Pressable
+          style={styles.bodyHorizontal}
+          onPress={onPress}
+          disabled={!onPress}
+          accessibilityRole="button"
+          testID={`group-card-${group.id}`}
+        >
+          {body}
+        </Pressable>
+        {action}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      style={styles.card}
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole="button"
+      testID={`group-card-${group.id}`}
+    >
+      {body}
       <Text style={styles.chevron} accessibilityElementsHidden importantForAccessibility="no">
         ›
       </Text>
@@ -142,6 +194,8 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 6,
   },
+  bodyVertical: { gap: 6 },
+  bodyHorizontal: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   thumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.muted },
   thumbVertical: { height: 72, borderRadius: 10, backgroundColor: colors.muted },
   thumbFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },

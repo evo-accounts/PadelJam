@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stepIsValid, draftToCreateInput, defaultWizardDraft, splitWizardInvitees, type WizardDraft } from './event-wizard';
+import { stepIsValid, draftToCreateInput, defaultWizardDraft, splitWizardInvitees, courtsReserved, type WizardDraft } from './event-wizard';
 
 const HOUR = 60 * 60 * 1000;
 const full = (over: Partial<WizardDraft> = {}): WizardDraft => ({
@@ -74,5 +74,15 @@ describe('splitWizardInvitees (0113 interim bridge)', () => {
       guests: [{ name: 'Rui', gender: 'male' }, { name: 'Ana' }],
     });
     expect(splitWizardInvitees(undefined)).toEqual({ invitees: undefined, guests: undefined });
+  });
+});
+
+describe('courtsReserved', () => {
+  it('is false only for a registry venue with no court ticked ("Have not reserved yet")', () => {
+    expect(courtsReserved({ venueId: 'v', courtIds: undefined })).toBe(false);
+    expect(courtsReserved({ venueId: 'v', courtIds: [] })).toBe(false);
+    expect(courtsReserved({ venueId: 'v', courtIds: ['c'] })).toBe(true);
+    expect(courtsReserved({ venueId: undefined })).toBe(true);
+    expect(courtsReserved({ venueId: null, courtIds: undefined })).toBe(true);
   });
 });

@@ -24,9 +24,32 @@ describe('mapPgError', () => {
     expect(mapPgError({ message: 'request_stale' })).toBe('request_stale');
     expect(mapPgError({ message: 'partner_unavailable' })).toBe('partner_unavailable');
   });
+  it('maps the follow and community-location codes (0128)', () => {
+    expect(mapPgError({ message: 'cannot_follow_self' })).toBe('cannot_follow_self');
+    expect(mapPgError({ message: 'blocked' })).toBe('blocked');
+    expect(mapPgError({ message: 'invalid_location' })).toBe('invalid_location');
+  });
   it('maps the plan grant/downgrade guard codes', () => {
     expect(mapPgError({ message: 'invalid_plan' })).toBe('invalid_plan');
     expect(mapPgError({ message: 'plan_downgrade_over_limit' })).toBe('plan_downgrade_over_limit');
+  });
+
+  it('maps the manage-rules codes (0122), longest match first', () => {
+    for (const code of ['not_enough_players', 'odd_players', 'teams_incomplete', 'invalid_rounds',
+      'waitlist_not_confirmable', 'team_required', 'starts_at_required', 'starts_at_in_past',
+      'invites_not_allowed', 'not_group_member', 'user_not_found', 'slot_taken',
+      'standalone_must_be_private', 'blocked']) {
+      expect(mapPgError({ message: code })).toBe(code);
+    }
+    expect(mapPgError({ message: 'player_gender_required' })).toBe('player_gender_required');
+    expect(mapPgError({ message: 'gender_required' })).toBe('gender_required');
+  });
+
+  it('maps the recurrence-occurrence codes (0123)', () => {
+    for (const code of ['occurrence_not_found', 'occurrence_materialised', 'occurrence_cancelled',
+      'occurrence_conflict']) {
+      expect(mapPgError({ message: code })).toBe(code);
+    }
   });
 
   it('maps the weak-password rejection', () => {

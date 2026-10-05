@@ -43,7 +43,7 @@ export default function GroupEventsScreen() {
         {mayCreate ? (
           <Button
             label={t('groupEventsEmptyCta')}
-            variant="outline"
+            variant="secondary"
             fullWidth
             onPress={() =>
               router.push(`/event/create?groupId=${id}&communityId=${group?.community_id ?? ''}` as Href)

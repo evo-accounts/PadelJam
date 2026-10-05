@@ -1,8 +1,27 @@
 # Authentication — Splash, Welcome, Sign In / Sign Up, Onboarding
 
-*Padel Jam — Version 1.1 • May 2026 • Onboarding simplified — single Jammer+ gate + push prompt*
+*Padel Jam — Version 1.2 • October 2026 • Welcome screen amended by the Welcome redesign (2026-10-04)*
+
+*Changelog — v1.2 (2026-10-04): Welcome becomes a three-slide pager with two buttons, Get started and Sign in, both leading to Sign In / Sign Up; see the block below. v1.1 (May 2026): onboarding simplified — single Jammer+ gate + push prompt.*
 
 This document defines the unauthenticated entry into Padel Jam — the splash and welcome screens that precede the auth wall — together with the unified sign-in / sign-up flow (modelled on Airbnb’s identifier-first pattern) and the onboarding sequence the user runs immediately after their first sign-up. The two subscription destinations the onboarding feeds into — Jammer+ and the Community plans — are owned by the Profile / Communities documents; this doc only references them.
+
+> **Amended 2026-10-04 by the Welcome redesign** (the Welcome screens in the “PJAM - Mobile App” Figma file, which
+> replace the placeholder carousel first built under UX-AUTH-01). Only the Welcome screen and its first-install
+> flag change; Splash, Sign In / Sign Up and Onboarding are as before. Rows and paragraphs marked *(amended,
+> welcome redesign)* carry the outcome. In short:
+>
+> - **Two buttons, not one.** Under the copy, every slide shows “Get started” (primary) and “Sign in”
+>   (secondary). They are the same destination: each sets the first-install flag and replaces Welcome with the
+>   combined Sign In / Sign Up screen (“Login or Sign Up”). There is no separate returning-user screen, and
+>   Create your account is not a target because it needs a live session.
+> - **One pager, three slides.** An edge-to-edge mascot illustration fills the top of the screen, under a fixed
+>   light sheet with rounded top corners. Swiping anywhere on the illustration or the copy moves to the next
+>   slide: the illustration and the copy slide together, while the sheet, the page dots and the two buttons stay put.
+> - **The copy is final** (English in 4.2; pt-PT and pt-BR live in the app’s string catalogue), replacing the
+>   “final copy TBD” placeholders.
+> - **The flag is the same flag.** Only who sets it changes: either button now sets `hasSeenWelcome`. Devices that
+>   already have it keep skipping Welcome.
 
 **Confirmed design decisions**
 
@@ -97,7 +116,7 @@ The first frame on every app launch. The Padel Jam logo is centered on a brand b
 </tr>
 <tr>
 <th><strong>“First install” flag</strong></th>
-<th>A local flag (e.g. AsyncStorage / localStorage hasSeenWelcome) is set the first time the user dismisses Welcome with Start now. Logging out does not clear it; only a full app reinstall does.</th>
+<th>A local flag (e.g. AsyncStorage / localStorage hasSeenWelcome) is set the first time the user dismisses Welcome with <s>Start now</s> <em>(amended, welcome redesign)</em> either button, Get started or Sign in. Logging out does not clear it; only a full app reinstall does. <em>(amended)</em> If the flag cannot be saved, the button still goes on to Sign In / Sign Up; Welcome then shows again on the next launch.</th>
 </tr>
 </thead>
 <tbody>
@@ -106,7 +125,7 @@ The first frame on every app launch. The Padel Jam logo is centered on a brand b
 
 ## Welcome screen
 
-A short, three-card horizontal carousel that introduces the app on first install. Reached from Splash; never shown again on the device once the user has tapped Start now (or completed a sign-in by any other means).
+~~A short, three-card horizontal carousel that introduces the app on first install. Reached from Splash; never shown again on the device once the user has tapped Start now (or completed a sign-in by any other means).~~ *(amended, welcome redesign)* A short, three-slide horizontal pager that introduces the app on first install. Reached from Splash; never shown again on the device once the user has tapped Get started or Sign in (or completed a sign-in by any other means).
 
 <table>
 <colgroup>
@@ -119,27 +138,31 @@ A short, three-card horizontal carousel that introduces the app on first install
 </tr>
 <tr>
 <th><strong>Container</strong></th>
-<th>A single white card filling most of the screen, sitting on a soft brand-tinted backdrop.</th>
+<th><s>A single white card filling most of the screen, sitting on a soft brand-tinted backdrop.</s> <em>(amended, welcome redesign)</em> The whole screen. The illustration runs edge to edge across the top, under the status bar. A fixed light sheet with rounded top corners rises over the lower part of the illustration and holds the copy, the page dots and the two buttons.</th>
 </tr>
 <tr>
 <th><strong>Media</strong></th>
-<th>A large image area takes the upper two-thirds of the card.</th>
+<th><s>A large image area takes the upper two-thirds of the card.</s> <em>(amended)</em> The illustration takes the upper part of the screen; the sheet keeps its own height, so the illustration grows or shrinks with the device. It is decorative and hidden from assistive technology.</th>
 </tr>
 <tr>
 <th><strong>Title</strong></th>
-<th>A bold one-line headline (e.g. “Find your community!”). Final copy TBD.</th>
+<th><s>A bold one-line headline (e.g. “Find your community!”). Final copy TBD.</s> <em>(amended)</em> A bold, centred headline of up to two lines. Two lines are always reserved, so the illustration and the buttons stay put between slides and between languages. Copy in 4.2.</th>
 </tr>
 <tr>
 <th><strong>Body</strong></th>
-<th>Two lines of supporting copy below the title. Final copy TBD.</th>
+<th>Two lines of supporting copy below the title. <s>Final copy TBD.</s> <em>(amended)</em> Centred, with two lines reserved as for the title. Copy in 4.2.</th>
 </tr>
 <tr>
 <th><strong>Pagination</strong></th>
-<th>Three dot indicators below the body, the active dot filled. The user can either swipe horizontally or wait for content; auto-advance is not in the MVP.</th>
+<th>Three dot indicators below the body, the active dot filled. The user can either swipe horizontally or wait for content; auto-advance is not in the MVP. <em>(amended)</em> The dots sit between the copy and the buttons and do not move. Swiping starts anywhere on the illustration or the copy; the illustration and the copy slide together while the sheet, the dots and the buttons stay in place, and the pager does not bounce past the first or last slide.</th>
 </tr>
 <tr>
 <th><strong>Primary CTA</strong></th>
-<th>A full-width “Start now” button at the bottom. Visible on every card. Tapping it dismisses the carousel and goes to Sign In / Sign Up regardless of which card is active.</th>
+<th><s>A full-width “Start now” button at the bottom. Visible on every card. Tapping it dismisses the carousel and goes to Sign In / Sign Up regardless of which card is active.</s> <em>(amended, welcome redesign)</em> A full-width “Get started” button (filled, the primary style) under the dots. Visible on every slide. Tapping it sets the first-install flag and replaces Welcome with Sign In / Sign Up, regardless of which slide is active.</th>
+</tr>
+<tr>
+<th><strong>Secondary CTA</strong> <em>(amended, welcome redesign)</em></th>
+<th>A full-width “Sign in” button (the secondary, light style) directly under “Get started”. Visible on every slide. It does exactly what “Get started” does: sets the first-install flag and replaces Welcome with the same combined Sign In / Sign Up screen. There is no separate returning-user screen.</th>
 </tr>
 </thead>
 <tbody>
@@ -157,19 +180,19 @@ A short, three-card horizontal carousel that introduces the app on first install
 </tr>
 <tr>
 <th><strong>Card 1</strong></th>
-<th>Theme: Community. Placeholder title “Find your community!”. Final copy and image TBD.</th>
+<th><s>Theme: Community. Placeholder title “Find your community!”. Final copy and image TBD.</s> <em>(amended, welcome redesign)</em> Theme: nearby games. Title “Find games near you”. Body “Take a peek at nearby padel courts. Your next match might be closer than you think.” Illustration: a fox.</th>
 </tr>
 <tr>
 <th><strong>Card 2</strong></th>
-<th>Theme: Events / play. Placeholder title TBD.</th>
+<th><s>Theme: Events / play. Placeholder title TBD.</s> <em>(amended)</em> Theme: creating and joining games. Title “Create or join in seconds”. Body “Start a session or reserve your spot in just a few taps. Then… relax until game time.” Illustration: a bear.</th>
 </tr>
 <tr>
 <th><strong>Card 3</strong></th>
-<th>Theme: Growth / improvement. Placeholder title TBD.</th>
+<th><s>Theme: Growth / improvement. Placeholder title TBD.</s> <em>(amended)</em> Theme: the padel community. Title “Explore your padel community”. Body “Find players at your level, so you can stop carrying the whole game.” Illustration: a turtle and a rabbit.</th>
 </tr>
 <tr>
 <th><strong>Note</strong></th>
-<th>The card structure is fixed (image / title / body / dots / CTA). The actual copy and imagery are owned by Marketing and finalised separately; this doc only locks the structure.</th>
+<th><s>The card structure is fixed (image / title / body / dots / CTA). The actual copy and imagery are owned by Marketing and finalised separately; this doc only locks the structure.</s> <em>(amended, welcome redesign)</em> The slide structure is fixed (illustration / title / body, then the dots and the two CTAs); this doc only locks the structure. The English copy above is final and ships. The Portuguese versions (pt-PT, pt-BR) are in the app’s string catalogue; the three illustrations are the mascot artwork from the design file.</th>
 </tr>
 </thead>
 <tbody>
@@ -705,7 +728,7 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed AU (Auth & Onboarding).
 | **ID** | **Requirement** | **Priority** | **Notes** |
 |----|----|----|----|
 | AU-01 | Splash screen is the first frame on every app launch; routes based on auth + onboarded state. | **Must** |  |
-| AU-02 | Welcome screen is shown only on first install; a 3-card horizontal carousel with “Start now” CTA. | **Must** | Local flag persisted across logout. |
+| AU-02 | *(amended 2026-10-04)* Welcome screen is shown only on first install; a 3-slide horizontal pager (illustration, title, body) over a fixed sheet with the page dots and two CTAs, “Get started” and “Sign in”, both leading to Sign In / Sign Up. | **Must** | Local flag persisted across logout; either CTA sets it. |
 | AU-03 | Sign In / Sign Up is a single identifier-first screen accepting either an email or a phone number. | **Must** |  |
 | AU-04 | The system sends a 6-digit OTP via the chosen channel; the same screens are used for login and sign-up. | **Must** | Supabase Auth OTP. |
 | AU-05 | A new user (no profiles row) is routed to the Create your account screen after OTP verification. | **Must** |  |
@@ -898,7 +921,7 @@ Run the section 08 schema and section 09 RLS as Supabase migrations first. Then 
 
 - Build the Splash screen at /splash that checks the Supabase session and the profiles.onboarded_at value, holds for a minimum 600 ms, and routes to /welcome (first-install), /auth (returning unauthenticated), the first unanswered onboarding step (authenticated, not onboarded), or /home (authenticated, onboarded). Persist the “has-seen-welcome” flag in localStorage.
 
-- Build the Welcome carousel at /welcome — three swipable cards with image / title / body / dots / “Start now” CTA. Start now routes to /auth and sets the local flag.
+- ~~Build the Welcome carousel at /welcome — three swipable cards with image / title / body / dots / “Start now” CTA. Start now routes to /auth and sets the local flag.~~ *(amended, welcome redesign)* Build the Welcome pager at /welcome — three swipable slides (illustration / title / body) over a fixed sheet that holds the dots and two CTAs, “Get started” and “Sign in”. Both set the local flag and route to /auth.
 
 - Build the unified Sign In / Sign Up flow at /auth as a single state machine (useAuthFlow.ts) with steps: identifier → otp → (try another way) → password / recovery → create-account. Use Supabase Auth’s signInWithOtp (email + phone), verifyOtp, signInWithPassword, signInWithOAuth (Google, Apple), and resetPasswordForEmail. The identifier-first screen has two variants (phone with country selector / email) toggled by the third social button; the OTP screen uses an in-screen numeric keypad and a 6-box input with paste support; the Try another way sheet must call the auth_providers view to discover which fallbacks to show. The Create your account screen is reached only when verifyOtp succeeds with no matching profiles row (or after a social sign-in with no profile); it captures the missing identifier, full name, and password and writes the profiles row atomically.
 

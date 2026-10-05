@@ -146,3 +146,13 @@ export function draftToCreateInput(d: WizardDraft, thumbnailPath?: string): Reco
     ...splitWizardInvitees(d.invitees),
   };
 }
+
+/**
+ * Whether the event's courts are reserved (events.courts_reserved, migration 0122): false only when
+ * a registry venue is picked and no court is ticked — the Courts step's "Have not reserved yet".
+ * A manual venue or no location has no court list to reserve from. Drives the "Courts not
+ * reserved" pending action (UX-MEVT-24).
+ */
+export function courtsReserved(d: { venueId?: string | null; courtIds?: readonly string[] | null }): boolean {
+  return !d.venueId || (d.courtIds?.length ?? 0) > 0;
+}

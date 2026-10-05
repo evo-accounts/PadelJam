@@ -4,9 +4,9 @@
  * Lifted verbatim out of `app/(onboarding)/location.tsx`, which is where it has been working, so
  * that Account Settings (UX-SET-02) can reuse it rather than grow a second geocode path. The
  * audit asks that screen to open "the in-app map picker used in onboarding"; there is no map
- * picker, and `components/community/LocationPickerSheet.tsx` is not one either — its own header
- * says the map area is a static placeholder, it searches seeded VENUES, and it returns free text
- * with no coordinates, which cannot feed `set_my_location(lat, lng, text)`. This can.
+ * picker, and the old community `LocationPickerSheet` (since removed) was not one either — its
+ * map area was a static placeholder, it searched seeded VENUES, and it returned free text with no
+ * coordinates, which cannot feed `set_my_location(lat, lng, text)`. This can.
  *
  * `geocodeAsync` returns coordinates only, so the name shown back to the user comes from
  * reverse-geocoding the hit. That round trip is what makes the confirmation trustworthy rather

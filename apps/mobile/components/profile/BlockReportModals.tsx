@@ -103,7 +103,7 @@ export function ReportSheet({
               onPress={() => onSubmit(reason, description)}
               testID="report-submit"
             />
-            <Button variant="ghost" fullWidth label={t('cancel')} onPress={close} />
+            <Button variant="tertiary" fullWidth label={t('cancel')} onPress={close} />
           </View>
         </>
       )}

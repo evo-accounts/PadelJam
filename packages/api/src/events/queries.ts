@@ -129,12 +129,16 @@ export const useEventParticipants = (id: string) => {
             is_standby: boolean;
             confirmed_at: string | null;
             has_paid: boolean;
+            /** Credited towards the fee (0122, decision 9); has_paid = paid_amount covers the fee. */
+            paid_amount: number;
             paid_at: string | null;
             joined_at: string;
             waiting_list_position: number | null;
             guest_name: string | null;
             guest_gender: string | null;
             invited_by: string | null;
+            /** The other half of a waiting PAIR on a team event (0112); null otherwise. */
+            pair_participant_id: string | null;
             profiles: ParticipantProfileEmbed;
           }[]
         >();
@@ -355,6 +359,96 @@ export const useEventPartnerCandidates = (eventId: string) => {
   });
 };
 
+/** What blocks a start and what only warns (start_event_check, migration 0122 / UX-MEVT-23). */
+export type StartBlocker =
+  | 'not_enough_players' | 'mixed_gender_missing' | 'mixed_unbalanced' | 'teams_incomplete' | 'odd_players';
+export type StartWarning =
+  | { code: 'below_capacity'; open_spots: number }
+  | { code: 'idle_courts'; idle: number };
+export type StartEventCheck = { blockers: StartBlocker[]; warnings: StartWarning[] };
+
+/** The organizer's start sheet: blockers (the first is what start_event raises) and warnings. */
+export const useStartEventCheck = (eventId: string, enabled = true) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.eventStartCheck(eventId),
+    enabled: enabled && !!uid && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('start_event_check', { p_event_id: eventId });
+      if (error) throw error;
+      return data as unknown as StartEventCheck;
+    },
+  });
+};
+
+/**
+ * Invite screen candidates (event_invite_candidates, migration 0122 / UX-MEVT-13). A group event
+ * lists its members not yet invited or playing ('members'); a group-less one the organizer's
+ * mutual follows ('connections'), then people they follow ('following'), then — only with a
+ * query — everyone else matching it ('others'). A public group event returns nothing.
+ */
+export type InviteCandidateSection = 'members' | 'connections' | 'following' | 'others';
+export type InviteCandidate = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  section: InviteCandidateSection;
+};
+export const useEventInviteCandidates = (eventId: string, query: string, limit = 50) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  const q = query.trim();
+  return useQuery({
+    queryKey: qk.eventInviteCandidates(eventId, q),
+    enabled: !!uid && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('event_invite_candidates', {
+        p_event_id: eventId,
+        p_query: q || null,
+        p_limit: limit,
+      });
+      if (error) throw error;
+      return (data ?? []) as InviteCandidate[];
+    },
+  });
+};
+
+/**
+ * A recurring event's next occurrences (event_next_occurrences, migration 0123 / UX-MEVT-22):
+ * the weekly slots after this one, in order. 'scheduled' = materialised (invitations are out;
+ * `event_id` is its event, with its own date and location); 'upcoming' = not yet (`event_id`
+ * null; name, location and duration come from the series' latest occurrence). `slot_date` (the
+ * Lisbon date of the weekly slot) identifies an upcoming one to update_occurrence_slot,
+ * cancel_occurrence_slot and send_occurrence_now; `overridden` = its date/time was edited.
+ * Organizer only; an event that is not recurring returns [].
+ */
+export type EventOccurrence = {
+  slot_date: string;
+  starts_at: string;
+  duration_minutes: number;
+  status: 'scheduled' | 'upcoming';
+  event_id: string | null;
+  name: string | null;
+  venue_id: string | null;
+  location_name: string | null;
+  location_address: string | null;
+  overridden: boolean;
+};
+export const useEventNextOccurrences = (eventId: string, limit = 4, enabled = true) => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.eventNextOccurrences(eventId),
+    enabled: enabled && !!uid && !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('event_next_occurrences', { p_event_id: eventId, p_limit: limit });
+      if (error) throw error;
+      return (data ?? []) as EventOccurrence[];
+    },
+  });
+};
+
 /**
  * My Events tabs (migration 0112, UX-JEVT-01):
  *   organizing — events I organize;
@@ -367,12 +461,16 @@ export const useEventPartnerCandidates = (eventId: string) => {
 export type MyEventsFilter = 'all' | 'organizing' | 'going' | 'pending';
 const MY_EVENTS_PAGE_SIZE = 20;
 
-export const useMyEvents = (filter: MyEventsFilter, includePast = false) => {
+export const useMyEvents = (
+  filter: MyEventsFilter,
+  includePast = false,
+  { enabled = true }: { enabled?: boolean } = {},
+) => {
   const db = useDb();
   const uid = useSession().session?.user.id;
   return useInfiniteQuery({
     queryKey: qk.myEvents(filter, includePast),
-    enabled: !!uid,
+    enabled: !!uid && enabled,
     initialPageParam: 0,
     queryFn: async ({ pageParam: offset }) => {
       // p_include_past is sent only when set: a build that always sends it cannot find the
@@ -389,6 +487,34 @@ export const useMyEvents = (filter: MyEventsFilter, includePast = false) => {
     },
     getNextPageParam: (lastPage: unknown[], allPages: unknown[][]) =>
       lastPage.length < MY_EVENTS_PAGE_SIZE ? undefined : allPages.length * MY_EVENTS_PAGE_SIZE,
+  });
+};
+
+/**
+ * The viewer's own roster status on the events where it is not simply "confirmed" — the waiting
+ * list or interested (a team player without a partner). Since 0112 the Going tab and Home's next
+ * events include those events, so the cards label them rather than read as a held spot.
+ * Keyed under the My Events prefix, so every mutation that refreshes the lists refreshes this too.
+ */
+export type MyEventStatus = 'waiting_list' | 'interested';
+
+export const useMyEventStatuses = () => {
+  const db = useDb();
+  const uid = useSession().session?.user.id;
+  return useQuery({
+    queryKey: qk.myEventStatuses,
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('event_participants')
+        .select('event_id, status')
+        .eq('user_id', uid!)
+        .in('status', ['waiting_list', 'interested']);
+      if (error) throw error;
+      const byEvent: Record<string, MyEventStatus> = {};
+      for (const row of data ?? []) byEvent[row.event_id] = row.status as MyEventStatus;
+      return byEvent;
+    },
   });
 };
 
@@ -414,6 +540,23 @@ export const useEventInvitedPlayers = (eventId: string) => {
       const { data, error } = await db.rpc('event_invited_players', { p_event_id: eventId });
       if (error) throw error;
       return (data ?? []) as EventInvitedPlayer[];
+    },
+  });
+};
+
+/**
+ * The registry courts an event uses (`event_courts`), as ids — what Edit Location & Courts starts
+ * from when the organizer picked courts at a venue (UX-MEVT-07).
+ */
+export const useEventCourts = (eventId: string) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.eventCourts(eventId),
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { data, error } = await db.from('event_courts').select('court_id').eq('event_id', eventId);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.court_id);
     },
   });
 };
@@ -481,7 +624,8 @@ export interface BlastTemplate {
   id: string;
   title: string;
   description: string;
-  image_path: string;
+  /** Storage key of the preview image for the Templates grid. NULL until the artwork exists (0124). */
+  image_path: string | null;
   category: string | null;
   is_default: boolean;
 }
@@ -494,6 +638,10 @@ export interface EventBlast {
   sent_at: string;
   source_template_id: string | null;
   image_path: string | null;
+  /** 'all' | 'confirmed' | 'invited' | 'waiting_list' (0124; older rows were rewritten to 'all'). */
+  send_to: string;
+  /** Everyone in the send_to scope at send time; NULL on blasts sent before 0124. */
+  audience_count: number | null;
 }
 
 export const useBlastTemplates = () => {
@@ -521,7 +669,7 @@ export const useEventBlasts = (eventId: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('event_blasts')
-        .select('id, title, description, channels, sent_to_count, sent_at, source_template_id, image_path')
+        .select('id, title, description, channels, sent_to_count, sent_at, source_template_id, image_path, send_to, audience_count')
         .eq('event_id', eventId)
         .order('sent_at', { ascending: false })
         .returns<EventBlast[]>();
@@ -531,14 +679,49 @@ export const useEventBlasts = (eventId: string) => {
   });
 };
 
+/**
+ * Full blast customisation — custom text, "Your blasts", Save blast (UX-MEVT-18). A group event
+ * follows its community's `custom_broadcasts` feature; a group-less one the organizer's account
+ * plan (Jammer+). Always false for anyone but the event's organizer. Enforced server-side (0124).
+ */
 export const useCanCustomizeBlast = (eventId: string) => {
   const db = useDb();
   return useQuery({
     queryKey: qk.canCustomizeBlast(eventId),
     queryFn: async () => {
-      const { data, error } = await db.rpc('can_customize_blast', { p_event_id: eventId });
+      const { data, error } = await db.rpc('can_customize_event_blast', { p_event_id: eventId });
       if (error) throw error;
       return data ?? false;
+    },
+  });
+};
+
+export interface SavedBlast {
+  id: string;
+  title: string;
+  description: string;
+  image_path: string | null;
+  source_template_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * "Your blasts" for this event's scope — its community's saved blasts, or the organizer's own on a
+ * group-less event — most recently edited first. Pass `enabled: false` (e.g. until
+ * useCanCustomizeBlast resolves true): without customisation the RPC raises
+ * blast_customization_required.
+ */
+export const useSavedBlasts = (eventId: string, { enabled = true }: { enabled?: boolean } = {}) => {
+  const db = useDb();
+  return useQuery({
+    queryKey: qk.savedBlasts(eventId),
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await db.rpc('list_saved_blasts', { p_event_id: eventId });
+      if (error) throw error;
+      return (data ?? []) as SavedBlast[];
     },
   });
 };
@@ -547,6 +730,8 @@ export interface EventSeriesInfo {
   day_of_week: number;
   start_time: string;
   is_active: boolean;
+  /** Days before each occurrence its invitations go out (3, 5 or 7). */
+  invite_lead_days: number;
 }
 
 export const useEventSeries = (eventId: string) => {
@@ -556,7 +741,7 @@ export const useEventSeries = (eventId: string) => {
     queryFn: async () => {
       const { data, error } = await db
         .from('events')
-        .select('series_id, event_series(day_of_week, start_time, is_active)')
+        .select('series_id, event_series(day_of_week, start_time, is_active, invite_lead_days)')
         .eq('id', eventId)
         .maybeSingle()
         .returns<{ series_id: string | null; event_series: EventSeriesInfo | null }>();
@@ -614,10 +799,13 @@ export const useEventBlastDeliveries = (eventId: string) => {
   return useQuery({
     queryKey: qk.blastDeliveries(eventId),
     queryFn: async () => {
+      // Email attempts only: a WhatsApp blast is logged once as 'shared' (sent from the
+      // organizer's device, 0124) and has no delivery state to show or retry.
       const { data, error } = await db
         .from('delivery_log')
         .select('blast_id, status, attempt, sent_count, failed_count, error, event_blasts!inner(event_id)')
         .eq('event_blasts.event_id', eventId)
+        .eq('channel', 'email')
         .order('attempt', { ascending: false });
       if (error) throw error;
       // Rows are attempt-desc; first time we see a blast_id is its latest attempt.

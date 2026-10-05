@@ -1,7 +1,8 @@
 import { useT } from '@padel/i18n';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import type { Channel as ChannelType } from 'stream-chat';
 // NOTE (reconciled against stream-chat-expo 9.3.1): the input component is MessageComposer,
 // not MessageInput (MessageInput is not exported in 9.x).

@@ -117,9 +117,10 @@ await run('standby players count toward the balance', async () => {
     await rpc(p.jwt, 'join_event', { p_event_id: eventId });
   }
   // Since 0112 each gender holds capacity/2 = 2 spots, so the third man waits instead of taking the
-  // stand-by spot. Only the organizer override can unbalance the roster — and then start refuses.
+  // stand-by spot. Since 0122 (D2) the organizer cannot confirm a waiting player either, so the
+  // roster cannot be unbalanced this way — and two men and two women start (below capacity).
   const [fifth] = await sel('event_participants', `event_id=eq.${eventId}&user_id=eq.${players[4].id}&select=id,status`);
   assert(fifth.status === 'waiting_list', 'the third man is waitlisted, not confirmed');
-  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: fifth.id });
-  await expectError(() => rpc(org.jwt, 'start_event', { p_event_id: eventId }), 'mixed_unbalanced');
+  await expectError(() => rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: fifth.id }), 'waitlist_not_confirmable');
+  await rpc(org.jwt, 'start_event', { p_event_id: eventId });
 });

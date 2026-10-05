@@ -205,8 +205,9 @@ begin
     prev_pts := r.points;
   end loop;
 
-  -- expected order used by _build_fours_arrangement: rank asc, joined_at asc.
-  select array_agg(s.entity_id order by s.rank asc, p.joined_at asc) into v_ordered
+  -- expected order used by _build_fours_arrangement: rank asc, joined_at asc, then the participant id
+  -- (0126: the engine breaks a full tie by id — every row here joins in one transaction).
+  select array_agg(s.entity_id order by s.rank asc, p.joined_at asc, p.id asc) into v_ordered
     from standings(mex) s join event_participants p on p.id=s.entity_id;
 
   perform generate_next_round(mex);

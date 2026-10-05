@@ -1,7 +1,8 @@
 import { useAccountPlan, useSetAccountPlan } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, palette } from '../../theme';

@@ -123,6 +123,13 @@ async function assertReferenceData() {
   if (!templates.length) {
     throw new Error(`blast_templates is EMPTY — the blast template picker has no fixtures. ${WIPE_HINT}`);
   }
+  // PostGIS's own table, not a migration's, but it lives in public and the wipe
+  // truncated it too: with no SRID 4326 every geography cast (distance, explore
+  // ranking, set_my_location, create_event) errors instead of returning a value.
+  const srid = await sel('spatial_ref_sys', 'select=srid&srid=eq.4326');
+  if (!srid.length) {
+    throw new Error(`spatial_ref_sys has no SRID 4326 — every geography op will fail. ${WIPE_HINT}`);
+  }
   console.log(`  reference data OK (${limits.length} plan limits, ${templates.length} blast templates)`);
 }
 
@@ -473,11 +480,10 @@ async function main() {
   }) });
   for (const k of ['maria', 'joao']) await rpc(jwt(k), 'join_event', { p_event_id: e5 });
   // Suite 04 "an invitee can accept an invitation" needs sofia holding a pending invitation on an
-  // event a week out. Public group events are no longer auto-invited (0112), so the organizer
-  // invites her explicitly — invite_to_event still allows that.
-  await rpc(jwt('alex'), 'invite_to_event', {
-    p_event_id: e5, p_invitees: [{ invitee_id: id('sofia'), name: null, email: null, phone: null }],
-  });
+  // event a week out. Public group events are no longer auto-invited (0112), and since 0122 (D12)
+  // invite_to_event refuses them too, so the fixture invitation is written with the service role
+  // (the invitation trigger still sends her the event_invite notification).
+  await insert('event_invitations', { event_id: e5, invitee_id: id('sofia'), invited_by: id('alex') });
   console.log(`  E5 recurring = ${e5}`);
 
   // E6 — inside the 6h join cutoff (starts in ~3h), organizer alex (no invitations since 0112).
@@ -550,6 +556,21 @@ async function main() {
   }) });
   console.log(`  E12 team, no invitations = ${e12}`);
 
+  // E13 — in-progress TEAM event, organizer alex (organizing_only): two pairs on one court, round
+  // 1 scored, so the live leaderboard ranks teams ("A & B", UX-MEVT-27 / 0125). Mexicano: start_event
+  // seeds round 1 server-side by pair (0126), no client schedule needed. Named without "partner"
+  // (see E12) and without "mexicano" (suite 07 finds E3 by /live mexicano/).
+  const e13 = await rpc(jwt('alex'), 'create_event', { p_payload: baseEvent({
+    name: 'Pair Showdown', specification: 'team', event_type: 'mexicano', organizer_role: 'organizing_only',
+    starts_at: hoursFromNow(8),
+  }) });
+  await rpc(jwt('sofia'), 'choose_partner', { p_event_id: e13, p_partner_user: id('bruno') });
+  await rpc(jwt('joao'), 'choose_partner', { p_event_id: e13, p_partner_user: id('rita') });
+  await rpc(jwt('alex'), 'start_event', { p_event_id: e13 });
+  await patchEvent(e13, { starts_at: hoursFromNow(-1) });
+  await scoreRound(jwt('alex'), e13);
+  console.log(`  E13 in-progress team = ${e13}`);
+
   // 8) Review Club: three completed events so can_review_community unlocks (reviewer: joao).
   for (let i = 0; i < 3; i++) {
     await completedEvent('tiago', gR, `Review League #${i + 1}`, 14 - i * 3, ['joao', 'sofia', 'bruno']);
@@ -562,7 +583,7 @@ async function main() {
     users: Object.fromEntries(Object.entries(U).map(([k, v]) => [k, v.id])),
     communities: { A: commA, C: commC, P: commP, R: commR, S: commS },
     groups: { g1, g2, g3, gR, gS },
-    events: { e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12 },
+    events: { e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13 },
   };
   console.log(`\nE2E_MANIFEST ${JSON.stringify(manifest)}`);
 

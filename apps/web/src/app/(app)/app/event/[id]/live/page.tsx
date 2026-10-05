@@ -4,25 +4,16 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useT } from '@padel/i18n';
 import { useSession } from '@padel/auth';
-import {
-  type EventType,
-  useEvent,
-  useEventParticipants,
-  useEventTeams,
-  useEventRealtime,
-  useStartEvent,
-  usePostEventResult,
-} from '@padel/api';
-import { setupComplete } from '@padel/utils';
+import { useEvent, useEventParticipants, useEventRealtime, useEventTeams, usePostEventResult } from '@padel/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { TeamSetup } from '@/components/event/live/TeamSetup';
 import { MatchesTab } from '@/components/event/live/MatchesTab';
 import { Leaderboard } from '@/components/event/live/Leaderboard';
 import { MatchTimer } from '@/components/event/live/MatchTimer';
 import { FinishDialog } from '@/components/event/live/FinishDialog';
+import { useStartFlow } from '@/components/event/manage/useStartFlow';
 
 export default function EventLivePage() {
   const { id } = useParams<{ id: string }>();
@@ -32,9 +23,9 @@ export default function EventLivePage() {
   const event = useEvent(id);
   const participants = useEventParticipants(id);
   const teams = useEventTeams(id);
-  const start = useStartEvent(id);
   const postResult = usePostEventResult(id);
-  const [err, setErr] = useState<string | null>(null);
+  // Start event (UX-MEVT-23): the server's check decides — blockers stop it, warnings ask.
+  const startFlow = useStartFlow(id, event.data);
   const [shareErr, setShareErr] = useState<string | null>(null);
 
   if (event.isLoading) return <Skeleton className="m-6 h-40" />;
@@ -47,26 +38,9 @@ export default function EventLivePage() {
   const canScore = isOrganizer || (e.players_submit_results && isParticipant);
   const confirmed = parts.filter((p) => p.status === 'confirmed');
   const confirmedTeamCount = (teams.data ?? []).filter((tm) => tm.is_confirmed).length;
-  const ready = setupComplete({
-    specification: e.specification,
-    confirmedCount: confirmed.length,
-    confirmedTeamCount,
-    numCourts: e.num_courts,
-  });
-
-  const onStart = () => {
-    setErr(null);
-    start
-      .mutateAsync({
-        eventType: e.event_type as EventType,
-        confirmedParticipantIds: confirmed.map((p) => p.id),
-        numCourts: e.num_courts,
-      })
-      .catch((x) => setErr(t(x instanceof Error ? x.message : 'unknown_error')));
-  };
 
   const backLink = (
-    <Button asChild variant="ghost" className="self-start">
+    <Button asChild variant="tertiary" className="self-start">
       <Link href={`/app/event/${id}`}>{t('backToEvent')}</Link>
     </Button>
   );
@@ -80,21 +54,6 @@ export default function EventLivePage() {
         </div>
       );
     }
-    if (e.specification === 'team') {
-      return (
-        <div className="flex flex-col gap-4 p-6">
-          {backLink}
-          <TeamSetup
-            eventId={id}
-            numCourts={e.num_courts}
-            canStart={ready}
-            starting={start.isPending}
-            onStart={onStart}
-          />
-          {err ? <p className="text-sm text-destructive">{err}</p> : null}
-        </div>
-      );
-    }
     return (
       <div className="flex flex-col gap-4 p-6">
         {backLink}
@@ -103,12 +62,25 @@ export default function EventLivePage() {
             <p className="text-sm text-muted-foreground">
               {t('readyToStart', { confirmed: confirmed.length, needed: e.num_courts * 4 })}
             </p>
-            <Button disabled={!ready || start.isPending} onClick={onStart}>
+            {/* Team events: the pairs are built in Manage players' Teams tab (UX-MEVT-14), not here. */}
+            {e.specification === 'team' ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm text-muted-foreground" data-testid="live-teams-complete">
+                  {t('dashTeamsComplete', { count: confirmedTeamCount })}
+                </span>
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={`/app/event/${id}/manage/players`} data-testid="live-manage-teams">
+                    {t('tmManageTeamsCta')}
+                  </Link>
+                </Button>
+              </div>
+            ) : null}
+            <Button disabled={startFlow.pending} onClick={startFlow.onStart} data-testid="live-start">
               {t('startCta')}
             </Button>
-            {err ? <p className="text-sm text-destructive">{err}</p> : null}
           </CardContent>
         </Card>
+        {startFlow.dialog}
       </div>
     );
   }

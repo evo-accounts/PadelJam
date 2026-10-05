@@ -1,5 +1,5 @@
 -- roster RPCs: leave_event removes the participant row (no waiting-list auto-promote). leave past the 12h
--- cutoff -> leave_deadline_passed. organizer_mark_confirmed promotes a waiting-list participant.
+-- cutoff -> leave_deadline_passed. organizer_mark_confirmed refuses a waiting-list participant (0122, D2).
 -- add_manual_participant on a mixed event without gender -> gender_required; with gender -> succeeds.
 -- Partner flow: request_partner sets requester 'interested' + inserts partner_requests;
 -- accept_partner_request confirms the pair + creates an event_teams row + auto-declines other pendings.
@@ -75,18 +75,26 @@ begin
 end $$;
 reset role;
 
--- (2) organizer_mark_confirmed promotes the waiting-list participant (m3) to confirmed.
+-- (2) 0122 (D2): organizer_mark_confirmed refuses the waiting-list participant (m3) — the
+-- first waiter to claim a freed spot takes it; the organizer cannot jump the queue.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"f4000001-0000-0000-0000-000000000001","role":"authenticated"}';
 do $$
 declare ev uuid := current_setting('test.ev')::uuid; v_pid uuid;
 begin
   select id into v_pid from event_participants where event_id=ev and user_id='f4000003-0000-0000-0000-000000000003';
-  perform organizer_mark_confirmed(v_pid);
-  if (select status from event_participants where id=v_pid) <> 'confirmed'
-     or (select waiting_list_position from event_participants where id=v_pid) is not null then
-    raise exception using errcode='PT001', message='organizer_mark_confirmed should promote waiting-list to confirmed'; end if;
-  raise notice 'OK organizer_mark_confirmed promotes waiting-list -> confirmed';
+  begin
+    perform organizer_mark_confirmed(v_pid);
+    raise exception using errcode='PT001', message='organizer_mark_confirmed must refuse a waiting-list player';
+  exception
+    when sqlstate 'PT001' then raise;
+    when others then
+      if position('waitlist_not_confirmable' in sqlerrm) = 0 then
+        raise exception using errcode='PT001', message='wrong error: '||sqlerrm; end if;
+  end;
+  if (select status from event_participants where id=v_pid) <> 'waiting_list' then
+    raise exception using errcode='PT001', message='the waiter must stay on the waiting list'; end if;
+  raise notice 'OK organizer_mark_confirmed refuses waiting-list (waitlist_not_confirmable)';
 end $$;
 reset role;
 

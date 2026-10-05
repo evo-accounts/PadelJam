@@ -116,7 +116,7 @@ export function ProfileView({ userId, isSelf }: { userId: string; isSelf: boolea
           // control on the screen — everything else moved into the header sheet (UX-PROF-02).
           <Button
             label={p.is_following ? t('following') : t('follow')}
-            variant={p.is_following ? 'outline' : 'primary'}
+            variant={p.is_following ? 'secondary' : 'primary'}
             fullWidth
             loading={follow.isPending || unfollow.isPending}
             onPress={() => (p.is_following ? unfollow.mutate(userId) : follow.mutate(userId))}

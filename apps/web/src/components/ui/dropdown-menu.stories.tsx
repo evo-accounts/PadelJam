@@ -18,7 +18,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: () => (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild><Button variant="outline">Manage</Button></DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><Button variant="secondary">Manage</Button></DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuLabel>Event</DropdownMenuLabel>
         <DropdownMenuItem>Edit details</DropdownMenuItem>

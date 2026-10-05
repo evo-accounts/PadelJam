@@ -243,6 +243,7 @@ export default function GroupInviteScreen() {
                 title={name}
                 variant="plain"
                 onPress={() => toggle(item)}
+                selected={!!selected[item.id]}
                 leading={<Avatar uri={avatarUrl(item.avatar_url)} name={name} colourKey={item.id} size="md" decorative />}
                 trailing={
                   <Checkbox
@@ -289,7 +290,7 @@ export default function GroupInviteScreen() {
         />
         <Button
           label={t('cancel')}
-          variant="ghost"
+          variant="tertiary"
           fullWidth
           onPress={() => setConfirming(false)}
           style={styles.sheetButton}

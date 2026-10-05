@@ -1,14 +1,31 @@
 # Home — Navigation, Home Screen, Chat & Notifications
 
-*Padel Jam — Version 1.0 • May 2026 • Wireframe-derived requirements*
+*Padel Jam — Version 1.1 • September 2026 • Amended by the Home & Explore UX audit (2026-09-29)*
+
+*Changelog — v1.1 (2026-09-30): Home header, quick actions, rails and the floating button amended to the Home & Explore UX audit; see the block below. v1.0 (May 2026): wireframe-derived requirements.*
 
 This document defines the app shell of Padel Jam — the bottom navigation and the floating action button — together with the Home landing screen and the two screens that hang off the Home header: Chat and Notifications. Search and the Explore screen are specified in a separate Discovery document. Each bottom-nav destination (Events, Community, Profile) is specified in its own module document.
+
+> **Amended 2026-09-29 by the Home & Explore UX audit** (`docs/audit/2026-09-29-ux-home-explore.md`, UX-HOME-01;
+> decisions in `docs/audit/2026-09-29-ux-home-explore-plan.md`, D11 and D12). Rows and paragraphs marked
+> *(amended, …)* carry the outcome. In short:
+>
+> - **Header**: Chat and Notifications only — no search icon here or anywhere (HN-03). Search is the input on
+>   Explore (Discovery doc).
+> - **Quick actions**: four same-size cards in a row that scrolls sideways, so all four are reachable. Create
+>   Event opens the create flow; Find Event / Group / Community open Explore with the search input focused and
+>   that tab selected, not a search screen (HN-09).
+> - **Next Events and My Groups** are rails of vertical cards with See all. Empty, each shows the standard empty
+>   state with "Find events" / "Find groups" (→ Explore search). Next Events does not surface platform-wide
+>   events.
+> - **Floating Create Event button**: Home and Events only, about 20 pt above the tab bar; it left Explore
+>   (HN-02).
 
 **Confirmed design decisions**
 
 - The app shell is a 5-tab bottom navigation: Home, Events, Explore, Community, Profile.
 
-- A floating "+" button — Create Event — appears on the main Home, Events, and Explore screens.
+- A floating "+" button — Create Event — appears on the main Home, Events, and Explore screens. *(amended, UX-EXPL-02 / D11: Home and Events only.)*
 
 - Home is the landing screen: quick actions, the user’s upcoming events and groups. A brand-new user with no events or groups sees location-based suggestions.
 
@@ -73,13 +90,13 @@ Every primary screen sits under a fixed 5-tab bottom navigation bar:
 
 **Floating action button**
 
-- A floating "+" button is anchored bottom-right on the main Home, Events, and Explore screens.
+- A floating "+" button is anchored bottom-right on the main Home, Events, and Explore screens. *(amended, UX-HOME-01 / UX-EXPL-02)* Home and Events only, about 20 pt above the tab bar; it overlapped the Explore cards and duplicated Home's Create Event.
 
 - It opens Create Event (the Create Event wizard, starting at the group selector). It does not appear on Community or Profile.
 
 **Home header**
 
-- The Home screen header carries three icons: Notifications (bell), Chat, and Search.
+- ~~The Home screen header carries three icons: Notifications (bell), Chat, and Search.~~ *(amended, UX-HOME-01)* The Home screen header carries two icons: Notifications (bell) and Chat. There is no search icon; search is the input on Explore.
 
 - Notifications and Chat are specified in this document (sections 05–06); Search is in the Discovery doc.
 
@@ -87,22 +104,22 @@ Every primary screen sits under a fixed 5-tab bottom navigation bar:
 
 ### 4.1 Layout
 
-- Header: the "Home" title and the three header icons (notifications, chat, search).
+- Header: the "Home" title and the ~~three header icons (notifications, chat, search)~~ *(amended, UX-HOME-01)* two header icons (notifications, chat).
 
-- Quick actions: a row of four shortcuts — Create Event, Find Event, Find Group, Find Community.
+- Quick actions: a row of four shortcuts — Create Event, Find Event, Find Group, Find Community. *(amended, UX-HOME-01)* Cards of one size; the row scrolls sideways so none is cut off.
 
-- Next Events: a horizontally scrollable preview of the user’s upcoming confirmed events, with a "See all" into the Events list.
+- Next Events: a horizontally scrollable preview of the user’s upcoming confirmed events, with a "See all" into the Events list. *(amended, UX-HOME-01 / D11)* Vertical cards. When empty: the standard empty state with "Find events" (→ Explore search, Events tab).
 
-- My groups: a preview of the user’s groups, with a "See all" into the groups list.
+- My groups: a preview of the user’s groups, with a "See all" into the groups list. *(amended, UX-HOME-01 / D11)* A rail of vertical cards. When empty: the standard empty state with "Find groups".
 
 - The floating Create Event button overlays the screen (section 03).
 
 | **4.2 Quick actions** |  |
 |----|----|
 | **Create Event** | Opens the Create Event wizard, starting at the group / community selector. |
-| **Find Event** | Opens the Search screen on the Events tab (Search — Discovery doc). |
-| **Find Group** | Opens the Search screen on the Groups tab. |
-| **Find Community** | Opens the Search screen on the Community tab. |
+| **Find Event** | ~~Opens the Search screen on the Events tab (Search — Discovery doc).~~ *(amended, UX-HOME-01)* Opens Explore with the search input focused on the Events results (Discovery doc). |
+| **Find Group** | ~~Opens the Search screen on the Groups tab.~~ *(amended)* Opens Explore search on the Groups results. |
+| **Find Community** | ~~Opens the Search screen on the Community tab.~~ *(amended)* Opens Explore search on the Communities results. |
 
 | **4.3 First-access & empty state** |  |
 |----|----|
@@ -185,14 +202,14 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed HN (Home & Navigation).
 | **ID** | **Requirement** | **Priority** | **Notes** |
 |----|----|----|----|
 | HN-01 | The app uses a fixed 5-tab bottom navigation: Home / Events / Explore / Community / Profile. | **Must** |  |
-| HN-02 | A floating Create Event button appears on the main Home, Events, and Explore screens. | **Must** |  |
-| HN-03 | The Home header has Notifications, Chat, and Search entry points. | **Must** | Search → Discovery doc. |
+| HN-02 | *(amended)* A floating Create Event button appears on the main Home and Events screens, about 20 pt above the tab bar — not on Explore. | **Must** | UX-HOME-01, UX-EXPL-02, D11 |
+| HN-03 | *(amended)* The Home header has Notifications and Chat entry points — no search icon. | **Must** | UX-HOME-01; search is the Explore input (Discovery doc) |
 | HN-04 | Home shows a quick-actions row: Create Event, Find Event, Find Group, Find Community. | **Must** |  |
 | HN-05 | Home shows the user’s upcoming events ("Next Events") with See all → Events. | **Must** |  |
 | HN-06 | Home shows the user’s groups ("My groups") with See all → groups list. | **Must** |  |
 | HN-07 | A first-access user with no events and no groups sees Suggested events and Suggested groups. | **Must** |  |
 | HN-08 | Suggestions are location-based; with no location set, Home shows platform top events / groups plus an add-location banner. | **Must** |  |
-| HN-09 | Find Event / Group / Community open the Search screen on the matching tab. | **Should** | Search in the Discovery doc. |
+| HN-09 | *(amended)* Find Event / Group / Community open Explore with the search input focused and the matching tab selected. | **Must** | UX-HOME-01; Discovery DS-15 |
 | HN-10 | Every group has an automatic chat named after the group. | **Must** |  |
 | HN-11 | Every private event and every standalone event has an automatic chat named after the event. | **Must** |  |
 | HN-12 | A user can start a direct chat — from their follow list, or anyone via name search. | **Must** |  |

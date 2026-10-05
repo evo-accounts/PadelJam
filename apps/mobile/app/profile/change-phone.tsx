@@ -9,6 +9,7 @@
  * Same two-phase shape as `change-email.tsx`, with `PhoneField` doing the country selector and the
  * E.164 normalisation UX-SET-02 asks for — it already solves both for sign-up.
  */
+import { useRefreshMyProfile } from '@padel/api';
 import { startPhoneChange, verifyPhoneChange } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
@@ -25,6 +26,7 @@ export default function ChangePhoneScreen() {
   const { t: tc } = useT('common');
   const router = useRouter();
   const banner = useBanner();
+  const refreshMyProfile = useRefreshMyProfile();
   const [phase, setPhase] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
   const [valid, setValid] = useState(false);
@@ -66,6 +68,7 @@ export default function ChangePhoneScreen() {
         banner.show(t('invalidCode'));
         return;
       }
+      await refreshMyProfile();
       banner.show(t('phoneChanged'), 'success');
       router.back();
     } finally {

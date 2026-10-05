@@ -30,6 +30,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { StreamConnection } from '@/components/chat/StreamConnection';
 import { Toaster } from '@/components/ui/toaster';
 import ProfileDropdown from '@/components/shadcn-studio/blocks/dropdown-profile';
 
@@ -53,6 +54,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
+      <StreamConnection />
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <SidebarMenu>
@@ -85,13 +87,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </SidebarContent>
       </Sidebar>
 
-      <SidebarInset>
+      {/* min-w-0: a flex child defaults to its content's width, so one wide row (Home's rails)
+          would push the whole inset, header actions included, past the viewport. */}
+      <SidebarInset className="min-w-0">
         <header className="sticky top-0 z-50 flex items-center justify-between gap-2 border-b bg-background px-4 py-2">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="[&_svg]:size-5!" />
           </div>
           <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="icon" asChild aria-label={t('chat')}>
+            <Button variant="tertiary" size="icon" asChild aria-label={t('chat')}>
               <Link href="/app/chat">
                 <MessageCircle />
               </Link>
@@ -99,7 +103,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <NotificationBell />
             <ProfileDropdown
               trigger={
-                <Button variant="ghost" size="icon" className="size-9.5" aria-label={t('nav.profile')}>
+                <Button variant="tertiary" size="icon" className="size-9.5" aria-label={t('nav.profile')}>
                   <Avatar className="size-9.5 rounded-md">
                     <AvatarFallback>PJ</AvatarFallback>
                   </Avatar>

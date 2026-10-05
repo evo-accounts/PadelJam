@@ -1,13 +1,16 @@
 import { useT } from '@padel/i18n';
-import { StyleSheet, Text, View } from 'react-native';
+import { COURTS_MAX, COURTS_MIN } from '@padel/utils';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { colors } from '../../../theme';
 import { IconButton } from '../../../components/ui';
 
 export function CourtCounter({
   value,
   onChange,
-  min = 1,
-  max = 12,
+  min = COURTS_MIN,
+  // Requirements: 1–20 courts (decision 9). Was 12.
+  max = COURTS_MAX,
 }: {
   value: number;
   onChange: (n: number) => void;

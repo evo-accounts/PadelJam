@@ -2,11 +2,12 @@
  * Pick a place, get coordinates back — for UX-SET-02's location field.
  *
  * The audit asks Account Settings to open "the in-app map picker used in onboarding". Neither half
- * of that exists: onboarding's location step is a geocoded text search, and
- * `components/community/LocationPickerSheet.tsx` — the thing that looks like a map picker — says
- * in its own header that the map area is a static placeholder, searches seeded VENUES, and hands
- * back free text with NO coordinates. `profiles.location_point` is a geography column whose only
- * sanctioned writer is `set_my_location(lat, lng, text)`, so free text cannot feed it.
+ * of that exists: onboarding's location step is a geocoded text search, and the old community
+ * `LocationPickerSheet` — the thing that looked like a map picker — had a static placeholder for a
+ * map, searched seeded VENUES, and handed back free text with NO coordinates. It is gone: community
+ * create and settings use this sheet too (D2 of the Home & Explore audit).
+ * `profiles.location_point` is a geography column whose only sanctioned writer is
+ * `set_my_location(lat, lng, text)`, so free text cannot feed it.
  *
  * So this is the onboarding behaviour in a sheet, sharing its resolution through
  * `useGeocodeSearch` rather than growing a second geocode path. Confirm stays disabled until the
@@ -100,7 +101,7 @@ export function LocationSheet({
           testID="location-confirm"
         />
         <Button
-          variant="outline"
+          variant="secondary"
           fullWidth
           label={t('locationUseCurrent')}
           loading={locating}

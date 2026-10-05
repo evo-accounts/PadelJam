@@ -1,5 +1,5 @@
-import { snapshot, query, describeSelector, type Selector } from './a11y';
-import { scrollUntilVisible, tap, typeText } from './actions';
+import { keyboardTop, snapshot, query, describeSelector, type Selector } from './a11y';
+import { scrollUntilVisible, swipe, tap, typeText } from './actions';
 import { captureFailure, expectVisible, waitFor } from './expect';
 import { latestOtp } from '../fixtures/mailpit';
 import { PERSONAS, type PersonaKey } from '../fixtures/personas';
@@ -9,11 +9,21 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /**
  * Wait past the splash for either the welcome screen or the sign-in screen;
  * tap through welcome when present. Ends on sign-in.
+ *
+ * Welcome has two buttons, "Get started" and "Sign in", and both replace to the
+ * same combined "Login or Sign Up" screen (UX-AUTH-01). This takes the primary
+ * one, which is what a first-time user does; suite 01 pins that the secondary
+ * lands in the same place.
+ *
+ * The match is on the EXACT label, anchored, on purpose: "get started" also ends
+ * a sentence of the community empty state, which a bare /Get started/ would match
+ * as well as the button. (The same care applies to "Sign in", a prefix of "Sign
+ * in with password": suite 01 asserts it by exact label.) The tap goes by testID.
  */
 export async function passWelcomeIfPresent(): Promise<void> {
-  const el = await waitFor({ text: /Start now|Login or Sign Up/i }, { timeout: 30_000 });
-  if (/start now/i.test(el.AXLabel ?? '')) {
-    await tap({ text: /start ?now/i });
+  const el = await waitFor({ text: /^Get started$|Login or Sign Up/i }, { timeout: 30_000 });
+  if (/^get started$/i.test(el.AXLabel ?? '')) {
+    await tap({ id: 'welcome-start' });
     await expectVisible({ label: 'Login or Sign Up' });
   }
 }
@@ -84,6 +94,31 @@ export async function tabTo(name: 'Home' | 'Events' | 'Explore' | 'Community' | 
   await ensureTabs();
   await tap({ text: new RegExp(`^${name}, tab`) });
   await sleep(600);
+}
+
+/**
+ * Home → one of the Find quick actions, which lands on Explore's search results for that tab — the
+ * empty query, so every visible row of that kind — with the input focused (UX-HOME-01, D11). Ends
+ * with the keyboard put away again.
+ *
+ * This is how a test reaches an event it is NOT part of — the Events tab lists only your own.
+ */
+export async function findFromHome(action: 'findEvent' | 'findGroup' | 'findCommunity'): Promise<void> {
+  await tabTo('Home');
+  const quick = { id: `home-quick-${action}` };
+  await scrollUntilVisible(quick, { direction: 'down', maxSwipes: 4 });
+  await tap(quick);
+  await expectVisible({ id: 'explore-search-cancel' }, { timeout: 15_000 });
+  // Wait for the focus to land (keyboard up), then drag the list to put the keyboard away (the
+  // list uses keyboardDismissMode="on-drag"), so what follows taps rows rather than keys. With
+  // the keyboard up, keyboardTop() reads the top row of KEYS, but the predictive bar above them
+  // is part of the keyboard too: a row lying under that bar looks tappable, and the tap lands in
+  // the bar (seen on a short result list, where nothing needed scrolling first).
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline && keyboardTop(await snapshot()) == null) await sleep(300);
+  await swipe('down', { fromY: 450 });
+  const gone = Date.now() + 5_000;
+  while (Date.now() < gone && keyboardTop(await snapshot()) != null) await sleep(300);
 }
 
 /**

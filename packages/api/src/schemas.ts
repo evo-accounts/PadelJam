@@ -3,11 +3,19 @@ import { z } from 'zod';
 export const COMMUNITY_TYPES = ['club', 'team', 'friends'] as const;
 export const PRIVACY = ['public', 'request_to_join', 'private'] as const;
 
+/** A picked place's coordinates (D2 of the Home & Explore audit). `location` stays the label. */
+export const locationPointSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+export type LocationPoint = z.infer<typeof locationPointSchema>;
+
 export const createCommunitySchema = z
   .object({
     name: z.string().trim().min(1).max(80),
     description: z.string().trim().max(2000).optional(),
     location: z.string().trim().max(120).optional(),
+    locationPoint: locationPointSchema.optional(),
     type: z.enum(COMMUNITY_TYPES),
     privacy: z.enum(PRIVACY),
     thumbnailPath: z.string().optional(),
@@ -119,6 +127,8 @@ export const createEventSchema = z
     invitees: z.array(inviteeSchema).optional(),
     guests: z.array(guestSchema).optional(),
     courtIds: z.array(z.string().uuid()).optional(),
+    /** False on "Have not reserved yet" (events.courts_reserved, 0122); the server defaults to true. */
+    courtsReserved: z.boolean().optional(),
     /** Manual venue / no location only: one name per court, in order (UX-CEVT-06). */
     manualCourtNames: z.array(z.string().trim().min(1).max(40)).optional(),
   })
@@ -178,7 +188,8 @@ export function buildCreateEventPayload(input: CreateEventInput): Record<string,
     venue_id: input.venueId ?? null,
     location_lat: input.locationLat ?? null,
     location_lng: input.locationLng ?? null,
-    location_text: input.manualLocationName ?? null,
+    // A manual venue's name is optional (UX-CEVT-06): the address stands in for it.
+    location_text: input.manualLocationName ?? input.manualLocationAddress ?? null,
     has_location: input.hasLocation,
   };
   if (input.series) {
@@ -194,6 +205,7 @@ export function buildCreateEventPayload(input: CreateEventInput): Record<string,
     payload.guests = input.guests.map((g) => ({ name: g.name.trim(), gender: g.gender ?? null }));
   }
   if (input.courtIds) payload.court_ids = input.courtIds;
+  if (input.courtsReserved !== undefined) payload.courts_reserved = input.courtsReserved;
   if (input.manualCourtNames && !input.venueId) {
     payload.manual_court_names = input.manualCourtNames.map((n) => n.trim());
   }
@@ -231,6 +243,12 @@ export const updateEventSchema = z
     locationLng: z.number().optional(),
     hasLocation: z.boolean(),
     numCourts: z.number().int().min(1),
+    /** A registry venue's ticked courts; sent → replaced (and courts_reserved set true) (0122). */
+    courtIds: z.array(z.string().uuid()).optional(),
+    /** Set explicitly from Edit Location & Courts (0122); omitted → unchanged. */
+    courtsReserved: z.boolean().optional(),
+    /** A manual venue's court names, one per court (0122 takes the key; omitted → unchanged). */
+    manualCourtNames: z.array(z.string().trim().min(1).max(40)).optional(),
   })
   .refine((v) => !v.entranceFee.enabled || (v.entranceFee.amount != null && !!v.entranceFee.method), {
     path: ['entranceFee'],
@@ -239,7 +257,7 @@ export const updateEventSchema = z
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 
 export function buildUpdateEventPayload(input: UpdateEventInput): Record<string, unknown> {
-  return {
+  const payload: Record<string, unknown> = {
     name: input.name,
     description: input.description ?? null,
     thumbnail_path: input.thumbnailPath ?? null,
@@ -255,6 +273,8 @@ export function buildUpdateEventPayload(input: UpdateEventInput): Record<string,
     entrance_fee_method: input.entranceFee.method ?? null,
     entrance_fee_mba_number: input.entranceFee.mbaNumber ?? null,
     players_submit_results: input.playersSubmitResults,
+    // Ignored by update_event since 0122 (plan D8: the role is set at creation); kept in the
+    // payload for older servers.
     organizer_role: input.organizerRole,
     num_courts: input.numCourts,
     manual_location_name: input.venueId ? null : (input.manualLocationName ?? null),
@@ -262,9 +282,15 @@ export function buildUpdateEventPayload(input: UpdateEventInput): Record<string,
     venue_id: input.venueId ?? null,
     location_lat: input.locationLat ?? null,
     location_lng: input.locationLng ?? null,
-    location_text: input.manualLocationName ?? null,
+    // A manual venue's name is optional (UX-CEVT-06): the address stands in for it.
+    location_text: input.manualLocationName ?? input.manualLocationAddress ?? null,
     has_location: input.hasLocation,
   };
+  // Omitted unless given, so an edit that does not touch the courts keeps them (0122).
+  if (input.courtIds && input.venueId) payload.court_ids = input.courtIds;
+  if (input.courtsReserved !== undefined) payload.courts_reserved = input.courtsReserved;
+  if (input.manualCourtNames && !input.venueId) payload.manual_court_names = input.manualCourtNames;
+  return payload;
 }
 
 export const submitScoreSchema = z.object({
@@ -285,3 +311,12 @@ export const blastSchema = z.object({
   channels: z.array(z.enum(BLAST_CHANNELS)).min(1),
 });
 export type BlastInput = z.infer<typeof blastSchema>;
+export type BlastChannel = (typeof BLAST_CHANNELS)[number];
+
+/** 0124: who a blast goes to. 'all' = every participant plus pending invitees. */
+export const BLAST_SEND_TO = ['all', 'confirmed', 'invited', 'waiting_list'] as const;
+export type BlastSendTo = (typeof BLAST_SEND_TO)[number];
+
+/** "Your blasts" (0124): the same text limits as a sent blast. */
+export const savedBlastSchema = blastSchema.pick({ title: true, description: true });
+export type SavedBlastInput = z.infer<typeof savedBlastSchema>;

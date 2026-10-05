@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pageIndex } from './carouselPage';
+import { pageIndex, shouldScrollTo } from './carouselPage';
 
 describe('pageIndex', () => {
   it('maps an exact page offset to that page', () => {
@@ -38,5 +38,40 @@ describe('pageIndex', () => {
     // and reports page 2 while page 1 is on screen.
     expect(pageIndex(844, 844, 3)).toBe(1);
     expect(pageIndex(844, 390, 3)).toBe(2);
+  });
+});
+
+describe('shouldScrollTo', () => {
+  it('skips the scroll when the page is the one the user just swiped to', () => {
+    // The mid-drag case: onScroll rounded to page 1 at the half-way point, the
+    // state change re-ran the effect, and `current` equals what the finger did.
+    expect(shouldScrollTo(1, 1)).toBe(false);
+    expect(shouldScrollTo(0, 0)).toBe(false);
+    expect(shouldScrollTo(2, 2)).toBe(false);
+  });
+
+  it('scrolls when a controlled caller moves to a different page than the swipe', () => {
+    expect(shouldScrollTo(2, 1)).toBe(true);
+    expect(shouldScrollTo(0, 1)).toBe(true);
+  });
+
+  it('scrolls when nothing was swiped — a "Next" button, or a rotation changing the width', () => {
+    expect(shouldScrollTo(0, null)).toBe(true);
+    expect(shouldScrollTo(1, null)).toBe(true);
+  });
+
+  it('scrolls back to a page the user once swiped to, once that swipe has been consumed', () => {
+    // The caller clears `swipedTo` after each consult. Modelled here because the
+    // failure it prevents is a sequence, not a single call: swipe to 1, press
+    // "Next" to 2, press "Back" to 1 — the last must scroll.
+    let swipedTo: number | null = 1; // the user's swipe
+    const consult = (current: number) => {
+      const scroll = shouldScrollTo(current, swipedTo);
+      swipedTo = null;
+      return scroll;
+    };
+    expect(consult(1)).toBe(false); // the swipe's own state change
+    expect(consult(2)).toBe(true); // "Next"
+    expect(consult(1)).toBe(true); // "Back" — would be false if swipedTo had stuck
   });
 });

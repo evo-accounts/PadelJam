@@ -1,44 +1,68 @@
 import { describe, expect, it } from 'vitest';
-import { pendingActions } from './pendingActions';
+import { pendingActions, teamsIncomplete } from './pendingActions';
 
 const base = {
   eventId: 'e1',
   specification: 'classic',
-  numCourts: 1,
-  confirmedCount: 4,
-  confirmedTeamCount: 0,
+  openSpots: 0,
+  teamsIncomplete: false,
+  feeEnabled: false,
+  unpaid: 0,
   hasLocation: true,
+  courtsReserved: true,
 };
 
 describe('pendingActions', () => {
-  it('is empty for a fully set up classic event', () => {
+  it('is empty when nothing is pending', () => {
     expect(pendingActions(base)).toEqual([]);
   });
 
-  it('asks for the missing players and a location (the audit E4 shape)', () => {
-    expect(pendingActions({ ...base, confirmedCount: 0, hasLocation: false })).toEqual([
-      { key: 'addPlayers', count: 4, href: '/event/e1/manage' },
-      { key: 'setLocation', count: 0, href: '/event/e1/edit' },
+  it('lists open spots and a missing location, in the audit order', () => {
+    expect(pendingActions({ ...base, openSpots: 3, hasLocation: false })).toEqual([
+      { key: 'spots', count: 3, href: '/event/e1/manage-players' },
+      { key: 'location', count: 0, href: '/event/e1/manage?sheet=location' },
     ]);
   });
 
-  it('asks for teams on a team event', () => {
-    expect(pendingActions({ ...base, specification: 'team', confirmedTeamCount: 1 })).toEqual([
-      { key: 'setUpTeams', count: 1, href: '/event/e1/manage' },
+  it('asks for teams only on a team event', () => {
+    expect(pendingActions({ ...base, teamsIncomplete: true })).toEqual([]);
+    expect(pendingActions({ ...base, specification: 'team', teamsIncomplete: true })).toEqual([
+      { key: 'teams', count: 0, href: '/event/e1/manage-players?view=teams' },
     ]);
   });
 
-  it('lists players, then teams, then location when all are missing', () => {
-    expect(
-      pendingActions({ ...base, specification: 'team', confirmedCount: 2, confirmedTeamCount: 0, hasLocation: false })
-    ).toEqual([
-      { key: 'addPlayers', count: 2, href: '/event/e1/manage' },
-      { key: 'setUpTeams', count: 2, href: '/event/e1/manage' },
-      { key: 'setLocation', count: 0, href: '/event/e1/edit' },
+  it('asks for payments only on a fee event', () => {
+    expect(pendingActions({ ...base, unpaid: 2 })).toEqual([]);
+    expect(pendingActions({ ...base, feeEnabled: true, unpaid: 2 })).toEqual([
+      { key: 'payments', count: 2, href: '/event/e1/payments' },
     ]);
   });
 
-  it('never reports a negative player count', () => {
-    expect(pendingActions({ ...base, confirmedCount: 9 })).toEqual([]);
+  it('flags unreserved courts only once a location is set', () => {
+    expect(pendingActions({ ...base, courtsReserved: false })).toEqual([
+      { key: 'courts', count: 0, href: '/event/e1/manage?sheet=location' },
+    ]);
+    expect(pendingActions({ ...base, hasLocation: false, courtsReserved: false }).map((a) => a.key)).toEqual([
+      'location',
+    ]);
+  });
+});
+
+describe('teamsIncomplete', () => {
+  const team = (a: string | null, b: string | null, confirmed = true) => ({
+    is_confirmed: confirmed,
+    player_a: a ? { id: a } : null,
+    player_b: b ? { id: b } : null,
+  });
+
+  it('is false when every confirmed player is in a complete team', () => {
+    expect(teamsIncomplete(['p1', 'p2'], [team('p1', 'p2')])).toBe(false);
+    expect(teamsIncomplete([], [])).toBe(false);
+  });
+
+  it('is true for a half team or an unconfirmed one', () => {
+    expect(teamsIncomplete(['p1'], [team('p1', null)])).toBe(true);
+    expect(teamsIncomplete(['p1', 'p2'], [team('p1', 'p2', false)])).toBe(true);
+    expect(teamsIncomplete(['p1', 'p2', 'p3'], [team('p1', 'p2')])).toBe(true);
   });
 });

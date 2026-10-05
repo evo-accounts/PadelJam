@@ -150,6 +150,7 @@ describe('00 design system', () => {
       // FIRST match anywhere in the tree.
       { file: '11c-sign-in-primitives.png', heading: /^sign-in primitives$/i },
       { file: '11d-progressbar.png', heading: /^progressbar$/i },
+      { file: '11e-donut.png', heading: /^donut$/i },
       { file: '12-empty-loading.png', heading: /^loading$/i },
     ];
 
@@ -222,6 +223,12 @@ describe('00 design system', () => {
     expect(bar, 'the 40% ProgressBar story should be in the tree').toBeDefined();
     expect(bar?.AXLabel ?? '', 'ProgressBar is named').toMatch(/progress/i);
     expect(`${bar?.AXLabel ?? ''} ${bar?.AXValue ?? ''}`, 'ProgressBar announces its percentage').toMatch(/40/);
+
+    // 5. Donut is ONE element too (UX-MEVT-03): named by its label, valued with the ratio.
+    const donut = query(tree, { id: 'gallery-donut-5' });
+    expect(donut, 'the 5/8 Donut story should be in the tree').toBeDefined();
+    expect(donut?.AXLabel ?? '', 'Donut is named').toMatch(/confirmed/i);
+    expect(`${donut?.AXLabel ?? ''} ${donut?.AXValue ?? ''}`, 'Donut announces its ratio').toMatch(/5\/8/);
 
     // 2. No control may announce a bare glyph, or a blank name.
     //

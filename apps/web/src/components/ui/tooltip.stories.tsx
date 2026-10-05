@@ -20,7 +20,7 @@ export const Default: Story = {
   render: () => (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild><Button variant="ghost">Scoring</Button></TooltipTrigger>
+        <TooltipTrigger asChild><Button variant="tertiary">Scoring</Button></TooltipTrigger>
         <TooltipContent>Americano rotates partners every round</TooltipContent>
       </Tooltip>
     </TooltipProvider>

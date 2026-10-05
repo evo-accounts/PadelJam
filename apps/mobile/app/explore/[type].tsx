@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native';
 
+import { ExploreActionsProvider } from '@/components/explore/ExploreActions';
 import { ExploreList, type ExploreKind } from '@/components/explore/ExploreList';
 import { colors } from '../../theme';
 import { TopBar } from '../../components/ui';
@@ -23,10 +24,13 @@ export default function ExploreSeeAllScreen() {
   }[kind] as 'seeAllTitlePlayers' | 'seeAllTitleEvents' | 'seeAllTitleCommunities' | 'seeAllTitleGroups';
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <TopBar variant="nav" title={t(titleKey)} onBack={() => router.back()} />
-      <ExploreList kind={kind} />
-    </SafeAreaView>
+    // The provider holds what each card's Follow / Join resolved to (UX-EXPL-03's inline actions).
+    <ExploreActionsProvider>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <TopBar variant="nav" title={t(titleKey)} onBack={() => router.back()} />
+        <ExploreList kind={kind} />
+      </SafeAreaView>
+    </ExploreActionsProvider>
   );
 }
 

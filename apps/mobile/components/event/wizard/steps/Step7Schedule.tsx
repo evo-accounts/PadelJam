@@ -1,135 +1,261 @@
 import { useT } from '@padel/i18n';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  atTime,
+  DEFAULT_INVITE_LEAD,
+  defaultStart,
+  DURATION_MAX,
+  DURATION_MIN,
+  DURATION_PRESETS,
+  formatEventWhen,
+  formatShortDay,
+  INVITE_LEAD_OPTIONS,
+  type InviteLeadDays,
+  inviteDate,
+  isDurationPreset,
+  nextWeekly,
+  timeOf,
+} from '@padel/utils';
+import { useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { DateTimePicker } from '../DateTimePicker';
+import { useNow } from '@/lib/useNow';
+
+import { DayScroller } from '../DayScroller';
 import type { EventDraft, WizardStepProps } from '../draft';
-import { Stepper } from '../Stepper';
-import { colors, palette } from '../../../../theme';
+import { NumberSheet } from '../NumberSheet';
+import { TimeSlotPicker } from '../TimeSlotPicker';
+import { colors, radius, space } from '../../../../theme';
+import { Card, Chip, SwitchRow, Text } from '../../../ui';
 
-const LEAD_OPTIONS = [3, 5, 7] as const;
-type LeadDays = (typeof LEAD_OPTIONS)[number];
-
-function deriveSeries(draft: EventDraft, leadDays: LeadDays): EventDraft['series'] {
-  if (!draft.startsAt) return undefined;
-  const d = new Date(draft.startsAt);
+/** The weekly series a recurring event carries, derived from its start and duration. */
+export function deriveSeries(
+  startsAt: string | undefined,
+  durationMinutes: number,
+  inviteLeadDays: InviteLeadDays,
+): EventDraft['series'] {
+  if (!startsAt) return undefined;
+  const d = new Date(startsAt);
   if (Number.isNaN(d.getTime())) return undefined;
-  const dow = d.getDay() === 0 ? 7 : d.getDay();
-  const startTime = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   return {
-    dayOfWeek: dow,
-    startTime,
-    durationMinutes: draft.durationMinutes,
-    inviteLeadDays: leadDays,
+    dayOfWeek: d.getDay() === 0 ? 7 : d.getDay(),
+    startTime: timeOf(d),
+    durationMinutes,
+    inviteLeadDays,
   };
 }
 
-export function Step7Schedule({ draft, patch }: WizardStepProps) {
+const parseStart = (iso: string | undefined): Date | null => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+/**
+ * Date (UX-CEVT-08): four cards with room between them — Date (a day scroller with inline month
+ * labels), Time (period tabs over a grid of start times), Duration (60 / 90 / 120 + Custom in a
+ * sheet) and, for group events, Repeat every week (a toggle that expands to when the next
+ * occurrence's invitation goes out). The summary of when it happens is not here: it is
+ * `DateSummaryFooter`, fixed at the bottom with the primary button.
+ */
+export function Step7Schedule({
+  draft,
+  patch,
+  errors,
+  clearError,
+  context = 'wizard',
+  recurring = false,
+}: WizardStepProps & {
+  /**
+   * `edit`: Manage Event's Edit Date & Time sheet (UX-MEVT-08) — Repeat every week is a real
+   * toggle there (`draft.series` on / off; the sheet turns it into set_event_recurrence).
+   * `occurrence`: one Upcoming occurrence of a series (UX-MEVT-22) — its date and time only: no
+   * Repeat card (it already belongs to a series) and no duration (update_occurrence_slot moves
+   * the start alone).
+   */
+  context?: 'wizard' | 'edit' | 'occurrence';
+  /** Edit only: whether the event already belongs to an active weekly series (its lead is kept). */
+  recurring?: boolean;
+}) {
   const { t } = useT('event');
+  const nowMs = useNow(60_000);
+  const now = useMemo(() => new Date(nowMs), [nowMs]);
+  // Midnight today, rebuilt only when the date changes — the day strip is keyed off it.
+  const [y, m, d] = [now.getFullYear(), now.getMonth(), now.getDate()];
+  const today = useMemo(() => new Date(y, m, d), [y, m, d]);
+  const [customOpen, setCustomOpen] = useState(false);
 
+  const start = parseStart(draft.startsAt);
+  const lead: InviteLeadDays = draft.series?.inviteLeadDays ?? DEFAULT_INVITE_LEAD;
   const repeatOn = draft.series != null;
-  const leadDays: LeadDays = draft.series?.inviteLeadDays ?? 5;
 
-  const onStartsAtChange = (iso: string) => {
-    if (repeatOn) {
-      patch({ startsAt: iso, series: deriveSeries({ ...draft, startsAt: iso }, leadDays) });
-    } else {
-      patch({ startsAt: iso });
-    }
+  // The start is never empty here: entering the step sets the default (`onEnterStep`), so the
+  // time tabs open on the right period on the first render.
+
+  /** Every change re-derives the series, so a recurring event follows its first occurrence. */
+  const update = (next: { startsAt?: string; durationMinutes?: number }) => {
+    const startsAt = next.startsAt ?? draft.startsAt;
+    const durationMinutes = next.durationMinutes ?? draft.durationMinutes;
+    patch({
+      ...next,
+      ...(repeatOn ? { series: deriveSeries(startsAt, durationMinutes, lead) } : {}),
+    });
   };
 
-  const onDurationChange = (n: number) => {
-    const next = { ...draft, durationMinutes: n };
-    if (repeatOn) {
-      patch({ durationMinutes: n, series: deriveSeries(next, leadDays) });
-    } else {
-      patch({ durationMinutes: n });
-    }
+  const pickDay = (day: Date) => {
+    // The time is kept across days — unless on the new day it has already gone (today, earlier
+    // than now), when the start snaps to the first free slot instead.
+    const kept = start ? atTime(day, timeOf(start)) : null;
+    const next = kept && kept.getTime() > now.getTime() ? kept : defaultStart(now);
+    update({ startsAt: next.toISOString() });
+    clearError?.('startsAt');
+  };
+  const pickTime = (hhmm: string) => {
+    update({ startsAt: atTime(start ?? today, hhmm).toISOString() });
+    clearError?.('startsAt');
+  };
+  const pickDuration = (m: number) => {
+    update({ durationMinutes: m });
+    clearError?.('durationMinutes');
   };
 
-  const onRepeatToggle = (on: boolean) => {
-    if (on) {
-      patch({ series: deriveSeries(draft, leadDays) });
-    } else {
-      patch({ series: undefined });
-    }
-  };
-
-  const onLeadChange = (lead: LeadDays) => {
-    patch({ series: deriveSeries(draft, lead) });
-  };
+  const custom = !isDurationPreset(draft.durationMinutes);
 
   return (
     <View style={styles.container}>
+      <Card padding="md" style={styles.card}>
+        <Text variant="sectionTitle">{t('dateLabel')}</Text>
+        <DayScroller value={start} onChange={pickDay} today={today} />
+      </Card>
 
-      <DateTimePicker value={draft.startsAt} onChange={onStartsAtChange} />
+      <Card padding="md" style={styles.card}>
+        <Text variant="sectionTitle">{t('timeLabel')}</Text>
+        <TimeSlotPicker day={start ?? today} value={start ? timeOf(start) : null} onChange={pickTime} now={now} />
+        {errors?.includes('startsAt') ? (
+          <Text variant="caption" tone="destructive">
+            {t('startTimeError')}
+          </Text>
+        ) : null}
+      </Card>
 
-      <Stepper
-        label={t('durationLabel')}
-        value={draft.durationMinutes}
-        onChange={onDurationChange}
-        min={30}
-        max={240}
-        step={15}
-      />
-
-      {draft.groupId ? (
-        <View style={styles.section}>
-          <View style={styles.switchRow}>
-            <View style={styles.switchText}>
-              <Text style={styles.label}>{t('repeatLabel')}</Text>
-              <Text style={styles.hint}>{t('repeatHint')}</Text>
-            </View>
-            <Switch value={repeatOn} onValueChange={onRepeatToggle} />
+      {context === 'occurrence' ? null : (
+        <Card padding="md" style={styles.card}>
+          <Text variant="sectionTitle">{t('durationCardTitle')}</Text>
+          <View style={styles.chips}>
+            {DURATION_PRESETS.map((m) => (
+              <Chip
+                key={m}
+                label={t('minutesValue', { count: m })}
+                selected={draft.durationMinutes === m}
+                onPress={() => pickDuration(m)}
+                testID={`duration-${m}`}
+              />
+            ))}
+            <Chip
+              label={custom ? t('durationCustomValue', { count: draft.durationMinutes }) : t('durationCustom')}
+              selected={custom}
+              onPress={() => setCustomOpen(true)}
+              testID="duration-custom"
+            />
           </View>
+        </Card>
+      )}
 
-          {repeatOn ? (
-            <View style={styles.section}>
-              <Text style={styles.label}>{t('inviteLeadLabel')}</Text>
-              <View style={styles.chipRow}>
-                {LEAD_OPTIONS.map((lead) => {
-                  const selected = leadDays === lead;
-                  return (
-                    <Pressable
-                      key={lead}
-                      onPress={() => onLeadChange(lead)}
-                      style={[styles.chip, selected && styles.chipSelected]}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected }}
-                    >
-                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                        {lead}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+      {/* Recurrence is group-only; a standalone event has nobody to re-invite (plan-capped on create). */}
+      {context !== 'occurrence' && draft.groupId ? (
+        <Card padding="md" style={styles.card}>
+          <SwitchRow
+            label={t('repeatLabel')}
+            description={t('repeatHint')}
+            value={repeatOn}
+            onValueChange={(on) =>
+              patch({ series: on ? deriveSeries(draft.startsAt, draft.durationMinutes, lead) : undefined })
+            }
+            testID="repeat-weekly"
+          />
+          {/* An existing series keeps its own lead; only a new one picks it. */}
+          {repeatOn && !(context === 'edit' && recurring) ? (
+            <View style={styles.lead}>
+              <Text variant="label">{t('inviteLeadLabel')}</Text>
+              <View style={styles.chips}>
+                {INVITE_LEAD_OPTIONS.map((days) => (
+                  <Chip
+                    key={days}
+                    label={t(`inviteLead${days}`)}
+                    selected={lead === days}
+                    onPress={() => patch({ series: deriveSeries(draft.startsAt, draft.durationMinutes, days) })}
+                    testID={`invite-lead-${days}`}
+                  />
+                ))}
               </View>
             </View>
           ) : null}
-        </View>
+        </Card>
+      ) : null}
+
+      <NumberSheet
+        visible={customOpen}
+        title={t('customDurationTitle')}
+        hint={t('customDurationHint')}
+        error={t('customDurationError')}
+        saveLabel={t('customPointsSave')}
+        min={DURATION_MIN}
+        max={DURATION_MAX}
+        initial={custom ? draft.durationMinutes : null}
+        onClose={() => setCustomOpen(false)}
+        onSave={(m) => {
+          pickDuration(m);
+          setCustomOpen(false);
+        }}
+        testID="custom-duration"
+      />
+    </View>
+  );
+}
+
+/**
+ * The summary box (UX-CEVT-08), fixed at the bottom with the primary button so it stays in view
+ * while the cards scroll: when the event happens, and — when it repeats — the next occurrence and
+ * the day its invitations go out.
+ */
+export function DateSummaryFooter({ draft }: WizardStepProps) {
+  const { t, i18n } = useT('event');
+  const locale = i18n.language;
+  const start = parseStart(draft.startsAt);
+  const next = start && draft.series ? nextWeekly(start) : null;
+
+  return (
+    // Plain View, each line its own element (see InfoNote on accessible grouping Views).
+    <View style={styles.summary}>
+      <Text variant="label" tone="muted">
+        {t('summaryTitle')}
+      </Text>
+      <Text variant="bodyStrong">
+        {start ? formatEventWhen(start, draft.durationMinutes, locale) : t('summaryPickTime')}
+      </Text>
+      {next && draft.series ? (
+        <>
+          <Text variant="caption" tone="default">
+            {t('summaryRepeats', { date: formatShortDay(next, locale) })}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {t('summaryInvite', { date: formatShortDay(inviteDate(next, draft.series.inviteLeadDays), locale) })}
+          </Text>
+        </>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 20 },
-  section: { gap: 12 },
-  label: { fontSize: 14, fontWeight: '600', color: colors.foreground },
-  hint: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  switchText: { flex: 1 },
-  chipRow: { flexDirection: 'row', gap: 10 },
-  chip: {
-    minWidth: 56,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    alignItems: 'center',
+  container: { gap: space[5] },
+  card: { gap: space[3] },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
+  lead: { gap: space[2] },
+  summary: {
+    gap: space[1],
+    padding: space[3],
+    marginBottom: space[3],
+    borderRadius: radius.lg,
+    backgroundColor: colors.accent,
   },
-  chipSelected: { borderColor: colors.primary, backgroundColor: palette.purple[100] },
-  chipText: { fontSize: 16, fontWeight: '700', color: colors.foreground },
-  chipTextSelected: { color: colors.primary },
 });

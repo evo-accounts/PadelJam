@@ -1,4 +1,6 @@
--- Posts: members read; create gated by can_create_post (admin OR member+create_posts); non-members blocked.
+-- Posts: create gated by can_create_post (admin OR member+create_posts). Since 0100 a PUBLIC community's
+-- posts are readable by any signed-in non-member, who still cannot post (the write did not widen).
+-- The request_to_join/private fence and anon are covered by public-community-read.test.mjs.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
   ('e0000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','powner@x.com'),
@@ -39,11 +41,16 @@ begin
   exception when sqlstate '42501' then raise notice 'OK member post blocked by RLS when create_posts=false';
   end;
 
-  -- outsider cannot read posts
+  -- outsider reads a public community's posts (0100) but cannot post in it
   perform set_config('request.jwt.claims','{"sub":"e0000003-0000-0000-0000-000000000003","role":"authenticated"}',true);
-  if (select count(*) from community_posts where community_id=cid) <> 0 then
-    raise exception using errcode='PT001', message='outsider can read posts (should be member-gated)';
+  if (select count(*) from community_posts where community_id=cid) <> 2 then
+    raise exception using errcode='PT001', message='outsider should read a public community''s posts (0100)';
   end if;
-  raise notice 'OK non-member cannot read posts';
+  raise notice 'OK non-member reads a public community''s posts';
+  begin
+    insert into community_posts (community_id, author_id, body) values (cid, 'e0000003-0000-0000-0000-000000000003', 'outsider');
+    raise exception using errcode='PT001', message='non-member post should be blocked';
+  exception when sqlstate '42501' then raise notice 'OK non-member post blocked by RLS';
+  end;
 end $$;
 rollback;

@@ -237,7 +237,7 @@ export function GroupMenu({
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="ghost"
+            variant="tertiary"
             size="icon"
             aria-label={isAdmin ? t('manageTitle') : t('more')}
             data-testid={isAdmin ? 'group-manage' : 'group-more'}
@@ -383,7 +383,7 @@ export function GroupMenu({
             </ul>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={close}>
+            <Button variant="secondary" onClick={close}>
               {t('cancel')}
             </Button>
             <Button disabled={picked.length === 0 || busy} onClick={() => void addAdminsThenLeave()}>

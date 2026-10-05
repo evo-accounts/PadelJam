@@ -241,11 +241,11 @@ await run('D8: a mixed event splits capacity per gender and asks for a gender', 
   assert((await notifs(m3, 'waitlist_spot', ev)).length === 1 && (await notifs(m4, 'waitlist_spot', ev)).length === 1, 'men waiting offered');
   assert((await rpc(m4.jwt, 'claim_waitlist_spot', { p_event_id: ev })) === 'confirmed', 'm4 claims first');
 
-  // Guests count by guest_gender; the organizer override is unrestricted.
+  // Guests count by guest_gender. Since 0121 (B4) a manual guest respects capacity like any other.
   const guests = await sel('event_participants', `event_id=eq.${ev}&status=eq.confirmed&select=id`);
   assert(guests.length === 4, 'balanced 2 + 2');
-  await rpc(org.jwt, 'add_manual_participant', { p_event_id: ev, p_name: 'Guest Woman', p_gender: 'female' });
-  assert((await sel('event_participants', `event_id=eq.${ev}&status=eq.confirmed&select=id`)).length === 5, 'organizer adds past the cap');
+  await expectError(() => rpc(org.jwt, 'add_manual_participant', { p_event_id: ev, p_name: 'Guest Woman', p_gender: 'female' }), 'event_full');
+  assert((await sel('event_participants', `event_id=eq.${ev}&status=eq.confirmed&select=id`)).length === 4, 'the organizer cannot add past the cap');
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -428,14 +428,13 @@ await run('orphans: when one half of a waiting pair goes, the other is released,
   assert(r5.status === 'interested' && r5.pair_participant_id === null && r5.waiting_list_position === null, 'other half back to interested');
   assert((await part(ev, p[6])).waiting_list_position === 1 && (await part(ev, p[7])).waiting_list_position === 2, 'queue renumbered');
 
-  // Organizer confirms one half of pair B.
-  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: (await part(ev, p[6])).id });
-  const [r6, r7] = [await part(ev, p[6]), await part(ev, p[7])];
-  assert(r6.status === 'confirmed' && r6.pair_participant_id === null, 'confirmed half unlinked');
+  // 0122 (D2): the organizer cannot confirm a waiting half; removing it releases the other.
+  await expectError(async () => rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: (await part(ev, p[6])).id }), 'waitlist_not_confirmable');
+  await rpc(org.jwt, 'organizer_remove_participant', { p_participant_id: (await part(ev, p[6])).id, p_mode: 'from_event' });
+  const r7 = await part(ev, p[7]);
   assert(r7.status === 'interested' && r7.pair_participant_id === null, 'other half back to interested');
 
   // Nobody is left half-queued, so the event is not frozen: free spots go to the next pair.
-  await rpc(org.jwt, 'organizer_remove_participant', { p_participant_id: r6.id, p_mode: 'from_event' });
   await rpc(p[0].jwt, 'leave_event', { p_event_id: ev }); // p0 + p1 leave: two spots free
   assert((await rpc(p[8].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[9].id })) === 'confirmed', 'next pair confirms');
   assert((await rpc(p[5].jwt, 'choose_partner', { p_event_id: ev, p_partner_user: p[7].id })) === 'waiting_list', 'released halves can pair again');
@@ -467,12 +466,14 @@ await run('a removed player cannot re-enter by accepting an incoming request', a
   assert((await part(ev, x)) === null, 'x stays out');
 });
 
-await run("'to_invited' on a public group event leaves a group member with no invitation", async () => {
+await run("'to_invited' on a public group event is refused (0122, D3); removal leaves no invitation", async () => {
   const [a] = [await user('ti-a')];
   const { admin, groupId } = await publicGroup('ti', [a]);
   const ev = await rpc(admin.jwt, 'create_event', { p_payload: base(groupId) });
   await rpc(a.jwt, 'join_event', { p_event_id: ev });
-  await rpc(admin.jwt, 'organizer_remove_participant', { p_participant_id: (await part(ev, a)).id, p_mode: 'to_invited' });
+  const pid = (await part(ev, a)).id;
+  await expectError(() => rpc(admin.jwt, 'organizer_remove_participant', { p_participant_id: pid, p_mode: 'to_invited' }), 'invalid_mode');
+  await rpc(admin.jwt, 'organizer_remove_participant', { p_participant_id: pid, p_mode: 'from_event' });
   assert((await invitation(ev, a)) === null, 'no invitation recreated');
 });
 
@@ -484,10 +485,9 @@ await run('the public-event clean-up spares explicit invitations to non-members'
   // and to a manual contact.
   const [inv] = await insert('event_invitations', { event_id: ev, invitee_id: member.id, invited_by: admin.id, status: 'pending' });
   const [dead] = await insert('notifications', { user_id: member.id, type: 'event_invite', actor_id: admin.id, event_id: ev, ref_id: inv.id });
-  await rpc(admin.jwt, 'invite_to_event', {
-    p_event_id: ev,
-    p_invitees: [{ invitee_id: outsider.id, name: null, email: null, phone: null }],
-  });
+  // (An explicit invitation to a non-member, as invite_to_event made them before 0122 refused
+  // invitations on a public group event — D12.)
+  await insert('event_invitations', { event_id: ev, invitee_id: outsider.id, invited_by: admin.id });
   // 0113 (B12) dropped the contact-only path from invite_to_event; rows made before it still exist.
   await insert('event_invitations', { event_id: ev, invitee_id: null, invitee_name: 'Manual', invitee_email: 'm@example.test', invited_by: admin.id });
   await rpc(null, '_cleanup_public_event_invitations', {});

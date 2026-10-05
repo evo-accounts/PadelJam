@@ -1,7 +1,10 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CONFIG } from './config';
-import { snapshot, query, type AxElement, type Selector, describeSelector } from './a11y';
+import {
+  snapshot, query, type AxElement, type Selector, describeSelector, accessibilityWedged, lastSnapshotWedged,
+} from './a11y';
+import { AccessibilityWedgedError, WEDGE_PERSIST_MS } from './axWedge';
 import { appLogTail, screenshot } from './sim';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -49,6 +52,22 @@ export async function captureFailure(reason: string): Promise<string> {
   return dir;
 }
 
+/**
+ * A timeout while the AX tree is wedged is not the selector's fault, and no
+ * amount of waiting fixes it: say so, with its own error type, so the reader
+ * (and freshInstall) can tell it from a screen that never rendered.
+ */
+async function timeoutError(reason: string): Promise<Error> {
+  const wedged = accessibilityWedged();
+  const full = wedged
+    ? `accessibility tree wedged — describe-all has returned nothing usable for ${WEDGE_PERSIST_MS / 1000}s+; `
+      + `the simulator needs a reboot (freshInstall does this). ${reason}`
+    : reason;
+  const dir = await captureFailure(full);
+  const message = `${full}\nartifacts: ${dir}`;
+  return wedged ? new AccessibilityWedgedError(message) : new Error(message);
+}
+
 export interface WaitOpts {
   timeout?: number;
   interval?: number;
@@ -69,9 +88,9 @@ export async function waitFor(sel: Selector, opts: WaitOpts = {}): Promise<AxEle
     }
     await sleep(interval);
   }
-  const reason = `waitFor timed out after ${timeout}ms: ${describeSelector(sel)}${lastErr ? `\nlast snapshot error: ${lastErr}` : ''}`;
-  const dir = await captureFailure(reason);
-  throw new Error(`${reason}\nartifacts: ${dir}`);
+  throw await timeoutError(
+    `waitFor timed out after ${timeout}ms: ${describeSelector(sel)}${lastErr ? `\nlast snapshot error: ${lastErr}` : ''}`,
+  );
 }
 
 export const expectVisible = (sel: Selector, opts?: WaitOpts) => waitFor(sel, opts);
@@ -83,12 +102,11 @@ export async function expectGone(sel: Selector, opts: WaitOpts = {}): Promise<vo
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
     const el = query(await snapshot(), sel);
-    if (!el) return;
+    // A wedged read is empty, so everything is "gone" from it — never pass on one.
+    if (!el && !lastSnapshotWedged()) return;
     await sleep(interval);
   }
-  const reason = `expectGone timed out after ${timeout}ms: still visible ${describeSelector(sel)}`;
-  const dir = await captureFailure(reason);
-  throw new Error(`${reason}\nartifacts: ${dir}`);
+  throw await timeoutError(`expectGone timed out after ${timeout}ms: still visible ${describeSelector(sel)}`);
 }
 
 /** Assert element's label/value against a matcher once visible. */

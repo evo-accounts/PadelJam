@@ -1,141 +1,246 @@
 'use client';
+import { useMemo, useState } from 'react';
 import { useT } from '@padel/i18n';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { FieldError } from '../FieldError';
+  atTime,
+  DEFAULT_INVITE_LEAD,
+  defaultStart,
+  DURATION_MAX,
+  DURATION_MIN,
+  DURATION_PRESETS,
+  formatEventWhen,
+  formatShortDay,
+  INVITE_LEAD_OPTIONS,
+  type InviteLeadDays,
+  inviteDate,
+  isDurationPreset,
+  nextWeekly,
+  timeOf,
+} from '@padel/utils';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { useNow } from '@/lib/useNow';
+import { DayStrip } from '../DayStrip';
+import { dateErrors, deriveSeries } from '../draft-logic';
+import { NumberDialog } from '../NumberDialog';
+import { SegmentedRadio } from '../SegmentedRadio';
+import { TimeSlotPicker } from '../TimeSlotPicker';
 import type { StepProps } from '../types';
 
-const toLocalInput = (iso?: string) => {
-  if (!iso) return '';
+const parseStart = (iso: string | undefined): Date | null => {
+  if (!iso) return null;
   const d = new Date(iso);
-  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 16);
+  return Number.isNaN(d.getTime()) ? null : d;
 };
-const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : undefined);
 
-const DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
-const LEAD_DAYS = [3, 5, 7] as const;
-
-export function Step7Schedule({ draft, patch, flagged, nowMs = 0 }: StepProps) {
-  const { t } = useT('event');
-  const series = draft.series;
-  // Flagged fields stay marked only while still wrong, so fixing one clears it at once.
-  const badStart =
-    !!flagged && (!draft.startsAt || new Date(draft.startsAt).getTime() <= nowMs);
-  const badDuration = !!flagged && !(draft.durationMinutes > 0);
+function Card({ title, id, children }: { title: string; id: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="event-starts-at">{t('startsAtLabel')}</Label>
-        <Input
-          id="event-starts-at"
-          type="datetime-local"
-          aria-invalid={badStart || undefined}
-          aria-describedby={badStart ? 'event-starts-at-error' : undefined}
-          value={toLocalInput(draft.startsAt)}
-          onChange={(e) => patch({ startsAt: fromLocalInput(e.target.value) })}
-        />
-        <FieldError id="event-starts-at-error" show={badStart} />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="event-duration">{t('durationLabel')}</Label>
-        <Input
-          id="event-duration"
-          type="number"
-          aria-invalid={badDuration || undefined}
-          aria-describedby={badDuration ? 'event-duration-error' : undefined}
-          value={draft.durationMinutes}
-          onChange={(e) => patch({ durationMinutes: Number(e.target.value) || 0 })}
-        />
-        <FieldError id="event-duration-error" show={badDuration} />
-      </div>
-      <div className="flex items-center justify-between">
-        <Label>{t('recurringToggle')}</Label>
-        <Switch
-          checked={series != null}
-          onCheckedChange={(on) =>
-            patch(
-              on
-                ? {
-                    series: {
-                      dayOfWeek: 1,
-                      startTime: '18:00',
-                      durationMinutes: draft.durationMinutes,
-                      inviteLeadDays: 3,
-                    },
-                  }
-                : { series: undefined },
-            )
-          }
-        />
-      </div>
-      {series ? (
-        <div className="flex flex-col gap-4 rounded-lg border p-4">
-          <div className="space-y-2">
-            <Label>{t('dayOfWeekLabel')}</Label>
-            <Select
-              value={String(series.dayOfWeek)}
-              onValueChange={(value) => patch({ series: { ...series, dayOfWeek: Number(value) } })}
+    <section aria-labelledby={id} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+      <h2 id={id} className="font-semibold">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * Date (UX-CEVT-08): four cards with room between them — Date (a day strip with inline month
+ * labels), Time (period tabs over a grid of start times), Duration (60 / 90 / 120 + Custom in a
+ * dialog) and, for group events, Repeat every week (a switch that expands to when the next
+ * occurrence's invitation goes out). The summary of when it happens is `DateSummaryFooter`, fixed
+ * at the bottom with the primary button. Mirrors mobile's Step7Schedule.
+ */
+export function Step7Schedule({
+  draft,
+  patch,
+  flagged,
+  context = 'wizard',
+  recurring = false,
+}: StepProps & {
+  /**
+   * `edit`: Manage Event's Edit Date & Time dialog (UX-MEVT-08) — Repeat every week is a real
+   * switch there (`draft.series` on / off; the dialog turns it into set_event_recurrence).
+   * `occurrence`: one Upcoming occurrence of a series (UX-MEVT-22) — its date and time only: no
+   * Repeat card (it already belongs to a series) and no duration (update_occurrence_slot moves
+   * the start alone).
+   */
+  context?: 'wizard' | 'edit' | 'occurrence';
+  /** Edit only: whether the event already belongs to an active weekly series (its lead is kept). */
+  recurring?: boolean;
+}) {
+  const { t } = useT('event');
+  const nowMs = useNow(60_000);
+  const now = useMemo(() => new Date(nowMs), [nowMs]);
+  // Midnight today, rebuilt only when the date changes — the day strip is keyed off it.
+  const [y, m, d] = [now.getFullYear(), now.getMonth(), now.getDate()];
+  const today = useMemo(() => new Date(y, m, d), [y, m, d]);
+  const [customOpen, setCustomOpen] = useState(false);
+
+  const start = parseStart(draft.startsAt);
+  const lead: InviteLeadDays = draft.series?.inviteLeadDays ?? DEFAULT_INVITE_LEAD;
+  const repeatOn = draft.series != null;
+  const errors = flagged ? dateErrors(draft, nowMs) : [];
+
+  // The start is never empty here: entering the step sets the default (`onEnterStep`), so the
+  // time tabs open on the right period on the first render.
+
+  /** Every change re-derives the series, so a recurring event follows its first occurrence. */
+  const update = (next: { startsAt?: string; durationMinutes?: number }) => {
+    const startsAt = next.startsAt ?? draft.startsAt;
+    const durationMinutes = next.durationMinutes ?? draft.durationMinutes;
+    patch({ ...next, ...(repeatOn ? { series: deriveSeries(startsAt, durationMinutes, lead) } : {}) });
+  };
+
+  const pickDay = (day: Date) => {
+    // The time is kept across days — unless on the new day it has already gone (today, earlier
+    // than now), when the start snaps to the first free slot instead.
+    const kept = start ? atTime(day, timeOf(start)) : null;
+    const next = kept && kept.getTime() > now.getTime() ? kept : defaultStart(now);
+    update({ startsAt: next.toISOString() });
+  };
+  const pickTime = (hhmm: string) => update({ startsAt: atTime(start ?? today, hhmm).toISOString() });
+
+  const custom = !isDurationPreset(draft.durationMinutes);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Card title={t('dateLabel')} id="date-card-date">
+        <DayStrip value={start} onChange={pickDay} today={today} label={t('dateLabel')} />
+      </Card>
+
+      <Card title={t('timeLabel')} id="date-card-time">
+        <TimeSlotPicker day={start ?? today} value={start ? timeOf(start) : null} onChange={pickTime} now={now} />
+        {errors.includes('startsAt') ? (
+          <p role="alert" className="text-sm text-destructive">
+            {t('startTimeError')}
+          </p>
+        ) : null}
+      </Card>
+
+      {context === 'occurrence' ? null : (
+        <Card title={t('durationCardTitle')} id="date-card-duration">
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="date-card-duration">
+            {DURATION_PRESETS.map((mins) => (
+              <Button
+                key={mins}
+                type="button"
+                size="sm"
+                variant={draft.durationMinutes === mins ? 'primary' : 'secondary'}
+                aria-pressed={draft.durationMinutes === mins}
+                onClick={() => update({ durationMinutes: mins })}
+                className="rounded-full"
+                data-testid={`duration-${mins}`}
+              >
+                {t('minutesValue', { count: mins })}
+              </Button>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant={custom ? 'primary' : 'secondary'}
+              aria-pressed={custom}
+              onClick={() => setCustomOpen(true)}
+              className="rounded-full"
+              data-testid="duration-custom"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DAYS.map((d) => (
-                  <SelectItem key={d} value={String(d)}>
-                    {t(`day${d}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {custom ? t('durationCustomValue', { count: draft.durationMinutes }) : t('durationCustom')}
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label>{t('startTimeLabel')}</Label>
-            <Input
-              type="time"
-              value={series.startTime}
-              onChange={(e) => patch({ series: { ...series, startTime: e.target.value } })}
+          {errors.includes('durationMinutes') ? (
+            <p role="alert" className="text-sm text-destructive">
+              {t('customDurationError')}
+            </p>
+          ) : null}
+        </Card>
+      )}
+
+      {/* Recurrence is group-only; a standalone event has nobody to re-invite (plan-capped on create). */}
+      {context !== 'occurrence' && draft.groupId ? (
+        <section aria-label={t('repeatLabel')} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <label htmlFor="repeat-weekly" className="font-semibold">
+                {t('repeatLabel')}
+              </label>
+              <p id="repeat-weekly-hint" className="text-sm text-muted-foreground">
+                {t('repeatHint')}
+              </p>
+            </div>
+            <Switch
+              id="repeat-weekly"
+              checked={repeatOn}
+              aria-describedby="repeat-weekly-hint"
+              onCheckedChange={(on) =>
+                patch({ series: on ? deriveSeries(draft.startsAt, draft.durationMinutes, lead) : undefined })
+              }
+              data-testid="repeat-weekly"
             />
           </div>
-          <div className="space-y-2">
-            <Label>{t('durationLabel')}</Label>
-            <Input
-              type="number"
-              value={series.durationMinutes}
-              onChange={(e) =>
-                patch({ series: { ...series, durationMinutes: Number(e.target.value) || 0 } })
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{t('inviteLeadLabel')}</Label>
-            <Select
-              value={String(series.inviteLeadDays)}
-              onValueChange={(value) =>
-                patch({ series: { ...series, inviteLeadDays: Number(value) as 3 | 5 | 7 } })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LEAD_DAYS.map((d) => (
-                  <SelectItem key={d} value={String(d)}>
-                    {t(`leadDays${d}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+          {/* An existing series keeps its own lead; only a new one picks it. */}
+          {repeatOn && !(context === 'edit' && recurring) ? (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium">{t('inviteLeadLabel')}</span>
+              <SegmentedRadio<`${InviteLeadDays}`>
+                label={t('inviteLeadLabel')}
+                options={INVITE_LEAD_OPTIONS.map((days) => ({ value: `${days}`, label: t(`inviteLead${days}`) }))}
+                value={`${lead}`}
+                onChange={(v) =>
+                  patch({
+                    series: deriveSeries(draft.startsAt, draft.durationMinutes, Number(v) as InviteLeadDays),
+                  })
+                }
+                testId="invite-lead"
+              />
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      <NumberDialog
+        open={customOpen}
+        title={t('customDurationTitle')}
+        hint={t('customDurationHint')}
+        error={t('customDurationError')}
+        saveLabel={t('customPointsSave')}
+        min={DURATION_MIN}
+        max={DURATION_MAX}
+        initial={custom ? draft.durationMinutes : null}
+        onClose={() => setCustomOpen(false)}
+        onSave={(mins) => {
+          update({ durationMinutes: mins });
+          setCustomOpen(false);
+        }}
+        testId="custom-duration"
+      />
+    </div>
+  );
+}
+
+/**
+ * The summary box (UX-CEVT-08), fixed at the bottom with the primary button so it stays in view
+ * while the cards scroll: when the event happens, and — when it repeats — the next occurrence and
+ * the day its invitations go out.
+ */
+export function DateSummaryFooter({ draft }: StepProps) {
+  const { t, i18n } = useT('event');
+  const locale = i18n.language;
+  const start = parseStart(draft.startsAt);
+  const next = start && draft.series ? nextWeekly(start) : null;
+
+  return (
+    <div className="mb-3 flex flex-col gap-0.5 rounded-lg bg-accent p-3" aria-live="polite" data-testid="date-summary">
+      <span className="text-xs font-medium text-muted-foreground">{t('summaryTitle')}</span>
+      <span className="font-semibold">
+        {start ? formatEventWhen(start, draft.durationMinutes, locale) : t('summaryPickTime')}
+      </span>
+      {next && draft.series ? (
+        <>
+          <span className="text-sm">{t('summaryRepeats', { date: formatShortDay(next, locale) })}</span>
+          <span className="text-sm text-muted-foreground">
+            {t('summaryInvite', { date: formatShortDay(inviteDate(next, draft.series.inviteLeadDays), locale) })}
+          </span>
+        </>
       ) : null}
     </div>
   );

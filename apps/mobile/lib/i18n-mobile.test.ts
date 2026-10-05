@@ -33,7 +33,8 @@ describe('welcome screen copy resolves from the auth namespace', () => {
     'welcomeBody2',
     'welcomeTitle3',
     'welcomeBody3',
-    'startNow',
+    'getStarted',
+    'signIn',
   ];
   for (const locale of ['pt-PT', 'pt-BR', 'en'] as const) {
     it(`resolves every welcome key for ${locale}`, async () => {
@@ -46,6 +47,42 @@ describe('welcome screen copy resolves from the auth namespace', () => {
         expect(value, `auth:${key} (${locale})`).not.toBe(key);
         expect(value.length).toBeGreaterThan(0);
       }
+    });
+  }
+});
+
+describe('welcome screen call to action copy', () => {
+  const authOf = async (locale: 'pt-PT' | 'pt-BR' | 'en') => {
+    const instance = createInstance();
+    await instance.init({ lng: locale, fallbackLng: 'en', resources: {} });
+    registerMobileCopy(instance);
+    return instance.getFixedT(locale, 'auth');
+  };
+
+  it('retired the single "Start now" key: Welcome has two CTAs now', () => {
+    for (const [locale, blocks] of Object.entries(MOBILE_NAMESPACES.auth)) {
+      expect(Object.keys(blocks), `auth/${locale}`).not.toContain('startNow');
+    }
+  });
+
+  // The E2E driver finds the welcome screen by these exact English labels
+  // (e2e/driver/flows.ts passWelcomeIfPresent, e2e/driver/app.ts freshInstall,
+  // e2e/suites/01-auth). A copy change here has to change them there, and this
+  // fails in a second where the suite would fail forty minutes into a run.
+  it('English welcome labels are the ones the E2E driver looks for', async () => {
+    const t = await authOf('en');
+    expect(t('welcomeTitle1')).toBe('Find games near you');
+    expect(t('getStarted')).toBe('Get started');
+    expect(t('signIn')).toBe('Sign in');
+  });
+
+  // The design sets the single … glyph (U+2026), not three full stops; keep it that
+  // way in every locale so the line does not read differently per language.
+  for (const locale of ['pt-PT', 'pt-BR', 'en'] as const) {
+    it(`welcomeBody2 uses the real ellipsis character in ${locale}`, async () => {
+      const body = (await authOf(locale))('welcomeBody2');
+      expect(body).toContain('\u2026');
+      expect(body).not.toContain('...');
     });
   }
 });

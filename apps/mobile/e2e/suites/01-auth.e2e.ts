@@ -21,18 +21,45 @@ describe('01 auth', () => {
     await freshInstall(); // signed-out, first-install state → welcome
   });
 
-  it('welcome carousel shows real copy and proceeds', async () => {
+  it('welcome shows real copy and both buttons, and Get started proceeds', async () => {
     // Regression for the raw-i18n-key bug: assert real copy, not key names.
-    await expectVisible({ text: 'Find your game' }, { timeout: 30_000 });
+    await expectVisible({ text: 'Find games near you' }, { timeout: 30_000 });
     await expectGone({ text: 'welcomeTitle1' }, { timeout: 1_000 }).catch(() => {
       throw new Error('Welcome screen is rendering raw i18n keys (welcomeTitle1)');
     });
+    // Two buttons, matched by EXACT label. That also covers the raw-key bug for
+    // them (a rendered 'getStarted' / 'signIn' can never equal the English label)
+    // and keeps "Sign in" clear of the "Sign in with password" row further on.
+    await expectVisible({ label: 'Get started' });
+    await expectVisible({ label: 'Sign in' });
     // UX-AUTH-01: consent moved OFF this screen and onto sign-in, where the
     // sign-in methods it refers to actually are.
     await expectGone({ text: /by continuing, you agree/i }, { timeout: 1_000 });
-    await tap({ text: /start now/i });
+    await tap({ id: 'welcome-start' });
     await expectVisible({ label: 'Login or Sign Up' });
     await expectVisible({ text: /by continuing, you agree/i });
+    await expectVisible({ id: 'sign-in-phone-country' });
+  });
+
+  /**
+   * "Sign in" on welcome is not a different screen from "Get started": both go
+   * to the combined Login or Sign Up screen, because there is no separate
+   * returning-user screen and create-account needs a live session. The sign-in
+   * fingerprint here (heading, consent line, phone-country selector) is the same
+   * three things the test above asserts after Get started, so if either button
+   * is ever pointed somewhere else, one of the two fails.
+   *
+   * Its own fresh install, because the test above spent hasSeenWelcome. It also
+   * hands the next test the same state that one would have: signed out, on
+   * sign-in, nothing typed.
+   */
+  it('Sign in on welcome lands on the same screen as Get started', async () => {
+    await freshInstall();
+    await expectVisible({ label: 'Sign in' }, { timeout: 30_000 });
+    await tap({ id: 'welcome-signin' });
+    await expectVisible({ label: 'Login or Sign Up' });
+    await expectVisible({ text: /by continuing, you agree/i });
+    await expectVisible({ id: 'sign-in-phone-country' });
   });
 
   /**
@@ -682,5 +709,5 @@ describe('01 auth', () => {
         + 'instead of sign-in (UX-AUTH-09 — recovery must not continue into a signed-in session)',
       );
     }
-  });
+  }, 300_000); // ~20 typing steps: ~205s measured on a loaded host, past the 180s default.
 });

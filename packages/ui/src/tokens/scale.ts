@@ -49,7 +49,11 @@ export const text = {
 export const space = {
   0: 0,
   1: 4,
+  // Half steps, for the button's sm padding and md/lg gap (Figma `spacing-1,5`
+  // and `spacing-2,5`). Same as Tailwind's `p-1.5` / `p-2.5`.
+  1.5: 6,
   2: 8,
+  2.5: 10,
   3: 12,
   4: 16,
   5: 20,
@@ -70,9 +74,10 @@ export const SPACE_STEP_PX = 4;
  * 400 ×1). Names match Tailwind's so `weight.semibold` and `font-semibold` are
  * the same thing.
  *
- * CAVEAT for anything using a custom font: RN does not synthesise weights. The
- * Atelia face in /Branding ships a single Regular, so these names only mean
- * something while text renders in the OS system font.
+ * CAVEAT for a custom font: RN does not synthesise weights, so a name only means
+ * something if the face ships that weight. Outfit, the text face on both
+ * platforms, ships all five (mobile embeds them; see apps/mobile/theme `font`).
+ * Atelia, the display face, ships only Regular — pair it with `normal` alone.
  */
 export const weight = {
   normal: '400',

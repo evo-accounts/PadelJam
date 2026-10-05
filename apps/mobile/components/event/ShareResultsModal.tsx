@@ -3,7 +3,8 @@ import { useT } from '@padel/i18n';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useRef, useState } from 'react';
-import { Share, StyleSheet, Text, View } from 'react-native';
+import { Share, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { captureRef } from 'react-native-view-shot';
 import { ResultCard } from './ResultCard';
 import { colors } from '../../theme';
@@ -73,7 +74,7 @@ export function ShareResultsModal({
       ) : null}
       <Button
         label={copied ? t('copied') : t('shareExternalCta')}
-        variant="outline"
+        variant="secondary"
         fullWidth
         style={styles.shareButton}
         onPress={onShare}

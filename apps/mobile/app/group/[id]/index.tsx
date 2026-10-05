@@ -155,7 +155,7 @@ export default function GroupHomeScreen() {
         <Text variant="body" tone="muted">
           {t('noAccessBody')}
         </Text>
-        <Button label={t('back')} variant="outline" onPress={() => router.back()} />
+        <Button label={t('back')} variant="secondary" onPress={() => router.back()} />
       </SafeAreaView>
     );
   }

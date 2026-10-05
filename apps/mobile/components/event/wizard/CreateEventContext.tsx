@@ -8,7 +8,7 @@ import {
 } from 'react';
 
 import { type EventDraft, defaultDraft, type WizardStep } from './draft';
-import { applyPatch } from './draftPatch';
+import { applyPatch, onEnterStep } from './draftPatch';
 import { stepByKey } from './steps';
 import {
   neighbourStep,
@@ -46,19 +46,22 @@ const CreateEventContext = createContext<CreateEventContextValue | null>(null);
 type State = { draft: EventDraft; key: StepKey; touched: boolean };
 type Action =
   | { type: 'patch'; partial: Partial<EventDraft> }
-  | { type: 'next'; partial?: Partial<EventDraft> }
-  | { type: 'back' };
+  | { type: 'next'; partial?: Partial<EventDraft>; nowMs: number }
+  | { type: 'back'; nowMs: number };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'patch':
       return { ...state, draft: applyPatch(state.draft, action.partial), touched: true };
     case 'next': {
-      const draft = action.partial ? applyPatch(state.draft, action.partial) : state.draft;
-      return { draft, key: neighbourStep(draft, state.key, 1), touched: true };
+      const patched = action.partial ? applyPatch(state.draft, action.partial) : state.draft;
+      const key = neighbourStep(patched, state.key, 1);
+      return { draft: onEnterStep(patched, key, action.nowMs), key, touched: true };
     }
-    case 'back':
-      return { ...state, key: neighbourStep(state.draft, state.key, -1) };
+    case 'back': {
+      const key = neighbourStep(state.draft, state.key, -1);
+      return { ...state, draft: onEnterStep(state.draft, key, action.nowMs), key };
+    }
   }
 }
 
@@ -84,10 +87,10 @@ export function CreateEventProvider({
 
   const patch = useCallback((partial: Partial<EventDraft>) => dispatch({ type: 'patch', partial }), []);
   const goNext = useCallback(
-    (partial?: Partial<EventDraft>) => dispatch({ type: 'next', partial }),
+    (partial?: Partial<EventDraft>) => dispatch({ type: 'next', partial, nowMs: Date.now() }),
     [],
   );
-  const goBack = useCallback(() => dispatch({ type: 'back' }), []);
+  const goBack = useCallback(() => dispatch({ type: 'back', nowMs: Date.now() }), []);
 
   const value = useMemo<CreateEventContextValue>(() => {
     const keys = visibleStepKeys(state.draft);

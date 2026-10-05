@@ -1,10 +1,14 @@
 'use client';
-
+/**
+ * Blasts already sent for this event, newest first: title, who it went to, the channels, when, and
+ * the email delivery status (with Retry on a failed attempt). WhatsApp is sent from the organizer's
+ * device, so it has no delivery status of its own.
+ */
 import { useState } from 'react';
 import { useT } from '@padel/i18n';
-import { useEventBlasts, useEventBlastDeliveries, useRetryBlast } from '@padel/api';
+import { useEventBlastDeliveries, useEventBlasts, useRetryBlast } from '@padel/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function BlastHistory({ eventId }: { eventId: string }) {
@@ -16,64 +20,67 @@ export function BlastHistory({ eventId }: { eventId: string }) {
   const [retrying, setRetrying] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (blasts.isLoading) return <Skeleton className="h-40" />;
-
+  if (blasts.isLoading) return <Skeleton className="h-24" />;
   const rows = blasts.data ?? [];
-  if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t('blastYourEmpty')}</p>;
-  }
+  if (rows.length === 0) return null;
 
   const onRetry = (blastId: string) => {
     setRetrying(blastId);
     setError(null);
     retry
       .mutateAsync(blastId)
-      .catch((e) => setError(t(e instanceof Error ? e.message : 'unknown_error')))
+      .catch((e) => setError(t(e instanceof Error ? e.message : 'unknown_error', { defaultValue: t('unknown_error') })))
       .finally(() => setRetrying(null));
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">{t('blastSentTitle')}</h2>
+    <section className="flex flex-col gap-3" data-testid="blast-history">
+      <h2 className="text-lg font-semibold">{t('blastHistoryTitle')}</h2>
       {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
-      {rows.map((b) => {
-        // `deliveries.data` is a record keyed by blast_id holding the latest attempt.
-        const d = deliveries.data?.[b.id];
-        const failed = d?.status === 'failed';
-        let status: string;
-        if (!d) {
-          status = t('deliveryPending');
-        } else if (failed) {
-          status = `${t('deliveryFailed')} (${d.failed_count})`;
-        } else {
-          status = `${t('deliveryDelivered')} (${d.sent_count})`;
-        }
-        const when = b.sent_at ? new Date(b.sent_at).toLocaleString(i18n.language) : '—';
-        return (
-          <Card key={b.id}>
-            <CardContent className="flex flex-col gap-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{b.title}</span>
+      <ul className="flex flex-col gap-2">
+        {rows.map((b) => {
+          // `deliveries.data` is keyed by blast_id and holds the latest EMAIL attempt.
+          const d = deliveries.data?.[b.id];
+          const hasEmail = b.channels.includes('email');
+          const failed = d?.status === 'failed';
+          const status = !hasEmail
+            ? null
+            : !d
+              ? t('deliveryPending')
+              : failed
+                ? `${t('deliveryFailed')} (${d.failed_count})`
+                : `${t('deliveryDelivered')} (${d.sent_count})`;
+          const channels = b.channels
+            .map((c) => (c === 'email' ? t('blastChannelEmail') : c === 'whatsapp' ? t('blastChannelWhatsapp') : c))
+            .join(' · ');
+          const when = b.sent_at ? new Date(b.sent_at).toLocaleString(i18n.language) : '—';
+          return (
+            <li key={b.id}>
+              <Card className="flex flex-col gap-1 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 truncate font-medium">{b.title}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{when}</span>
+                </div>
                 <span className="text-sm text-muted-foreground">
-                  {b.sent_to_count} · {when}
+                  {t(`blastSendTo_${b.send_to}`, { defaultValue: t('blastSendTo_all') })} · {channels}
                 </span>
-              </div>
-              <span className="text-sm text-muted-foreground">{status}</span>
-              {failed ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 self-start"
-                  disabled={retrying === b.id}
-                  onClick={() => onRetry(b.id)}
-                >
-                  {t('retryBlastCta')}
-                </Button>
-              ) : null}
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+                {status ? <span className="text-sm text-muted-foreground">{status}</span> : null}
+                {failed ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="mt-1 self-start"
+                    disabled={retrying === b.id}
+                    onClick={() => onRetry(b.id)}
+                  >
+                    {t('retryBlastCta')}
+                  </Button>
+                ) : null}
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

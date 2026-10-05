@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
+import { useRefreshMyProfile } from '@padel/api';
 import { startEmailChange, verifyEmailChange, type TypedClient } from '@padel/auth';
 import { isEmailShape } from '@padel/utils';
 import { supabase } from '@/lib/supabase/client';
@@ -14,6 +15,7 @@ import { Label } from '@/components/ui/label';
 export default function ChangeEmailPage() {
   const { t } = useT('settings');
   const router = useRouter();
+  const refreshMyProfile = useRefreshMyProfile();
 
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [newEmail, setNewEmail] = useState('');
@@ -60,6 +62,7 @@ export default function ChangeEmailPage() {
         setError(t('invalidCode'));
         return;
       }
+      await refreshMyProfile();
       setSuccess(true);
       router.push('/app/settings');
     } finally {
@@ -123,7 +126,7 @@ export default function ChangeEmailPage() {
               <Button type="submit" className="w-full" disabled={pending}>
                 {t('save')}
               </Button>
-              <Button type="button" variant="ghost" className="w-full" onClick={onBack} disabled={pending}>
+              <Button type="button" variant="tertiary" className="w-full" onClick={onBack} disabled={pending}>
                 {t('back')}
               </Button>
             </form>

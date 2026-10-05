@@ -243,11 +243,11 @@ await run('choose_guest_partner: on a full event the pair waits together; leavin
   assert((await teams(ev)).some((t) => t.is_confirmed && [t.player_a_id, t.player_b_id].includes(g3b.id)), 'team row with the guest');
   assert((await part(ev, p[5])).waiting_list_position === 1, 'queue renumbered');
 
-  // The organizer confirms a waiting player alone: their guest half goes, not left 'interested'.
+  // 0122 (D2): the organizer cannot confirm a waiting player — the waiting pair stays as it is.
   assert((await rpc(p[4].jwt, 'choose_guest_partner', { p_event_id: ev, p_name: 'Guest Four Again' })) === 'waiting_list', 'another pair waits');
-  await rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: (await part(ev, p[4])).id });
-  assert((await part(ev, p[4])).status === 'confirmed', 'organizer override confirmed the player');
-  assert(!(await guestRows(ev)).some((r) => r.guest_name === 'Guest Four Again'), 'waiting guest half deleted on mark_confirmed');
+  await expectError(async () => rpc(org.jwt, 'organizer_mark_confirmed', { p_participant_id: (await part(ev, p[4])).id }), 'waitlist_not_confirmable');
+  assert((await part(ev, p[4])).status === 'waiting_list', 'still waiting');
+  assert((await guestRows(ev)).some((r) => r.guest_name === 'Guest Four Again'), 'the waiting guest half is kept');
 
   // The organizer removes a waiting player: their guest half is deleted, not left 'interested'.
   await rpc(org.jwt, 'organizer_remove_participant', { p_participant_id: (await part(ev, p[5])).id, p_mode: 'from_event' });
@@ -258,8 +258,10 @@ await run('organizer removal of a paired player takes their confirmed guest part
   const [a, b, c] = [await user('orm-a'), await user('orm-b'), await user('orm-c')];
   const org = await user('orm-org');
   const ev = await create(org, {
+    // Two courts: the organizer, their guest and two pairs are 6 players — on one court (4 spots)
+    // completing b's pair would pass capacity, which organizer_assign_to_team refuses since 0127.
     specification: 'team', organizer_role: 'organizing_and_playing', invitees: invitees(a, b, c),
-    guests: [{ name: 'Org Guest' }],
+    guests: [{ name: 'Org Guest' }], num_courts: 2,
   });
   assert((await rpc(a.jwt, 'choose_guest_partner', { p_event_id: ev, p_name: 'A Guest' })) === 'confirmed', 'a pairs with a guest');
   const orgGuest = (await guestRows(ev)).find((r) => r.guest_name === 'Org Guest');
@@ -425,10 +427,11 @@ await run('a partner_request notification is settled with its request, however i
   await rpc(d.jwt, 'decline_partner_request', { p_request_id: await reqId(c, d) });
   assert(settled(await note(d, c)), 'declined → settled');
   await rpc(c.jwt, 'withdraw_partner_request', { p_request_id: await reqId(c, e) });
-  assert(settled(await note(e, c)), 'withdrawn → settled');
+  // 0118: a withdrawn ask the target never read is deleted, not settled (no double notification).
+  assert((await note(e, c)) === undefined, 'withdrawn → gone');
 
   // Leaving takes the leaver's pending asks with them.
   await rpc(d.jwt, 'request_partner', { p_event_id: ev, p_targets: [e.id] });
   await rpc(d.jwt, 'leave_event', { p_event_id: ev });
-  assert(settled(await note(e, d)), 'requester left → settled');
+  assert((await note(e, d)) === undefined, 'requester left → gone (0118)');
 });

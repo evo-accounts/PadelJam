@@ -19,7 +19,7 @@ export const Default: Story = {
   render: () => (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">Edit event</Button>
+        <Button variant="secondary">Edit event</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -27,7 +27,7 @@ export const Default: Story = {
           <DialogDescription>Changes are visible to everyone who joined.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+          <DialogClose asChild><Button variant="tertiary">Cancel</Button></DialogClose>
           <Button>Save</Button>
         </DialogFooter>
       </DialogContent>

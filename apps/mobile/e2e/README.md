@@ -237,7 +237,11 @@ personas (password `Demo1234#`), 5 communities, groups, and events E1–E12 cove
 scheduled/team/in-progress/completed/recurring plus error fixtures (join-cutoff, full,
 private, review-gated, sole-owner). Suites call `resetDb('minimal'|'full')` in
 `beforeAll`; the wipe preserves migration-seeded reference tables (`plans`,
-`plan_features`, `plan_limits`, `blast_templates`). Email OTPs are read from Mailpit
+`plan_features`, `plan_limits`, `blast_templates`) and every table owned by an
+extension — notably PostGIS's `public.spatial_ref_sys`, which it used to truncate: with
+no SRID 4326 every geography op (distance, explore ranking, `set_my_location`,
+`create_event`) fails with "Cannot find SRID (4326)". A DB emptied by an older run is
+refilled on the next wipe from PostGIS's own `spatial_ref_sys.sql` in the db container. Email OTPs are read from Mailpit
 (`:55324`); the phone test number `+351912345678` verifies with `123456`.
 
 **The plan caps are live, and the seed sits inside them.** `plan_limits` used to be
@@ -318,6 +322,19 @@ standby spots a 5th player joins CONFIRMED (`is_standby`), never waitlisted.
   remounted the whole subtree, re-running Boot's splash routing. `loginAs` is
   single-attempt and fails loudly if a bounce ever reappears — do not add retries.
 - QR/share deep links use `padeljam://` while the app scheme is `mobile://`.
+- Wedged accessibility tree (2026-09-30, ~80 min into a full run): the app is on
+  screen but `describe-all` fails with "No translation object returned" or returns
+  one zero-size `AXApplication`. Only a simulator reboot clears it — a reinstall or
+  a companion restart does not. `waitFor` reports it as `AccessibilityWedgedError`
+  once it has persisted 10 s, and `freshInstall` reboots the simulator for it (at
+  most twice per suite, logged as `[e2e] freshInstall: accessibility tree wedged`).
+  Mid-test it is reported, never rebooted away. Detection is in `driver/axWedge.ts`.
+  A reboot is not over at `bootstatus`: `sim.reboot()` waits until the device can
+  launch Settings (booting once more if it cannot), and the first launch of the
+  app after it retries twice.
+- A command that hangs is reported as `failed (timed out after Ns and was killed)`,
+  not `failed (1)` with no output — which is what it looked like before 2026-09-30.
+  A hung `describe-all` is slowness, not a wedge, and does not trigger a reboot.
 
 ## When a failure names something unrelated, suspect this
 

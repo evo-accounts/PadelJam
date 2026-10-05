@@ -41,6 +41,10 @@ describe('my events query keys', () => {
     expect(qk.myEvents('all', true)).toEqual(['my-events', 'all', 'past']);
     expect(qk.myEvents('all', true).slice(0, qk.myEventsAll.length)).toEqual([...qk.myEventsAll]);
   });
+
+  it('keeps the viewer statuses (waiting list / interested labels) under the same prefix', () => {
+    expect(qk.myEventStatuses.slice(0, qk.myEventsAll.length)).toEqual([...qk.myEventsAll]);
+  });
 });
 
 describe('event detail select', () => {

@@ -1,170 +1,219 @@
-import { ENTRANCE_FEE_METHODS, ORGANIZER_ROLES } from '@padel/api';
+import { ENTRANCE_FEE_METHODS, type EntranceFeeMethod, ORGANIZER_ROLES } from '@padel/api';
 import { useT } from '@padel/i18n';
+import { DEFAULT_STANDBY, STANDBY_MAX, STANDBY_MIN } from '@padel/utils';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { WizardStepProps } from '../draft';
-import { SelectableCard } from '../SelectableCard';
+import { InfoNote } from '../InfoNote';
 import { Stepper } from '../Stepper';
-import { colors } from '../../../../theme';
-import { Field } from '../../../ui';
+import { space } from '../../../../theme';
+import { Card, Field, RadioCardGroup, Segmented, SwitchRow, Text } from '../../../ui';
 
-const FEE_METHOD_KEYS: Record<(typeof ENTRANCE_FEE_METHODS)[number], string> = {
+const FEE_METHOD_KEYS: Record<EntranceFeeMethod, string> = {
   cash: 'feeCashLabel',
   at_club: 'feeAt_clubLabel',
   mba: 'feeMbaLabel',
 };
 
-const ROLE_KEYS: Record<(typeof ORGANIZER_ROLES)[number], string> = {
-  organizing_only: 'roleOrganizing_onlyLabel',
-  organizing_and_playing: 'roleOrganizing_and_playingLabel',
+const ROLE_KEYS: Record<(typeof ORGANIZER_ROLES)[number], { title: string; description: string }> = {
+  organizing_only: { title: 'roleOrganizing_onlyLabel', description: 'roleOrganizing_onlyDescription' },
+  organizing_and_playing: {
+    title: 'roleOrganizing_and_playingLabel',
+    description: 'roleOrganizing_and_playingDescription',
+  },
 };
 
-export function Step8Preferences({ draft, patch, errors, clearError }: WizardStepProps) {
+/** A titled group of preferences: everything a toggle opens sits inside its own card. */
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text variant="label" tone="muted" accessibilityRole="header">
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+/**
+ * Preferences (UX-CEVT-09): four sections of cards — Game details, Invite details, Permissions and
+ * "I am…". Every value a toggle enables (the extra spots, the fee's method, amount and MB WAY
+ * number) opens inside that toggle's card rather than as a loose field below it.
+ *
+ * Also reused by Manage Event's Preferences sheet (`context="edit"`, UX-MEVT-05), where there is
+ * no "last step" to invite from, so the private warning drops that sentence; a group-less event
+ * (always private) hides the Private card; and "I am…" is gone — the organizer's role is set at
+ * creation and changed afterwards by joining or leaving as a player (decision 8).
+ */
+export function Step8Preferences({
+  draft,
+  patch,
+  errors,
+  clearError,
+  context = 'wizard',
+}: WizardStepProps & { context?: 'wizard' | 'edit' }) {
   const { t } = useT('event');
   const { t: tc } = useT('common');
 
-  const standaloneLocked = draft.groupId === null;
+  // An event with no group is always private (the schema refuses anything else).
+  const standalone = draft.groupId === null;
+  const fee = draft.entranceFee;
 
-  const [amountText, setAmountText] = useState(
-    draft.entranceFee.amount != null ? String(draft.entranceFee.amount) : '',
-  );
+  const [amountText, setAmountText] = useState(fee.amount != null ? String(fee.amount) : '');
 
   return (
     <View style={styles.container}>
-
-      {/* Standby */}
-      <View style={styles.section}>
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>{t('standbyLabel')}</Text>
-          <Switch
+      <Section title={t('prefGameDetails')}>
+        <Card style={styles.card}>
+          <SwitchRow
+            label={t('standbyLabel')}
+            description={t('standbyDescription')}
             value={draft.allowStandby}
-            onValueChange={(allowStandby) =>
-              allowStandby
-                ? patch({ allowStandby: true, standbySpots: draft.standbySpots ?? 2 })
-                : patch({ allowStandby: false, standbySpots: undefined })
+            onValueChange={(on) =>
+              patch(
+                on
+                  ? { allowStandby: true, standbySpots: draft.standbySpots ?? DEFAULT_STANDBY }
+                  : { allowStandby: false, standbySpots: undefined },
+              )
             }
+            testID="pref-standby-switch"
           />
-        </View>
-        {draft.allowStandby ? (
-          <Stepper
-            label={t('standbySpotsLabel')}
-            value={draft.standbySpots ?? 2}
-            onChange={(standbySpots) => patch({ standbySpots })}
-            min={1}
-            max={8}
-          />
-        ) : null}
-      </View>
-
-      {/* Private */}
-      <View style={styles.section}>
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>{t('privateLabel')}</Text>
-          <Switch
-            value={draft.isPrivate}
-            disabled={standaloneLocked}
-            onValueChange={(isPrivate) => patch({ isPrivate })}
-          />
-        </View>
-        {draft.isPrivate ? <Text style={styles.hint}>{t('privateRankingWarning')}</Text> : null}
-      </View>
-
-      {/* Entrance fee */}
-      <View style={styles.section}>
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>{t('feeLabel')}</Text>
-          <Switch
-            value={draft.entranceFee.enabled}
-            onValueChange={(enabled) => patch({ entranceFee: { ...draft.entranceFee, enabled } })}
-          />
-        </View>
-        {draft.entranceFee.enabled ? (
-          <View style={styles.section}>
-            <Field
-              label={t('feeAmountLabel')}
-              value={amountText}
-              onChangeText={(text) => {
-                setAmountText(text);
-                const parsed = Number(text);
-                patch({
-                  entranceFee: {
-                    ...draft.entranceFee,
-                    amount: text.trim() === '' || Number.isNaN(parsed) ? undefined : parsed,
-                  },
-                });
-                clearError?.('feeAmount');
+          {draft.allowStandby ? (
+            <Stepper
+              label={t('standbySpotsLabel')}
+              value={draft.standbySpots ?? DEFAULT_STANDBY}
+              onChange={(standbySpots) => {
+                patch({ standbySpots });
+                clearError?.('standbySpots');
               }}
-              keyboardType="decimal-pad"
-              placeholder={t('feeAmountLabel')}
-              error={errors?.includes('feeAmount') ? tc('required') : undefined}
+              min={STANDBY_MIN}
+              max={STANDBY_MAX}
             />
+          ) : null}
+        </Card>
+      </Section>
 
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>{t('feeMethodLabel')}</Text>
-              <View style={styles.list}>
-                {ENTRANCE_FEE_METHODS.map((method) => (
-                  <SelectableCard
-                    key={method}
-                    title={t(FEE_METHOD_KEYS[method])}
-                    selected={draft.entranceFee.method === method}
-                    onPress={() => patch({ entranceFee: { ...draft.entranceFee, method } })}
-                  />
-                ))}
-              </View>
-            </View>
+      <Section title={t('prefInviteDetails')}>
+        {context === 'edit' && standalone ? null : (
+        <Card style={styles.card}>
+          <SwitchRow
+            label={t('privateLabel')}
+            description={t('privateDescription')}
+            value={standalone || draft.isPrivate}
+            disabled={standalone}
+            onValueChange={(isPrivate) => patch({ isPrivate })}
+            testID="pref-private-switch"
+          />
+          {standalone ? (
+            <Text variant="caption" tone="muted" testID="pref-private-always">
+              {t('privateAlwaysStandalone')}
+            </Text>
+          ) : draft.isPrivate ? (
+            <InfoNote
+              tone="warning"
+              text={context === 'edit' ? t('privateRankingWarningEdit') : t('privateRankingWarning')}
+              testID="pref-private-warning"
+            />
+          ) : null}
+        </Card>
+        )}
 
-            {draft.entranceFee.method === 'mba' ? (
-              <Field
-                label={t('feeMbaNumberLabel')}
-                value={draft.entranceFee.mbaNumber ?? ''}
-                onChangeText={(text) =>
-                  patch({
-                    entranceFee: { ...draft.entranceFee, mbaNumber: text || undefined },
-                  })
-                }
-                keyboardType="phone-pad"
-                placeholder={t('feeMbaNumberLabel')}
+        <Card style={styles.card}>
+          <SwitchRow
+            label={t('feeLabel')}
+            description={t('feeDescription')}
+            value={fee.enabled}
+            onValueChange={(enabled) =>
+              // Cash is picked when the fee is switched on, so the tabs always show a choice.
+              patch({ entranceFee: { ...fee, enabled, method: fee.method ?? (enabled ? 'cash' : undefined) } })
+            }
+            testID="pref-fee-switch"
+          />
+          {fee.enabled ? (
+            <View style={styles.inner}>
+              <Segmented
+                options={ENTRANCE_FEE_METHODS.map((m) => ({ value: m, label: t(FEE_METHOD_KEYS[m]) }))}
+                value={fee.method ?? 'cash'}
+                onChange={(method) => {
+                  patch({ entranceFee: { ...fee, method } });
+                  clearError?.('feeMethod');
+                }}
+                testID="pref-fee-method"
               />
-            ) : null}
-          </View>
-        ) : null}
-      </View>
+              <Field
+                label={t('feeAmountLabel')}
+                value={amountText}
+                onChangeText={(text) => {
+                  setAmountText(text);
+                  const parsed = Number(text.replace(',', '.'));
+                  patch({
+                    entranceFee: {
+                      ...fee,
+                      amount: text.trim() === '' || Number.isNaN(parsed) ? undefined : parsed,
+                    },
+                  });
+                  clearError?.('feeAmount');
+                }}
+                keyboardType="decimal-pad"
+                placeholder={t('feeAmountPlaceholder')}
+                error={errors?.includes('feeAmount') ? tc('required') : undefined}
+                testID="pref-fee-amount"
+              />
+              {fee.method === 'mba' ? (
+                <Field
+                  label={t('feeMbaNumberLabel')}
+                  value={fee.mbaNumber ?? ''}
+                  onChangeText={(text) => {
+                    patch({ entranceFee: { ...fee, mbaNumber: text || undefined } });
+                    clearError?.('feeMbaNumber');
+                  }}
+                  keyboardType="phone-pad"
+                  placeholder={t('feeMbaNumberPlaceholder')}
+                  error={errors?.includes('feeMbaNumber') ? tc('required') : undefined}
+                  testID="pref-fee-mba-number"
+                />
+              ) : null}
+            </View>
+          ) : null}
+        </Card>
+      </Section>
 
-      {/* Players submit results */}
-      <View style={styles.switchRow}>
-        <Text style={styles.label}>{t('playersSubmitLabel')}</Text>
-        <Switch
-          value={draft.playersSubmitResults}
-          onValueChange={(playersSubmitResults) => patch({ playersSubmitResults })}
+      <Section title={t('prefPermissions')}>
+        <Card style={styles.card}>
+          <SwitchRow
+            label={t('playersSubmitLabel')}
+            description={t('playersSubmitDescription')}
+            value={draft.playersSubmitResults}
+            onValueChange={(playersSubmitResults) => patch({ playersSubmitResults })}
+            testID="pref-results-switch"
+          />
+        </Card>
+      </Section>
+
+      {/* Only whether the organizer starts confirmed — never whether they may join later. */}
+      {context === 'edit' ? null : (
+      <Section title={t('organizerRoleLabel')}>
+        <RadioCardGroup
+          options={ORGANIZER_ROLES.map((role) => ({
+            value: role,
+            title: t(ROLE_KEYS[role].title),
+            description: t(ROLE_KEYS[role].description),
+          }))}
+          value={draft.organizerRole}
+          onChange={(organizerRole) => patch({ organizerRole })}
+          testID="pref-role"
         />
-      </View>
-
-      {/* Organizer role */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>{t('organizerRoleLabel')}</Text>
-        <View style={styles.list}>
-          {ORGANIZER_ROLES.map((role) => (
-            <SelectableCard
-              key={role}
-              title={t(ROLE_KEYS[role])}
-              selected={draft.organizerRole === role}
-              onPress={() => patch({ organizerRole: role })}
-            />
-          ))}
-        </View>
-      </View>
+      </Section>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 20 },
-  section: { gap: 12 },
-  field: { gap: 8 },
-  list: { gap: 10 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  label: { fontSize: 16, fontWeight: '600', color: colors.foreground, flex: 1 },
-  fieldLabel: { fontSize: 14, fontWeight: '600', color: colors.foreground },
-  hint: { fontSize: 13, color: colors.mutedForeground },
+  container: { gap: space[5] },
+  section: { gap: space[2] },
+  card: { gap: space[4] },
+  inner: { gap: space[3] },
 });

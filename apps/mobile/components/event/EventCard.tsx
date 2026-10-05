@@ -1,8 +1,10 @@
 import { eventStatusKey, useGroupEvents } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { colors, palette } from '../../theme';
-import { Card } from '../../components/ui';
+import { Badge, Card } from '../../components/ui';
+import { eventWhen } from '../../lib/eventFormat';
 import { EventThumb } from './EventThumb';
 
 /** The element type of the group-events hook data: the `events` table Row. */
@@ -13,13 +15,6 @@ function cap(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-/** Format an ISO timestamp like `Sat 14 Jun · 18:00`. */
-function formatWhen(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' });
-  const time = d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return `${date} · ${time}`;
-}
 
 /**
  * A tappable card summarising one event: thumbnail (or an icon placeholder), name, format meta,
@@ -28,6 +23,10 @@ function formatWhen(iso: string): string {
  *
  * No badge for an upcoming event (UX-JEVT-01): every listed event is upcoming, so "Upcoming" said
  * nothing. Starting now / Live / Completed still carry meaning and keep theirs.
+ *
+ * `viewerStatus` labels an event the viewer holds no spot in yet — on the waiting list, or
+ * interested (a team player without a partner). Since migration 0112 those events are listed under
+ * Going and in Home's next events, and without a label they would read as a held spot.
  *
  * Two arrangements of the same content (UX-GLOB-09): `vertical` is a fixed-width
  * card for a horizontally scrolling rail (image on top, text below); `horizontal`
@@ -40,13 +39,15 @@ export function EventCard({
   onPress,
   orientation = 'horizontal',
   railWidth = 260,
+  viewerStatus,
 }: {
   event: EventRow & { distance_m?: number | null };
   onPress: () => void;
+  viewerStatus?: 'waiting_list' | 'interested';
   orientation?: 'vertical' | 'horizontal';
   railWidth?: number;
 }) {
-  const { t } = useT('event');
+  const { t, i18n } = useT('event');
   const { t: td } = useT('discovery');
 
   const typeLabel = t(`type${cap(event.event_type)}Label`);
@@ -94,9 +95,16 @@ export function EventCard({
   );
   const when = (
     <Text style={styled.when} numberOfLines={1}>
-      {formatWhen(event.starts_at)}
+      {eventWhen(event.starts_at, i18n.language)}
     </Text>
   );
+  const viewerBadge = viewerStatus ? (
+    <Badge
+      label={viewerStatus === 'waiting_list' ? t('cardWaitingList') : t('cardInterested')}
+      tone={viewerStatus === 'waiting_list' ? 'warning' : 'info'}
+      testID={`event-card-status-${event.id}`}
+    />
+  ) : null;
   const distanceText = distance ? <Text style={styled.distance}>{distance}</Text> : null;
 
   if (orientation === 'vertical') {
@@ -115,6 +123,7 @@ export function EventCard({
           {meta}
           {when}
           {distanceText}
+          {viewerBadge}
           {badge}
         </View>
       </Card>
@@ -131,6 +140,7 @@ export function EventCard({
         {meta}
         {when}
         {distanceText}
+        {viewerBadge}
       </View>
       {badge}
       <Text style={styled.chevron} accessibilityElementsHidden importantForAccessibility="no">

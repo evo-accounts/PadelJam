@@ -61,7 +61,7 @@ export default function GroupSeasonPage() {
         subtitle={season?.ended_at ? t('seasonPeriod', { from: fmt(season.started_at), to: fmt(season.ended_at) }) : group?.name}
         actions={
           (ranking ?? []).length > 0 ? (
-            <Button variant={isCompletion ? 'default' : 'outline'} onClick={() => void onShare()} data-testid="season-share">
+            <Button variant={isCompletion ? 'primary' : 'secondary'} onClick={() => void onShare()} data-testid="season-share">
               {t('shareCta')}
             </Button>
           ) : null

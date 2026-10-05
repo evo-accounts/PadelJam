@@ -92,6 +92,12 @@ export const useSearchProfiles = (search: string) => {
 export const ownPhone = (authPhone: string | null | undefined): string | null =>
   authPhone ? `+${authPhone.replace(/^\+/, '')}` : null;
 
+/**
+ * GoTrue returns '' (not null) for a phone-only account's email. profiles.email held null there,
+ * which is what Account Settings renders as "no email".
+ */
+export const ownEmail = (authEmail: string | null | undefined): string | null => authEmail || null;
+
 export const useMyProfile = () => {
   const db = useDb();
   const uid = useSession().session?.user.id;
@@ -102,20 +108,22 @@ export const useMyProfile = () => {
       // email and phone are DISPLAYED by Account Settings (UX-SET-02) but never written here —
       // both change through their own OTP flows, which go via GoTrue rather than this table.
       //
-      // phone is NOT selected: migration 0115 revokes SELECT on profiles.phone from every client
-      // role, so no user can read anyone's number, their own included. Your own comes from the auth
-      // user instead — profiles.phone was only ever a server-side copy of it. getSession() reads the
-      // stored session (no network), which the phone-change OTP flow refreshes.
+      // Neither is selected: migrations 0115 (phone) and 0119 (email) revoke SELECT on both from
+      // every client role, so no user can read anyone's contact details, their own included. Your
+      // own come from the auth user instead — profiles.email/phone were only ever server-side copies
+      // of it. getSession() reads the stored session (no network), which the change-email and
+      // change-phone OTP flows refresh.
       const [{ data, error }, { data: auth }] = await Promise.all([
         db
           .from('profiles')
-          .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time, location_text, email')
+          .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time, location_text')
           .eq('id', uid!)
           .single(),
         db.auth.getSession(),
       ]);
       if (error) throw error;
-      return { ...data, phone: ownPhone(auth.session?.user.phone) };
+      const authUser = auth.session?.user;
+      return { ...data, email: ownEmail(authUser?.email), phone: ownPhone(authUser?.phone) };
     },
   });
 };

@@ -4,7 +4,8 @@ import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel } from 'stream-chat';
 import { ChannelList } from 'stream-chat-expo';
@@ -83,7 +84,7 @@ export default function ChatListScreen() {
       {tokenQ.isError ? (
         <View style={styles.banner}>
           <Text style={styles.bannerText}>{t('connectError')}</Text>
-          <Button label={t('retry')} variant="ghost" size="sm" onPress={() => tokenQ.refetch()} />
+          <Button label={t('retry')} variant="tertiary" size="sm" onPress={() => tokenQ.refetch()} />
         </View>
       ) : null}
       <ChannelList

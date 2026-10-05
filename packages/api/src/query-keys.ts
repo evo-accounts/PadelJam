@@ -33,12 +33,15 @@ export const qk = {
   myEventsAll: ['my-events'] as const,
   myEvents: (filter: 'all' | 'organizing' | 'going' | 'pending', includePast = false) =>
     (includePast ? (['my-events', filter, 'past'] as const) : (['my-events', filter] as const)),
+  /** The viewer's waiting-list / interested rows — under the prefix, refreshed with the lists. */
+  myEventStatuses: ['my-events', 'statuses'] as const,
   eventInvitedPlayers: (id: string) => ['event', id, 'invited-players'] as const,
   event: (id: string) => ['event', id] as const,
   eventParticipants: (id: string) => ['event', id, 'participants'] as const,
   eventInvitations: (id: string) => ['event', id, 'invitations'] as const,
   eventActivity: (id: string) => ['event', id, 'activity'] as const,
   eventTeams: (id: string) => ['event', id, 'teams'] as const,
+  eventCourts: (id: string) => ['event', id, 'courts'] as const,
   eventSeries: (id: string) => ['event', id, 'series'] as const,
   eventRounds: (id: string) => ['event', id, 'rounds'] as const,
   eventMatches: (id: string) => ['event', id, 'matches'] as const,
@@ -47,6 +50,12 @@ export const qk = {
   eventResultSummary: (id: string) => ['event', id, 'result-summary'] as const,
   partnerRequests: (id: string) => ['event', id, 'partner-requests'] as const,
   partnerCandidates: (id: string) => ['event', id, 'partner-candidates'] as const,
+  /** Under the event prefix: the start sheet's blockers and warnings (0122). */
+  eventStartCheck: (id: string) => ['event', id, 'start-check'] as const,
+  /** Under the event prefix: the Invite screen's search (0122). */
+  eventInviteCandidates: (id: string, q: string) => ['event', id, 'invite-candidates', q] as const,
+  /** Under the event prefix: a recurring event's next occurrences (0123 / UX-MEVT-22). */
+  eventNextOccurrences: (id: string) => ['event', id, 'next-occurrences'] as const,
   canCreateEvent: (groupId: string) => ['group', groupId, 'can-create-event'] as const,
   canInviteToGroup: (groupId: string) => ['group', groupId, 'can-invite'] as const,
   groupInvitationPreview: (groupId: string) => ['group', groupId, 'invitation-preview'] as const,
@@ -62,6 +71,18 @@ export const qk = {
   exploreGroupsList: ['explore', 'groups', 'list'] as const,
   exploreEventsList: ['explore', 'events', 'list'] as const,
   explorePlayersList: ['explore', 'players', 'list'] as const,
+  // Search (0129). Under each type's explore prefix on purpose: the mutations that already
+  // invalidate `explorePlayers` (follow) or `['explore']` (join, community location) refresh the
+  // matching search results too, and a card's viewer_state never goes stale.
+  searchPlayers: (q: string) => ['explore', 'players', 'search', q] as const,
+  searchEvents: (q: string, filters: object, sort: string) =>
+    ['explore', 'events', 'search', q, filters, sort] as const,
+  searchGroups: (q: string, filters: object, sort: string) =>
+    ['explore', 'groups', 'search', q, filters, sort] as const,
+  searchCommunities: (q: string, filters: object, sort: string) =>
+    ['explore', 'communities', 'search', q, filters, sort] as const,
+  searchSuggest: (q: string) => ['explore', 'suggest', q] as const,
+  searchForYouTerms: ['explore', 'for-you'] as const,
   notifications: ['notifications'] as const,
   notificationsUnread: ['notifications', 'unread'] as const,
   partnerRequestSummary: ['notifications', 'partner-summary'] as const,
@@ -82,6 +103,7 @@ export const qk = {
   venues: ['venues'] as const,
   searchVenues: (q: string, all = false) => ['venues', 'search', q, all] as const,
   adminVenues: (q: string) => ['venues', 'admin', q] as const,
+  venueRegistry: (q: string) => ['venues', 'registry', q] as const,
   venue: (id: string) => ['venues', 'detail', id] as const,
   venueCourts: (id: string) => ['venues', 'detail', id, 'courts'] as const,
   isSuperAdmin: (uid: string) => ['super-admin', uid] as const,
@@ -89,6 +111,10 @@ export const qk = {
   eventBlasts: (id: string) => ['event', id, 'blasts'] as const,
   blastDeliveries: (id: string) => ['event', id, 'blast-deliveries'] as const,
   canCustomizeBlast: (id: string) => ['event', id, 'can-customize-blast'] as const,
+  // Saved blasts are scoped to a community or an organizer, not an event: every event's list is
+  // invalidated together through the 'saved-blasts' prefix.
+  savedBlastsAll: ['saved-blasts'] as const,
+  savedBlasts: (eventId: string) => ['saved-blasts', eventId] as const,
   accountPlan: ['account-plan'] as const,
   communityPlan: (id: string) => ['community', id, 'plan'] as const,
 };

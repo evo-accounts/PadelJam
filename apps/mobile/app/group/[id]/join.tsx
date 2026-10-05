@@ -68,7 +68,7 @@ export default function GroupInvitationScreen() {
         <Text variant="body" tone="muted" style={styles.centerText}>
           {t('noAccessBody')}
         </Text>
-        <Button label={t('back')} variant="outline" onPress={goBack} />
+        <Button label={t('back')} variant="secondary" onPress={goBack} />
       </SafeAreaView>
     );
   }
@@ -171,7 +171,7 @@ export default function GroupInvitationScreen() {
         <View style={styles.pair}>
           <Button
             label={t('declineCta')}
-            variant="outline"
+            variant="secondary"
             style={styles.flex}
             loading={decline.isPending}
             disabled={accept.isPending}

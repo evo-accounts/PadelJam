@@ -1,6 +1,7 @@
 import { useEventTimer, useSetEventTimer } from '@padel/api';
 import { useT } from '@padel/i18n';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { useNow } from '@/lib/useNow';
 import { colors } from '../../theme';
@@ -58,7 +59,7 @@ export function TimerTab({ eventId, isOrganizer }: { eventId: string; isOrganize
                 <Button label={t('timerResume')} onPress={() => act('resume')} />
               ) : null}
               {status !== 'idle' ? (
-                <Button label={t('timerReset')} variant="outline" onPress={() => act('reset')} />
+                <Button label={t('timerReset')} variant="secondary" onPress={() => act('reset')} />
               ) : null}
             </>
           )}

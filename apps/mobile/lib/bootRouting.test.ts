@@ -29,8 +29,8 @@ vi.mock('expo-router', () => {
     usePathname: () => pathnameRef.current,
     Stack,
     ThemeProvider: passthrough,
-    DarkTheme: {},
-    DefaultTheme: {},
+    DarkTheme: { fonts: {} },
+    DefaultTheme: { fonts: {} },
     ErrorBoundary: () => null,
   };
 });

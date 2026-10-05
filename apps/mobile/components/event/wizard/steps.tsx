@@ -16,9 +16,9 @@ import { NoGroupFooter, Step1Group } from './steps/Step1Group';
 import { Step2Type } from './steps/Step2Type';
 import { Step3Spec } from './steps/Step3Spec';
 import { Step4Scoring } from './steps/Step4Scoring';
-import { Step5Location } from './steps/Step5Location';
+import { NoLocationFooter, Step5Location } from './steps/Step5Location';
 import { Step6Courts } from './steps/Step6Courts';
-import { Step7Schedule } from './steps/Step7Schedule';
+import { DateSummaryFooter, Step7Schedule } from './steps/Step7Schedule';
 import { Step8Preferences } from './steps/Step8Preferences';
 import { Step9Details } from './steps/Step9Details';
 import { Step10Invite } from './steps/Step10Invite';
@@ -44,12 +44,14 @@ export const STEPS: WizardStep[] = [
   step('format', 'step2Title', Step2Type, validateStep2, 'tap'),
   step('players', 'step3Title', Step3Spec, validateStep3, 'tap'),
   step('scoring', 'step4Title', Step4Scoring, validateStep4),
-  step('location', 'step5Title', Step5Location, validateStep5),
+  // A tap list of venues until the manual venue form is opened, which has fields and a button.
+  step('location', 'step5Title', Step5Location, validateStep5, (d) => (d.locationMode === 'manual' ? 'button' : 'tap'), NoLocationFooter),
   step('courts', 'step6Title', Step6Courts, validateStep6),
-  step('date', 'step7Title', Step7Schedule, validateStep7),
+  step('date', 'step7Title', Step7Schedule, validateStep7, 'button', DateSummaryFooter),
   step('preferences', 'step8Title', Step8Preferences, validateStep8),
   step('details', 'step9Title', Step9Details, validateStep9),
-  step('invite', 'step10Title', Step10Invite, validateStep10),
+  // "Create event", and "I will invite later" under it — the event with nobody invited yet.
+  { ...step('invite', 'step10Title', Step10Invite, validateStep10), laterKey: 'inviteLater' },
 ];
 
 export function stepByKey(key: StepKey): WizardStep {

@@ -63,7 +63,7 @@ export default function ManageRequestsPage() {
                 </Button>
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   disabled={decline.isPending}
                   onClick={() => decline.mutate(r.id)}
                 >

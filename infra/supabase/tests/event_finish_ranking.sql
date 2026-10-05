@@ -2,7 +2,8 @@
 -- one row per participant with final_placement 1..N and ranking_points = placement_points(placement)
 -- (100/75/60/50 for 4 players) in the group's OPEN season. set_event_ranking(false) deletes the rows +
 -- counts_for_ranking=false; (true) re-creates them idempotently (UNIQUE(event_id,user_id)). A PRIVATE
--- event and a STANDALONE event finished -> NO group_event_results rows. Re-finish is idempotent (N rows).
+-- event and a STANDALONE event finished -> NO group_event_results rows. A second finish is refused
+-- (event_not_in_progress, 0121 B6) and leaves the N rows as they were.
 -- 'PT001' = "expected behaviour did not hold" sentinel; the RPCs raise P0001.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
@@ -137,16 +138,23 @@ begin
 end $$;
 reset role;
 
--- (3) Re-finish_event on an already-finished public event -> still exactly 4 rows (idempotent).
+-- (3) finish_event on an already-finished event -> refused with event_not_in_progress (0121, B6: finish
+-- requires in_progress), and the 4 result rows are untouched.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"f6000001-0000-0000-0000-000000000001","role":"authenticated"}';
 do $$
 declare ev uuid := current_setting('test.ev')::uuid;
 begin
-  perform finish_event(ev, 'again', null);
+  begin
+    perform finish_event(ev, 'again', null);
+    raise exception using errcode='PT001', message='a second finish_event should be refused';
+  exception when sqlstate 'P0001' then
+    if position('event_not_in_progress' in sqlerrm) = 0 then
+      raise exception using errcode='PT001', message='wrong error for a second finish: '||sqlerrm; end if;
+  end;
   if (select count(*) from group_event_results where event_id=ev) <> 4 then
-    raise exception using errcode='PT001', message='re-finish should keep exactly 4 result rows'; end if;
-  raise notice 'OK re-finish public event idempotent (4 rows)';
+    raise exception using errcode='PT001', message='a refused re-finish must keep exactly 4 result rows'; end if;
+  raise notice 'OK re-finish refused (event_not_in_progress), 4 rows kept';
 end $$;
 reset role;
 

@@ -88,7 +88,7 @@ export function FollowList({
       {q.hasNextPage ? (
         <div className="flex justify-center">
           <Button
-            variant="outline"
+            variant="secondary"
             onClick={() => q.fetchNextPage()}
             disabled={q.isFetchingNextPage}
           >

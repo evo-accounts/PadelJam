@@ -1,7 +1,8 @@
 import { SCORING_MODES, type ScoringMode } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { TextInput } from '@/components/ui/native';
 
 import type { WizardStepProps } from '../draft';
 import {

@@ -54,6 +54,33 @@ function visibleTapPoint(el: AxElement): { x: number; y: number } | null {
 }
 
 /**
+ * The top of the app's tab bar, or null when the screen has none. Its buttons announce themselves
+ * as "Events, tab, 2 of 5".
+ *
+ * A list row scrolled to just above the bottom edge sits BEHIND the tab bar: it is in the AX tree
+ * at its layout position, but a tap at its centre lands on a tab. Measured on suite 04 (#248): one
+ * more event on alex's Events tab put "Weekly Friday Social" at y≈785, the tap opened Explore, and
+ * the test timed out waiting for the event page.
+ */
+const TAB_LABEL = /, tab, \d+ of \d+$/;
+export function tabBarTop(tree: AxElement[]): number | null {
+  const tops = tree.filter((e) => TAB_LABEL.test(e.AXLabel ?? '')).map((e) => e.frame.y);
+  return tops.length > 0 ? Math.min(...tops) : null;
+}
+
+/**
+ * Keep an element's tap point above the tab bar: the centre of the part of it that is above the
+ * bar. An element entirely below the bar's top (a tab itself, or a sheet's button presented over
+ * a tab screen) is left alone — there is no part of it above the bar to aim at.
+ */
+function aboveTabBar(p: { x: number; y: number }, el: AxElement, barTop: number | null): { x: number; y: number } {
+  if (barTop == null || TAB_LABEL.test(el.AXLabel ?? '') || p.y < barTop) return p;
+  const top = Math.max(el.frame.y, 0);
+  if (barTop - top < 4) return p;
+  return { x: p.x, y: (top + barTop) / 2 };
+}
+
+/**
  * The status-bar band (and the Dynamic Island within it) swallows touches
  * before they reach the app. An element whose centre falls there — e.g. a
  * banner pinned to the very top of a screen — must be tapped lower down, or
@@ -172,7 +199,7 @@ export async function tap(target: Selector | { x: number; y: number }, opts?: Wa
     const dir = await captureFailure(reason);
     throw new Error(`${reason}\nartifacts: ${dir}`);
   }
-  const p = avoidStatusBar(visible, settled);
+  const p = aboveTabBar(avoidStatusBar(visible, settled), settled, tabBarTop(await snapshot()));
   await idbTap(p.x, p.y);
 }
 
@@ -518,8 +545,12 @@ function clearOfKeyboard(cy: number, d: number, keyboardTopY: number | null): nu
  * somewhere unrelated. That misleading-timeout shape is the same one behind the
  * ensureTabs give-up fixed in #19.
  */
-const restsComfortably = (el: { frame: { y: number } } | undefined | null): boolean =>
-  !!el && el.frame.y > 60 && el.frame.y < 800;
+const restsComfortably = (el: AxElement | undefined | null, barTop: number | null = null): boolean =>
+  !!el &&
+  el.frame.y > 60 &&
+  el.frame.y < 800 &&
+  // Not behind the tab bar either (see tabBarTop): its centre must clear the bar's top.
+  (barTop == null || TAB_LABEL.test(el.AXLabel ?? '') || el.frame.y + el.frame.height / 2 < barTop - 8);
 
 const onScreen = (el: { frame: { y: number } } | undefined | null): boolean =>
   !!el && el.frame.y >= 0 && el.frame.y < SCREEN.height;
@@ -544,9 +575,10 @@ export async function scrollUntilVisible(
     // had been there a moment ago. It failed on one CI run, passed on the next
     // three, and failed on the two after that — the shape of a race, not a bug in
     // the screen.
-    if (restsComfortably(query(tree, sel))) {
+    if (restsComfortably(query(tree, sel), tabBarTop(tree))) {
       await sleep(700);
-      if (restsComfortably(query(await snapshot(), sel))) return;
+      const settled = await snapshot();
+      if (restsComfortably(query(settled, sel), tabBarTop(settled))) return;
       continue;
     }
     await swipe(direction, { keyboardTopY: keyboardTop(tree) });

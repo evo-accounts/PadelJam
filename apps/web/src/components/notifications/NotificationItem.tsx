@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
 import { CTA_TYPES, useMarkRead, useCompleteNotificationCta, type NotificationRow } from '@padel/api';
 import { notificationRoute } from '@padel/utils';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 export function NotificationItem({ n, onNavigate }: { n: NotificationRow; onNavigate?: () => void }) {
@@ -44,7 +45,13 @@ export function NotificationItem({ n, onNavigate }: { n: NotificationRow; onNavi
         <span className="text-sm">{message}</span>
         <span className="text-xs text-muted-foreground">{when}</span>
       </div>
-      {CTA_TYPES.has(n.type) ? (
+      {/* UX-JEVT-12: a partner invitation stands out in the list too, and opens the Partner
+          Requests page (notificationRoute) where it is answered. */}
+      {n.type === 'partner_request' ? (
+        <Badge className="shrink-0" data-testid="notification-partner-request-badge">
+          {t('partnerRequestBadge')}
+        </Badge>
+      ) : CTA_TYPES.has(n.type) ? (
         n.cta_done ? (
           <span className="shrink-0 text-xs text-muted-foreground">
             {n.type === 'waitlist_spot' ? t('spotConfirmed') : t('joined')}

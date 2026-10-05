@@ -88,7 +88,7 @@ export default function BlockedUsersPage() {
                     the unblock lands, so it would only reach a dead end. */}
                 <span className="min-w-0 flex-1 truncate font-medium">{row.full_name}</span>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   disabled={unblock.isPending}
                   onClick={() => unblock.mutate(row.id)}

@@ -13,6 +13,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
+import { useRefreshMyProfile } from '@padel/api';
 import { startPhoneChange, verifyPhoneChange, type TypedClient } from '@padel/auth';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ const E164_RE = /^\+[1-9]\d{6,14}$/;
 export default function ChangePhonePage() {
   const { t } = useT('profile');
   const router = useRouter();
+  const refreshMyProfile = useRefreshMyProfile();
 
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [newPhone, setNewPhone] = useState('');
@@ -71,6 +73,7 @@ export default function ChangePhonePage() {
         setError(t('invalidCode'));
         return;
       }
+      await refreshMyProfile();
       router.push('/app/settings/account');
     } finally {
       setPending(false);

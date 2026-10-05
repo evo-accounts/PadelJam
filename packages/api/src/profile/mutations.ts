@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
-import { useDb } from '../client';
+import { useDb, mapPgError } from '../client';
+import type { PlayerViewerState } from '../discovery/queries';
 import { qk } from '../query-keys';
+import { setCachedPlayerViewerState } from './followCache';
 
 /**
  * Follow/unfollow/block change the target's and the actor's profile counts and follow lists — and,
@@ -53,6 +55,54 @@ export const useUnfollow = () => {
   });
 };
 
+/**
+ * Follow / unfollow through the 0128 RPCs, for Explore and search cards (D9).
+ *
+ * Unlike `useFollow`'s direct `follows` insert, `follow_player` refuses a block in EITHER direction
+ * (`blocked`) and yourself (`cannot_follow_self`), and both RPCs return the new state
+ * ('following' / 'none') so a card that flipped optimistically can reconcile with the server.
+ * Errors arrive as `mapPgError` codes.
+ *
+ * Besides invalidating every follow list, the new state is written into every cached explore and
+ * search player row (`setCachedPlayerViewerState`) rather than refetching them: the rail excludes
+ * people the viewer follows (D8), so a refetch pulled the card away a moment after it said
+ * "Following". The rail drops them on its next ordinary refetch.
+ */
+
+export const useFollowPlayer = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (targetId: string) => {
+      const { data, error } = await db.rpc('follow_player', { p_user: targetId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as PlayerViewerState;
+    },
+    onSuccess: (state, targetId) => {
+      invalidateFollow(qc, uid, targetId);
+      setCachedPlayerViewerState(qc, targetId, state);
+    },
+  });
+};
+
+export const useUnfollowPlayer = () => {
+  const db = useDb();
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return useMutation({
+    mutationFn: async (targetId: string) => {
+      const { data, error } = await db.rpc('unfollow_player', { p_user: targetId });
+      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      return data as PlayerViewerState;
+    },
+    onSuccess: (state, targetId) => {
+      invalidateFollow(qc, uid, targetId);
+      setCachedPlayerViewerState(qc, targetId, state);
+    },
+  });
+};
+
 export const useBlock = () => {
   const db = useDb();
   const qc = useQueryClient();
@@ -101,6 +151,12 @@ export const useUnblock = () => {
   });
 };
 
+/**
+ * Exactly the columns migration 0120 lets `authenticated` UPDATE. Adding a field here without a
+ * matching `grant update (<column>) on public.profiles to authenticated` fails with 42501; the
+ * server-controlled columns (email, phone, consent, deletion, onboarding stamps, location) are
+ * written by SECURITY DEFINER functions or the service role instead.
+ */
 export type UpdateProfileInput = {
   full_name?: string;
   description?: string | null;
@@ -129,6 +185,19 @@ export const useUpdateProfile = () => {
       }
     },
   });
+};
+
+/**
+ * Refetch the Account Settings profile after a GoTrue-side change (email or phone OTP verified).
+ *
+ * Since 0115/0119 `useMyProfile` takes your own email and phone from the auth session, not from
+ * profiles, and nothing else invalidates its query when the session's user changes — so without
+ * this Account Settings kept showing the old address after a successful change.
+ */
+export const useRefreshMyProfile = () => {
+  const qc = useQueryClient();
+  const uid = useSession().session?.user.id;
+  return () => (uid ? qc.invalidateQueries({ queryKey: qk.myProfile(uid) }) : Promise.resolve());
 };
 
 export const useReport = () => {

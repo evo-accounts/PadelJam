@@ -33,6 +33,13 @@ describe('schemas', () => {
     expect(createCommunitySchema.safeParse({ name: 'A', type: 'club', privacy: 'public',
       rules: { enabled: true, text: 'No-shows banned' } }).success).toBe(true);
   });
+  it('accepts an optional location point and range-checks it', () => {
+    const base = { name: 'A', type: 'club', privacy: 'public', rules: { enabled: false } } as const;
+    expect(createCommunitySchema.safeParse(base).success).toBe(true);
+    expect(createCommunitySchema.safeParse({ ...base, locationPoint: { lat: 38.72, lng: -9.14 } }).success).toBe(true);
+    expect(createCommunitySchema.safeParse({ ...base, locationPoint: { lat: 91, lng: 0 } }).success).toBe(false);
+    expect(createCommunitySchema.safeParse({ ...base, locationPoint: { lat: 0, lng: -181 } }).success).toBe(false);
+  });
   it('rejects an empty community name', () => {
     expect(createCommunitySchema.safeParse({ name: '', type: 'club', privacy: 'public',
       rules: { enabled: false } }).success).toBe(false);
@@ -98,6 +105,20 @@ describe('buildCreateEventPayload', () => {
       name: 'Friday Americano',
       series: { day_of_week: 5, start_time: '18:00', duration_minutes: 90, invite_lead_days: 5 },
       court_ids: ['33333333-3333-3333-3333-333333333333'],
+    });
+  });
+
+  it('falls back to the address for location_text when a manual venue has no name', () => {
+    const payload = buildCreateEventPayload({
+      ...baseEvent,
+      hasLocation: true,
+      manualLocationName: undefined,
+      manualLocationAddress: 'Rua das Flores 1',
+    });
+    expect(payload).toMatchObject({
+      manual_location_name: null,
+      manual_location_address: 'Rua das Flores 1',
+      location_text: 'Rua das Flores 1',
     });
   });
 });

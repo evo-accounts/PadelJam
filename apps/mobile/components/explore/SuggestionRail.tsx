@@ -1,20 +1,22 @@
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { colors } from '../../theme';
 import { EmptyState, emptyIcon } from '../ui';
 
 type Props<T> = {
   title: string;
-  seeAllLabel: string;
-  onSeeAll: () => void;
+  seeAllLabel?: string;
+  /** Omitted for a section with nowhere to go (search's Players row, UX-EXPL-06). */
+  onSeeAll?: () => void;
   data: T[];
   isLoading: boolean;
   isError: boolean;
   emptyLabel: string;
   errorLabel: string;
   keyExtractor: (item: T) => string;
-  renderItem: (item: T) => React.ReactElement;
+  renderItem: (item: T, index: number) => React.ReactElement;
   /**
    * Retry the failed fetch. Optional: a caller that has not wired a refetch
    * callback through yet still gets the error-tone card, just without the
@@ -27,6 +29,16 @@ type Props<T> = {
    * Defaults to that shared id so existing callers keep working unchanged.
    */
   testID?: string;
+  /**
+   * UX-EXPL-02 / D10: a section with nothing to recommend and no meaningful
+   * next step is hidden rather than shown as an empty row. Only once the fetch
+   * has settled — a loading or failed rail still shows its spinner or error.
+   */
+  hideWhenEmpty?: boolean;
+  /** The empty state's call to action, for the sections that keep one (Events → Create event). */
+  emptyAction?: { label: string; onPress: () => void; testID?: string };
+  /** `See all`'s testID — four rails on one screen share its label. */
+  seeAllTestID?: string;
 };
 
 export function SuggestionRail<T>({
@@ -42,15 +54,21 @@ export function SuggestionRail<T>({
   renderItem,
   onRetry,
   testID = 'empty-suggestion-rail',
+  hideWhenEmpty = false,
+  emptyAction,
+  seeAllTestID,
 }: Props<T>) {
   const { t } = useT('common');
+  if (hideWhenEmpty && !isLoading && !isError && data.length === 0) return null;
   return (
     <View style={styles.section}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
-        <Pressable onPress={onSeeAll} accessibilityRole="button" hitSlop={8}>
-          <Text style={styles.seeAll}>{seeAllLabel}</Text>
-        </Pressable>
+        {onSeeAll ? (
+          <Pressable onPress={onSeeAll} accessibilityRole="button" hitSlop={8} testID={seeAllTestID}>
+            <Text style={styles.seeAll}>{seeAllLabel}</Text>
+          </Pressable>
+        ) : null}
       </View>
       {isLoading ? (
         <ActivityIndicator color={colors.foreground} style={styles.state} />
@@ -62,7 +80,7 @@ export function SuggestionRail<T>({
           testID={testID}
         />
       ) : data.length === 0 ? (
-        <EmptyState icon={emptyIcon('magnifyingglass')} title={emptyLabel} testID={testID} />
+        <EmptyState icon={emptyIcon('magnifyingglass')} title={emptyLabel} action={emptyAction} testID={testID} />
       ) : (
         <FlashList
           horizontal
@@ -71,7 +89,7 @@ export function SuggestionRail<T>({
           showsHorizontalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => renderItem(item)}
+          renderItem={({ item, index }) => renderItem(item, index)}
         />
       )}
     </View>

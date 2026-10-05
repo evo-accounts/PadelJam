@@ -57,7 +57,7 @@ export default function VenuesPage() {
       ) : venues.isError ? (
         <div role="alert" className="flex flex-col items-start gap-2 rounded-lg border p-4">
           <p className="text-sm">{t('loadError')}</p>
-          <Button variant="outline" size="sm" onClick={() => void venues.refetch()}>
+          <Button variant="secondary" size="sm" onClick={() => void venues.refetch()}>
             {t('retry')}
           </Button>
         </div>
@@ -98,7 +98,7 @@ export default function VenuesPage() {
 
       {venues.hasNextPage ? (
         <Button
-          variant="outline"
+          variant="secondary"
           className="self-center"
           disabled={venues.isFetchingNextPage}
           onClick={() => void venues.fetchNextPage()}

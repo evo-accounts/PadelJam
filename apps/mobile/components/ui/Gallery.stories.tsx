@@ -41,6 +41,7 @@ import { TopBar } from './TopBar';
 import { Field } from './Field';
 import { PasswordField } from './PasswordField';
 import { PhoneField } from './PhoneField';
+import { Donut } from './Donut';
 import { ProgressBar } from './ProgressBar';
 import { RadioCardGroup } from './RadioCardGroup';
 import { Rating } from './Rating';
@@ -189,13 +190,18 @@ export function Overview() {
         <Row>
           <Button label="Primary" variant="primary" />
           <Button label="Secondary" variant="secondary" />
-          <Button label="Outline" variant="outline" />
+          <Button label="Tertiary" variant="tertiary" />
         </Row>
         <Row>
-          <Button label="Ghost" variant="ghost" />
+          <Button label="Info" variant="info" />
+          <Button label="Success" variant="success" />
+          <Button label="Warning" variant="warning" />
+        </Row>
+        <Row>
           <Button label="Destructive" variant="destructive" />
         </Row>
         <Row>
+          <Button label="Extra small" size="xs" />
           <Button label="Small" size="sm" />
           <Button label="Medium" size="md" />
           <Button label="Large" size="lg" />
@@ -409,7 +415,7 @@ export function Overview() {
             community={GALLERY_COMMUNITY}
             orientation="vertical"
             onOpen={() => {}}
-            onRequestJoin={() => {}}
+            action={<Button label="Join" size="sm" onPress={() => {}} />}
           />
         </Row>
         <Text variant="label" tone="muted" style={styles.cardKindLabel}>
@@ -419,7 +425,7 @@ export function Overview() {
           community={GALLERY_COMMUNITY}
           orientation="horizontal"
           onOpen={() => {}}
-          onRequestJoin={() => {}}
+          action={<Button label="Request" size="sm" onPress={() => {}} />}
         />
 
         <Text variant="label" tone="muted" style={styles.cardKindLabel}>
@@ -490,6 +496,19 @@ export function Overview() {
           <ProgressBar value={0.4} testID="gallery-progress-40" />
           <ProgressBar value={8 / 9} testID="gallery-progress-89" />
           <ProgressBar value={1} testID="gallery-progress-100" />
+        </View>
+      </Section>
+
+      {/*
+        The Manage Event dashboard's ratio chart (UX-MEVT-03): a ring filled to value / total with
+        the ratio in its centre. ONE accessibility element — a progressbar named by its label and
+        valued with the ratio.
+      */}
+      <Section title="Donut">
+        <View style={styles.row}>
+          <Donut value={0} total={8} accessibilityLabel="Confirmed" testID="gallery-donut-0" />
+          <Donut value={5} total={8} accessibilityLabel="Confirmed" testID="gallery-donut-5" />
+          <Donut value={8} total={8} accessibilityLabel="Paid" testID="gallery-donut-8" />
         </View>
       </Section>
 
@@ -597,7 +616,7 @@ function GallerySheetDemo() {
     <View style={{ gap: space[2] }}>
       <Button
         label="Open confirm"
-        variant="outline"
+        variant="secondary"
         onPress={async () =>
           setLast(
             (await confirm({ title: 'Delete this?', body: 'It cannot be undone.', confirmLabel: 'Delete', destructive: true }))
@@ -608,7 +627,7 @@ function GallerySheetDemo() {
       />
       <Button
         label="Open action sheet"
-        variant="outline"
+        variant="secondary"
         onPress={async () =>
           setLast(
             (await show({
@@ -630,7 +649,7 @@ function GallerySheetDemo() {
 
 function GalleryBannerDemo() {
   const banner = useBanner();
-  return <Button label="Show banner" variant="outline" onPress={() => banner.show('Missing information')} />;
+  return <Button label="Show banner" variant="secondary" onPress={() => banner.show('Missing information')} />;
 }
 
 function GallerySignInDemo() {
@@ -689,16 +708,24 @@ function GallerySignInDemo() {
       </Row>
 
       <Text variant="label" tone="muted" style={styles.cardKindLabel}>
-        Illustration — hero and inline
+        Illustration — hero, inline and cover
       </Text>
-      {/* Both are PLACEHOLDERS until the artwork lands — a muted block with a
-          glyph is meant to look unfinished, so it cannot ship unnoticed. */}
-      <Illustration name="welcomeFind" size="hero" style={styles.stacked} />
+      {/* Hero and inline sample the slots that are still PLACEHOLDERS — a muted
+          block with a glyph is meant to look unfinished, so it cannot ship
+          unnoticed. The welcome slides' entries used to stand in here and now
+          hold real artwork, which would have silently turned this into a
+          picture-frame test; `passwordChanged` and `communityCreated` have none
+          yet. */}
+      <Illustration name="passwordChanged" size="hero" style={styles.stacked} />
       <Row>
-        <Illustration name="welcomeCommunity" size="inline" />
-        <Illustration name="welcomePlay" size="inline" />
+        <Illustration name="communityCreated" size="inline" />
         <Illustration name="passwordChanged" size="inline" />
       </Row>
+      {/* Cover is full-bleed art that crops to the box it is given, so it needs
+          one: a fixed-height wrapper here, a flex child on the welcome screen. */}
+      <View style={styles.coverSample}>
+        <Illustration name="welcomeFind" size="cover" style={styles.coverFill} />
+      </View>
 
       <Text variant="label" tone="muted" style={styles.cardKindLabel}>
         Checkbox
@@ -813,6 +840,8 @@ const styles = StyleSheet.create({
   },
   typeRow: { marginBottom: space[2] },
   cardKindLabel: { marginTop: space[4], marginBottom: space[2] },
+  coverSample: { height: 200, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space[3] },
+  coverFill: { flex: 1 },
   switchRow: { paddingHorizontal: space[4], paddingVertical: space[3] },
   radiusItem: { alignItems: 'center', gap: space[1] },
   radiusBox: {

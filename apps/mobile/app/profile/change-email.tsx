@@ -1,8 +1,10 @@
+import { useRefreshMyProfile } from '@padel/api';
 import { startEmailChange, verifyEmailChange } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Text, TextInput } from '@/components/ui/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
@@ -14,6 +16,7 @@ export default function ChangeEmailScreen() {
   const { t: tc } = useT('common');
   const router = useRouter();
   const banner = useBanner();
+  const refreshMyProfile = useRefreshMyProfile();
   const [phase, setPhase] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -50,6 +53,7 @@ export default function ChangeEmailScreen() {
         banner.show(t('invalidCode'));
         return;
       }
+      await refreshMyProfile();
       banner.show(t('emailChanged'), 'success');
       router.back();
     } finally {

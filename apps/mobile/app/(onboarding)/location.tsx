@@ -3,7 +3,8 @@ import { useT } from '@padel/i18n';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/ui/native';
 
 import { OnboardingStep } from '@/components/OnboardingStep';
 import { formatAddress, useGeocodeSearch } from '@/lib/useGeocodeSearch';
