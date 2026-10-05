@@ -26,7 +26,10 @@ vi.mock('@padel/api', () => ({
 vi.mock('stream-chat-expo', () => ({
   Chat: ({ children }: PropsWithChildren) => children,
   OverlayProvider: ({ children }: PropsWithChildren) => children,
+  WithComponents: ({ children }: PropsWithChildren) => children,
 }));
+// The overrides render the app's Avatar, which pulls React Native into this DOM test.
+vi.mock('./chatComponents', () => ({ chatComponents: {} }));
 
 let probeMounts = 0;
 let probeUnmounts = 0;

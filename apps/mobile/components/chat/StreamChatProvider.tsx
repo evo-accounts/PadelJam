@@ -1,10 +1,11 @@
 import { useMyProfile, useStreamToken } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { type PropsWithChildren, useEffect } from 'react';
-import { Chat, OverlayProvider } from 'stream-chat-expo';
+import { Chat, OverlayProvider, WithComponents } from 'stream-chat-expo';
 
 import { streamClient, streamEnabled } from '@/lib/streamClient';
 
+import { chatComponents } from './chatComponents';
 import { chatTheme } from './chatTheme';
 
 export function StreamChatProvider({ children }: PropsWithChildren) {
@@ -50,9 +51,14 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
   // routing right after sign-in and could bounce the user back to sign-in.
   // Chat tolerates a disconnected client; the connect effect above only
   // connects once a uid and token exist, and token fetches are gated on uid.
+  //
+  // WithComponents sits outside OverlayProvider so the overlay layer (the
+  // reactions sheet) sees the overrides as well as the message list does.
   return (
-    <OverlayProvider value={{ style: chatTheme }}>
-      <Chat client={streamClient}>{children}</Chat>
-    </OverlayProvider>
+    <WithComponents overrides={chatComponents}>
+      <OverlayProvider value={{ style: chatTheme }}>
+        <Chat client={streamClient}>{children}</Chat>
+      </OverlayProvider>
+    </WithComponents>
   );
 }
