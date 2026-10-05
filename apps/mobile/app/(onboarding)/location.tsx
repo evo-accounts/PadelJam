@@ -8,7 +8,7 @@ import { Text, TextInput } from '@/components/ui/native';
 
 import { OnboardingStep } from '@/components/OnboardingStep';
 import { formatAddress, useGeocodeSearch } from '@/lib/useGeocodeSearch';
-import { colors } from '../../theme';
+import { colors, type } from '../../theme';
 
 type Coords = { lat: number; lng: number };
 
@@ -212,5 +212,5 @@ const styles = StyleSheet.create({
   notice: { marginTop: 10, color: colors.mutedForeground, fontSize: 13 },
   // The confirmed place reads as an answer, not as a hint.
   resolved: { marginTop: 10, color: colors.foreground, fontSize: 15, fontWeight: '600' },
-  error: { marginTop: 10, color: colors.destructive, fontSize: 13 },
+  error: { ...type.caption, marginTop: 10, color: colors.destructive },
 });
