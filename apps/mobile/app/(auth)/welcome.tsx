@@ -96,10 +96,10 @@
  * broke suite 02. Texts are safe (they recycle only into Texts). Keep it that way.
  *
  * So VoiceOver pages the slides through the current slide's TITLE TEXT, not a
- * View: it is `adjustable`, reads "title. body" and "Page N of 3", and a swipe
- * up / down moves to the next / previous slide (`stepPage`). The controlled
- * `Carousel` scrolls itself when `index` changes from outside. The body Text is
- * hidden, since the title's label already carries it.
+ * View: it is `adjustable`, reads "title. body. Page N of 3", and a swipe up /
+ * down moves to the next / previous slide (`stepPage`) and announces it. The
+ * controlled `Carousel` scrolls itself when `index` changes from outside. The
+ * body Text is hidden, since the title's label already carries it.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useT } from '@padel/i18n';
@@ -107,7 +107,7 @@ import { buttonSize } from '@padel/ui';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useRef, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -204,6 +204,18 @@ export default function WelcomeScreen() {
   // so shifting it left by the offset puts block N over page N.
   const stripStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -scrollX.get() }] }));
 
+  const pageOf = (i: number) => tc('pageProgress', { current: i + 1, total: slides.length });
+  // A VoiceOver swipe up / down on the title. The page goes in the LABEL and is announced on each
+  // step because Fabric's Text drops `accessibilityValue` (describe-all reads it as empty), and
+  // the slide that had focus is hidden as the next one takes over, so say where it landed.
+  const stepSlide = (action: string) => {
+    const next = stepPage(index, action, slides.length);
+    const slide = slides[next];
+    if (next === index || !slide) return;
+    setIndex(next);
+    AccessibilityInfo.announceForAccessibility(`${slide.title}. ${pageOf(next)}`);
+  };
+
   const enter = async () => {
     if (leaving.current) return;
     leaving.current = true;
@@ -265,10 +277,9 @@ export default function WelcomeScreen() {
                         style={styles.title}
                         accessible={current}
                         accessibilityRole="adjustable"
-                        accessibilityLabel={`${slide.title}. ${slide.body}`}
-                        accessibilityValue={{ text: tc('pageProgress', { current: i + 1, total: slides.length }) }}
+                        accessibilityLabel={`${slide.title}. ${slide.body}. ${pageOf(i)}`}
                         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-                        onAccessibilityAction={(e) => setIndex(stepPage(index, e.nativeEvent.actionName, slides.length))}
+                        onAccessibilityAction={(e) => stepSlide(e.nativeEvent.actionName)}
                       >
                         {slide.title}
                       </Text>
