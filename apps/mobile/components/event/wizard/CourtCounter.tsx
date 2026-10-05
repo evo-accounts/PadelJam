@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { COURTS_MAX, COURTS_MIN } from '@padel/utils';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { colors } from '../../../theme';
 import { IconButton } from '../../../components/ui';
 

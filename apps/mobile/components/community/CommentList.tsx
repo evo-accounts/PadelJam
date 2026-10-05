@@ -1,5 +1,6 @@
 import { useT } from '@padel/i18n';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { avatarUrl } from '@/lib/community-images';
 import { colors } from '../../theme';

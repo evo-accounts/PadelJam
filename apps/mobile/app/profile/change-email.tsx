@@ -3,7 +3,8 @@ import { startEmailChange, verifyEmailChange } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Text, TextInput } from '@/components/ui/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';

@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { colors } from '../../theme';
 import { EmptyState, emptyIcon } from '../ui';
 

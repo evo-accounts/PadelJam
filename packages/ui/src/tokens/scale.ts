@@ -74,9 +74,10 @@ export const SPACE_STEP_PX = 4;
  * 400 ×1). Names match Tailwind's so `weight.semibold` and `font-semibold` are
  * the same thing.
  *
- * CAVEAT for anything using a custom font: RN does not synthesise weights. The
- * Atelia face in /Branding ships a single Regular, so these names only mean
- * something while text renders in the OS system font.
+ * CAVEAT for a custom font: RN does not synthesise weights, so a name only means
+ * something if the face ships that weight. Outfit, the text face on both
+ * platforms, ships all five (mobile embeds them; see apps/mobile/theme `font`).
+ * Atelia, the display face, ships only Regular — pair it with `normal` alone.
  */
 export const weight = {
   normal: '400',

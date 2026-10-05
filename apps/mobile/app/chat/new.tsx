@@ -4,7 +4,8 @@ import { useT } from '@padel/i18n';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { avatarUrl } from '@/lib/community-images';

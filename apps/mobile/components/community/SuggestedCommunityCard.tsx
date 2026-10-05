@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View, type ImageStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ImageStyle } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { coverUrl } from '@/lib/community-images';
 import { colors } from '../../theme';

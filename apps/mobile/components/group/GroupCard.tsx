@@ -1,6 +1,7 @@
 import { useT } from '@padel/i18n';
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 
 import { thumbnailUrl } from '@/lib/community-images';
 import { colors, palette } from '../../theme';

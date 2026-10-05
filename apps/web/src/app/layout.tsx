@@ -7,10 +7,11 @@ import { Providers } from "@/components/Providers";
 // Body sans per the design system (variables.json). Mono stays Geist.
 //
 // The serif slot falls back to a system stack in globals.css, and nothing uses
-// `font-serif` today. Atelia IS in the repo (Branding/Font - Atelia/, four
-// formats) — an earlier version of this comment said otherwise. It is not wired
-// up on purpose: the face ships a single Regular weight, so it can only ever be
-// a display face, and adoption is waiting on final designs.
+// `font-serif` today. Atelia (Branding/Font - Atelia/, four formats) is the
+// design's display face, and mobile embeds it for the welcome slides' titles.
+// Web has no such title yet; when one arrives, load the woff2 here with
+// next/font/local and point `--font-serif` at it. It ships a single Regular
+// weight, so it can only ever be a display face.
 const outfit = Outfit({
   variable: "--font-outfit",
   subsets: ["latin"],

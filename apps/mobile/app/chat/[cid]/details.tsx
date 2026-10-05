@@ -3,7 +3,8 @@ import { appendImages, extractImageUrls, nextCursor, pageHasMore, type MsgLike }
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { streamClient } from '@/lib/streamClient';

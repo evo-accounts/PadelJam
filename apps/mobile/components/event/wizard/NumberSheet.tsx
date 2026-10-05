@@ -1,6 +1,7 @@
 import { parseWholeInRange } from '@padel/utils';
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { TextInput } from '@/components/ui/native';
 
 import { colors, radius, space, type } from '../../../theme';
 import { BottomSheet, Button, Text } from '../../ui';
