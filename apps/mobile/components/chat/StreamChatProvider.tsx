@@ -5,6 +5,8 @@ import { Chat, OverlayProvider } from 'stream-chat-expo';
 
 import { streamClient, streamEnabled } from '@/lib/streamClient';
 
+import { chatTheme } from './chatTheme';
+
 export function StreamChatProvider({ children }: PropsWithChildren) {
   const uid = useSession().session?.user.id;
   const tokenQ = useStreamToken();
@@ -49,7 +51,7 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
   // Chat tolerates a disconnected client; the connect effect above only
   // connects once a uid and token exist, and token fetches are gated on uid.
   return (
-    <OverlayProvider>
+    <OverlayProvider value={{ style: chatTheme }}>
       <Chat client={streamClient}>{children}</Chat>
     </OverlayProvider>
   );
