@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { qk, useDb } from '@padel/api';
+import { useDb } from '../client';
+import { qk } from '../query-keys';
 import { useSession } from '@padel/auth';
 
 /**

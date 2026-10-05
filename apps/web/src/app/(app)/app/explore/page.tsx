@@ -14,7 +14,7 @@ import {
   EMPTY_SEARCH_FILTERS,
   typesForFormat,
   type SearchFilterState,
-} from '@/components/explore/search/search-filters';
+} from '@padel/api';
 import type { ExploreSearchTab } from '@/lib/explore-links';
 import { useRecentSearches } from '@/lib/recent-searches';
 

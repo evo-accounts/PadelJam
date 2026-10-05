@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { compactSearchFilters } from '@padel/api';
+import { compactSearchFilters } from './search';
 
 import {
   EMPTY_EVENTS_FILTERS,
+  formatDistanceKm,
   localDayIso,
   toEventFilters,
   toggle,
@@ -43,5 +44,15 @@ describe('toEventFilters', () => {
       toEventFilters({ ...EMPTY_EVENTS_FILTERS, types: ['mexicano:team'], maxKm: 25, free: true }),
     );
     expect(f).toEqual({ free: true, max_km: 25, types: ['mexicano:team'] });
+  });
+});
+
+describe('formatDistanceKm', () => {
+  it('keeps one decimal under 10 km and whole kilometres from 10 km', () => {
+    expect(formatDistanceKm(1000)).toBe('1.0');
+    expect(formatDistanceKm(3449)).toBe('3.4');
+    expect(formatDistanceKm(9949)).toBe('9.9');
+    expect(formatDistanceKm(10_000)).toBe('10');
+    expect(formatDistanceKm(26_600)).toBe('27');
   });
 });

@@ -1,6 +1,5 @@
 import {
   EVENT_TYPE_FILTERS,
-  SEARCH_DISTANCE_STEPS_KM,
   type CommunityPrivacy,
   type CommunitySearchFilters,
   type CommunitySearchSort,
@@ -10,7 +9,7 @@ import {
   type EventTypeFilter,
   type GroupSearchFilters,
   type GroupSearchSort,
-} from '@padel/api';
+} from './search';
 
 /**
  * The Filter sheet's state per result tab (UX-EXPL-08, D13). Each tab owns its own — switching tab
@@ -18,8 +17,8 @@ import {
  * the form's (local calendar days for the date pickers); `toEventFilters` and friends turn them
  * into what the 0129 RPCs take.
  *
- * The same shapes and conversions as web's `components/explore/search/search-filters.ts`, so both
- * apps send the RPCs the same filters; the label keys live in mobile's `discovery` namespace.
+ * Shared by both apps, so the mobile Filter sheet and the web Filter dialog send the RPCs the same
+ * filters. The label maps hold i18n KEYS only; each app resolves them in its own namespace.
  */
 export type ExploreSearchTypedTab = 'events' | 'groups' | 'communities';
 
@@ -82,8 +81,6 @@ export const EMPTY_SEARCH_FILTERS: SearchFilterState = {
   groups: EMPTY_GROUPS_FILTERS,
   communities: EMPTY_COMMUNITIES_FILTERS,
 };
-
-export { EVENT_TYPE_FILTERS, SEARCH_DISTANCE_STEPS_KM };
 
 /** The nine type chips' labels (D4), in the explore namespace. */
 export const EVENT_TYPE_LABEL: Record<EventTypeFilter, string> = {
@@ -170,3 +167,12 @@ export const toggle = <T>(list: readonly T[], value: T): T[] =>
 /** The type filter a "For you" format chip runs (D6): every specification of that event type. */
 export const typesForFormat = (format: string): EventTypeFilter[] =>
   EVENT_TYPE_FILTERS.filter((f) => f.startsWith(`${format}:`));
+
+/**
+ * The number in "{{km}} km away" for a distance in metres: one decimal under 10 km ("3.4"), whole
+ * kilometres from 10 km ("27"). Under a kilometre the apps say "Nearby" instead and don't call this.
+ */
+export const formatDistanceKm = (metres: number): string => {
+  const km = metres / 1000;
+  return km < 10 ? km.toFixed(1) : String(Math.round(km));
+};
