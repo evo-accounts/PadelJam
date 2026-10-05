@@ -55,10 +55,15 @@ export const lastSnapshotWedged = (): boolean => wedge.lastReadWedged;
 /** Forget the wedge — after a reboot the clock must start again. */
 export const resetAccessibilityWedge = (): void => wedge.reset();
 
-export async function snapshot(): Promise<AxElement[]> {
+/**
+ * One read of the accessibility tree. `timeoutMs` bounds the describe-all call (default 30 s);
+ * the waits pass a shorter one so a single hung read can't eat their whole budget — see
+ * `readTimeout` in expect.ts.
+ */
+export async function snapshot(opts: { timeoutMs?: number } = {}): Promise<AxElement[]> {
   let raw: string;
   try {
-    raw = await idbDescribeAll();
+    raw = await idbDescribeAll(opts.timeoutMs);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     if (!isWedgedDescribeError(message)) throw e;

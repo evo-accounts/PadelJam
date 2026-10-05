@@ -161,14 +161,20 @@ const joinableAt = () => hoursFromNow(8);
 
 // --- cast ------------------------------------------------------------------
 const PW = 'Demo1234#';
+// Points so distance shows and distance filters/sorts have something to work on: most of the
+// cast and the events in central Lisbon, Cascais ~24 km out, Porto ~275 km.
+const LISBON = { lat: 38.7167, lng: -9.1423 };
+const CASCAIS = { lat: 38.6979, lng: -9.4215 };
+const PORTO = { lat: 41.1579, lng: -8.6291 };
+
 const CAST = [
-  { key: 'alex',  email: 'demo@padeljam.test',  phone: '+351910000001', name: 'Alex Organizer', gender: 'male',   hand: 'right', side: 'left',  time: 'night' },
-  { key: 'maria', email: 'maria@padeljam.test', phone: '+351910000002', name: 'Maria Santos',   gender: 'female', hand: 'right', side: 'right', time: 'evening' },
-  { key: 'joao',  email: 'joao@padeljam.test',  phone: '+351910000003', name: 'João Pereira',   gender: 'male',   hand: 'left',  side: 'left',  time: 'morning' },
-  { key: 'sofia', email: 'sofia@padeljam.test', phone: '+351910000004', name: 'Sofia Costa',    gender: 'female', hand: 'right', side: 'right', time: 'afternoon' },
-  { key: 'bruno', email: 'bruno@padeljam.test', phone: '+351910000005', name: 'Bruno Almeida',  gender: 'male',   hand: 'right', side: 'left',  time: 'any' },
-  { key: 'rita',  email: 'rita@padeljam.test',  phone: '+351910000006', name: 'Rita Fernandes', gender: 'female', hand: 'left',  side: 'right', time: 'evening' },
-  { key: 'pedro', email: 'pedro@padeljam.test', phone: '+351910000007', name: 'Pedro Lopes',    gender: 'male',   hand: 'right', side: 'left',  time: 'morning' },
+  { key: 'alex',  email: 'demo@padeljam.test',  phone: '+351910000001', name: 'Alex Organizer', gender: 'male',   hand: 'right', side: 'left',  time: 'night', point: LISBON },
+  { key: 'maria', email: 'maria@padeljam.test', phone: '+351910000002', name: 'Maria Santos',   gender: 'female', hand: 'right', side: 'right', time: 'evening', point: CASCAIS },
+  { key: 'joao',  email: 'joao@padeljam.test',  phone: '+351910000003', name: 'João Pereira',   gender: 'male',   hand: 'left',  side: 'left',  time: 'morning', point: LISBON },
+  { key: 'sofia', email: 'sofia@padeljam.test', phone: '+351910000004', name: 'Sofia Costa',    gender: 'female', hand: 'right', side: 'right', time: 'afternoon', point: LISBON },
+  { key: 'bruno', email: 'bruno@padeljam.test', phone: '+351910000005', name: 'Bruno Almeida',  gender: 'male',   hand: 'right', side: 'left',  time: 'any', point: PORTO },
+  { key: 'rita',  email: 'rita@padeljam.test',  phone: '+351910000006', name: 'Rita Fernandes', gender: 'female', hand: 'left',  side: 'right', time: 'evening', point: CASCAIS },
+  { key: 'pedro', email: 'pedro@padeljam.test', phone: '+351910000007', name: 'Pedro Lopes',    gender: 'male',   hand: 'right', side: 'left',  time: 'morning', point: LISBON },
 ];
 const TIME_ENUM = { evening: 'night', morning: 'morning', afternoon: 'afternoon', night: 'night', any: 'any' };
 
@@ -293,6 +299,7 @@ async function main() {
       onboarded_at: new Date().toISOString(),
       gender: c.gender, dominant_hand: c.hand, court_side: c.side,
       preferred_time: TIME_ENUM[c.time], description: `${c.name} — demo player.`,
+      ...(c.point ? { location_point: `SRID=4326;POINT(${c.point.lng} ${c.point.lat})` } : {}),
     });
     const jwt = await signIn(c.email, PW);
     U[c.key] = { id, jwt };
@@ -322,6 +329,7 @@ async function main() {
   const commA = await rpc(jwt('alex'), 'create_community_with_personal_tenant', {
     p_name: 'Lisbon Padel Club', p_type: 'club', p_country: 'PT', p_privacy: 'public',
     p_description: 'The friendliest padel club in Lisbon.', p_location: 'Lisbon, PT',
+    p_location_lat: LISBON.lat, p_location_lng: LISBON.lng,
     p_thumbnail_path: null, p_cover_image_path: null,
     p_cancellation_rules_enabled: true, p_cancellation_rules_text: 'Cancel at least 12h before.',
   });
@@ -331,6 +339,7 @@ async function main() {
   const commC = await rpc(jwt('maria'), 'create_community_with_personal_tenant', {
     p_name: 'Cascais Social', p_type: 'friends', p_country: 'PT', p_privacy: 'request_to_join',
     p_description: 'Weekend social games.', p_location: 'Cascais, PT',
+    p_location_lat: CASCAIS.lat, p_location_lng: CASCAIS.lng,
     p_thumbnail_path: null, p_cover_image_path: null,
     p_cancellation_rules_enabled: false, p_cancellation_rules_text: null,
   });
@@ -397,7 +406,7 @@ async function main() {
     group_id: g1, event_type: 'americano', specification: 'classic', scoring_mode: 'points', scoring_value: 24,
     organizer_role: 'organizing_and_playing', name: 'Event', venue_id: null,
     manual_location_name: 'Lisbon Padel Arena', manual_location_address: 'Av. da Liberdade', has_location: true,
-    location_lat: null, location_lng: null, location_text: null,
+    location_lat: LISBON.lat, location_lng: LISBON.lng, location_text: null,
     num_courts: 1, starts_at: isoIn(3), duration_minutes: 90, allow_standby: true, standby_spots: 2,
     is_private: false, players_submit_results: false,
     entrance_fee_enabled: false, entrance_fee_amount: null, entrance_fee_method: null, entrance_fee_mba_number: null,

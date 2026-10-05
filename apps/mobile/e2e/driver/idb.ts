@@ -47,4 +47,4 @@ export const idbText = (text: string) => idb(['ui', 'text', text]);
 export const idbKey = (code: number) => idb(['ui', 'key', String(code)]);
 export const idbSwipe = (x1: number, y1: number, x2: number, y2: number, durationMs = 300) =>
   idb(['ui', 'swipe', String(x1), String(y1), String(x2), String(y2), '--duration', String(durationMs / 1000)]);
-export const idbDescribeAll = () => idb(['ui', 'describe-all', '--json'], 30_000);
+export const idbDescribeAll = (timeoutMs = 30_000) => idb(['ui', 'describe-all', '--json'], timeoutMs);
