@@ -133,6 +133,18 @@ const webApp = {
     notifications: 'Notificações',
     comingSoon: 'Em breve',
     welcome: 'Bem-vindo, {{name}}',
+    finishInApp: {
+      title: 'Termine o registo na app',
+      body: 'Ainda falta concluir o seu perfil. Abra a app Padel Jam no telemóvel, entre com esta conta e conclua os passos iniciais. Depois disso, o Padel Jam também funciona aqui.',
+      done: 'Já concluí',
+      signOut: 'Terminar sessão',
+    },
+    errorPage: {
+      title: 'Algo correu mal',
+      body: 'Não foi possível mostrar esta página. Tente novamente.',
+      retry: 'Tentar novamente',
+      home: 'Ir para o início',
+    },
   },
   'pt-BR': {
     nav: { home: 'Início', events: 'Eventos', explore: 'Explorar', community: 'Comunidade', profile: 'Perfil', messages: 'Mensagens' },
@@ -140,6 +152,18 @@ const webApp = {
     notifications: 'Notificações',
     comingSoon: 'Em breve',
     welcome: 'Bem-vindo, {{name}}',
+    finishInApp: {
+      title: 'Termine seu cadastro no app',
+      body: 'Ainda falta concluir seu perfil. Abra o app Padel Jam no celular, entre com esta conta e conclua os passos iniciais. Depois disso, o Padel Jam também funciona aqui.',
+      done: 'Já concluí',
+      signOut: 'Sair',
+    },
+    errorPage: {
+      title: 'Algo deu errado',
+      body: 'Não foi possível mostrar esta página. Tente novamente.',
+      retry: 'Tentar novamente',
+      home: 'Ir para o início',
+    },
   },
   en: {
     nav: { home: 'Home', events: 'Events', explore: 'Explore', community: 'Community', profile: 'Profile', messages: 'Messages' },
@@ -147,6 +171,18 @@ const webApp = {
     notifications: 'Notifications',
     comingSoon: 'Coming soon',
     welcome: 'Welcome, {{name}}',
+    finishInApp: {
+      title: 'Finish setting up in the app',
+      body: 'Your profile isn’t complete yet. Open the Padel Jam app on your phone, sign in with this account and finish the first steps. After that, Padel Jam works here too.',
+      done: 'I’ve finished',
+      signOut: 'Sign out',
+    },
+    errorPage: {
+      title: 'Something went wrong',
+      body: 'This page couldn’t be shown. Please try again.',
+      retry: 'Try again',
+      home: 'Go to Home',
+    },
   },
 } as const;
 
