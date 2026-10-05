@@ -16,7 +16,14 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 const LOCK = '/tmp/padeljam-e2e.lock';
-const minutes = Math.min(Number(process.argv[2]) || 60, 180);
+// `pnpm e2e:hold -- 20` hands the script a literal `--` before the number, so take the first
+// argument that isn't one. Anything that isn't a positive number is an error, not a silent 60.
+const arg = process.argv.slice(2).find((a) => a !== '--');
+if (arg !== undefined && !(Number(arg) > 0)) {
+  console.error(`[e2e:hold] expected a number of minutes, got "${arg}" — usage: pnpm e2e:hold -- 20`);
+  process.exit(2);
+}
+const minutes = Math.min(arg === undefined ? 60 : Number(arg), 180);
 
 function holder() {
   let info;

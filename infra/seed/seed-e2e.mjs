@@ -172,8 +172,14 @@ const hoursFromNow = (h) => new Date(Date.now() + h * 3600_000).toISOString();
 
 // --- cast ------------------------------------------------------------------
 const PW = 'Demo1234#';
+// Two fixed points for the distance check: Lisbon centre and Cascais, ~24 km apart.
+const LISBON = { lat: 38.7167, lng: -9.1423 };
+const CASCAIS = { lat: 38.6979, lng: -9.4215 };
+
 const CAST = [
-  { key: 'alex',  email: 'demo@padeljam.test',  phone: '+351910000001', name: 'Alex Organizer', gender: 'male',   hand: 'right', side: 'left',  time: 'night' },
+  // alex lives in Cascais (a point, not just a label), ~24 km from E2's court in central Lisbon,
+  // so suite 03 can check the "N km away" label on a card he sees in Explore.
+  { key: 'alex',  email: 'demo@padeljam.test',  phone: '+351910000001', name: 'Alex Organizer', gender: 'male',   hand: 'right', side: 'left',  time: 'night', point: CASCAIS },
   { key: 'maria', email: 'maria@padeljam.test', phone: '+351910000002', name: 'Maria Santos',   gender: 'female', hand: 'right', side: 'right', time: 'evening' },
   { key: 'joao',  email: 'joao@padeljam.test',  phone: '+351910000003', name: 'João Pereira',   gender: 'male',   hand: 'left',  side: 'left',  time: 'morning' },
   { key: 'sofia', email: 'sofia@padeljam.test', phone: '+351910000004', name: 'Sofia Costa',    gender: 'female', hand: 'right', side: 'right', time: 'afternoon' },
@@ -246,6 +252,7 @@ async function main() {
       preferred_time: c.time ? TIME_ENUM[c.time] : null,
       description: `${c.name} — e2e player.`,
       location_text: c.noLocation || c.notOnboarded ? null : 'Lisbon, PT',
+      ...(c.point ? { location_point: `SRID=4326;POINT(${c.point.lng} ${c.point.lat})` } : {}),
     });
     const jwt = await signIn(c.email, PW);
     U[c.key] = { id: uid, jwt };
@@ -439,8 +446,11 @@ async function main() {
   console.log(`  E1 scheduled americano = ${e1}`);
 
   // E2 — team event (+5d), organizer maria (organizing_only); sofia+bruno paired; rita→alex pending partner request.
+  // The only seeded event with coordinates (central Lisbon): alex doesn't organise or attend it, so
+  // it is on his Explore list with a distance (suite 03).
   const e2 = await rpc(jwt('maria'), 'create_event', { p_payload: baseEvent({
     name: 'Team Cup', specification: 'team', organizer_role: 'organizing_only', starts_at: isoIn(5), num_courts: 1,
+    location_lat: LISBON.lat, location_lng: LISBON.lng,
   }) });
   await rpc(jwt('sofia'), 'choose_partner', { p_event_id: e2, p_partner_user: id('bruno') });
   await rpc(jwt('rita'), 'request_partner', { p_event_id: e2, p_targets: [id('alex')] });

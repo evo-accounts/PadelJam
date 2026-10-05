@@ -10,7 +10,7 @@ import {
   typeText,
 } from '../driver/actions';
 import { CONFIG } from '../driver/config';
-import { expectGone, expectVisible } from '../driver/expect';
+import { expectGone, expectText, expectVisible } from '../driver/expect';
 import { freshInstall } from '../driver/app';
 import { findFromHome, loginAs, switchUser, tabTo } from '../driver/flows';
 import { select } from '../fixtures/db';
@@ -132,6 +132,20 @@ describe('03 home & tabs', () => {
     await tap({ id: 'explore-see-all-events' });
     await expectVisible({ text: /tuesday americano|full house|team cup/i }, { timeout: 20_000 });
     await backGesture(); // pop the pushed see-all screen so the tab bar is reachable again
+  });
+
+  it('an event card shows how far away it is (viewer and event both have a point)', async () => {
+    const m = manifest();
+    // The seed puts alex in Cascais and Team Cup (E2) in central Lisbon, ~24 km apart; alex neither
+    // organises nor attends it, so it is on his Explore list. This is the only E2E check that runs
+    // viewer_distance_m end to end — an emptied spatial_ref_sys made it throw (#222) unseen.
+    await tabTo('Explore');
+    await scrollUntilVisible({ id: 'explore-see-all-events' }, { maxSwipes: 4 });
+    await tap({ id: 'explore-see-all-events' });
+    const card = { id: `event-card-${m.events.e2}` };
+    await scrollUntilVisible(card, { maxSwipes: 6 });
+    await expectText(card, /\b2[0-9](\.\d)? km away/i, { timeout: 15_000 });
+    await backGesture();
   });
 
   it('Follow on a player card resolves to Following and stays put (UX-EXPL-02)', async () => {

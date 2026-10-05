@@ -73,6 +73,15 @@ export interface WaitOpts {
   interval?: number;
 }
 
+/**
+ * The describe-all budget for one poll inside a wait: what is left of the wait, kept between 5 s
+ * (a read on a busy host can take a few seconds, and a cut-off read is wasted) and 10 s. Before,
+ * every read had a flat 30 s — doubled when idb restarted its companion — so one hung read could
+ * outlast a 15 s wait several times over before the deadline was even checked.
+ */
+export const readTimeout = (deadline: number, now = Date.now()): number =>
+  Math.max(5_000, Math.min(10_000, deadline - now));
+
 /** Poll the accessibility tree until the selector matches; throws with artifacts on timeout. */
 export async function waitFor(sel: Selector, opts: WaitOpts = {}): Promise<AxElement> {
   const timeout = opts.timeout ?? CONFIG.waitTimeoutMs;
@@ -81,7 +90,7 @@ export async function waitFor(sel: Selector, opts: WaitOpts = {}): Promise<AxEle
   let lastErr = '';
   while (Date.now() < deadline) {
     try {
-      const el = query(await snapshot(), sel);
+      const el = query(await snapshot({ timeoutMs: readTimeout(deadline) }), sel);
       if (el) return el;
     } catch (e) {
       lastErr = e instanceof Error ? e.message : String(e);
@@ -100,13 +109,21 @@ export async function expectGone(sel: Selector, opts: WaitOpts = {}): Promise<vo
   const timeout = opts.timeout ?? CONFIG.waitTimeoutMs;
   const interval = opts.interval ?? CONFIG.pollIntervalMs;
   const deadline = Date.now() + timeout;
+  let lastErr = '';
   while (Date.now() < deadline) {
-    const el = query(await snapshot(), sel);
-    // A wedged read is empty, so everything is "gone" from it — never pass on one.
-    if (!el && !lastSnapshotWedged()) return;
+    try {
+      const el = query(await snapshot({ timeoutMs: readTimeout(deadline) }), sel);
+      // A wedged read is empty, so everything is "gone" from it — never pass on one.
+      if (!el && !lastSnapshotWedged()) return;
+    } catch (e) {
+      // A failed or timed-out read proves nothing either way: poll again, like waitFor does.
+      lastErr = e instanceof Error ? e.message : String(e);
+    }
     await sleep(interval);
   }
-  throw await timeoutError(`expectGone timed out after ${timeout}ms: still visible ${describeSelector(sel)}`);
+  throw await timeoutError(
+    `expectGone timed out after ${timeout}ms: still visible ${describeSelector(sel)}${lastErr ? `\nlast snapshot error: ${lastErr}` : ''}`,
+  );
 }
 
 /** Assert element's label/value against a matcher once visible. */
