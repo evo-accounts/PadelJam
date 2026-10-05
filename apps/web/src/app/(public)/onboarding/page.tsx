@@ -25,7 +25,9 @@ export default function FinishInAppPage() {
       <h1 className="text-2xl font-semibold">{t('finishInApp.title')}</h1>
       <p className="text-muted-foreground">{t('finishInApp.body')}</p>
       <div className="mt-2 flex flex-col gap-2">
-        <Button onClick={() => router.replace('/app')}>{t('finishInApp.done')}</Button>
+        {/* A full load, not router.replace: the client router cached the middleware's redirect from
+            /app to here, so a soft navigation would bounce back without asking the server again. */}
+        <Button onClick={() => window.location.assign('/app')}>{t('finishInApp.done')}</Button>
         <Button variant="secondary" onClick={onSignOut}>
           {t('finishInApp.signOut')}
         </Button>
