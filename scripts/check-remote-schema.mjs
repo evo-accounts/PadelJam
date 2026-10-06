@@ -24,7 +24,9 @@
  * calls it, PostgREST answers PGRST202, and the screen dead-ends. `auth_methods_for`
  * (migration 0096) is on that list because "Try another way" calls it BEFORE the
  * user is authenticated, as anon, so a missing function or a missing anon grant
- * breaks sign-in recovery for people who are already locked out.
+ * breaks sign-in recovery for people who are already locked out. `my_auth_providers`
+ * (migration 0132) is there because it replaced a view the shipped app used to read, so a build
+ * made before the hosted paste would ask for a function production does not have.
  *
  * Uses the publishable key from eas.json. That key is already public (it ships
  * in the app binary), so this needs no secrets and runs in CI.
@@ -146,6 +148,51 @@ async function checkAuthMethodsRpc(t, label) {
   return 'skip';
 }
 
+/**
+ * Does my_auth_providers exist, and is anon kept out of it?
+ *
+ * The Privacy row and Change password screen call it (migration 0132, which replaced the
+ * auth_providers view). It is for signed-in users only, so the probe has no session to call it
+ * with — and needs none: PostgREST answers 42501 for a function that exists but anon may not
+ * execute, and PGRST202 for one that does not exist. The first is the deployed state we want.
+ * Nothing is read and no row is written either way.
+ */
+async function checkMyAuthProvidersRpc(t, label) {
+  let res;
+  try {
+    res = await fetch(`${t.url}/rest/v1/rpc/my_auth_providers`, {
+      method: 'POST',
+      headers: { apikey: t.key, 'Content-Type': 'application/json' },
+      body: '{}',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (error) {
+    console.log(`? ${label}: my_auth_providers unreachable (${error.message}) — not verified`);
+    return 'skip';
+  }
+
+  const body = await res.json().catch(() => ({}));
+  if (body.code === '42501') {
+    console.log(`✓ ${label}: my_auth_providers exists and anon may not call it`);
+    return 'ok';
+  }
+  if (body.code === 'PGRST202' || body.code === '42883') {
+    console.log(`✗ ${label}: my_auth_providers is missing (${body.message ?? res.status})`);
+    console.log('    Migration 0132 is not applied to this project — Privacy and Change password cannot tell');
+    console.log('    whether the account has a password, and fall back to demanding the current one.');
+    return 'fail';
+  }
+  // A 2xx means anon got in. The body answers anon with zero rows, so nothing leaks — but the grant
+  // is what is supposed to keep anon out, not the WHERE clause.
+  if (res.ok) {
+    console.log(`✗ ${label}: anon may execute my_auth_providers`);
+    console.log("    Re-apply 0132's grant block; it is for signed-in users only.");
+    return 'fail';
+  }
+  console.log(`? ${label}: my_auth_providers HTTP ${res.status} ${body.message ?? ''} — not verified`);
+  return 'skip';
+}
+
 let failed = 0;
 let skipped = 0;
 
@@ -159,9 +206,11 @@ for (const t of targets()) {
   if (columnResult === 'fail') failed += 1;
   if (columnResult === 'skip') skipped += 1;
 
-  const rpcResult = await checkAuthMethodsRpc(t, label);
-  if (rpcResult === 'fail') failed += 1;
-  if (rpcResult === 'skip') skipped += 1;
+  for (const check of [checkAuthMethodsRpc, checkMyAuthProvidersRpc]) {
+    const rpcResult = await check(t, label);
+    if (rpcResult === 'fail') failed += 1;
+    if (rpcResult === 'skip') skipped += 1;
+  }
 }
 
 if (skipped > 0 && failed === 0) {

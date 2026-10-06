@@ -11,8 +11,8 @@
  * the email IS the account that was lost, so there is no independent channel to
  * recover through either.
  *
- * `auth_providers.has_password` (migration 0003, made readable by 0097) decides
- * which screen this is, and it is read HERE and not passed in as a route param:
+ * `has_password` from `my_auth_providers()` (migration 0132) decides which
+ * screen this is, and it is read HERE and not passed in as a route param:
  * expo-router restores this route after a process restart with whatever params
  * it had, and a stale `hasPassword=true` would put the current-password field
  * back in front of someone who cannot fill it — the exact dead end being fixed.
@@ -69,7 +69,7 @@ export default function ChangePasswordScreen() {
   const title = hasPassword ? t('changePassword') : t('createPassword');
 
   /**
-   * Where the recovery code would be sent. `auth_providers` answers whether the account HAS an
+   * Where the recovery code would be sent. `my_auth_providers()` answers whether the account HAS an
    * email or a phone, not what they are, so the values come from the session — which is the same
    * pair GoTrue would accept an OTP on. Email first when both exist, matching the rest of the app.
    *
