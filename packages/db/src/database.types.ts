@@ -420,13 +420,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "community_join_requests_responded_by_fkey"
-            columns: ["responded_by"]
-            isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
-          },
-          {
             foreignKeyName: "community_join_requests_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -1893,13 +1886,6 @@ export type Database = {
             referencedRelation: "community_posts"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "post_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       profiles: {
@@ -1963,15 +1949,7 @@ export type Database = {
           preferred_time?: string | null
           terms_accepted_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       round_rest: {
         Row: {
@@ -2078,13 +2056,6 @@ export type Database = {
             referencedRelation: "plans"
             referencedColumns: ["dimension", "plan_id"]
           },
-          {
-            foreignKeyName: "subscriptions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       tenant_memberships: {
@@ -2117,13 +2088,6 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "tenant_memberships_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       tenants: {
@@ -2154,15 +2118,7 @@ export type Database = {
           owner_id?: string | null
           type?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "tenants_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       user_default_community: {
         Row: {
@@ -2187,13 +2143,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "communities"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_default_community_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "auth_providers"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -2250,33 +2199,6 @@ export type Database = {
       }
     }
     Views: {
-      auth_providers: {
-        Row: {
-          has_apple: boolean | null
-          has_email: boolean | null
-          has_google: boolean | null
-          has_password: boolean | null
-          has_phone: boolean | null
-          user_id: string | null
-        }
-        Insert: {
-          has_apple?: never
-          has_email?: never
-          has_google?: never
-          has_password?: never
-          has_phone?: never
-          user_id?: string | null
-        }
-        Update: {
-          has_apple?: never
-          has_email?: never
-          has_google?: never
-          has_password?: never
-          has_phone?: never
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       geography_columns: {
         Row: {
           coord_dimension: number | null
@@ -2865,6 +2787,16 @@ export type Database = {
       search_pattern: {
         Args: { p_q: string }
         Returns: string
+      }
+      my_auth_providers: {
+        Args: never
+        Returns: {
+          has_apple: boolean
+          has_email: boolean
+          has_google: boolean
+          has_password: boolean
+          has_phone: boolean
+        }[]
       }
       my_events: {
         Args: { p_filter?: string; p_limit?: number; p_offset?: number; p_include_past?: boolean }

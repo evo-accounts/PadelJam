@@ -738,8 +738,9 @@ Two things that are not columns and are easy to get wrong:
 - **`location_point` has exactly one sanctioned writer**, the `set_my_location(lat, lng, text)`
   function, which overwrites the point AND `location_text` together. It is not a merge, and neither
   column can ride along in an ordinary `profiles` UPDATE.
-- **There is no `has_password` column.** It is a computed boolean on the `auth_providers` view,
-  redefined by migration 0101 to mean "a password was actually chosen", backed by an
+- **There is no `has_password` column.** It is a computed boolean returned by the
+  `my_auth_providers()` function (migration 0132, which replaced the `auth_providers` view after
+  0101 had redefined it) and means "a password was actually chosen", backed by an
   `auth_password_set` table and a trigger. The older inference — a non-empty `encrypted_password` —
   read true for every OTP user, because GoTrue writes a placeholder hash on signup.
 

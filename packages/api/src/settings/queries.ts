@@ -36,17 +36,18 @@ export const useMySettings = () => {
 };
 
 /**
- * Which ways the SIGNED-IN user can get back into this account. Reads `auth_providers`
- * (migration 0003, made readable by 0097): a view over auth.users/auth.identities scoped to
- * `auth.uid()`, so it never answers for anyone but the caller and it carries booleans only.
+ * Which ways the SIGNED-IN user can get back into this account. Calls `my_auth_providers()`
+ * (migration 0132, which replaced the `auth_providers` view the Supabase advisor flagged): a
+ * SECURITY DEFINER function over auth.users/auth.identities scoped to `auth.uid()`, so it never
+ * answers for anyone but the caller and it carries booleans only.
  *
  * `has_password` is the one the settings screen turns on. A Google or Apple sign-up has no
  * password at all — the Change Password screen's re-auth step can only ever fail for them — so
  * the row has to know which of the two screens it is opening before it is labelled.
  *
- * Every column is `boolean | null` in the generated types (a view's columns always are) and the
- * view answers with no row at all when there is no session, so the whole shape is coerced here
- * rather than leaving `undefined | null | false` to be re-disambiguated at each call site.
+ * The function answers with no row at all when there is no session (or no auth.users row behind
+ * it), so the whole shape is coerced here rather than leaving `undefined | false` to be
+ * re-disambiguated at each call site.
  */
 export type AuthProviders = {
   has_password: boolean;
@@ -63,10 +64,7 @@ export const useAuthProviders = () => {
     queryKey: qk.authProviders(uid ?? ''),
     enabled: !!uid,
     queryFn: async (): Promise<AuthProviders> => {
-      const { data, error } = await db
-        .from('auth_providers')
-        .select('has_password, has_email, has_phone, has_google, has_apple')
-        .maybeSingle();
+      const { data, error } = await db.rpc('my_auth_providers').maybeSingle();
       if (error) throw error;
       return {
         has_password: data?.has_password === true,
