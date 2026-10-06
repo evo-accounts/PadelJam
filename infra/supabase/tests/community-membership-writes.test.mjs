@@ -3,7 +3,7 @@
 // a working exploit before 0135 — an outsider joining somebody else's PRIVATE community, making
 // themselves its admin, or slipping into its private group through an invitation they wrote
 // themselves. Each "can" is the legitimate path that must keep working beside it.
-import { user, rpc, req, sel, insert, expectError, assert, run } from './lib.mjs';
+import { user, rpc, req, sel, insert, del, expectError, assert, run } from './lib.mjs';
 
 const communityArgs = (name, privacy) => ({
   p_name: name, p_type: 'club', p_country: 'PT', p_privacy: privacy,
@@ -111,7 +111,12 @@ await run("an invitation written before 0135 cannot be cashed in for another com
 });
 
 await run('a member can still join an open group inside their private community', async () => {
-  const [open] = await insert('groups', { community_id: P, name: 'Open Squad', is_private: false });
-  await rpc(outsider.jwt, 'join_group', { p_group_id: open.id });
-  assert(await inGroup(open.id, outsider.id), 'GR-07: a community member joins a public group directly');
+  // The general group is open, and a starter community may hold only that one group, so the member
+  // is taken out of it (service key) and walks back in through join_group as a community member.
+  const [{ is_private }] = await sel('groups', `id=eq.${Pgroup}&select=is_private`);
+  assert(is_private === false, 'the general group is an open group');
+  await del('group_members', `group_id=eq.${Pgroup}&user_id=eq.${outsider.id}`);
+  assert(!(await inGroup(Pgroup, outsider.id)), 'out of the group, still in the community');
+  await rpc(outsider.jwt, 'join_group', { p_group_id: Pgroup });
+  assert(await inGroup(Pgroup, outsider.id), 'GR-07: a community member joins a public group directly');
 });
