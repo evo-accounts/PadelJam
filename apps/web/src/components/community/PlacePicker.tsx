@@ -5,6 +5,7 @@ import type { LocationPoint } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PlaceSearchButton, PlaceSearchResults, searchOnEnter, usePlaceSearch } from '@/components/location/PlaceSearch';
 
 export type PickedPlace = { label: string; point: LocationPoint | null };
 
@@ -13,19 +14,22 @@ export type PickedPlace = { label: string; point: LocationPoint | null };
  * from. Written together through `set_community_location` (or the create RPC), so a new label
  * never sits on an old place's coordinates.
  *
- * Web has no geocoder — mobile's `LocationSheet` resolves typed text with the OS geocoder
- * (`expo-location`), which the browser does not have, and a third-party geocoding service is a
- * product and privacy call, not this form's. So the point comes from the browser's Geolocation
- * API ("Use my current location", the admin standing at the club), and the label is typed. Without
- * a point the community still saves; it sorts last by distance until one is set.
+ * Two ways to a point: "Search" looks the typed label up through the `geocode` edge function
+ * (OpenStreetMap Nominatim — an explicit press or Enter, never as you type, per its usage policy)
+ * and picking a result sets both the short label and the point; or "Use my current location" takes
+ * the browser's Geolocation API (the admin standing at the club) and leaves the label as typed.
+ * Without a point the community still saves; it sorts last by distance until one is set.
  */
 export function PlacePicker({
   id,
   value,
   onLabelChange,
   onPointChange,
+  hint,
 }: {
   id: string;
+  /** The line under the controls; defaults to the community copy (what members see, Explore order). */
+  hint?: string;
   value: PickedPlace;
   onLabelChange: (label: string) => void;
   /** Separate from the label: a position can arrive after the admin has typed on. */
@@ -34,6 +38,7 @@ export function PlacePicker({
   const { t } = useT('community');
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const search = usePlaceSearch();
   const pinCurrent = () => {
     if (locating) return;
     setError(null);
@@ -58,12 +63,25 @@ export function PlacePicker({
 
   return (
     <div className="space-y-2" data-testid="place-picker">
-      <Input
-        id={id}
-        value={value.label}
-        placeholder={t('locationPlaceholder')}
-        onChange={(e) => onLabelChange(e.target.value)}
-        data-testid="place-picker-label"
+      <div className="flex gap-2">
+        <Input
+          id={id}
+          value={value.label}
+          placeholder={t('locationPlaceholder')}
+          onChange={(e) => onLabelChange(e.target.value)}
+          onKeyDown={searchOnEnter(search, value.label)}
+          className="flex-1"
+          data-testid="place-picker-label"
+        />
+        <PlaceSearchButton search={search} query={value.label} />
+      </div>
+      <PlaceSearchResults
+        search={search}
+        focusAfterPickId={id}
+        onPick={(picked) => {
+          onLabelChange(picked.label);
+          onPointChange(picked.point);
+        }}
       />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
         <span className="flex items-center gap-1.5 text-muted-foreground" data-testid="place-picker-status">
@@ -86,7 +104,7 @@ export function PlacePicker({
           </Button>
         ) : null}
       </div>
-      <p className="text-xs text-muted-foreground">{t('locationHint')}</p>
+      <p className="text-xs text-muted-foreground">{hint ?? t('locationHint')}</p>
       {error ? (
         <p className="text-xs text-destructive" role="alert">
           {error}

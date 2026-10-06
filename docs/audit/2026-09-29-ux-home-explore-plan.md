@@ -358,11 +358,19 @@ end-to-end check is the app itself: Explore → type a community's name → it a
   dark purple. Pre-existing and app-wide; W3 only moved its filter chips onto semantic colours. The Manage Event
   plan flagged the same thing. **Proposal:** one design-system PR that gives dark mode its own primary fill
   token, applied to both apps.
-- **Web geocoder** — web has no geocoder, so a web community location is a typed label plus the admin's current
-  position (the browser's Geolocation API); the event wizard and account settings have the same gap. Picking a
-  third-party provider is a product and privacy decision. **Proposal:** a server-side geocode edge function
-  (e.g. Nominatim or Mapbox behind our own endpoint) that `PlacePicker` queries for suggestions; decide the
-  provider first. It touches `infra/`, so it queues E2E.
+- ~~**Web geocoder**~~ — **DONE** (branch `feat/web-geocode`). Provider: OpenStreetMap Nominatim, behind our own
+  `geocode` edge function (`infra/supabase/functions/geocode`, pure parts in `_shared/geocode.ts` with node tests):
+  signed-in callers only (default `verify_jwt` plus `auth.getUser()`), `POST { q, lang? }` →
+  `{ results: { label, lat, lng }[] }` (≤ 5), an identifying User-Agent, upstream calls serialised ≥ 1.1 s apart
+  and an in-memory cache, per the Nominatim usage policy. Web searches on an explicit **Search** press or Enter —
+  never as you type (Nominatim forbids autocomplete) — and shows "© OpenStreetMap contributors" under the results
+  (ODbL). Used by `PlacePicker` (community create + settings), the create-event manual address (a picked result
+  sets the address and the event's point; typing again drops the point; Edit keeps the stored point unless a new
+  result is picked) and a new Location card in web Account Settings (`set_my_location`). Mobile is unchanged
+  (`expo-location`). **Hosted step:** deploy the function before the web release —
+  `supabase functions deploy geocode` (or the dashboard); no secrets needed (it reads the built-in
+  `SUPABASE_URL`/`SUPABASE_ANON_KEY`). Until it is deployed, web Search shows its error line and everything else
+  saves as before. Nominatim's public instance is for light use; heavy traffic needs a paid/self-hosted provider.
 - **omar@ is not onboarded, and web `/app` renders blank for him** (pre-existing, found in W1/W3 walks; card
   actions were exercised as dora@ instead). **Proposal:** a web fix that routes a signed-in, not-onboarded user
   to onboarding (or a "finish on the app" screen) instead of an empty shell.

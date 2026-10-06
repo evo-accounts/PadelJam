@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PlaceSearchButton, PlaceSearchResults, searchOnEnter, usePlaceSearch } from '@/components/location/PlaceSearch';
 import { CourtCounter } from '../CourtCounter';
 import {
   backToVenueList,
@@ -14,6 +15,8 @@ import {
   locationErrors,
   noLocation,
   openManualVenue,
+  pickManualAddress,
+  setManualAddress,
   setManualCourtCount,
   setManualCourtName,
 } from '../draft-logic';
@@ -29,10 +32,13 @@ import type { StepProps } from '../types';
  * 2. "Add manually" (or the action on "Location not found") opens the manual venue form: optional
  *    name, required address, 1–20 courts with optional names, and a note that the venue serves
  *    this event only. It has fields, so the wizard shows the primary button; Courts is skipped.
+ *    "Search" beside the address looks it up (the `geocode` edge function, OpenStreetMap):
+ *    picking a result sets the address to its short label and gives the event a point, which
+ *    typing in the address again drops. Optional — a typed address saves without a point.
  * 3. "I don't want to add a location", fixed at the bottom (`NoLocationFooter`), advances to a
  *    Courts step with only the count.
  *
- * Not a map search and no geolocation.
+ * No map and no geolocation.
  */
 export function Step5Location(props: StepProps & { context?: 'wizard' | 'edit'; courtsBelow?: boolean }) {
   const manual = props.draft.locationMode === 'manual';
@@ -170,6 +176,8 @@ function ManualVenueForm({ draft, patch, flagged, focusOnMount, context = 'wizar
   const { t } = useT('event');
   const errors = flagged ? locationErrors(draft) : [];
   const badAddress = errors.includes('manualLocationAddress');
+  const address = draft.manualLocationAddress ?? '';
+  const search = usePlaceSearch();
 
   return (
     <div className="flex flex-col gap-4">
@@ -195,17 +203,34 @@ function ManualVenueForm({ draft, patch, flagged, focusOnMount, context = 'wizar
             *
           </span>
         </Label>
-        <Input
-          id="manual-venue-address"
-          value={draft.manualLocationAddress ?? ''}
-          onChange={(e) => patch({ manualLocationAddress: e.target.value })}
-          placeholder={t('locationAddressPlaceholder')}
-          maxLength={200}
-          required
-          aria-invalid={badAddress || undefined}
-          aria-describedby={badAddress ? 'manual-venue-address-error' : undefined}
-          data-testid="manual-venue-address"
+        <div className="flex gap-2">
+          <Input
+            id="manual-venue-address"
+            value={address}
+            onChange={(e) => patch(setManualAddress(e.target.value))}
+            onKeyDown={searchOnEnter(search, address)}
+            placeholder={t('locationAddressPlaceholder')}
+            maxLength={200}
+            required
+            aria-invalid={badAddress || undefined}
+            aria-describedby={badAddress ? 'manual-venue-address-error' : undefined}
+            className="flex-1"
+            data-testid="manual-venue-address"
+          />
+          <PlaceSearchButton search={search} query={address} testIdPrefix="manual-venue-address" />
+        </div>
+        <PlaceSearchResults
+          search={search}
+          focusAfterPickId="manual-venue-address"
+          testIdPrefix="manual-venue-address"
+          onPick={(picked) => patch(pickManualAddress(picked.label, picked.point))}
         />
+        {draft.manualLocationPoint ? (
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground" data-testid="manual-venue-address-pinned">
+            <MapPin className="size-3.5" aria-hidden />
+            {t('manualAddressPinned')}
+          </p>
+        ) : null}
         {badAddress ? (
           <p id="manual-venue-address-error" className="text-sm text-destructive">
             {t('manualAddressRequired')}

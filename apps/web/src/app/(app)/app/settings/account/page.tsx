@@ -6,12 +6,10 @@
  * email and mobile are rows opening their own two-phase OTP flow — a code sent to a new address
  * has to be confirmed before the change is real, which is a round trip, not a field.
  *
- * LOCATION IS DELIBERATELY ABSENT, and this is the one place web cannot mirror mobile. The
- * geography column's only sanctioned writer is `set_my_location(lat, lng, text)`, which needs
- * coordinates; mobile resolves them with `expo-location`, which is native-only. The browser's
- * Geolocation API could supply a point but nothing here can turn it into the place NAME the
- * profile displays, and inventing a geocoding dependency for one field is not this PR's call.
- * Web has never offered the field, so this is an unchanged gap rather than a new one.
+ * Location is its own card (`ProfileLocationCard`) with its own Save: the geography column's only
+ * sanctioned writer is `set_my_location(lat, lng, text)`, which writes the point and the label as a
+ * pair. Mobile resolves the place with `expo-location`; web looks it up through the `geocode` edge
+ * function (OpenStreetMap Nominatim) or takes the browser's position.
  */
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -20,6 +18,7 @@ import { useMyProfile, useUpdateProfile } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { avatarUrl, uploadAvatar } from '@/lib/upload';
+import { ProfileLocationCard } from '@/components/profile/ProfileLocationCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -183,6 +182,8 @@ export default function AccountSettingsPage() {
         </Button>
         {error ? <span className="text-sm text-destructive">{t('saveError')}</span> : null}
       </div>
+
+      <ProfileLocationCard initialLabel={me.data.location_text ?? ''} />
 
       <Separator />
 

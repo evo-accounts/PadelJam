@@ -1,7 +1,7 @@
 import type { EventDetail } from '@padel/api';
 import { courtsReserved } from '@padel/utils';
 
-import { manualCourtNamesPayload } from '../wizard/draft-logic';
+import { manualCourtNamesPayload, manualPointPayload } from '../wizard/draft-logic';
 import type { WebWizardDraft } from '../wizard/types';
 
 /**
@@ -71,7 +71,9 @@ export function locationChanged(d: ManageDraft, e: EventDetail): boolean {
     d.hasLocation !== before.hasLocation ||
     (d.venueId ?? null) !== (before.venueId ?? null) ||
     (d.manualLocationName ?? '') !== (before.manualLocationName ?? '') ||
-    (d.manualLocationAddress ?? '') !== (before.manualLocationAddress ?? '')
+    (d.manualLocationAddress ?? '') !== (before.manualLocationAddress ?? '') ||
+    // Only an address search pick sets a point (the stored event's is never loaded into the draft).
+    d.manualLocationPoint != null
   );
 }
 
@@ -85,7 +87,9 @@ export function locationChanged(d: ManageDraft, e: EventDetail): boolean {
  * with blanks named by `courtName(n)` (all blank = none). Other dialogs omit them, so the courts
  * stay as they are.
  *
- * The web has no geocoder (as on Create), so a moved event keeps its stored point.
+ * The point: a manual address picked from the address search sends its own point; otherwise none
+ * is sent, and update_event keeps the stored one (it only replaces location_point when both
+ * location_lat and location_lng are given).
  */
 export function updateValues(
   d: ManageDraft,
@@ -127,6 +131,7 @@ export function updateValues(
     venueId: d.venueId,
     manualLocationName: d.manualLocationName?.trim() ? d.manualLocationName : undefined,
     manualLocationAddress: d.manualLocationAddress?.trim() ? d.manualLocationAddress : undefined,
+    ...manualPointPayload(d),
   };
   return { values, extra };
 }
@@ -147,6 +152,7 @@ export function courtsBelowRoster(numCourts: number, confirmedMain: number): boo
 export function locationOverrides(d: ManageDraft, courtName: (n: number) => string): Record<string, unknown> {
   const venue = d.venueId ?? null;
   const names = venue ? undefined : manualCourtNamesPayload(d, courtName);
+  const point = manualPointPayload(d);
   return {
     venue_id: venue,
     manual_location_name: venue ? null : d.manualLocationName?.trim() || null,
@@ -154,6 +160,8 @@ export function locationOverrides(d: ManageDraft, courtName: (n: number) => stri
     has_location: d.hasLocation,
     num_courts: d.numCourts,
     ...(names ? { manual_court_names: names } : {}),
+    // A picked manual address carries its point; without one the copy has none (duplicate_event).
+    ...(point.locationLat != null ? { location_lat: point.locationLat, location_lng: point.locationLng } : {}),
     ...(venue ? { court_ids: d.courtIds ?? [], courts_reserved: courtsReserved(d) } : {}),
     location_text: d.hasLocation ? (d.manualLocationName?.trim() || d.manualLocationAddress?.trim() || null) : null,
   };
