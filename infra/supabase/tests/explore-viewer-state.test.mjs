@@ -165,6 +165,11 @@ await run('anon cannot call any discovery or follow RPC', async () => {
     ['follow_player', { p_user: ZERO }],
     ['unfollow_player', { p_user: ZERO }],
     ['set_community_location', { p_community_id: ZERO, p_lat: null, p_lng: null, p_location: null }],
+    // 0136: these three read profiles and follows, which RLS shows only to signed-in users, and
+    // used to answer anon anyway.
+    ['get_player_profile', { p_target: ZERO }],
+    ['list_followers', { p_user: ZERO, p_search: null, p_limit: 1, p_offset: 0 }],
+    ['list_following', { p_user: ZERO, p_search: null, p_limit: 1, p_offset: 0 }],
   ];
   for (const [name, args] of calls) {
     await expectError(() => anonRpc(name, args), 'permission denied for function');

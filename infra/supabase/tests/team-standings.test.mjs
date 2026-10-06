@@ -6,7 +6,7 @@
 // Classic is unchanged. The roster, teams and scored matches are written with the service role — the
 // round engine is not what is under test — and the event is finished by its organizer through
 // PostgREST, the path the app takes.
-import { user, rpc, anonRpc, sel, insert, patch, assert, run } from './lib.mjs';
+import { user, rpc, anonRpc, sel, insert, patch, expectError, assert, run } from './lib.mjs';
 
 const hoursFromNow = (h) => new Date(Date.now() + h * 36e5).toISOString();
 const tag = () => Math.random().toString(36).slice(2, 8);
@@ -137,11 +137,9 @@ await run('D11: a team event\'s standings are one row per pair, ranked on the pa
   assert(by[4].user_a_id === null && by[4].name_a === `${t} Guest`, 'a guest: no user id, the guest name');
   assert(by[4].user_b_id === us.g.id && by[4].name_b === `${t} G`, "the guest's partner is named");
 
-  // Anonymous callers keep the ranking but get no identities.
-  const anon = await anonRpc('standings', { p_event_id: ev });
-  assert(anon.length === 4 && anon.every((r) => r.user_a_id === null && r.user_b_id === null
-    && r.name_a === null && r.name_b === null), 'anon: no user ids or names');
-  assert(anon.every((r) => r.participant_a_id && r.participant_b_id), 'anon: participant ids still returned');
+  // Anonymous callers get nothing at all (0136): nothing signed-out shows standings, and the anon
+  // grant 0125 inherited returned any event's scoreboard.
+  await expectError(() => anonRpc('standings', { p_event_id: ev }), 'permission denied for function');
 
   // A block hides the blocked player's name (the profiles read policy), and only theirs.
   const outsider = await user(`${t}-x`);

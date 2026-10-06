@@ -32,6 +32,13 @@ const INTERNAL = [
   // leave the database, so a client that could call them directly would undo the whole mitigation.
   ['mask_email', { p_email: 'someone@example.com' }],
   ['mask_phone', { p_phone: '+351912345678' }],
+  // 0136: the plan helpers behind the caps, and two functions nothing calls through the API.
+  // account_has_feature took any user id, so it answered another user's Jammer+ status.
+  ['community_has_feature', { c: ZERO, key: 'x' }],
+  ['community_limit', { c: ZERO, key: 'x' }],
+  ['account_has_feature', { u: ZERO, key: 'x' }],
+  ['may_create_event', { c: ZERO }],
+  ['persist_round', { p_payload: {} }],
 ];
 
 const communityArgs = (name, privacy) => ({
@@ -86,16 +93,14 @@ await run('add_member_to_community cannot be used to walk into a private communi
   assert(rows.length === 0, 'outsider is not a member of the private community');
 });
 
-await run('join_community and the plan helpers still work through their public RPCs', async () => {
+await run('join_community still works through its public RPC', async () => {
   for (const p of players) {
     assert((await rpc(p.jwt, 'join_community', { p_community_id: publicCid, p_ack: true })) === 'joined', 'joined');
   }
   const members = await sel('community_members', `community_id=eq.${publicCid}&select=user_id`);
   assert(members.length === players.length + 1, `community has owner + ${players.length} players`);
-  const limit = await rpc(owner.jwt, 'community_limit', { c: publicCid, key: 'groups_per_community' });
-  assert(limit === null || typeof limit === 'number', 'community_limit answers (community_plan)');
-  const feature = await rpc(owner.jwt, 'account_has_feature', { u: owner.id, key: 'jammer_plus_included' });
-  assert(typeof feature === 'boolean', 'account_has_feature answers (account_plan)');
+  // community_limit and account_has_feature were asserted here as callable; 0136 made them internal
+  // (they are in INTERNAL above). The caps they feed are exercised through create_group below.
 });
 
 const gid = await rpc(owner.jwt, 'create_group', {
