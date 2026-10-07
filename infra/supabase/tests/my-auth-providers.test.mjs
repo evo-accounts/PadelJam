@@ -2,7 +2,7 @@
 // my_auth_providers() (migration 0132): the signed-in caller's own sign-in methods, which the
 // Privacy row and the Change password screen branch on. It replaced the auth_providers view — same
 // five booleans — after Supabase's security advisor flagged the view for exposing auth.users. The view
-// survives as a shim over the function for builds that still query it.
+// survived as a shim over the function for builds that still queried it, until 0145 dropped it.
 // Every call here goes through PostgREST with a real user token, because that is the path the app
 // takes and the path 0003's view never once succeeded on.
 import {
@@ -94,24 +94,17 @@ await run('anon may not call it at all', async () => {
   await expectError(() => anonRpc('my_auth_providers'), 'permission denied');
 });
 
-await run(
-  'builds that still read the auth_providers view get the same answer from the shim',
-  async () => {
-    // TestFlight build 17 and older select exactly these columns from the view. 0132 keeps it as a
-    // security_invoker shim over the function until no tester runs one of those builds.
-    const OLD_SELECT = 'has_password,has_email,has_phone,has_google,has_apple';
-    const rows = await req(`/rest/v1/auth_providers?select=${OLD_SELECT}`, { jwt });
-    assert(
-      Array.isArray(rows) && rows.length === 1,
-      `one row from the view, got ${JSON.stringify(rows)}`,
-    );
-    const viaRpc = await mine(jwt);
-    for (const k of OLD_SELECT.split(',')) {
-      assert(rows[0][k] === viaRpc[k], `${k}: view says ${rows[0][k]}, function says ${viaRpc[k]}`);
-    }
-    const res = await fetch(`${BASE_URL}/rest/v1/auth_providers?select=${OLD_SELECT}`, {
-      headers: { apikey: ANON },
-    });
-    assert(!res.ok, `anon must not read the view, got HTTP ${res.status}: ${await res.text()}`);
-  },
-);
+await run('the auth_providers view is gone, for a signed-in caller too (0145)', async () => {
+  // 0132 kept the view as a shim for TestFlight build 17 and older; 0145 drops it now that build 18
+  // calls the function. A signed-in caller is the one who could read the shim, so ask as one: the
+  // API must not know the relation at all (PGRST205 on current PostgREST, 42P01 on older ones).
+  const res = await fetch(
+    `${BASE_URL}/rest/v1/auth_providers?select=has_password,has_email,has_phone,has_google,has_apple`,
+    { headers: { apikey: ANON, Authorization: `Bearer ${jwt}` } },
+  );
+  const body = await res.json().catch(() => ({}));
+  assert(
+    res.status === 404 && ['PGRST205', '42P01'].includes(body.code),
+    `expected the view to be unknown, got HTTP ${res.status}: ${JSON.stringify(body)}`,
+  );
+});
