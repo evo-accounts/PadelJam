@@ -53,8 +53,12 @@ begin
   insert into follows (follower_id, followee_id) values (bob, alice);
   perform set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', alice), true);
   perform block_user(bob);
+  -- Read as the table owner. Since 0140, "follows: read" hides from alice every edge that touches
+  -- bob, so run as alice this check would pass whether or not block_user deleted anything.
+  perform set_config('role','postgres',true);
   if exists (select 1 from follows where (follower_id=alice and followee_id=bob) or (follower_id=bob and followee_id=alice)) then
     raise exception using errcode='PT001', message='block did not remove follow edges'; end if;
+  perform set_config('role','authenticated',true);
   if exists (select 1 from get_player_profile(bob)) then
     raise exception using errcode='PT001', message='blocked target still visible to blocker'; end if;
 
