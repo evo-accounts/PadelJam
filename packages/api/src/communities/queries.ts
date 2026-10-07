@@ -112,19 +112,25 @@ export const useCommunities = () => {
 };
 
 /**
- * The communities this user CREATED — `communities.created_by`, not membership or role.
+ * The communities this user CREATED (`communities.created_by`) and is still an ADMIN of.
  *
- * Nothing in `packages/api` read that column before. It matters because it is the same predicate
- * `account_plan` uses (migration 0098) to decide who gets the Jammer+ a community plan bundles:
- * one user per community, the creator, deliberately narrowed there from "every admin" so that a
- * role change could not widen a paid entitlement.
+ * `created_by` is what `account_plan` keys the Jammer+ a community plan bundles on: one user per
+ * community, the creator, deliberately narrowed in migration 0098 from "every admin" so that a role
+ * change could not widen a paid entitlement (and since 0138 nobody can rewrite the column over
+ * REST). Since 0138 `account_plan` also asks that the creator still be a MEMBER: a founder who left
+ * or was removed loses the perk. `created_by` alone is no longer enough here either — every
+ * signed-in user reads live `communities` rows, so a departed founder kept getting the row below,
+ * and it opened onto an empty Plan section.
  *
- * UX-SET-01 shows the "Community Plans" row only to someone who has at least one. Note this is
- * NARROWER than the destination's own gate — `PlanSection` renders for any admin, and
- * `set_community_plan` accepts any admin since 0098 — so a promoted admin can still change the
- * plan from Manage Community, they just do not get the shortcut from Settings. That asymmetry is
- * deliberate: the row sits under "Subscription", and for a non-creator the subscription is not
- * theirs.
+ * UX-SET-01 shows the "Community Plans" row only to someone who has at least one, and the row only
+ * goes to Manage Community's Plan section, which renders for admins (and `set_community_plan`
+ * accepts only admins). So the membership asked for here is an ADMIN one — one step narrower than
+ * `account_plan`: a founder demoted to plain member keeps the bundled Jammer+ (Settings still says
+ * so on the Jammer+ row) but gets no shortcut to a screen they cannot use.
+ *
+ * Still NARROWER than the destination's own gate: a promoted admin can change the plan from Manage
+ * Community, they just do not get the shortcut from Settings. That asymmetry is deliberate: the row
+ * sits under "Subscription", and for a non-creator the subscription is not theirs.
  *
  * Archived communities are excluded: a plan on an archived community is not something to route to.
  */
@@ -135,14 +141,18 @@ export const useOwnedCommunities = () => {
     queryKey: qk.ownedCommunities,
     enabled: !!uid,
     queryFn: async () => {
+      // `!inner` drops a community with no matching membership row; the embed resolves under the
+      // caller's own RLS, which always shows them their own community_members row.
       const { data, error } = await db
         .from('communities')
-        .select('id, name')
+        .select('id, name, community_members!inner(user_id, role)')
         .eq('created_by', uid!)
+        .eq('community_members.user_id', uid!)
+        .eq('community_members.role', 'admin')
         .is('archived_at', null)
         .order('name');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map(({ id, name }) => ({ id, name }));
     },
   });
 };

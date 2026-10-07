@@ -677,6 +677,7 @@ const mobileCommunity = {
     last_admin_must_promote_first:
       'Promova outro membro a administrador antes de sair.',
     forbidden: 'Não tem permissão para realizar esta ação.',
+    blocked: 'Não é possível convidar este jogador.',
     postTitle: 'Publicação',
     // --- Task 20: reviews ---
     reviewsTitle: 'Avaliações',
@@ -978,6 +979,7 @@ const mobileCommunity = {
     last_admin_must_promote_first:
       'Promova outro membro a administrador antes de sair.',
     forbidden: 'Você não tem permissão para realizar esta ação.',
+    blocked: 'Não é possível convidar este jogador.',
     postTitle: 'Publicação',
     // --- Task 20: reviews ---
     reviewsTitle: 'Avaliações',
@@ -1276,6 +1278,7 @@ const mobileCommunity = {
     co_organizers_limit_reached: 'You have reached the co-organizer limit.',
     last_admin_must_promote_first: 'Promote another member to admin before leaving.',
     forbidden: 'You do not have permission to perform this action.',
+    blocked: 'This player cannot be invited.',
     postTitle: 'Post',
     // --- Task 20: reviews ---
     reviewsTitle: 'Reviews',
@@ -1507,6 +1510,7 @@ const mobileGroup = {
     seasonNoEvents: 'Sem eventos nesta época.',
     // --- Error codes mapped from the API ---
     forbidden: 'Não tens permissão para realizar esta ação.',
+    blocked: 'Não é possível convidar este jogador.',
     groups_per_community:
       'Atingiste o limite de grupos do teu plano. Arquiva um grupo ou faz upgrade para adicionar mais.',
     last_active_group: 'Não podes arquivar o último grupo ativo da comunidade — uma comunidade tem sempre pelo menos um grupo.',
@@ -1697,6 +1701,7 @@ const mobileGroup = {
     seasonNoEvents: 'Nenhum evento nesta temporada.',
     // --- Error codes mapped from the API ---
     forbidden: 'Você não tem permissão para realizar esta ação.',
+    blocked: 'Não é possível convidar este jogador.',
     groups_per_community:
       'Você atingiu o limite de grupos do seu plano. Arquive um grupo ou faça upgrade para adicionar mais.',
     last_active_group: 'Não é possível arquivar o último grupo ativo da comunidade — uma comunidade sempre tem pelo menos um grupo.',
@@ -1887,6 +1892,7 @@ const mobileGroup = {
     seasonNoEvents: 'No events this season.',
     // --- Error codes mapped from the API ---
     forbidden: 'You do not have permission to perform this action.',
+    blocked: 'This player cannot be invited.',
     groups_per_community:
       "You've reached your plan's group limit. Archive a group or upgrade to add more.",
     last_active_group: "You can't archive the community's last active group — a community always has at least one.",

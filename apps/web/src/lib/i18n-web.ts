@@ -1281,6 +1281,8 @@ export function registerWebSettingsCopy(instance: I18n): void {
  */
 const webCommunity = {
   'pt-PT': {
+    blocked: 'Não é possível convidar este jogador.',
+    unknown_error: 'Algo correu mal. Tenta novamente.',
     title: 'Comunidades',
     mine: 'As suas comunidades',
     suggested: 'Sugeridas',
@@ -1422,6 +1424,8 @@ const webCommunity = {
     archivedNotice: 'Esta comunidade está arquivada.',
   },
   'pt-BR': {
+    blocked: 'Não é possível convidar este jogador.',
+    unknown_error: 'Algo deu errado. Tente novamente.',
     title: 'Comunidades',
     mine: 'Suas comunidades',
     suggested: 'Sugeridas',
@@ -1563,6 +1567,8 @@ const webCommunity = {
     archivedNotice: 'Esta comunidade está arquivada.',
   },
   en: {
+    blocked: 'This player cannot be invited.',
+    unknown_error: 'Something went wrong. Please try again.',
     title: 'Communities',
     mine: 'Your communities',
     suggested: 'Suggested',
@@ -1863,6 +1869,7 @@ const webGroup = {
     yourGroupsEmptyTitle: 'Ainda não estás em nenhum grupo',
     yourGroupsTitle: 'Os teus grupos',
     forbidden: 'Não tens permissão para realizar esta ação.',
+    blocked: 'Não é possível convidar este jogador.',
     groups_per_community: 'Atingiste o limite de grupos do teu plano. Arquiva um grupo ou faz upgrade para adicionar mais.',
     last_active_group: 'Não podes arquivar o último grupo ativo da comunidade — uma comunidade tem sempre pelo menos um grupo.',
     sole_admin_must_add_another: 'Adiciona outro administrador a este grupo antes de saíres.',
@@ -2023,6 +2030,7 @@ const webGroup = {
     yourGroupsEmptyTitle: 'Você ainda não está em nenhum grupo',
     yourGroupsTitle: 'Seus grupos',
     forbidden: 'Você não tem permissão para realizar esta ação.',
+    blocked: 'Não é possível convidar este jogador.',
     groups_per_community: 'Você atingiu o limite de grupos do seu plano. Arquive um grupo ou faça upgrade para adicionar mais.',
     last_active_group: 'Não é possível arquivar o último grupo ativo da comunidade — uma comunidade sempre tem pelo menos um grupo.',
     sole_admin_must_add_another: 'Adicione outro administrador a este grupo antes de sair.',
@@ -2183,6 +2191,7 @@ const webGroup = {
     yourGroupsEmptyTitle: "You're not in any group yet",
     yourGroupsTitle: 'Your Groups',
     forbidden: 'You do not have permission to perform this action.',
+    blocked: 'This player cannot be invited.',
     groups_per_community: "You've reached your plan's group limit. Archive a group or upgrade to add more.",
     last_active_group: "You can't archive the community's last active group — a community always has at least one.",
     sole_admin_must_add_another: 'Add another admin to this group before you leave.',

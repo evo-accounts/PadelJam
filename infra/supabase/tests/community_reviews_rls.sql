@@ -1,6 +1,8 @@
--- Reviews: a member can upsert exactly one review (second upsert updates, no duplicate); a non-member
--- is denied. Since 0069 the INSERT policy also requires can_review_community (>= 3 completed events
--- participated); eligibility is seeded here as fixture — the gate itself is covered by community_review_gate.sql.
+-- Reviews: since 0137 a review is written and edited only through upsert_community_review. A member
+-- ends with exactly one review (the second call updates it, no duplicate); a direct UPDATE or upsert
+-- is refused for want of the privilege; a non-member is denied. Since 0069 the INSERT policy also
+-- requires can_review_community (>= 3 completed events participated); eligibility is seeded here as
+-- fixture — the gate itself is covered by community_review_gate.sql.
 begin;
 insert into auth.users (id, instance_id, aud, role) values
   ('40000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated'),
@@ -36,15 +38,26 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"40000001-0000-0000-0000-000000000001","role":"authenticated"}';
 do $$ declare cid uuid := (select id from communities where name='ReviewC' order by created_at desc limit 1);
 begin
-  insert into community_reviews (community_id, user_id, rating, body) values (cid, auth.uid(), 4, 'good')
-    on conflict (community_id, user_id) do update set rating=excluded.rating, body=excluded.body;
-  insert into community_reviews (community_id, user_id, rating, body) values (cid, auth.uid(), 5, 'better')
-    on conflict (community_id, user_id) do update set rating=excluded.rating, body=excluded.body;
+  perform upsert_community_review(cid, 4::smallint, 'good');
+  perform upsert_community_review(cid, 5::smallint, 'better');
+  -- Editing goes through the RPC alone: the API roles have no UPDATE on community_reviews (0137),
+  -- so neither a direct UPDATE nor the direct upsert this test used to write with gets through.
+  begin
+    update community_reviews set rating = 1 where community_id = cid and user_id = auth.uid();
+    raise exception using errcode='PT001', message='direct review UPDATE should be refused (0137)';
+  exception when sqlstate '42501' then raise notice 'OK direct review UPDATE refused (0137)';
+  end;
+  begin
+    insert into community_reviews (community_id, user_id, rating, body) values (cid, auth.uid(), 1, 'direct')
+      on conflict (community_id, user_id) do update set rating=excluded.rating, body=excluded.body;
+    raise exception using errcode='PT001', message='direct review upsert should be refused (0137)';
+  exception when sqlstate '42501' then raise notice 'OK direct review upsert refused (0137)';
+  end;
   if (select count(*) from community_reviews where community_id=cid and user_id=auth.uid()) <> 1 then
     raise exception using errcode='PT001', message='member should have exactly one review (upsert)'; end if;
   if (select rating from community_reviews where community_id=cid and user_id=auth.uid()) <> 5 then
-    raise exception using errcode='PT001', message='second upsert should update the rating'; end if;
-  raise notice 'OK member: single upserted review, updated to 5';
+    raise exception using errcode='PT001', message='second upsert_community_review should update the rating'; end if;
+  raise notice 'OK member: single review via upsert_community_review, updated to 5';
 end $$;
 reset role;
 

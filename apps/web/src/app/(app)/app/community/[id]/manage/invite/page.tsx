@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { avatarUrl } from '@/lib/upload';
+import { toast } from '@/components/ui/toaster';
 
 export default function InvitePage() {
   const { t } = useT('community');
@@ -57,7 +58,15 @@ export default function InvitePage() {
                   onClick={() =>
                     invite.mutate(
                       { inviteeIds: [person.id], groupIds: [] },
-                      { onSuccess: () => setInvited((s) => new Set(s).add(person.id)) },
+                      {
+                        onSuccess: () => setInvited((s) => new Set(s).add(person.id)),
+                        // invite_to_community refuses with a code (e.g. 'blocked', 0141); say why
+                        // instead of leaving the button looking like nothing happened.
+                        onError: (e) => {
+                          const code = e instanceof Error ? e.message : 'unknown_error';
+                          toast(t(code, { defaultValue: t('unknown_error') }), 'error');
+                        },
+                      },
                     )
                   }
                 >
