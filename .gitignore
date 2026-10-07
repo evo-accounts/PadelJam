@@ -39,3 +39,7 @@ storybook-static/
 
 # Audit seed output (manifest + generated hand-over hold live ids)
 infra/seed/audit/out/
+
+# Edge functions built for a dashboard deploy (`pnpm edge:dashboard-build`). Generated from
+# infra/supabase/functions; never edited or committed.
+.dashboard-builds/
