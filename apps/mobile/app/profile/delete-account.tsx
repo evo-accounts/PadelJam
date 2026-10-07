@@ -8,9 +8,12 @@
  * Reached from Account Settings, which is where the audit puts the entry — it was a loose
  * destructive row under "Conta" before.
  *
- * The teardown itself is unchanged: the `delete-account` edge function calls
- * `soft_delete_account()` as the caller and then bans the auth user, because a hard delete is
- * impossible against the NOT NULL / RESTRICT foreign keys from owned communities and events.
+ * The teardown lives in the `delete-account` edge function, the only way to delete an account. It
+ * verifies the caller with GoTrue, then runs `soft_delete_account(p_user)` as service_role for that
+ * id. That call anonymizes the account (a hard delete is impossible against the NOT NULL / RESTRICT
+ * foreign keys from owned communities and events), keeps the blocks other people placed on it, and
+ * bans the user, all in one transaction (migration 0143). Signed-in users cannot call
+ * `soft_delete_account` directly (0144).
  */
 import { signOut } from '@padel/auth';
 import { useT } from '@padel/i18n';

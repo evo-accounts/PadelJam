@@ -99,7 +99,11 @@ begin
   end;
 
   begin
-    perform soft_delete_account();
+    -- The delete-account edge function runs the deletion as service_role (claims without a `sub`)
+    -- for the id it verified (0143/0144). The role switch is undone with this block's subtransaction.
+    perform set_config('role', 'service_role', true);
+    perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+    perform soft_delete_account('b0000001-0000-0000-0000-000000000001'::uuid);
     raise exception using errcode='PT001', message='last admin should not be able to delete their account';
   exception when sqlstate 'P0001' then
     if sqlerrm not like '%last_admin_must_promote_first%' then
