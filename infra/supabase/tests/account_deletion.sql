@@ -1,5 +1,8 @@
 -- soft_delete_account: anonymizes the profile, drops the user's memberships/social rows,
 -- and KEEPS owned entities (a community the user created).
+-- Since 0143/0144 the deletion runs the way the delete-account edge function runs it: as
+-- service_role, with no `sub` in the claims, for the id GoTrue verified. No signed-in user may
+-- execute it.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
   ('f5000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','del1@x.com'),
@@ -18,7 +21,10 @@ begin
   insert into follows (follower_id, followee_id) values (uid, 'f5000002-0000-0000-0000-000000000002');
   insert into user_settings (user_id) values (uid);
 
-  perform soft_delete_account();
+  -- The delete-account edge function: service_role, claims without a `sub`, the verified id.
+  perform set_config('role', 'service_role', true);
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  perform soft_delete_account(uid);
 
   -- Back to postgres for the assertions: migration 0115 revokes SELECT on profiles.phone from
   -- `authenticated`, so the anonymized phone is only checkable as the owner.
@@ -74,10 +80,11 @@ insert into event_participants (event_id, user_id, status) values
   ('ed000001-0000-0000-0000-000000000001','fd000002-0000-0000-0000-000000000002','confirmed'),
   ('ed000002-0000-0000-0000-000000000002','fd000002-0000-0000-0000-000000000002','confirmed');
 
--- Run the deletion as the deletee.
-set local role authenticated;
-set local request.jwt.claims = '{"sub":"fd000002-0000-0000-0000-000000000002","role":"authenticated"}';
-select soft_delete_account();
+-- Run the deletion the way the delete-account edge function does: service_role, claims without a
+-- `sub`, the verified id (0143).
+set local role service_role;
+set local request.jwt.claims = '{"role":"service_role"}';
+select soft_delete_account('fd000002-0000-0000-0000-000000000002');
 reset role;
 
 do $$
@@ -103,7 +110,72 @@ begin
     raise exception using errcode='PT001', message='auth phone not freed'; end if;
   if exists (select 1 from auth.identities where user_id = 'fd000002-0000-0000-0000-000000000002') then
     raise exception using errcode='PT001', message='auth identities not removed'; end if;
+  -- 0122's activity trigger still tells the organizer the player left the upcoming event, even
+  -- though the service role carries no `sub`: soft_delete_account(p_user) pins auth.uid() (0143).
+  if (select count(*) from event_activity
+       where event_id = 'ed000002-0000-0000-0000-000000000002' and action = 'left'
+         and actor_id = 'fd000002-0000-0000-0000-000000000002') <> 1 then
+    raise exception using errcode='PT001', message='deletion under service_role did not log the player''s "left"'; end if;
+  if exists (select 1 from event_activity
+              where event_id = 'ed000001-0000-0000-0000-000000000001' and action = 'left') then
+    raise exception using errcode='PT001', message='a completed event logged a "left"'; end if;
+  if nullif(current_setting('request.jwt.claim.sub', true), '') is not null then
+    raise exception using errcode='PT001', message='soft_delete_account left auth.uid() pinned after it returned'; end if;
 
   raise notice 'OK account_deletion_push_and_participation';
+end $$;
+rollback;
+
+-- soft_delete_account (0143/0144): only service_role may run it. The blocks the account PLACED go
+-- with it, the blocks OTHERS placed on it stay (they are the blocker's), and the auth user is
+-- banned in the same transaction, so a deleted account can never keep refreshing its session.
+begin;
+insert into auth.users (id, instance_id, aud, role, email) values
+  ('fe000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','blkdel@x.com'),
+  ('fe000002-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','blker@x.com'),
+  ('fe000003-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated','blked@x.com') on conflict do nothing;
+insert into profiles (id, email, phone, full_name) values
+  ('fe000001-0000-0000-0000-000000000001','blkdel@x.com','+351904100001','BlkDeletee'),
+  ('fe000002-0000-0000-0000-000000000002','blker@x.com','+351904100002','BlkBlocker'),
+  ('fe000003-0000-0000-0000-000000000003','blked@x.com','+351904100003','BlkBlocked') on conflict do nothing;
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"fe000002-0000-0000-0000-000000000002","role":"authenticated"}';
+select block_user('fe000001-0000-0000-0000-000000000001');
+set local request.jwt.claims = '{"sub":"fe000001-0000-0000-0000-000000000001","role":"authenticated"}';
+select block_user('fe000003-0000-0000-0000-000000000003');
+do $$
+declare v_target uuid;
+begin
+  -- Signed in, the deletee can run neither entry point: not for themselves, not for anyone else.
+  foreach v_target in array array['fe000001-0000-0000-0000-000000000001','fe000002-0000-0000-0000-000000000002']::uuid[] loop
+    begin
+      perform soft_delete_account(v_target);
+      raise exception using errcode='PT001', message='authenticated ran soft_delete_account(' || v_target || ')';
+    exception when insufficient_privilege then null;
+    end;
+  end loop;
+  begin
+    perform soft_delete_account();
+    raise exception using errcode='PT001', message='authenticated ran soft_delete_account()';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK authenticated cannot run soft_delete_account';
+end $$;
+reset role;
+set local role service_role;
+set local request.jwt.claims = '{"role":"service_role"}';
+select soft_delete_account('fe000001-0000-0000-0000-000000000001');
+reset role;
+do $$
+begin
+  if not exists (select 1 from blocks where blocker_id = 'fe000002-0000-0000-0000-000000000002'
+                                        and blocked_id = 'fe000001-0000-0000-0000-000000000001') then
+    raise exception using errcode='PT001', message='deletion removed a block another user placed'; end if;
+  if exists (select 1 from blocks where blocker_id = 'fe000001-0000-0000-0000-000000000001') then
+    raise exception using errcode='PT001', message='blocks the deleted account placed survive'; end if;
+  if coalesce((select banned_until from auth.users where id = 'fe000001-0000-0000-0000-000000000001'), '-infinity')
+       < now() + interval '99 years' then
+    raise exception using errcode='PT001', message='deleted account was not banned in the same transaction'; end if;
+  raise notice 'OK account_deletion_blocks_and_ban';
 end $$;
 rollback;

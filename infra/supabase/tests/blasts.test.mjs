@@ -40,7 +40,9 @@ const send = (org, ev, over = {}) => rpc(org.jwt, 'send_event_blast', {
 }).then((r) => r[0]);
 const blastRow = (id) => sel('event_blasts', `id=eq.${id}&select=*`).then((r) => r[0]);
 const deliveries = (id) => sel('delivery_log', `blast_id=eq.${id}&select=channel,status,attempt,sent_count&order=attempt`);
-const recipients = (org, id) => rpc(org.jwt, 'blast_email_recipients', { p_blast_id: id }).then((r) => r.map((x) => x.email).sort());
+// What send-blast resolves: the service role (rpc with no jwt), for the verified organizer (0143).
+// No signed-in caller may run either recipient function since 0144 — blast-recipients-privacy.test.mjs.
+const recipients = (org, id) => rpc(null, 'blast_email_recipients_for', { p_blast_id: id, p_organizer_id: org.id }).then((r) => r.map((x) => x.email).sort());
 const emailOf = (u) => sel('profiles', `id=eq.${u.id}&select=email`).then((r) => r[0].email);
 const optIn = (u, email = true) => insert('user_settings', { user_id: u.id, notifications_email: email, notifications_whatsapp: false });
 

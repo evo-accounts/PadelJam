@@ -1,6 +1,8 @@
--- Email delivery: event_roster_csv + blast_email_recipients RPCs (0076).
+-- Email delivery: event_roster_csv (0076) + the blast recipient RPCs (0076, 0143/0144).
 -- Verifies organizer-only roster CSV (header + row + comma escaping), forbidden for non-organizer,
--- and blast_email_recipients returning opted-in member emails (organizer-only).
+-- and blast_email_recipients_for returning opted-in member emails to the SERVICE ROLE (send-blast,
+-- after verifying the caller) for the blast's organizer only. Since 0143/0144 no signed-in caller
+-- may execute either recipient function: organizers must not read participants' email addresses.
 -- 'PT001' = "expected behaviour did not hold" sentinel.
 begin;
 insert into auth.users (id, instance_id, aud, role, email) values
@@ -81,12 +83,46 @@ begin
     raise exception using errcode='PT001', message='send_event_blast should return a blast id';
   end if;
 
-  -- (3b) recipients: M1 opted-in -> 1.
-  select count(*) into n from blast_email_recipients(v_blast);
+  -- (3b) the organizer cannot read the recipient emails, through either function.
+  begin
+    perform * from blast_email_recipients(v_blast);
+    raise exception using errcode='PT001', message='organizer should not execute blast_email_recipients';
+  exception
+    when sqlstate 'PT001' then raise;
+    when insufficient_privilege then null;
+  end;
+  begin
+    perform * from blast_email_recipients_for(v_blast, u1);
+    raise exception using errcode='PT001', message='organizer should not execute blast_email_recipients_for';
+  exception
+    when sqlstate 'PT001' then raise;
+    when insufficient_privilege then null;
+  end;
+  raise notice 'OK recipients: an organizer session cannot read emails';
+
+  -- (3c) the service role, the way send-blast calls it (no `sub`), gets M1 for the organizer.
+  perform set_config('role','service_role',true);
+  perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+  select count(*) into n from blast_email_recipients_for(v_blast, u1);
   if n <> 1 then
     raise exception using errcode='PT001', message='expected 1 opted-in recipient, got '||n;
   end if;
-  raise notice 'OK blast_email_recipients: 1 opted-in member';
+  raise notice 'OK blast_email_recipients_for: 1 opted-in member for the organizer';
+
+  -- (3d) ...and nothing for someone who does not organize the event.
+  begin
+    perform * from blast_email_recipients_for(v_blast, u2);
+    raise exception using errcode='PT001', message='service role should not resolve recipients for a non-organizer';
+  exception
+    when sqlstate 'PT001' then raise;
+    when others then
+      if position('forbidden' in sqlerrm) = 0 then
+        raise exception using errcode='PT001', message='wrong error for a non-organizer id: '||sqlerrm;
+      end if;
+  end;
+  raise notice 'OK blast_email_recipients_for: non-organizer id refused with forbidden';
+  perform set_config('role','authenticated',true);
+  perform set_config('request.jwt.claims','{"sub":"d0000001-0000-0000-0000-000000000001","role":"authenticated"}',true);
 
   -- ============================================================
   -- As U2 (non-organizer)
@@ -106,18 +142,15 @@ begin
   end;
   raise notice 'OK roster_csv: non-organizer blocked with forbidden';
 
-  -- (3c) recipients -> forbidden.
+  -- (3e) recipients -> no EXECUTE for any signed-in caller.
   begin
-    perform * from blast_email_recipients(v_blast);
+    perform * from blast_email_recipients_for(v_blast, u2);
     raise exception using errcode='PT001', message='non-organizer should not read blast recipients';
   exception
     when sqlstate 'PT001' then raise;
-    when others then
-      if position('forbidden' in sqlerrm) = 0 then
-        raise exception using errcode='PT001', message='wrong error for non-organizer recipients: '||sqlerrm;
-      end if;
+    when insufficient_privilege then null;
   end;
-  raise notice 'OK blast_email_recipients: non-organizer blocked with forbidden';
+  raise notice 'OK blast_email_recipients_for: non-organizer session blocked';
 
   raise notice 'OK email_delivery';
 end $$;
