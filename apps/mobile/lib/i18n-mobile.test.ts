@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createInstance } from 'i18next';
+import { inviteNotice } from '@padel/api';
 import { MOBILE_NAMESPACES, registerMobileCopy } from './i18n-mobile';
 
 const tokens = (s: string): string[] =>
@@ -84,5 +85,41 @@ describe('welcome screen call to action copy', () => {
       expect(body).toContain('\u2026');
       expect(body).not.toContain('...');
     });
+  }
+});
+
+// The community and group invite pickers translate whatever inviteNotice (@padel/api) returns, so
+// those keys are no longer literal t('…') calls and scripts/check-i18n-keys.mjs cannot see them.
+// This walks every notice either screen can show instead; a missing key would render its raw name.
+describe('invite notices resolve in the community and group namespaces', () => {
+  const screens = [
+    { ns: 'community', sentKey: 'inviteSentBody' }, // app/community/[id]/manage/invite.tsx
+    { ns: 'group', sentKey: 'inviteSentToast' }, // app/group/[id]/invite.tsx
+  ] as const;
+  // Each plural with one and with several, so both the _one and the _other key are reached.
+  const cases: { settled: Parameters<typeof inviteNotice>[0]; selected: number }[] = [
+    { settled: { outcome: { invited: ['a', 'b'], blocked: [] } }, selected: 2 },
+    { settled: { outcome: { invited: ['a'], blocked: ['b'] } }, selected: 2 },
+    { settled: { outcome: { invited: ['a'], blocked: ['b', 'c'] } }, selected: 3 },
+    { settled: { error: new Error('blocked') }, selected: 1 },
+    { settled: { error: new Error('blocked') }, selected: 3 },
+  ];
+  for (const locale of ['pt-PT', 'pt-BR', 'en'] as const) {
+    for (const { ns, sentKey } of screens) {
+      it(`${ns} (${locale})`, async () => {
+        const instance = createInstance();
+        // No fallback language: a key only English has must fail here, not quietly read in English.
+        await instance.init({ lng: locale, fallbackLng: false, resources: {} });
+        registerMobileCopy(instance);
+        const t = instance.getFixedT(locale, ns);
+        for (const { settled, selected } of cases) {
+          const n = inviteNotice(settled, selected, sentKey);
+          const text = t(n.key, { count: n.count });
+          expect(text, `${ns}:${n.key} count=${n.count} (${locale})`).not.toBe(n.key);
+          expect(text).not.toContain('{{');
+          if (n.count !== undefined && n.count > 1) expect(text).toContain(String(n.count));
+        }
+      });
+    }
   }
 });
