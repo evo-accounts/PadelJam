@@ -3,6 +3,7 @@
 // The client sets the user's name/image on connectUser, so we only mint the token here.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { create } from 'https://deno.land/x/djwt@v3.0.2/mod.ts';
+import { withCors } from '../_shared/cors.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -19,7 +20,7 @@ export async function mintStreamToken(userId: string, secret: string): Promise<s
   return await create({ alg: 'HS256', typ: 'JWT' }, { user_id: userId }, key);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCors(async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const url = Deno.env.get('SUPABASE_URL')!;
@@ -37,4 +38,4 @@ Deno.serve(async (req) => {
 
   const token = await mintStreamToken(user.id, secret);
   return json({ token, userId: user.id });
-});
+}));

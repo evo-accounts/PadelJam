@@ -13,11 +13,12 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sendBatchEmails } from '../_shared/email.ts';
 import { hasEmailChannel, nextEmailAttempt, renderBlastEmailHtml } from '../_shared/blast.ts';
+import { withCors } from '../_shared/cors.ts';
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
 
-Deno.serve(async (req) => {
+Deno.serve(withCors(async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
   const authHeader = req.headers.get('Authorization') ?? '';
   const url = Deno.env.get('SUPABASE_URL')!;
@@ -88,4 +89,4 @@ Deno.serve(async (req) => {
   }
   await logEmailDelivery(true, list.length, 0, null);
   return json({ ok: true, sent: list.length });
-});
+}));

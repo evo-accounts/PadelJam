@@ -14,11 +14,12 @@
 // DEPLOY: hosted 0143 must be pasted before this is deployed (or the RPC answers PGRST202 and every
 // deletion fails), and 0144 only after — 0144's header has the gate.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { withCors } from '../_shared/cors.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-Deno.serve(async (req) => {
+Deno.serve(withCors(async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const authHeader = req.headers.get('Authorization') ?? '';
@@ -50,4 +51,4 @@ Deno.serve(async (req) => {
   if (banErr) console.error(`delete-account: GoTrue ban for ${user.id} failed after the SQL ban: ${banErr.message}`);
 
   return json({ ok: true });
-});
+}));

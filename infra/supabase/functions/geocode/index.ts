@@ -24,24 +24,18 @@ import {
   normalizeQuery,
   type Place,
 } from '../_shared/geocode.ts';
-
-// The web app calls this straight from the browser (supabase.functions.invoke), so it must answer
-// the CORS preflight and tag every response; the gateway does not do it for us.
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { withCors } from '../_shared/cors.ts';
 
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 const cache = new BoundedCache<Place[]>(CACHE_MAX);
 const throttled = createThrottle(MIN_GAP_MS);
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: CORS });
+// The web app calls this straight from the browser (supabase.functions.invoke): withCors answers the
+// preflight and tags every response, which the gateway does not do for us.
+Deno.serve(withCors(async (req) => {
+  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const url = Deno.env.get('SUPABASE_URL')!;
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -51,7 +45,7 @@ Deno.serve(async (req) => {
     data: { user },
     error,
   } = await userClient.auth.getUser();
-  if (error || !user) return new Response('Unauthorized', { status: 401, headers: CORS });
+  if (error || !user) return new Response('Unauthorized', { status: 401 });
 
   let body: { q?: unknown; lang?: unknown };
   try {
@@ -85,4 +79,4 @@ Deno.serve(async (req) => {
     console.error('geocode upstream failed', e instanceof Error ? e.message : e);
     return json({ error: 'upstream' }, 502);
   }
-});
+}));
