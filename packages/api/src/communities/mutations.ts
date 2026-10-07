@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
 import { useDb, mapPgError } from '../client';
+import { inviteAll, type InviteOutcome } from '../invitations';
 import { qk } from '../query-keys';
 import type { CreateCommunityInput, LocationPoint } from '../schemas';
 
@@ -143,19 +144,26 @@ export const useDeclineJoinRequest = (communityId: string) => {
   });
 };
 
+// invite_to_community refuses the WHOLE list when any one invitee is blocked either way (0141),
+// so the list goes through inviteAll: one call as before, and only on 'blocked' one call per
+// person, so everybody else is still invited. Resolves with who was invited and who was refused;
+// rejects 'blocked' only when nobody could be — a one-person call fails exactly as before.
 export const useInviteMembers = (communityId: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { inviteeIds?: string[]; groupIds?: string[] }) => {
-      const { error } = await db.rpc('invite_to_community', {
-        p_community_id: communityId,
-        p_invitee_ids: input.inviteeIds ?? [],
-        p_group_ids: input.groupIds ?? [],
-      });
-      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-    },
-    onSuccess: () => {
+    mutationFn: (input: { inviteeIds?: string[]; groupIds?: string[] }): Promise<InviteOutcome> =>
+      inviteAll(input.inviteeIds ?? [], async (inviteeIds) => {
+        const { error } = await db.rpc('invite_to_community', {
+          p_community_id: communityId,
+          p_invitee_ids: inviteeIds,
+          p_group_ids: input.groupIds ?? [],
+        });
+        if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      }),
+    // Settled, not success: the one-by-one fallback can invite some people and then fail on a later
+    // call, and the invitations it did send are real.
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.members(communityId) });
     },
   });

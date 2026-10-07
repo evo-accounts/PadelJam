@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDb, mapPgError } from '../client';
+import { inviteEach, type InviteOutcome } from '../invitations';
 import { qk } from '../query-keys';
 import type { CreateGroupInput } from '../schemas';
 
@@ -109,18 +110,27 @@ export const useLeaveGroupPreflight = () => {
   });
 };
 
+// The invite screen's whole selection. invite_to_group takes one person per call, so inviteEach
+// sends them in turn, and someone blocked either way (0141) is counted and skipped rather than
+// stopping everyone after them. Resolves with who was invited and who was refused; rejects
+// 'blocked' only when nobody could be — a one-person list fails exactly as one id did before.
+// It takes a list and never a bare id on purpose: the per-person loop the screens used to run
+// (`for (const p of selectedList) await invite.mutateAsync(p.id)`) stopped at the first blocked
+// invitee, and now it does not compile.
 export const useInviteToGroup = (id: string) => {
   const db = useDb();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (inviteeId: string) => {
-      const { error } = await db.rpc('invite_to_group', {
-        p_group_id: id,
-        p_invitee_id: inviteeId,
-      });
-      if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
-    },
-    onSuccess: () => {
+    mutationFn: (inviteeIds: readonly string[]): Promise<InviteOutcome> =>
+      inviteEach(inviteeIds, async (inviteeId) => {
+        const { error } = await db.rpc('invite_to_group', {
+          p_group_id: id,
+          p_invitee_id: inviteeId,
+        });
+        if (error) throw new Error(mapPgError(error) ?? 'unknown_error');
+      }),
+    // Settled, not success: a send that fails part-way has still invited the people before it.
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.groupInvitations(id) });
     },
   });

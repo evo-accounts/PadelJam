@@ -14,7 +14,15 @@
  * confirmation sheet, where the button is simply unavailable until it is
  * answerable.
  */
-import { useCommunity, useCommunityGroups, useCommunityMembers, useInviteMembers, useSearchProfiles } from '@padel/api';
+import {
+  inviteNotice,
+  type InviteNotice,
+  useCommunity,
+  useCommunityGroups,
+  useCommunityMembers,
+  useInviteMembers,
+  useSearchProfiles,
+} from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -103,18 +111,22 @@ export default function ManageInviteScreen() {
       return next;
     });
 
+  // invite_to_community refuses the whole list over one blocked invitee (0141); the hook retries
+  // one by one, so everybody else is still invited and the refused are counted. Which message that
+  // earns, and with what count, is inviteNotice's call (packages/api, tested there).
   const doInvite = async () => {
+    const notify = (n: InviteNotice) =>
+      banner.show(t(n.key, { count: n.count, defaultValue: t('unknown_error') }), n.tone);
     try {
-      await invite.mutateAsync({
+      const outcome = await invite.mutateAsync({
         inviteeIds: selectedList.map((p) => p.id),
         groupIds: Object.entries(selectedGroups).filter(([, v]) => v).map(([k]) => k),
       });
       setConfirming(false);
-      banner.show(t('inviteSentBody'), 'success');
+      notify(inviteNotice({ outcome }, selectedList.length, 'inviteSentBody'));
       router.back();
-    } catch (e) {
-      const code = e instanceof Error ? e.message : 'unknown_error';
-      banner.show(t(code, { defaultValue: t('unknown_error') }));
+    } catch (error) {
+      notify(inviteNotice({ error }, selectedList.length, 'inviteSentBody'));
     }
   };
 

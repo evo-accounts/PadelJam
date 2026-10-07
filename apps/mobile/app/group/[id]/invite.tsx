@@ -23,6 +23,8 @@ import {
   useInviteToGroup,
   useFollowing,
   useSearchProfiles,
+  inviteNotice,
+  type InviteNotice,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
@@ -104,8 +106,12 @@ export default function GroupInviteScreen() {
         return true;
       });
 
+    // A member blocked either way with the viewer comes back with `profiles: null`: 0140 hides the
+    // profile row, but "community_members: read" (0024) has no block clause. Listed, they showed as
+    // "—", could be picked, and invite_to_group refuses them ('blocked', 0141), so they are left
+    // out. `inCommunity` keeps them on purpose: they are still members, not outsiders.
     const community = take(
-      (communityMembers ?? []).map((m) => ({
+      (communityMembers ?? []).filter((m) => m.profiles).map((m) => ({
         id: m.user_id,
         full_name: m.profiles?.full_name ?? null,
         avatar_url: m.profiles?.avatar_url ?? null,
@@ -133,16 +139,20 @@ export default function GroupInviteScreen() {
       return next;
     });
 
+  // The whole selection in one mutation: someone blocked either way (0141) is skipped and counted
+  // instead of stopping everyone after them. Which message that earns, and with what count, is
+  // inviteNotice's call (packages/api, shared with web and tested there).
   const send = async () => {
     setSending(true);
+    const notify = (n: InviteNotice) =>
+      banner.show(t(n.key, { count: n.count, defaultValue: t('unknown_error') }), n.tone);
     try {
-      for (const p of selectedList) await invite.mutateAsync(p.id);
+      const outcome = await invite.mutateAsync(selectedList.map((p) => p.id));
       setConfirming(false);
-      banner.show(t('inviteSentToast'), 'success');
+      notify(inviteNotice({ outcome }, selectedList.length, 'inviteSentToast'));
       router.back();
-    } catch (e) {
-      const code = e instanceof Error ? e.message : 'unknown_error';
-      banner.show(t(code, { defaultValue: t('unknown_error') }));
+    } catch (error) {
+      notify(inviteNotice({ error }, selectedList.length, 'inviteSentToast'));
     } finally {
       setSending(false);
     }
