@@ -12,6 +12,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { StreamChat } from 'npm:stream-chat';
 import { chunk } from '../_shared/chunk.ts';
+import { withCors } from '../_shared/cors.ts';
 
 // Stream caps member mutations, user upserts and `$in` user queries at 100 per call.
 const STREAM_BATCH = 100;
@@ -29,7 +30,7 @@ async function ensureStreamUsers(server: StreamChat, ids: string[]): Promise<voi
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCors(async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const url = Deno.env.get('SUPABASE_URL')!;
@@ -107,4 +108,4 @@ Deno.serve(async (req) => {
     console.error('ensure-channel stream error:', e);
     return json({ error: 'stream_failed' }, 500);
   }
-});
+}));

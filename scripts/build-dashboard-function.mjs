@@ -11,10 +11,11 @@
  * WHY. Our account cannot run `supabase functions deploy`, so functions reach the hosted project
  * through the dashboard's editor, and the editor deploys a function's folder on its own. Every
  * `import … from '../_shared/x.ts'` then fails to bundle ("Module not found …/_shared/x.ts").
- * Five functions import from `_shared/` today (complete-account, ensure-channel, geocode,
- * send-blast, send-roster-csv). This writes each one with its shared modules inlined, which is
- * what was being done by hand. The transform and everything it refuses to do are documented in
- * `scripts/edge-dashboard/bundle.mjs`; its tests run in CI as part of `pnpm test:functions`.
+ * Every function but provision-social-profile and send-push imports from `_shared/` today (the
+ * browser-called ones at least `_shared/cors.ts`). This writes each one with its shared modules
+ * inlined, which is what was being done by hand. The transform and everything it refuses to do
+ * are documented in `scripts/edge-dashboard/bundle.mjs`; its tests run in CI as part of
+ * `pnpm test:functions`.
  *
  * Output goes to the git-ignored `.dashboard-builds/<fn>/index.ts` at the repo root (`--out-dir`
  * overrides it). A build that fails deletes that function's previous output, so a stale file is
