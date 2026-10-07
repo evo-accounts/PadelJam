@@ -28,6 +28,14 @@
  * (migration 0132) is there because it replaced a view the shipped app used to read, so a build
  * made before the hosted paste would ask for a function production does not have.
  *
+ * And it asks every edge function the web app calls whether it answers the
+ * browser's CORS preflight. Until 2026-10-07 (#285) six of them answered 405,
+ * so blasts, chat, account completion and account deletion failed on web while
+ * mobile (no preflight) worked. The source is guarded by cors.test.ts; this
+ * guards the DEPLOY, which reaches the project as a pasted dashboard build and
+ * can go back to an old one. The list is derived the same way: every function
+ * apps/web or a shared package calls (scripts/edge-dashboard/browser-callers.mjs).
+ *
  * Uses the publishable key from eas.json. That key is already public (it ships
  * in the app binary), so this needs no secrets and runs in CI.
  *
@@ -36,6 +44,11 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import {
+  BROWSER_REQUEST_HEADERS,
+  browserCalledFunctions,
+  classifyPreflight,
+} from './edge-dashboard/browser-callers.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -65,6 +78,8 @@ function targets() {
 
 const columns = onboardingProfileColumns();
 console.log(`[schema] profiles: ${columns.join(', ')}`);
+const browserFunctions = [...browserCalledFunctions(root).keys()];
+console.log(`[schema] browser-called functions: ${browserFunctions.join(', ')}`);
 
 /** 'ok' | 'fail' | 'skip' | 'unreachable' — 'unreachable' means don't bother with the rest. */
 async function checkColumns(t, label) {
@@ -193,6 +208,53 @@ async function checkMyAuthProvidersRpc(t, label) {
   return 'skip';
 }
 
+const PREFLIGHT_ORIGIN = 'https://padeljam.app';
+
+/**
+ * Does every function the web app calls answer the browser's CORS preflight?
+ *
+ * Sends the OPTIONS a browser sends before a POST carrying the supabase-js headers. withCors
+ * answers it before the handler runs, so no function logic executes and nothing is read or
+ * written. A 404 fails (the web app calls a function the project does not have); a 5xx is left
+ * unverified, like an unreachable project.
+ */
+async function checkBrowserPreflights(t, label) {
+  const answers = await Promise.all(
+    browserFunctions.map(async (fn) => {
+      try {
+        const res = await fetch(`${t.url}/functions/v1/${fn}`, {
+          method: 'OPTIONS',
+          headers: {
+            Origin: PREFLIGHT_ORIGIN,
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': BROWSER_REQUEST_HEADERS.join(','),
+          },
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        await res.body?.cancel();
+        return { fn, ...classifyPreflight(res, PREFLIGHT_ORIGIN) };
+      } catch (error) {
+        return { fn, result: 'skip', reason: `unreachable (${error.message})` };
+      }
+    }),
+  );
+
+  const failing = answers.filter((a) => a.result === 'fail');
+  const unverified = answers.filter((a) => a.result === 'skip');
+  for (const a of failing) console.log(`✗ ${label}: ${a.fn} does not answer the CORS preflight: ${a.reason}`);
+  if (failing.length) {
+    console.log('    The web app cannot call it from the browser. Its source must wrap the handler in');
+    console.log('    withCors (cors.test.ts checks that); then redeploy what the repo has:');
+    console.log(`    pnpm edge:dashboard-build ${failing.map((a) => a.fn).join(' ')}`);
+    console.log('    and paste each build (scripts/build-dashboard-function.mjs says how).');
+  }
+  for (const a of unverified) console.log(`? ${label}: ${a.fn} preflight ${a.reason} — not verified`);
+  if (!failing.length && !unverified.length) {
+    console.log(`✓ ${label}: the ${answers.length} functions the web app calls answer the CORS preflight`);
+  }
+  return failing.length ? 'fail' : unverified.length ? 'skip' : 'ok';
+}
+
 let failed = 0;
 let skipped = 0;
 
@@ -206,7 +268,7 @@ for (const t of targets()) {
   if (columnResult === 'fail') failed += 1;
   if (columnResult === 'skip') skipped += 1;
 
-  for (const check of [checkAuthMethodsRpc, checkMyAuthProvidersRpc]) {
+  for (const check of [checkAuthMethodsRpc, checkMyAuthProvidersRpc, checkBrowserPreflights]) {
     const rpcResult = await check(t, label);
     if (rpcResult === 'fail') failed += 1;
     if (rpcResult === 'skip') skipped += 1;

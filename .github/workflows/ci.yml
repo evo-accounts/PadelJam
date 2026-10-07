@@ -90,6 +90,9 @@ jobs:
         # A missing migration on the remote is invisible to typecheck and to
         # verify-production-env: 0089 shipped to TestFlight without being applied
         # and broke every sign-in. Unreachable projects are reported, not failed.
+        # It also asks every edge function the web app calls for the browser's
+        # CORS preflight: a stale dashboard paste would bring back the 405 that
+        # broke web blasts, chat and sign-up completion until #285.
         run: pnpm schema:check
 
       - name: Test
