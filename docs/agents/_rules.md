@@ -12,8 +12,8 @@ On your first run, read:
 
 No agent may do any of the following without the founder's explicit approval in Paperclip:
 
-1. Merging to `main`, or deploying anything to production: Vercel, an EAS build or submit, an EAS Update, or an edge function deploy.
-2. Running a migration, a seed or any SQL against a non-local database.
+1. Merging to `main`, except by the CTO as described in the CTO role (the Vercel deploy a merge triggers is covered). Deploying anything else to production still needs approval: an EAS build or submit, an EAS Update, or an edge function deploy.
+2. Running a migration, a seed or any SQL against a non-local database yourself. Once `.github/workflows/supabase-migrations.yml` is on `main`, migrations reach the hosted database only through it, when their PR merges. A migration it holds (one that drops, truncates or deletes data, or a hosted history out of sync) still goes to the founder, and so does any seed or one-off SQL.
 3. Sending anything to people outside the team: email, social posts, waitlist messages, App Store Connect or Play Console submissions, listings and review replies.
 4. Spending money or signing up for paid services; raising any agent's budget.
 5. Publishing or changing legal text (privacy policy, terms of service, the stores' privacy labels).
@@ -28,8 +28,8 @@ When a task needs one of these, **stop**. Comment on the task with exactly what 
 - **Every task links to the company goal.** No goal, no work. If a task doesn't serve the goal, say so on the task.
 - **One owner per task at a time.** Only the owner writes; everyone else comments. When two engineers share a branch, the second starts only after the first's hand-off comment.
 - **Stay in your lane.** Write only inside the paths your role owns. To change anything else, open a task for its owner.
-- **Never commit to `main`. Never push.** Work on a `feat/<topic>` or `fix/<topic>` branch in your own worktree. Pushing is disabled on purpose; the founder pushes.
-- **Never touch anything outside this machine.** No `supabase link`, `db push`, `functions deploy`, `eas`, `vercel`, `gh`, and no request to `*.supabase.co`. `apps/mobile/eas.json` holds the hosted project's URL: never use it. `pnpm schema:check` probes production, so leave it to CI. The local stack is fine: `pnpm dlx supabase@2.117.0 --workdir infra start | db reset | migration up`.
+- **Never commit or push to `main`.** Work on a `feat/<topic>` or `fix/<topic>` branch in your own worktree, push that branch, and open a pull request with `gh pr create`. `gh` is at `/usr/local/bin/gh`. Never force-push, and never edit `.github/workflows/`. Only the CTO merges.
+- **Never touch anything outside this machine, except GitHub** (`git push` of your branch, `gh pr`). No `supabase link`, `db push`, `functions deploy`, `eas`, `vercel`, no `gh` beyond PRs and checks, and no request to `*.supabase.co`. `apps/mobile/eas.json` holds the hosted project's URL: never use it. `pnpm schema:check` probes production, so leave it to CI. The local stack is fine: `pnpm dlx supabase@2.117.0 --workdir infra start | db reset | migration up`.
 - **Ports.** 3100 is Paperclip's. Dev servers use `$PORT` (3200); the web E2E uses `$WEB_PORT` (3201). Never start anything on 3100.
 - **Code follows spec → plan → build → QA.** Specs go in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`. No code without an approved plan.
 - **Tenant data is sacred.** Every backend action passes the entitlement check and the permission check on the server (RLS, definer functions with `search_path` pinned and EXECUTE only where needed). Hiding UI is never enough.
