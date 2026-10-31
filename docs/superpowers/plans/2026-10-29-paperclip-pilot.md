@@ -17,7 +17,8 @@
 - Board gates (spec §"The board"): no merge to `main`; no Vercel, EAS build/submit, EAS Update or edge function deploy; no SQL, seed or migration against a non-local database; nothing sent outside the team (including store submissions); no spend; no legal text; no prices; no hires; no goal change, without the founder.
 - The agents Mac holds **none** of the founder's credentials: no hosted Supabase (`wispuppglipffcsqowlq`) key, no Vercel, EAS, Stream, Resend, Twilio, Sentry, Apple or Google values, no GitHub write access. The only GitHub access is the read-only deploy key `~/.ssh/padeljam_deploy`.
 - The hosted project's host `wispuppglipffcsqowlq.supabase.co` is unreachable from the agents Mac (its URL and publishable key sit in `apps/mobile/eas.json`).
-- Every PadelJam agent's env: `CLAUDE_CODE_OAUTH_TOKEN` (secret ref, the shared subscription token), `PORT=3200`, `WEB_PORT=3201`, `SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token`. Nothing else.
+- Every PadelJam agent's env: `PORT=3200`, `WEB_PORT=3201`, and `SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN` as a secret ref to the dummy `local_test_token`. Nothing else.
+- Agents log in to Claude through a stored `claude /login` (the shared subscription) on the `agents` account. A `CLAUDE_CODE_OAUTH_TOKEN` secret ref was tried first: Paperclip handed Claude a value it rejected with 401, even for a fresh token that worked by hand, and an env token overrides the stored login.
 - Agent instructions are `docs/agents/<role>.md` with `docs/agents/_rules.md` appended.
 - Code follows **spec → plan → build → QA** on `feat/<topic>` or `fix/<topic>`. One owner per task at a time.
 - The other companies keep running as they are; PadelJam's pilot does not change them.
@@ -57,8 +58,11 @@ git clone git@github-padeljam:evo-accounts/PadelJam.git ~/padeljam
 cd ~/padeljam
 git remote set-url --push origin DISABLED
 nvm use            # .nvmrc → 22
-corepack enable    # pnpm 10.30.3 from packageManager
-pnpm install --frozen-lockfile
+# A global /usr/local/bin/pnpm (installed from the admin account) fails to switch to 10.30.3; corepack's shim must win.
+rm -rf ~/Library/pnpm/.tools/pnpm/10.30.3*
+corepack enable --install-directory ~/.local/bin pnpm && hash -r
+COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm --version   # 10.30.3
+pnpm install --frozen-lockfile   # "Ignored build scripts" is expected; don't run approve-builds
 pnpm --filter @padel/e2e-web exec playwright install chromium
 ```
 
@@ -84,9 +88,10 @@ Expected: `supabase start` reports the API on `127.0.0.1:55321` alongside TwoDo'
 ```bash
 printf '0.0.0.0 wispuppglipffcsqowlq.supabase.co\n:: wispuppglipffcsqowlq.supabase.co\n' | sudo tee -a /etc/hosts
 sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
+grep -n wispupp /etc/hosts; curl -sS -m 5 https://wispuppglipffcsqowlq.supabase.co/rest/v1/ 2>&1 | tail -1
 ```
 
-This is machine-wide; no other company on this Mac uses PadelJam's project.
+Expected: two `grep` lines and a curl connection error. Check with `grep` and `curl`, not `dscacheutil`: on the first run the append silently didn't land while `dscacheutil` still showed `0.0.0.0`. This is machine-wide; no other company on this Mac uses PadelJam's project.
 
 - [ ] **Step 6 (as `agents`, in `~/padeljam`): Check the boundaries.**
 
@@ -94,16 +99,16 @@ This is machine-wide; no other company on this Mac uses PadelJam's project.
 |---|---|---|
 | 1 | `git push origin HEAD` | fails |
 | 2 | `GIT_SSH_COMMAND="ssh -i ~/.ssh/padeljam_deploy" git push git@github.com:evo-accounts/PadelJam.git HEAD:refs/heads/push-test` | fails: the key is read-only |
-| 3 | `gh auth status; npx --no-install eas whoami; ls ~/.vercel` | not logged in / not found |
+| 3 | `gh auth status; npx --no-install eas whoami; ls ~/.vercel ~/.git-credentials; security find-internet-password -s github.com` | not logged in / not found / no keychain item. On 2026-10-30 `gh` and the keychain held the founder's full `evo-accounts` login; both were removed, and git's github.com helper is only `!/usr/local/bin/gh auth git-credential` (TwoDo's agents pass `GH_TOKEN`) |
 | 4 | `pnpm dlx supabase@2.117.0 projects list` | fails: not logged in |
 | 5 | `grep -rl wispuppglipffcsqowlq .env apps/mobile/.env apps/web/.env.local` | no output |
 | 6 | `curl -sS -m 5 https://wispuppglipffcsqowlq.supabase.co/rest/v1/` | fails to connect |
 | 7 | `node -e "fetch('https://wispuppglipffcsqowlq.supabase.co/rest/v1/').then(()=>console.log('REACHED'),()=>console.log('blocked'))"` | `blocked` |
-| 8 | `CLAUDE_CODE_OAUTH_TOKEN=<token> claude -p "List every MCP tool you have. Reply NONE if none." --strict-mcp-config` | `NONE` |
+| 8 | `read -rs T; T=${T//$'\e[200~'/}; T=${T//$'\e[201~'/}; T=${T//[[:space:]]/}; CLAUDE_CODE_OAUTH_TOKEN="$T" claude -p "List every MCP tool you have. Reply NONE if none." --strict-mcp-config; unset T` (paste the token at the hidden prompt; the substitutions strip the terminal's bracketed-paste markers) | `NONE` |
 | 9 | `pnpm lint && pnpm typecheck && pnpm test && pnpm test:functions` | pass |
 | 10 | `pnpm test:db` | pass |
 
-Type the token only into row 8, then close that Terminal window. If any row differs, stop and report it before going further.
+Type the token only at row 8's hidden prompt, then close that Terminal window. If any row differs, stop and report it before going further.
 
 - [ ] **Step 7 [Founder] (on the Mac mini): Link the agents' branches.**
 
@@ -117,7 +122,9 @@ On "dubious ownership" or "permission denied", apply the two fixes in TwoDo's `a
 
 ### Task 2: Create the company in Paperclip
 
-Paperclip is already installed and running; nothing is reinstalled.
+Paperclip is already installed and running; nothing is reinstalled. Everything here and in Task 3 also works through the API (`http://localhost:3100/api`, described at `GET /api/openapi.json`); on 2026-10-30 it was done that way.
+
+If Paperclip's onboarding wizard already made a `PadelJam` company, reuse it: cancel its onboarding issue, terminate its "Chief of Staff" agent before anything wakes it, and archive its "Onboarding" project.
 
 - [ ] **Step 1 [Founder]: Open Paperclip from the Mac mini.** `ssh -N -L 3100:127.0.0.1:3100 joaopaulos4@agents-mac.local`, then `http://localhost:3100`.
 - [ ] **Step 2 [Founder]: Create the company `PadelJam`** and set its goal, verbatim from the spec:
@@ -131,6 +138,13 @@ Paperclip is already installed and running; nothing is reinstalled.
 ### Task 3: Create the five pilot agents
 
 Create in this order; the CEO is first.
+
+Paperclip gotchas found on 2026-10-30:
+- With board approval on, agents are filed as hires (`POST /api/companies/<id>/agent-hires`) and the founder approves them. A pending hire's `adapterConfig` is frozen, so put the whole config, env included, in the hire request.
+- A hire request blanks plain env values whose name contains `TOKEN`, and approving it then fails ("Refusing to persist redacted placeholder"). That's why the Twilio dummy is a secret ref.
+- Instructions can be set while a hire is pending: `PUT /api/agents/<id>/instructions-bundle/file` with `path: AGENTS.md`, the content, and the current entry's `revision.id` as `baseRevisionId`.
+- After approval each agent goes through a "verifying" step (Paperclip's Claude hello probe). It fails, and leaves the agent paused, if the agent's env has a `CLAUDE_CODE_OAUTH_TOKEN` secret ref, or if the `agents` account has no stored Claude login. With the stored login in place and no token in env, `POST /api/agents/<id>/lifecycle/retry` brings it to "ready".
+- Every run gets Paperclip's own MCP servers, "Paperclip projects" and "Paperclip connections", even with `--strict-mcp-config`. Row 8 of Task 1, Step 6 checks the CLI alone; check in Task 5, Step 6 that no run filed a connection request.
 
 - [ ] **Step 1 [Founder]: Agents → New Agent**, adapter **Claude Code (`claude_local`)**:
 
@@ -147,11 +161,11 @@ Create in this order; the CEO is first.
   - `workspaceStrategy`: `git_worktree`
   - `engine`: `cli`, `command`: `/Users/agents/.local/bin/claude`
   - `extraArgs`: `["--strict-mcp-config", "--disallowedTools", "RemoteTrigger,CronCreate,CronDelete,CronList,PushNotification,DesignSync"]`
-  - `env`: `CLAUDE_CODE_OAUTH_TOKEN` as a **secret ref** to the existing secret, `PORT=3200`, `WEB_PORT=3201`, `SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token`.
+  - `env`: `PORT=3200`, `WEB_PORT=3201`, and `SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN` as a **secret ref** to a PadelJam secret holding `local_test_token`. No `CLAUDE_CODE_OAUTH_TOKEN`.
 
-Expected: `GET /api/agents/<id>` shows those values for each. No Paperclip skill (agentmail, slack) is attached.
+Expected: `GET /api/agents/<id>` shows those values for each (plain values read back as `***REDACTED***`, so always send real values). No Paperclip skill (agentmail, slack) is attached; the CEO gets Paperclip's five default skills, like TwoDo's CEO.
 
-- [ ] **Step 3: Run test on each.** Expected: the environment test passes.
+- [ ] **Step 3 [Founder]: Log Claude in on the `agents` account, then check each agent.** As `agents`: `claude`, `/login` with the subscription account, `/exit`, then `claude -p "Reply OK"` prints `OK`. Expected: the environment test passes and every agent is "ready" (see the gotchas above for "verifying").
 - [ ] **Step 4: Paste the instructions.** On each agent's **Instructions** page, replace `AGENTS.md` with `docs/agents/<file>.md` + `_rules.md` appended: `ceo.md`, `cto.md`, `engineer-backend.md`, `engineer-mobile.md`, `qa.md`. **Save changes.**
 - [ ] **Step 5: Set the budgets.** Audit → Budgets: each agent **$10**, warning at 80%, unpriced usage **`allow`**, hard stop **off**. (A cancelled subscription run with no receipt keeps a hard stop tripped until month end.)
 
