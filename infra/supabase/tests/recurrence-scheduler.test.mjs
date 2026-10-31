@@ -215,7 +215,7 @@ await run('a series that fell behind picks up at its next future slot, once', as
 await run('a due private series copies its invitations as pending and sends event_invite', async () => {
   const [a, b, c, d, e] = [await user('rs-priv-a'), await user('rs-priv-b'), await user('rs-priv-c'),
     await user('rs-priv-d'), await user('rs-priv-e')];
-  const { admin, groupId } = await group('rs-priv', [a, b, c]);
+  const { admin, groupId } = await group('rs-priv', [a, b, c, d, e]);
   const ev = await rpc(admin.jwt, 'create_event', {
     p_payload: base(groupId, { is_private: true, series: series(7),
       invitees: [a, b, d, e].map((u) => ({ invitee_id: u.id })) }),
