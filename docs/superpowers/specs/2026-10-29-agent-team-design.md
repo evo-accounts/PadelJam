@@ -242,7 +242,7 @@ It proves: the backend → web → mobile hand-off on one branch, the web E2E on
 
 ## Budget and the shared subscription
 
-- Agents run on the founder's Claude subscription through the same `CLAUDE_CODE_OAUTH_TOKEN` secret as every other company (founder's decision). PadelJam's agents draw on the **same usage limits** as TwoDo, Hbrows and Roblox Studio; if one company exhausts them, all stop until they reset.
+- Agents run on the founder's Claude subscription through a stored `claude /login` on the agents Mac's `agents` account, shared by every company (founder's decision; Paperclip's `CLAUDE_CODE_OAUTH_TOKEN` secrets were rejected with 401 on 2026-10-30). PadelJam's agents draw on the **same usage limits** as TwoDo, Hbrows and Roblox Studio; if one company exhausts them, all stop until they reset.
 - So the pilot runs with five agents only, CEO and CTO heartbeats every 4 hours, and no other company's pilot at the same time. The other companies keep running as they are (founder's decision). When a PadelJam run stalls, check first whether it hit the subscription's usage limit (the run's log says so) before treating it as a hand-off failure; the retro reports limit hits separately.
 - Paperclip budgets are a warning, not a stop: on subscription billing a cancelled run with no receipt stays "awaiting accounting" and keeps a hard stop tripped until month end (seen in TwoDo). Each pilot agent gets a $10 cap with a warning at 80%, unpriced usage set to `allow` and the hard stop off.
 - Models: Opus 5.5 for CEO and CTO, Sonnet 5.5 for everyone else.
