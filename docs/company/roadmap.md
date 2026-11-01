@@ -20,7 +20,7 @@ Cut scope before slipping the date. Anything that won't be launch-ready gets hid
 
 ## Initiatives now
 
-1. **Finish the pilot** ([PAD-2](/PAD/issues/PAD-2), [PAD-6](/PAD/issues/PAD-6), [PAD-9](/PAD/issues/PAD-9)). Waiting on the founder to set the `main` ruleset to Active.
+1. **Finish the pilot** ([PAD-2](/PAD/issues/PAD-2), [PAD-6](/PAD/issues/PAD-6), [PAD-9](/PAD/issues/PAD-9)). Push and CTO merges work (PR #291 merged 2026-11-01). Waiting on Docker on the CI runner so PR #292 (0146 + 0147) can pass `e2e` and merge, then the hosted SQL.
 2. **Known launch risks from the last audit** (`docs/audit/2026-09-20-state-and-next-steps.md`). The CTO turns these into tasks once the pilot closes:
    - No device pass since #129. The founder starts it, and it's needed before freeze.
    - `seed:demo` doesn't complete, and nothing in CI runs it.
