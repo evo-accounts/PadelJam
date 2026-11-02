@@ -105,6 +105,7 @@ const STACK = (() => {
 })();
 // Wipe, seed and app must point at the same stack, or the run does not start.
 for (const [k, v] of [
+  ['SUPABASE_URL', STACK.apiUrl],
   ['E2E_SUPABASE_URL', STACK.apiUrl],
   ['E2E_MAILPIT_URL', STACK.mailpitUrl],
   ['E2E_DB_CONTAINER', STACK.dbContainer],
@@ -367,7 +368,7 @@ async function preflight() {
   assertDotenvFiles();
   log(`stack: ${STACK.name} (${STACK.projectId}, ${STACK.apiUrl})`);
   const bad = urlMismatches(STACK, [
-    { file: ROOT_ENV, key: 'SUPABASE_URL', value: parseDotenv(ROOT_ENV).SUPABASE_URL },
+    { file: ROOT_ENV, key: 'SUPABASE_URL', value: process.env.SUPABASE_URL ?? parseDotenv(ROOT_ENV).SUPABASE_URL },
     { file: MOBILE_ENV, key: 'EXPO_PUBLIC_SUPABASE_URL', value: parseDotenv(MOBILE_ENV).EXPO_PUBLIC_SUPABASE_URL },
   ]);
   if (bad.length) {

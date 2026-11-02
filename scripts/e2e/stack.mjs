@@ -40,13 +40,13 @@ export function resolveStack(name = process.env.E2E_STACK ?? 'dev') {
 
 /**
  * Wipe, seed and app must talk to the same stack. Returns one entry per URL that is not the stack's
- * `apiUrl` (a missing URL is not a mismatch: the readers default to the dev stack, and
- * assertDotenvFiles reports absent keys).
+ * `apiUrl`. A missing URL is a mismatch for every stack but `dev`: the readers fall back to the dev
+ * stack's URL, which is only right for `dev`.
  */
 export function urlMismatches(stack, files) {
   const out = [];
   for (const { file, key, value } of files) {
-    if (value && value !== stack.apiUrl) out.push({ file, key, value, expected: stack.apiUrl });
+    if (value ? value !== stack.apiUrl : stack.name !== 'dev') out.push({ file, key, value, expected: stack.apiUrl });
   }
   return out;
 }

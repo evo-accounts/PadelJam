@@ -54,9 +54,14 @@ test('urlMismatches names every URL that is not the stack\'s', () => {
   const bad = urlMismatches(ci, [
     { file: '.env', key: 'SUPABASE_URL', value: 'http://127.0.0.1:56321' },
     { file: 'apps/mobile/.env', key: 'EXPO_PUBLIC_SUPABASE_URL', value: 'http://127.0.0.1:55321' },
-    { file: 'x', key: 'ABSENT', value: undefined },
   ]);
   assert.deepEqual(bad, [
     { file: 'apps/mobile/.env', key: 'EXPO_PUBLIC_SUPABASE_URL', value: 'http://127.0.0.1:55321', expected: 'http://127.0.0.1:56321' },
   ]);
+});
+
+test('urlMismatches: a missing URL is a mismatch under ci, not under dev', () => {
+  const files = [{ file: '.env', key: 'SUPABASE_URL', value: undefined }];
+  assert.equal(urlMismatches(resolveStack('ci'), files).length, 1);
+  assert.deepEqual(urlMismatches(resolveStack('dev'), files), []);
 });
