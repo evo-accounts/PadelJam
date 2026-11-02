@@ -3,7 +3,7 @@
 // Migrations 0119 and 0120.
 //   0119 — nobody reads anybody's email through the Data API, their own included (it comes from the
 //          auth user), mirroring what 0115 did for phone.
-//   0120 — a signed-in user writes only the nine columns the app lets them edit; server-controlled
+//   0120 — a signed-in user writes only the ten columns the app lets them edit; server-controlled
 //          columns (identity, contact copies, consent, deletion, onboarding stamps, location) are
 //          set by SECURITY DEFINER functions or the service role only.
 //
@@ -13,7 +13,7 @@ import { user, rpc, req, sel, patch, ANON, BASE_URL, assert, expectError, run } 
 
 /** The exact column list `useMyProfile` selects (packages/api/src/profile/queries.ts). */
 const MY_PROFILE_COLUMNS =
-  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text';
+  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text,level';
 
 const read = (u, qs) => req(`/rest/v1/profiles?${qs}`, { jwt: u.jwt });
 /** A PATCH the way supabase-js sends `.update(input).eq('id', …)`: return=minimal, so a 42501 can
@@ -62,7 +62,7 @@ await run('the public columns and named embeds still resolve', async () => {
 });
 
 await run('anon: email is closed, the schema probe still answers', async () => {
-  const rows = await anon('/rest/v1/profiles?select=onboarded_at,location_text,dominant_hand,court_side,notifications_prompted_at&limit=1');
+  const rows = await anon('/rest/v1/profiles?select=onboarded_at,location_text,dominant_hand,court_side,level,notifications_prompted_at&limit=1');
   assert(Array.isArray(rows) && rows.length === 0, 'anon named-column read returns [] rather than 42501');
   await expectError(() => anon('/rest/v1/profiles?select=email&limit=1'), '42501');
 });
@@ -104,6 +104,7 @@ await run('you can write each user-editable column', async () => {
     date_of_birth: '1991-02-03',
     preferred_time: 'morning',
     locale: 'pt-PT',
+    level: 3,
   };
   for (const [col, value] of Object.entries(allowed)) {
     await write(alice, alice.id, { [col]: value });
@@ -128,6 +129,26 @@ await run("someone else's row stays out of reach, and insert/delete are closed",
     () => anon(`/rest/v1/profiles?id=eq.${alice.id}`, { method: 'PATCH', body: JSON.stringify({ full_name: 'anon' }) }),
     '42501',
   );
+});
+
+await run('level: 1 to 4 and null on your own row; 0, 5 and a text are rejected; not on another row (0148)', async () => {
+  for (const ok of [1, 4, null]) {
+    await write(alice, alice.id, { level: ok });
+    assert((await stored(alice.id, 'level')).level === ok, `level ${ok} was written`);
+  }
+  await write(alice, alice.id, { level: 2 });
+  for (const bad of [0, 5, -1]) {
+    await expectError(() => write(alice, alice.id, { level: bad }), '23514');
+  }
+  await expectError(() => write(alice, alice.id, { level: 'expert' }), '22P02');
+  assert((await stored(alice.id, 'level')).level === 2, 'rejected values left the stored level alone');
+
+  await write(bob, alice.id, { level: 4 });
+  assert((await stored(alice.id, 'level')).level === 2, "another user's write to your level is refused by RLS");
+
+  // Any signed-in user reads it, same as hand and side; anon sees no rows but may name the column.
+  const seen = await read(bob, `id=eq.${alice.id}&select=level`);
+  assert(seen.length === 1 && seen[0].level === 2, 'another user reads level');
 });
 
 await run('location still goes through set_my_location', async () => {

@@ -162,6 +162,8 @@ export type UpdateProfileInput = {
   description?: string | null;
   dominant_hand?: string | null;
   court_side?: string | null;
+  /** Self-declared playing level, 1 (getting started) to 4 (advanced); null = not answered (0148). */
+  level?: number | null;
   gender?: string | null;
   preferred_time?: string | null;
   date_of_birth?: string | null;
