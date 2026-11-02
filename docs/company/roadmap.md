@@ -2,7 +2,7 @@
 
 Goal: launch PadelJam, free, on the App Store and Google Play in Portugal and Brazil in **January 2027**. Every launched area works in pt-PT, pt-BR and en, and the privacy policy and terms have been reviewed. Jammer+, community plans and the club dashboard come after launch.
 
-_Owner: CEO. Last updated 2026-11-01. The dates follow the rollout in `docs/superpowers/specs/2026-10-29-agent-team-design.md`, counted from the pilot's start on 2026-10-30._
+_Owner: CEO. Last updated 2026-11-02. The dates follow the rollout in `docs/superpowers/specs/2026-10-29-agent-team-design.md`, counted from the pilot's start on 2026-10-30._
 
 ## Rule for trade-offs
 
@@ -20,7 +20,7 @@ Cut scope before slipping the date. Anything that won't be launch-ready gets hid
 
 ## Initiatives now
 
-1. **Finish the pilot** ([PAD-2](/PAD/issues/PAD-2), [PAD-6](/PAD/issues/PAD-6), [PAD-9](/PAD/issues/PAD-9)). Push and CTO merges work (PR #291 merged 2026-11-01). Waiting on Docker on the CI runner so PR #292 (0146 + 0147) can pass `e2e` and merge, then the hosted SQL.
+1. **Finish the pilot** ([PAD-2](/PAD/issues/PAD-2), [PAD-6](/PAD/issues/PAD-6), [PAD-9](/PAD/issues/PAD-9), [PAD-10](/PAD/issues/PAD-10)). The work is complete: PR #292 (0146 + 0147) merged on 2026-11-01, and the hosted SQL was applied and verified on 2026-11-02. Left to do: close the two tasks, then the retro and the go/no-go by ~11-05.
 2. **Known launch risks from the last audit** (`docs/audit/2026-09-20-state-and-next-steps.md`). The CTO turns these into tasks once the pilot closes:
    - No device pass since #129. The founder starts it, and it's needed before freeze.
    - `seed:demo` doesn't complete, and nothing in CI runs it.
