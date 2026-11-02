@@ -10,7 +10,7 @@ The web app has its own separate end-to-end suite (Playwright) at
 
 ## Prerequisites
 
-- Docker running, local stack up:
+- Docker running, local `dev` stack up (CI uses its own, see "Which stack" below):
   `export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token && pnpm dlx supabase@2.117.0 --workdir infra start`
   (pinned to the version in the workflow's `SUPABASE_CLI_VERSION`, see
   `infra/supabase/README.md` for why; anything ≤2.75 pairs an ES256-signing GoTrue with an
@@ -211,16 +211,46 @@ would take down the stack you develop against.
 
 ### Which stack: `dev` or `ci`
 
-CI runs on its own stack, project `padeljam_ci` at `http://127.0.0.1:56321` (Mailpit
-56324), started by `node scripts/e2e/ci-stack.mjs`. It no longer shares ports with the
-dev stack (55321), so it can't collide with the agents' stack. The `5632x` block is
-reserved for this runner: don't use it for anything else.
+The stacks are defined in [`scripts/e2e/stack.mjs`](../../../scripts/e2e/stack.mjs).
 
-A local run still defaults to the dev stack (55321). To run against the CI stack by hand:
+| | project | API | Mailpit | DB container |
+|---|---|---|---|---|
+| `dev` (default) | `padeljam` | 55321 | 55324 | `supabase_db_padeljam` |
+| `ci` | `padeljam_ci` | 56321 | 56324 | `supabase_db_padeljam_ci` |
 
-```
+CI runs on the `ci` stack, brought up by `node scripts/e2e/ci-stack.mjs`. That script also
+writes the repo-root `.env` and `apps/mobile/.env` with the stack's URL and keys. Because it
+shares no ports with the dev stack, it can't collide with the agents' stack. The `5632x`
+block is reserved for this runner: don't use it for anything else.
+
+A local run still defaults to `E2E_STACK=dev` (`padeljam`, 55321), the stack in the
+Prerequisites above. To run against the CI stack by hand:
+
+```bash
 node scripts/e2e/ci-stack.mjs && E2E_STACK=ci node scripts/e2e/run.mjs
 ```
+
+This **overwrites both `.env` files** with the CI stack's keys. To go back to `dev`,
+regenerate them from the dev stack.
+
+`run.mjs` refuses to start when `SUPABASE_URL` (root `.env`) or `EXPO_PUBLIC_SUPABASE_URL`
+(`apps/mobile/.env`) is not the selected stack's API URL:
+
+```
+[e2e] ERROR: the .env files point at a different Supabase than stack "ci" (http://127.0.0.1:56321).
+```
+
+It means the wipe, the seed and the app would talk to different databases. Fix it by
+regenerating the files (`node scripts/e2e/ci-stack.mjs` for `ci`), or by selecting the
+stack the files already point at.
+
+To remove the CI stack:
+
+```bash
+SUPABASE_PROJECT_ID=padeljam_ci pnpm dlx supabase@2.117.0 --workdir infra stop --project-id padeljam_ci --no-backup
+```
+
+**Never run a bare `supabase stop`**: it targets `padeljam` and takes down the agents' stack.
 
 ### When it runs
 
@@ -256,7 +286,7 @@ extension — notably PostGIS's `public.spatial_ref_sys`, which it used to trunc
 no SRID 4326 every geography op (distance, explore ranking, `set_my_location`,
 `create_event`) fails with "Cannot find SRID (4326)". A DB emptied by an older run is
 refilled on the next wipe from PostGIS's own `spatial_ref_sys.sql` in the db container. Email OTPs are read from Mailpit
-(`:55324`); the phone test number `+351912345678` verifies with `123456`.
+(`:55324` on `dev`, `:56324` on `ci`); the phone test number `+351912345678` verifies with `123456`.
 
 **The plan caps are live, and the seed sits inside them.** `plan_limits` used to be
 truncated by the wipe, which made `community_limit()` return null for every key and
