@@ -552,8 +552,15 @@ function installPodsIfStale() {
 function buildIfStale(udid) {
   const hash = sourceHash();
   if (existsSync(APP_PATH) && existsSync(STAMP) && readFileSync(STAMP, 'utf8') === hash && !flag('--force-build')) {
-    log('Build is fresh — skipping xcodebuild');
-    return;
+    // A matching stamp is not enough on its own: the stamp is written right after xcodebuild,
+    // BEFORE assertPublicEnvInlined() checks the bundle, so a build that inlined stale values
+    // stays "fresh" forever and every later run dies on that check. Measured on #296: the run
+    // after the stale-cache build skipped xcodebuild and failed in 28s.
+    if (bundleCarriesPublicEnv() !== false) {
+      log('Build is fresh — skipping xcodebuild');
+      return;
+    }
+    log('Build is stamped fresh but does not carry the current EXPO_PUBLIC_* values — rebuilding');
   }
   log('Building Release for simulator (this takes a few minutes)…');
   installPodsIfStale();
@@ -586,16 +593,28 @@ function buildIfStale(udid) {
  * Hermes keeps string literals in its string table, so a plain substring search
  * works on the bytecode bundle exactly as it does on a plain-text one.
  */
-function assertPublicEnvInlined() {
+/**
+ * Whether the built bundle contains EXPO_PUBLIC_SUPABASE_URL: `null` when there is no
+ * embedded bundle to check (a Debug build loads JS from Metro) or no URL to look for.
+ */
+function bundleCarriesPublicEnv() {
   const bundle = join(APP_PATH, 'main.jsbundle');
+  const url = ENV.EXPO_PUBLIC_SUPABASE_URL;
+  if (!existsSync(bundle) || !url) return null;
+  return readFileSync(bundle, 'latin1').includes(url);
+}
+
+function assertPublicEnvInlined() {
   // A Debug build loads JS from Metro and embeds nothing — nothing to check.
-  if (!existsSync(bundle)) return;
+  if (!existsSync(join(APP_PATH, 'main.jsbundle'))) return;
   // preflight()'s assertDotenvFiles() already guaranteed this, seconds into the
   // run rather than ten minutes in. Kept only so a reordering cannot quietly turn
   // the substring test below into a search for the string "undefined".
   const url = ENV.EXPO_PUBLIC_SUPABASE_URL;
   if (!url) die(`EXPO_PUBLIC_SUPABASE_URL is not set — see ${MOBILE_ENV}.`);
-  if (!readFileSync(bundle, 'latin1').includes(url)) {
+  if (!bundleCarriesPublicEnv()) {
+    // Drop the stamp so the next run rebuilds instead of calling this build fresh.
+    rmSync(STAMP, { force: true });
     die(`the built app does not contain ${url}.\n`
       + '  EXPO_PUBLIC_* was not inlined, so the app will throw\n'
       + '  "[@padel/config] Invalid environment" before it renders anything and\n'
