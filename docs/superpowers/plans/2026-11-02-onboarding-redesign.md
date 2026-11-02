@@ -24,13 +24,14 @@ PR2 and PR3 run in parallel after PR1 merges. They touch different step files; b
 
 ## PR 1 — shared components and tokens (Eng B) · `feat/onboarding-shell`
 
-Files: `packages/ui/src/tokens/*` (+ `tokens.test.ts`), `apps/web/src/app/tokens.generated.css` (regenerated with `node scripts/tokens.mjs --write`, never hand-edited), `apps/mobile/theme/index.ts` (if a new token group needs a mobile face), `apps/mobile/components/onboarding/{OnboardingStep,OptionList}.tsx` (+ tests), `apps/mobile/assets/onboarding/*`, the five step files (swap the import only).
+Files: `packages/ui/src/tokens/semantic.ts` (+ `tokens.test.ts`), `apps/web/src/app/tokens.generated.css` (regenerated with `node scripts/tokens.mjs --write`, never hand-edited), `apps/mobile/theme/index.ts` (mobile face for the new group), `apps/mobile/components/onboarding/{OnboardingStep,OptionList}.tsx` (+ tests), `apps/mobile/assets/onboarding/*`, `apps/mobile/lib/postVerifyRoute.ts` (`ONBOARDING_QUESTION_STEPS` only), the five step files (swap the import only).
 
-- [ ] Add the spec §3 token inventory to `packages/ui`; map to existing tokens wherever close; regenerate the CSS.
-- [ ] `OnboardingStep` v2 with the Figma header and progress. The progress count is derived from one ordered list exported next to `onboardingRoute()` (`ONBOARDING_STEPS`), so adding Level in PR4 updates it in one place.
-- [ ] Keep spec §2 rule 8: action pinned outside the ScrollView inside the KeyboardAvoidingView; `IconButton` back with `backLabel`.
-- [ ] `OptionList` (radiogroup) / `OptionCard` (radio, `checked` state). Unit test: selection, a11y state, disabled.
-- [ ] Every step renders in v2 with its current content; delete `components/OnboardingStep.tsx` and `ChoiceRow`. Hand and side switch to `OptionList` here, so PR3 is visual only.
+- [ ] The `onboarding` token group from spec §3.1. No new palette colours; regenerate the CSS.
+- [ ] Illustrations (spec §3.3): one Figma render call (scale 3, then downscale to @2x) for the art layers, after a one-level node read of frames 1, 4, 5, 7, 9 and 11 finds their IDs. Two founder approvals; if refused, ask for PNGs on the PR. Compress them (`size:check` doesn't cover assets; keep the set under ~1.5 MB).
+- [ ] `OnboardingStep` v2 with both header modes (`intro`, `question`). The progress count is derived from `ONBOARDING_QUESTION_STEPS` (location, hand, side for now), so PR 4 adds Level in one place.
+- [ ] Keep spec §2 rule 8: the action pinned outside the ScrollView, inside the KeyboardAvoidingView; an `IconButton` back with `backLabel`.
+- [ ] `OptionList` (radiogroup) / `OptionCard` (radio, `checked` state, optional description, optional badge). Unit test: selection, a11y state, disabled.
+- [ ] Every step renders in v2 with its current content. Delete `components/OnboardingStep.tsx` and `ChoiceRow`; hand switches to `OptionList` here.
 - [ ] Lower the `size:check` budget by however many literals this removes.
 - [ ] `02-onboarding` still passes unchanged (selectors are labels/roles), proving the shell kept behaviour.
 
@@ -38,37 +39,42 @@ Files: `packages/ui/src/tokens/*` (+ `tokens.test.ts`), `apps/web/src/app/tokens
 
 Files: `app/(onboarding)/location.tsx`, `app/(onboarding)/jammer-plus.tsx`, `components/profile/JammerPlusPaywall.tsx`, `onboarding.json` ×3, `02-onboarding.e2e.ts`.
 
-- [ ] Frames 1–3 (spec §4.1–4.2). Keep every save/geocode branch in `location.tsx` as is; this is layout and copy.
-- [ ] Frame 11 (§4.7) in `onboarding` mode only; `settings` mode unchanged (screenshot it to prove it). No purchase, no prices.
-- [ ] E2E: update the location and paywall `it` blocks' selectors; add "denied permission still advances" only if the runner can deny the prompt (otherwise note it).
+Files also include `apps/mobile/lib/useGeocodeSearch.ts` (+ test) and its Account Settings caller.
+
+- [ ] Frames 1 and 3 (spec §4.1–4.2). Keep every save branch in `location.tsx`. `useGeocodeSearch` returns up to 3 places (same timeout, same fallback); Account Settings takes the first, unchanged. No new places provider.
+- [ ] Frame 11 (§4.7) in `onboarding` mode only, with the listed rows and price lines left out, "Try Jammer+" as the CTA, and ✕ named "Continue with Free". `settings` mode is unchanged (screenshot it to prove it). No purchase.
+- [ ] E2E: update the location and paywall `it` blocks (the paywall exit is now ✕ by its accessible name); add "location Skip leaves it null and relaunch resumes there".
 
 ## PR 3 — hand, side and notifications (Eng A) · `feat/onboarding-hand-side-notifications`
 
 Files: `app/(onboarding)/{hand,side,notifications}.tsx`, `onboarding.json` ×3, `02-onboarding.e2e.ts`.
 
-- [ ] Frames 5–10 (§4.4–4.6). If the side frames add a third option, **stop**: that's a schema change, it moves into PR4 and goes to the founder with Level.
-- [ ] Notifications keeps `stampWithRetry` / `onStampFailure` exactly; Enable and Skip both stamp.
-- [ ] E2E: hand/side persist; notifications Skip stamps `notifications_prompted_at` (new `it`).
+Files also include `apps/mobile/components/onboarding/CourtSidePicker.tsx` (+ test).
+
+- [ ] Frames 5, 6–8 and 9 (§4.4–4.6). Hand: copy only (PR 1 moved it to `OptionList`). Side: `CourtSidePicker` (two radio halves, swap button, fox moves), values still `left`/`right`. Level, hand and side lose Skip (spec §2).
+- [ ] Notifications keeps `stampWithRetry` / `onStampFailure` exactly; Allow and Skip for now both stamp.
+- [ ] E2E: hand and side persist (side taps "Left side"/"Right side"); "Skip for now" stamps `notifications_prompted_at` (new `it`).
 
 ## PR 4 — Level (Eng A, then Eng B, same branch) · `feat/onboarding-level` — **blocked on founder approval**
 
 **4a, Eng A** (hand-off comment before B starts):
-- [ ] `infra/supabase/migrations/01NN_profiles_level.sql` exactly as spec §5.3: column + check, SELECT grant to anon/authenticated, UPDATE grant to authenticated, `soft_delete_account(p_user uuid)` redefined from 0143 with `level = null`, self-check block.
-- [ ] DB tests: `profile-privacy-writes.test.mjs` (own write ok, other user's row refused, 0 and 6 rejected), `profile-phone-privacy.test.mjs` (authenticated can read `level`), `account-deletion-lockdown.test.mjs` (cleared on delete). `pnpm test:db` green.
-- [ ] Regenerate `packages/db/src/database.types.ts`; add `level` to `useUpdateProfile`'s input in `packages/api/src/profile/mutations.ts` and to the own-profile read in `queries.ts` if Game preferences gets it (spec §9.2).
+- [ ] `infra/supabase/migrations/01NN_profiles_level.sql` exactly as spec §5.3: column + check (1–4), SELECT grant to anon/authenticated, UPDATE grant to authenticated, `soft_delete_account(p_user uuid)` redefined from 0143 with `level = null`, self-check block.
+- [ ] DB tests: `profile-privacy-writes.test.mjs` (own write ok, other user's row refused, 0 and 5 rejected), `profile-phone-privacy.test.mjs` (authenticated can read `level`), `account-deletion-lockdown.test.mjs` (cleared on delete). `pnpm test:db` green.
+- [ ] Regenerate `packages/db/src/database.types.ts`; add `level` to `useUpdateProfile`'s input in `packages/api/src/profile/mutations.ts` and to the own-profile read in `queries.ts` if Game preferences gets it (spec §9.1).
 - [ ] Seeds: `infra/seed/seed-e2e.mjs` gives onboarded personas a level; `omar` stays null.
 
 **4b, Eng B:**
-- [ ] `app/(onboarding)/level.tsx` (frame 4) with `OptionList`; labels from `onboarding.json` ×3.
-- [ ] Stack order in `app/(onboarding)/_layout.tsx`; `ONBOARDING_STEPS`, `OnboardingRoute`, `OnboardingProfile` and `onboardingRoute()` in `lib/postVerifyRoute.ts`; `fetchProfile`'s select in `lib/postAuthRoute.ts` and the post-verify reads in `(auth)/otp.tsx` / `password.tsx`; the route union in `app/_layout.tsx`; location's `goNext` → `level`.
+- [ ] `app/(onboarding)/level.tsx` (frame 4) with `OptionList`; four bands (spec §5.1), labels and descriptions from `onboarding.json` ×3.
+- [ ] Stack order in `app/(onboarding)/_layout.tsx`; `ONBOARDING_QUESTION_STEPS`, `OnboardingRoute`, `OnboardingProfile` and `onboardingRoute()` in `lib/postVerifyRoute.ts`; `fetchProfile`'s select in `lib/postAuthRoute.ts` and the post-verify reads in `(auth)/otp.tsx` / `password.tsx`; the route union in `app/_layout.tsx`; location's `goNext` → `level`.
 - [ ] Unit: `postVerifyRoute.test.ts` / `postAuthRoute.test.ts` for the new order (spec §7).
 - [ ] E2E: level persists; skipping level then relaunching resumes at level.
-- [ ] If the CEO accepts spec §9.2: level in mobile Game preferences (one field).
+- [ ] If the CEO accepts spec §9.1: level in mobile Game preferences (one field). If not, drop "You can change it later" from the level copy.
 
 **Hosted:** additive migration, applied by the `Supabase migrations` workflow on merge; no SQL hand-off. The build containing 4b must not be submitted before that job passes (spec §5.3). Privacy-policy line and store privacy labels go to the founder before that build ships.
 
 ## Risks
 
-- **Figma gaps.** The plan assumes no new screens beyond the 11 frames. A multi-result location list or a court-side option adds work; both are flagged to cut rather than absorb.
+- **Figma access.** Each Composio call needs a founder approval, and large results come back truncated. The renders in `docs/superpowers/specs/assets/2026-11-02-onboarding/` are the build reference; only PR 1's illustration export touches Figma.
+- **Geocoder list.** The device geocoder usually returns one place, so the list is often a single card. That's accepted; a richer list means a paid places API (a board decision), not in this plan.
 - **Paywall shared with settings.** Restyling one mode can leak into the other; PR2 screenshots both.
 - **E2E runner is one Mac.** PR2 and PR3 pushing together queue on it; that's time, not a blocker.
