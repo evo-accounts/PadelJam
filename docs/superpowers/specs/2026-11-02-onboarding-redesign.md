@@ -103,7 +103,7 @@ Same as `dominant_hand` and `court_side`, which it sits next to:
 **For the founder:** this is new personal data (not a special category). It needs a line in the privacy policy and a check of the stores' privacy labels before a build that collects it ships — both board items (gate 5). The alternative, owner-only visibility, would need a SECURITY DEFINER reader instead of a column grant; it is not recommended, since a level no one else sees can't help anyone find a game.
 
 ### 5.3 Migration
-`infra/supabase/migrations/01NN_profiles_level.sql` (next free number at build time; 0146 today):
+`infra/supabase/migrations/01NN_profiles_level.sql` (next free number at build time; 0148 today):
 
 1. `alter table profiles add column level smallint check (level between 1 and 5);` — additive, no backfill, no lock of note.
 2. The two column grants above.
