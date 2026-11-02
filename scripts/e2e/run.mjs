@@ -18,7 +18,7 @@
 import { execFileSync, execSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveStack, urlMismatches } from './stack.mjs';
@@ -564,6 +564,15 @@ function buildIfStale(udid) {
   }
   log('Building Release for simulator (this takes a few minutes)…');
   installPodsIfStale();
+  // Clear Metro's transform cache (expo/metro-config's FileStore at <tmpdir>/metro-cache; this
+  // process and xcodebuild's script phase share TMPDIR). The cache is not keyed on EXPO_PUBLIC_*
+  // values, so when only apps/mobile/.env changed it reused transforms with the OLD values
+  // inlined. `--reset-cache` cannot do this: react-native-xcode.sh always passes it, and
+  // `expo export:embed` drops it whenever CI is set (exportEmbedAsync.js), which it is on
+  // Actions. Measured on #296: the switch to the ci stack bundled 4,776 modules in 2.8s and the
+  // app still held 55321. We only get here when a build is needed, so a cold transform
+  // (~25s on this Mac) is a small part of it.
+  rmSync(join(tmpdir(), 'metro-cache'), { recursive: true, force: true });
   sh('xcodebuild', [
     '-workspace', join(MOBILE, 'ios', 'PadelJam.xcworkspace'),
     '-scheme', 'PadelJam',
@@ -571,16 +580,7 @@ function buildIfStale(udid) {
     '-destination', `platform=iOS Simulator,id=${udid}`,
     '-derivedDataPath', DERIVED,
     'build',
-  ], {
-    inherit: true,
-    // --reset-cache for `expo export:embed` (react-native-xcode.sh appends EXTRA_PACKAGER_ARGS).
-    // Metro's transform cache is not keyed on EXPO_PUBLIC_* values, so when only the .env
-    // changed it reused transforms with the OLD values inlined. Measured on #296's first run:
-    // switching to the ci stack bundled 4,776 modules in 2.9s and the app still held 55321,
-    // and assertPublicEnvInlined() below stopped the run. We only get here when the stamp
-    // says something changed, so a cold transform is the price of a build we needed anyway.
-    env: { ...ENV, EXTRA_PACKAGER_ARGS: '--reset-cache' },
-  });
+  ], { inherit: true });
   mkdirSync(dirname(STAMP), { recursive: true });
   writeFileSync(STAMP, hash);
 }
