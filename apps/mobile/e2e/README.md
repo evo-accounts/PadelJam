@@ -180,7 +180,8 @@ the DB, then runs vitest sequentially. Failure artifacts (screenshot, accessibil
 dump, app log tail) land in `e2e/artifacts/<run>/<test>/`.
 
 Env knobs: `E2E_UDID` (simulator), `E2E_IDB_PATH`, `E2E_STREAM=1` / `E2E_OAUTH=1` /
-`E2E_PUSH_DELIVERY=1` (enable locally-blocked areas), `E2E_WAIT_TIMEOUT_MS`.
+`E2E_PUSH_DELIVERY=1` (enable locally-blocked areas), `E2E_WAIT_TIMEOUT_MS`,
+`E2E_STACK` (`dev`, the default, or `ci`: see below).
 
 ## In CI: a self-hosted macOS runner, not a hosted one
 
@@ -207,6 +208,19 @@ ensures the stack is up, writes the two `.env` files into its own workspace, and
 the orchestrator with `--wait` so it queues behind a hand-run suite instead of going
 red over a held lock. It does **not** run `supabase stop` afterwards, since that
 would take down the stack you develop against.
+
+### Which stack: `dev` or `ci`
+
+CI runs on its own stack, project `padeljam_ci` at `http://127.0.0.1:56321` (Mailpit
+56324), started by `node scripts/e2e/ci-stack.mjs`. It no longer shares ports with the
+dev stack (55321), so it can't collide with the agents' stack. The `5632x` block is
+reserved for this runner: don't use it for anything else.
+
+A local run still defaults to the dev stack (55321). To run against the CI stack by hand:
+
+```
+node scripts/e2e/ci-stack.mjs && E2E_STACK=ci node scripts/e2e/run.mjs
+```
 
 ### When it runs
 
