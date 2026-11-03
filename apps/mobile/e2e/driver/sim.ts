@@ -2,10 +2,73 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { CONFIG } from './config';
+import { restartCompanion } from './idb';
 import { describeFailure, run, runOk, type RunResult } from './proc';
 
-const simctl = (args: string[], timeoutMs?: number) => runOk('xcrun', ['simctl', ...args], { timeoutMs });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * CoreSimulatorService restarts this module may spend. Module state, and vitest re-evaluates the
+ * driver for every suite file, so like MAX_WEDGE_REBOOTS in app.ts it is a per-suite budget.
+ */
+const MAX_SERVICE_RESTARTS = 1;
+let serviceRestarts = 0;
+let restartingService = false;
+
+/**
+ * A simctl call killed by our timeout without printing anything: the shape of a stuck
+ * CoreSimulatorService. PR 296 (2026-11-03): after ~10 h up, the runner's service stopped
+ * answering — `simctl uninstall` and `launch` each hung their full 120 s, a new idb_companion
+ * stalled loading the device set, and two runs in a row failed across every suite. Restarting
+ * the service is the cure; a device reboot goes through the same service and hangs too.
+ */
+export const isServiceHang = (r: RunResult): boolean => r.timedOut && !r.stdout.trim() && !r.stderr.trim();
+
+/**
+ * Only on CI unless asked: killing the service shuts down EVERY simulator of this macOS user,
+ * which on a developer's machine means theirs too. On the runner that user exists for CI alone.
+ * `killall` cannot signal another user's processes, so the agents' and developers' simulators on
+ * the same Mac (other users) are never touched.
+ */
+const serviceRestartAllowed = (): boolean =>
+  Boolean(process.env.CI) || process.env.E2E_RESTART_SIM_SERVICE === '1';
+
+/** Kill this user's CoreSimulatorService (launchd respawns it on the next simctl call), then bring the device back. */
+export async function restartSimulatorService(reason: string): Promise<void> {
+  serviceRestarts++;
+  restartingService = true;
+  try {
+    console.warn(
+      `[e2e] ${reason} — restarting CoreSimulatorService (${serviceRestarts}/${MAX_SERVICE_RESTARTS} this suite)`,
+    );
+    await run('killall', ['-9', 'com.apple.CoreSimulator.CoreSimulatorService']);
+    await sleep(3_000);
+    await boot();
+    await waitUntilLaunchable();
+    await overrideStatusBar();
+    await restartCompanion(); // it lost its simulator with the service
+  } finally {
+    restartingService = false;
+  }
+}
+
+/** May a hang like `r` be answered with a service restart right now? */
+const canRecover = (r: RunResult): boolean =>
+  isServiceHang(r) && !restartingService && serviceRestarts < MAX_SERVICE_RESTARTS && serviceRestartAllowed();
+
+/**
+ * `simctl <args>`, throwing on failure. A silent hang restarts the simulator service and retries
+ * once; every call routed here is safe to repeat (install, uninstall, keychain reset, privacy,
+ * push, screenshot, bootstatus).
+ */
+async function simctl(args: string[], timeoutMs?: number): Promise<string> {
+  const argv = ['simctl', ...args];
+  const r = await run('xcrun', argv, { timeoutMs });
+  if (r.code === 0) return r.stdout;
+  if (!canRecover(r)) throw new Error(describeFailure('xcrun', argv, r));
+  await restartSimulatorService(`simctl ${args[0]} hung for ${Math.round(r.timeoutMs / 1000)}s with no output`);
+  return runOk('xcrun', argv, { timeoutMs });
+}
 
 export async function boot(): Promise<void> {
   const r = await run('xcrun', ['simctl', 'boot', CONFIG.udid]);
@@ -86,13 +149,13 @@ export async function install(appPath: string): Promise<void> {
   }
   throw new Error(`simctl install: ${CONFIG.bundleId} never became queryable on ${CONFIG.udid}`);
 }
-export const uninstall = () => simctl(['uninstall', CONFIG.udid, CONFIG.bundleId], 120_000);
+export const uninstall = (): Promise<string> => simctl(['uninstall', CONFIG.udid, CONFIG.bundleId], 120_000);
 
 /**
  * Wipe the simulator keychain. SecureStore (and thus the Supabase session)
  * SURVIVES app uninstall — a fresh-install state requires this too.
  */
-export const keychainReset = () => simctl(['keychain', CONFIG.udid, 'reset'], 60_000);
+export const keychainReset = (): Promise<string> => simctl(['keychain', CONFIG.udid, 'reset'], 60_000);
 
 /** Device is up: `simctl shutdown` succeeded or the device was already shut down. */
 export async function shutdown(): Promise<void> {
@@ -125,6 +188,11 @@ export async function launch(
     for (let attempt = 0; ; attempt++) {
       const r = await run('xcrun', argv, { timeoutMs: opts.timeoutMs ?? 120_000 });
       if (r.code === 0) break;
+      if (canRecover(r)) {
+        // The device comes back rebooted with the app still installed, so launching again is safe.
+        await restartSimulatorService(`simctl launch hung for ${Math.round(r.timeoutMs / 1000)}s with no output`);
+        continue;
+      }
       const out = `${r.stderr}${r.stdout}`;
       const notRegistered = /Unknown application display identifier|NotFound/.test(out);
       if (attempt < 10 && notRegistered) {

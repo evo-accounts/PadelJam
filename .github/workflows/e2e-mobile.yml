@@ -33,9 +33,10 @@ on:
     # (see the CLI ≤2.75 ES256/HS256 note in infra/supabase/config.toml).
     # Weekly catches that.
     #
-    # A run also WIPES the developer's local database (resetDb rotates every
-    # seeded id), so nightly was charging that cost 7× a week to answer a
-    # question that changes slowly. If the Mac is asleep the job queues and
+    # A run also WIPES the runner's own `padeljam_ci` database (resetDb rotates
+    # every seeded id; a developer's and the agents' stacks are untouched), so
+    # nightly was spending the one Mac 7× a week to answer a question that
+    # changes slowly. If the Mac is asleep the job queues and
     # starts when the runner next wakes.
     - cron: '0 3 * * 0' # weekly, Sunday 03:00 UTC
   # Runs automatically on PRs that touch the code it actually exercises. The
@@ -122,6 +123,9 @@ jobs:
       # Point at Xcode without `sudo xcode-select`, which would change the
       # setting globally on someone's own machine (and need a sudo password).
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+      # The runner's own Supabase stack: project padeljam_ci on 5632x (scripts/e2e/stack.mjs),
+      # so it never shares ports or data with a developer's or the agents' stack on 55321.
+      E2E_STACK: ci
 
     steps:
       # clean: false because this runner's workspace is persistent and the build
@@ -167,45 +171,12 @@ jobs:
       # boots it tolerating an already-booted device, and preflights the
       # Supabase API, Mailpit, Postgres and idb with actionable messages. Doing
       # any of that again here would only add a second place to keep in sync.
+      #
+      # ci-stack.mjs starts the E2E_STACK stack with the pinned CLI and its own
+      # pnpm cache dir (the 2026-09-11 incident), then writes .env and
+      # apps/mobile/.env, so later changes to either need no workflow edit.
       - name: Ensure the local Supabase stack is up
-        env:
-          SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN: local_test_token
-          # PINNED, not @latest, so a run is reproducible and a CLI bump is a
-          # commit. Keep it in step with infra/supabase/README.md and
-          # apps/mobile/e2e/README.md. The pin alone does NOT fix the incident
-          # below — see npm_config_cache_dir in the script.
-          SUPABASE_CLI_VERSION: 2.117.0
-        run: |
-          # INCIDENT 2026-09-11: every run failed here with "No matching Supabase
-          # CLI binary package found for darwin-arm64". pnpm caches `dlx`
-          # installs under ~/Library/Caches/pnpm/dlx/<hash of the RESOLVED
-          # version>, shared by every process on the machine regardless of CPU
-          # arch, and reused for 24h. The developer's shell on this Mac runs an
-          # Intel Homebrew Node under Rosetta (`node -p process.arch` → x64),
-          # while the runner's setup-node is arm64. Whichever of the two
-          # repopulates the entry first after it expires decides which
-          # @supabase/cli-darwin-* optional package is in it, and the other
-          # arch then fails. Pinning the version does not change the cache key
-          # (supabase@2.117.0 and supabase@latest hash to the same directory),
-          # so the job gets its own pnpm cache dir that no developer shell
-          # writes to. It is persistent, so the CLI is downloaded once.
-          export npm_config_cache_dir="$HOME/Library/Caches/pnpm-e2e-runner"
-          # A no-op that prints "already running" when the developer's stack is
-          # already up, which on this machine is the normal case.
-          pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" --workdir infra start
-          # This checkout is the runner's own workspace, not the developer's
-          # clone, so it starts with no .env — the seed and the suite read the
-          # service-role key from the repo root.
-          pnpm dlx "supabase@${SUPABASE_CLI_VERSION}" --workdir infra status -o env \
-            | sed -e 's/^API_URL=/SUPABASE_URL=/' \
-                  -e 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' \
-                  -e 's/^PUBLISHABLE_KEY=/SUPABASE_ANON_KEY=/' > .env
-          # The bundle inlines EXPO_PUBLIC_* at build time.
-          {
-            echo "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:55321"
-            echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$(grep '^SUPABASE_ANON_KEY=' .env | cut -d= -f2- | tr -d '\"')"
-            echo "EXPO_PUBLIC_APP_ENV=development"
-          } > apps/mobile/.env
+        run: node scripts/e2e/ci-stack.mjs
 
       # --wait rather than fail-fast: the developer may be running the suite by
       # hand on this same machine, and queueing behind them is friendlier than
@@ -238,6 +209,14 @@ jobs:
         if: always()
         run: pkill -f "${GITHUB_WORKSPACE}/.*vitest.*e2e/vitest.e2e.config" || true
 
-      # No teardown step on purpose. `supabase stop` would take down the stack
-      # the developer works against, and each suite already calls resetDb() at
-      # the start, so leaving it running costs nothing and surprises no one.
+      # Stop this job's own padeljam_ci stack, pass or fail. Left running, it holds 5632x on this
+      # Mac after the job ends, so nobody on another account can start or check the CI stack by
+      # hand (PAD-23). The cost is a cold start (~2-3 min) per run; each run now starts from a
+      # fresh stack. --project-id padeljam_ci only: never a bare `supabase stop`, which would take
+      # down a developer's stack. Same pinned CLI and pnpm cache dir as scripts/e2e/ci-stack.mjs.
+      - name: Stop the CI Supabase stack
+        if: always()
+        continue-on-error: true
+        env:
+          SUPABASE_PROJECT_ID: padeljam_ci
+        run: npm_config_cache_dir="$HOME/Library/Caches/pnpm-e2e-runner" pnpm dlx supabase@2.117.0 --workdir infra stop --project-id padeljam_ci --no-backup
