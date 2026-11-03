@@ -11,6 +11,7 @@ import type { Channel } from 'stream-chat';
 import { ChannelList } from 'stream-chat-expo';
 
 import { ChannelRow } from '@/components/chat/ChannelRow';
+import { streamEnabled } from '@/lib/streamClient';
 import { useGoBack } from '@/lib/useGoBack';
 import { colors, palette } from '../../theme';
 import { Button, Chip, EmptyState, TopBar } from '../../components/ui';
@@ -87,12 +88,18 @@ export default function ChatListScreen() {
           <Button label={t('retry')} variant="tertiary" size="sm" onPress={() => tokenQ.refetch()} />
         </View>
       ) : null}
-      <ChannelList
-        key={tab}
-        filters={{ members: { $in: [uid] }, archived: tab === 'archived' }}
-        sort={{ last_message_at: -1 }}
-        additionalFlatListProps={{ renderItem: Preview, ListEmptyComponent: ChatEmptyState }}
-      />
+      {/* Without an API key (local/E2E) StreamChatProvider skips <Chat>, and ChannelList would throw
+          outside its context — so the screen degrades to the empty state instead of a red box. */}
+      {streamEnabled ? (
+        <ChannelList
+          key={tab}
+          filters={{ members: { $in: [uid] }, archived: tab === 'archived' }}
+          sort={{ last_message_at: -1 }}
+          additionalFlatListProps={{ renderItem: Preview, ListEmptyComponent: ChatEmptyState }}
+        />
+      ) : (
+        <ChatEmptyState />
+      )}
     </SafeAreaView>
   );
 }
