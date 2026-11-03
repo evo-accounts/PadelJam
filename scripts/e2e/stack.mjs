@@ -30,6 +30,8 @@ export function resolveStack(name = process.env.E2E_STACK ?? 'dev') {
   return {
     name,
     projectId: s.projectId,
+    apiPort: s.api,
+    dbPort: s.db,
     apiUrl: `http://127.0.0.1:${s.api}`,
     mailpitUrl: `http://127.0.0.1:${s.mail}`,
     dbContainer: `supabase_db_${s.projectId}`,

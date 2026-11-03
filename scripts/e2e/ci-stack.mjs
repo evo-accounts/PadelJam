@@ -53,12 +53,14 @@ const portOpen = (port) => new Promise((done) => {
   sock.once('error', () => done(false));
   sock.once('timeout', () => { sock.destroy(); done(false); });
 });
-const [apiOpen, dbOpen] = await Promise.all([portOpen(Number(env.SUPABASE_API_PORT)), portOpen(Number(env.SUPABASE_DB_PORT))]);
-if (apiOpen || dbOpen) {
-  const containers = execFileSync('docker', ['ps', '--format', '{{.Names}}'], { encoding: 'utf8' }).split('\n');
-  if (heldByForeignStack(stack, { apiOpen, dbOpen, containers })) {
-    console.error(`[ci-stack] ERROR: ${stack.apiUrl} or its database port is already in use, and this Docker has no ${stack.dbContainer}. Another user's stack holds the ports, most likely the e2e runner's. Wait for its job to finish (gh run list --workflow e2e-mobile.yml --status in_progress; /tmp/padeljam-e2e.lock). Not running start, no .env written.`);
-    process.exit(1);
+if (stack.name !== 'dev') {
+  const [apiOpen, dbOpen] = await Promise.all([portOpen(stack.apiPort), portOpen(stack.dbPort)]);
+  if (apiOpen || dbOpen) {
+    const containers = execFileSync('docker', ['ps', '--format', '{{.Names}}'], { encoding: 'utf8' }).split('\n');
+    if (heldByForeignStack(stack, { apiOpen, dbOpen, containers })) {
+      console.error(`[ci-stack] ERROR: ${stack.apiUrl} or its database port is already in use, and this Docker has no ${stack.dbContainer}. Another user's stack holds the ports, most likely the e2e runner's. Wait for its job to finish (gh run list --workflow e2e-mobile.yml --status in_progress; /tmp/padeljam-e2e.lock). Not running start, no .env written.`);
+      process.exit(1);
+    }
   }
 }
 supabase('start');

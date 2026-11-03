@@ -78,3 +78,13 @@ test('heldByForeignStack: our own container, or nothing listening, or the dev st
   assert.equal(heldByForeignStack(ci, { apiOpen: false, dbOpen: false, containers: [] }), false);
   assert.equal(heldByForeignStack(resolveStack('dev'), { apiOpen: true, dbOpen: true, containers: [] }), false);
 });
+
+test('resolveStack returns numeric api and db ports for dev and ci', () => {
+  for (const name of ['dev', 'ci']) {
+    const s = resolveStack(name);
+    assert.equal(Number.isInteger(s.apiPort), true);
+    assert.equal(Number.isInteger(s.dbPort), true);
+  }
+  assert.equal(resolveStack('ci').apiPort, 56321);
+  assert.equal(resolveStack('ci').dbPort, 56322);
+});
