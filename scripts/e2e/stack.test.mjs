@@ -2,7 +2,7 @@
 // no stack is started.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { STACKS, resolveStack, urlMismatches } from './stack.mjs';
+import { STACKS, resolveStack, urlMismatches, heldByForeignStack } from './stack.mjs';
 
 test('defaults to dev: 55321, supabase_db_padeljam, empty cliEnv', () => {
   const prev = process.env.E2E_STACK;
@@ -64,4 +64,17 @@ test('urlMismatches: a missing URL is a mismatch under ci, not under dev', () =>
   const files = [{ file: '.env', key: 'SUPABASE_URL', value: undefined }];
   assert.equal(urlMismatches(resolveStack('ci'), files).length, 1);
   assert.deepEqual(urlMismatches(resolveStack('dev'), files), []);
+});
+
+test('heldByForeignStack: open ci port with no own container is refused', () => {
+  const ci = resolveStack('ci');
+  assert.equal(heldByForeignStack(ci, { apiOpen: true, dbOpen: false, containers: [] }), true);
+  assert.equal(heldByForeignStack(ci, { apiOpen: false, dbOpen: true, containers: ['supabase_db_padeljam'] }), true);
+});
+
+test('heldByForeignStack: our own container, or nothing listening, or the dev stack, is fine', () => {
+  const ci = resolveStack('ci');
+  assert.equal(heldByForeignStack(ci, { apiOpen: true, dbOpen: true, containers: ['supabase_db_padeljam_ci'] }), false);
+  assert.equal(heldByForeignStack(ci, { apiOpen: false, dbOpen: false, containers: [] }), false);
+  assert.equal(heldByForeignStack(resolveStack('dev'), { apiOpen: true, dbOpen: true, containers: [] }), false);
 });

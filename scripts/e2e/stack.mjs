@@ -50,3 +50,13 @@ export function urlMismatches(stack, files) {
   }
   return out;
 }
+
+/**
+ * True when a port of the stack answers but our own Docker has no `dbContainer`: someone else's
+ * stack (the runner's, in its own VM) holds it, and `supabase start` would start containers whose
+ * migrations then connect to that other database. Only the `ci` stack is guarded.
+ */
+export function heldByForeignStack(stack, { apiOpen, dbOpen, containers }) {
+  if (stack.name === 'dev') return false;
+  return (apiOpen || dbOpen) && !containers.includes(stack.dbContainer);
+}

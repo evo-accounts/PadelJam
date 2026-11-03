@@ -221,7 +221,10 @@ The stacks are defined in [`scripts/e2e/stack.mjs`](../../../scripts/e2e/stack.m
 CI runs on the `ci` stack, brought up by `node scripts/e2e/ci-stack.mjs`. That script also
 writes the repo-root `.env` and `apps/mobile/.env` with the stack's URL and keys. Because it
 shares no ports with the dev stack, it can't collide with the agents' stack. The `5632x`
-block is reserved for this runner: don't use it for anything else.
+block is reserved for this runner: don't use it for anything else. Don't run the `ci` stack by
+hand on the runner Mac while an `e2e` job is running (its stack holds 56321/56322 in its own VM, and
+`ci-stack.mjs` now refuses to start). Check with `gh run list --workflow e2e-mobile.yml --status in_progress`
+and `/tmp/padeljam-e2e.lock`.
 
 A local run still defaults to `E2E_STACK=dev` (`padeljam`, 55321), the stack in the
 Prerequisites above. To run against the CI stack by hand:

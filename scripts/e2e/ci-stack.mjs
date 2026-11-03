@@ -14,7 +14,8 @@ import { writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveStack } from './stack.mjs';
+import { connect } from 'node:net';
+import { heldByForeignStack, resolveStack } from './stack.mjs';
 
 const SUPABASE_CLI_VERSION = '2.117.0'; // keep in step with infra/supabase/README.md and apps/mobile/e2e/README.md
 
@@ -45,6 +46,21 @@ const supabase = (...cmd) => execFileSync(
 );
 
 console.log(`[ci-stack] stack: ${stack.name} (${stack.projectId}, ${stack.apiUrl})`);
+
+const portOpen = (port) => new Promise((done) => {
+  const sock = connect({ host: '127.0.0.1', port, timeout: 1000 });
+  sock.once('connect', () => { sock.destroy(); done(true); });
+  sock.once('error', () => done(false));
+  sock.once('timeout', () => { sock.destroy(); done(false); });
+});
+const [apiOpen, dbOpen] = await Promise.all([portOpen(Number(env.SUPABASE_API_PORT)), portOpen(Number(env.SUPABASE_DB_PORT))]);
+if (apiOpen || dbOpen) {
+  const containers = execFileSync('docker', ['ps', '--format', '{{.Names}}'], { encoding: 'utf8' }).split('\n');
+  if (heldByForeignStack(stack, { apiOpen, dbOpen, containers })) {
+    console.error(`[ci-stack] ERROR: ${stack.apiUrl} or its database port is already in use, and this Docker has no ${stack.dbContainer}. Another user's stack holds the ports, most likely the e2e runner's. Wait for its job to finish (gh run list --workflow e2e-mobile.yml --status in_progress; /tmp/padeljam-e2e.lock). Not running start, no .env written.`);
+    process.exit(1);
+  }
+}
 supabase('start');
 const status = supabase('status', '-o', 'env');
 
