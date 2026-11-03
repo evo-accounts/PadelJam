@@ -54,6 +54,18 @@ async function ensureSpatialRefSys(): Promise<void> {
   if (!(await has4326())) throw new Error('spatial_ref_sys still has no SRID 4326 — run `supabase db reset`.');
 }
 
+async function withDeadlockRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i >= attempts || !/deadlock detected/.test(String(e))) throw e;
+      console.warn(`[e2e] wipeDb: deadlock (attempt ${i}/${attempts}) — retrying`);
+      await new Promise((r) => setTimeout(r, 1000 * i));
+    }
+  }
+}
+
 /** Wipe all app data (public tables, auth users, storage objects) without a full supabase db reset. */
 export async function wipeDb(): Promise<void> {
   // storage.protect_delete() blocks direct deletes; superuser + replica role bypasses it.
@@ -63,7 +75,11 @@ export async function wipeDb(): Promise<void> {
      set session_replication_role = default;`,
     { su: true },
   );
-  await psql(`
+  // Retried on deadlock only. The truncates take AccessExclusiveLock table by table while the
+  // app left running by the previous suite may still be reading those tables in another order;
+  // Postgres then aborts one side, and on 2026-11-02 it picked the wipe (suite 13, PR 296). psql
+  // -c sends this as one implicit transaction, so an aborted attempt has changed nothing.
+  await withDeadlockRetry(() => psql(`
     do $$
     declare r record;
     begin
@@ -99,7 +115,7 @@ export async function wipeDb(): Promise<void> {
       end loop;
     end $$;
     delete from auth.users;
-  `);
+  `));
   await ensureSpatialRefSys();
   // Verify BOTH sides: auth.users deletion is FK-restricted by public tables
   // (tenants.owner_id), so a partial wipe leaves users behind and every later
