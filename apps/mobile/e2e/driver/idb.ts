@@ -1,8 +1,12 @@
 import { spawn } from 'node:child_process';
+import { closeSync, existsSync, openSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { CONFIG } from './config';
 import { describeFailure, run, runOk } from './proc';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const COMPANION_START_MS = 30_000;
 
 /**
  * idb talks to a per-device `idb_companion` over a unix socket. The companion
@@ -10,17 +14,34 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * failing with "Connection lost"/"Connection refused". Respawn it on the socket
  * path the client expects, then retry once. Exported for the wedged-AX reboot
  * in app.ts, which knows the companion just lost its simulator.
+ *
+ * Waits for the socket to appear rather than a fixed 6 s: on a sluggish CoreSimulator the new
+ * companion took longer than that, and the retry then failed with "[Errno 2] No such file or
+ * directory" on the socket (PR 296). The old socket is removed first so its presence means the
+ * new companion is listening, and the companion's output goes to a log so a start that never
+ * comes up says why.
  */
 export async function restartCompanion(): Promise<void> {
   const sock = `/tmp/idb/${CONFIG.udid}_companion.sock`;
+  const log = join(tmpdir(), `idb_companion_${CONFIG.udid}.log`);
   await run('pkill', ['-f', `idb_companion.*${CONFIG.udid}`]);
   await sleep(1500);
+  rmSync(sock, { force: true });
+  const out = openSync(log, 'w');
   const child = spawn('idb_companion', ['--udid', CONFIG.udid, '--grpc-domain-sock', sock], {
     detached: true,
-    stdio: 'ignore',
+    stdio: ['ignore', out, out],
   });
   child.unref();
-  await sleep(6000);
+  closeSync(out);
+  const deadline = Date.now() + COMPANION_START_MS;
+  while (!existsSync(sock) && Date.now() < deadline) await sleep(500);
+  if (!existsSync(sock)) {
+    const tail = readFileSync(log, 'utf8').trim().split('\n').slice(-5).join('\n');
+    console.warn(`[e2e] idb companion did not open ${sock} within ${COMPANION_START_MS / 1000}s:\n${tail || '(no output)'}`);
+    return;
+  }
+  await sleep(1000); // the socket exists slightly before the companion accepts on it
 }
 
 /**
