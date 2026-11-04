@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { OptionList } from '@/components/onboarding/OptionList';
 
+const BADGE_HAND = require('../../assets/onboarding/badge-hand.png');
+
 export default function HandStep() {
   const { t } = useT('onboarding');
   const router = useRouter();
@@ -41,8 +43,8 @@ export default function HandStep() {
         value={hand}
         onChange={setHand}
         options={[
-          { value: 'left', title: t('handLeft') },
-          { value: 'right', title: t('handRight') },
+          { value: 'left', title: t('handLeft'), badge: BADGE_HAND },
+          { value: 'right', title: t('handRight'), badge: BADGE_HAND },
         ]}
         testID="hand-options"
       />

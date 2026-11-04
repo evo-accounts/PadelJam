@@ -4,7 +4,7 @@ import { expectVisible } from '../driver/expect';
 import { freshInstall, relaunch } from '../driver/app';
 import { loginAs, tapAlertButton } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
-import { select } from '../fixtures/db';
+import { psql, select } from '../fixtures/db';
 import { PERSONAS } from '../fixtures/personas';
 
 describe('02 onboarding', () => {
@@ -62,18 +62,29 @@ describe('02 onboarding', () => {
   it('hand and side selections persist', async () => {
     await tap({ label: 'Right' });
     await tap({ label: 'Continue', type: 'Button' });
-    await expectVisible({ text: /preferred side/i });
-    await tap({ label: 'Left' });
+    await expectVisible({ text: /court side/i });
+    await tap({ label: 'Left side' });
     await tap({ label: 'Continue', type: 'Button' });
-    await expectVisible({ text: /enable notifications/i });
+    await expectVisible({ text: /don.t miss a thing/i });
     const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=dominant_hand,court_side`);
     const p = (rows as { dominant_hand: string; court_side: string }[])[0];
     expect(p?.dominant_hand).toBe('right');
     expect(p?.court_side).toBe('left');
   });
 
+  it('"Skip for now" stamps notifications_prompted_at and moves on', async () => {
+    await tap({ label: 'Skip for now' });
+    await expectVisible({ text: /Jammer\+/ }, { timeout: 30_000 });
+    const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=notifications_prompted_at`);
+    expect((rows as { notifications_prompted_at: string | null }[])[0]?.notifications_prompted_at).toBeTruthy();
+    // Un-stamp and relaunch: onboarding resumes at the first unanswered step, which is notifications again.
+    await psql(`update profiles set notifications_prompted_at = null where email = '${PERSONAS.omar.email}'`, { su: true });
+    await relaunch();
+    await expectVisible({ text: /don.t miss a thing/i }, { timeout: 30_000 });
+  });
+
   it('notifications permission alert is answerable and flow proceeds', async () => {
-    await tap({ text: /enable notifications/i, type: 'Button' });
+    await tap({ label: 'Allow push notifications', type: 'Button' });
     await tapAlertButton(/allow/i);
     await expectVisible({ text: /Jammer\+/ }, { timeout: 30_000 });
   });

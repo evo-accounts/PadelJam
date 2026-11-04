@@ -78,6 +78,9 @@ export function OnboardingStep(props: IntroProps | QuestionProps) {
       )}
 
       <ScrollView
+        // Reaches the screen edge (the container pads 24 each side, which would otherwise clip
+        // art that bleeds off the sides); `content` puts the same padding back for everything in it.
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -191,7 +194,8 @@ const styles = StyleSheet.create({
     backgroundColor: onboardingColors.progressTrack,
   },
   segmentFilled: { backgroundColor: onboardingColors.progressFill },
-  content: { flexGrow: 1, paddingTop: space[6] },
+  scroll: { marginHorizontal: -space[6] },
+  content: { flexGrow: 1, paddingTop: space[6], paddingHorizontal: space[6] },
   title: { marginBottom: space[3] },
   body: { marginBottom: space[6] },
   art: { flex: 1, alignItems: 'center', justifyContent: 'center' },

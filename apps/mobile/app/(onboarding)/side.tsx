@@ -4,13 +4,15 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
-import { OptionList } from '@/components/onboarding/OptionList';
+import { CourtSidePicker, type CourtSide } from '@/components/onboarding/CourtSidePicker';
+
+const FOX = require('../../assets/onboarding/fox-court.png');
 
 export default function SideStep() {
   const { t } = useT('onboarding');
   const router = useRouter();
   const update = useUpdateProfile();
-  const [side, setSide] = useState<string | null>(null);
+  const [side, setSide] = useState<CourtSide | null>(null);
 
   const goNext = () => router.push('/(onboarding)/notifications');
 
@@ -37,14 +39,14 @@ export default function SideStep() {
       onPrimary={onContinue}
       onBack={() => router.back()}
     >
-      <OptionList
+      <CourtSidePicker
         value={side}
         onChange={setSide}
-        options={[
-          { value: 'left', title: t('sideLeft') },
-          { value: 'right', title: t('sideRight') },
-        ]}
-        testID="side-options"
+        leftLabel={t('sideLeft')}
+        rightLabel={t('sideRight')}
+        switchLabel={t('switchSide')}
+        fox={FOX}
+        testID="side-picker"
       />
     </OnboardingStep>
   );
