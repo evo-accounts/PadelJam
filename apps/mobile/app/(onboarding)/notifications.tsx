@@ -2,12 +2,38 @@ import { useT } from '@padel/i18n';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { markNotificationsPrompted, onStampFailure, stampWithRetry } from '@/lib/onboardingStamps';
 import { registerForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { useBanner } from '../../components/ui';
+
+const TURTLE = require('../../assets/onboarding/turtle@2x.png');
+const DOVE = require('../../assets/onboarding/dove@2x.png');
+const CLOUD_A = require('../../assets/onboarding/cloud-a@2x.png');
+const CLOUD_B = require('../../assets/onboarding/cloud-b@2x.png');
+
+/** Frame 9: the turtle reaching for the dove, with a cloud behind each side. Decorative. */
+function NotificationsArt() {
+  return (
+    <View style={art.box} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Image source={CLOUD_A} style={art.cloudA} resizeMode="contain" />
+      <Image source={CLOUD_B} style={art.cloudB} resizeMode="contain" />
+      <Image source={TURTLE} style={art.turtle} resizeMode="contain" />
+      <Image source={DOVE} style={art.dove} resizeMode="contain" />
+    </View>
+  );
+}
+
+const art = StyleSheet.create({
+  box: { width: '100%', maxWidth: 360, height: 300 },
+  cloudA: { position: 'absolute', left: -20, top: 60, width: 119, height: 58 },
+  cloudB: { position: 'absolute', right: -30, top: 10, width: 188, height: 93 },
+  turtle: { position: 'absolute', left: 30, bottom: 0, width: 220, height: 240 },
+  dove: { position: 'absolute', right: 20, top: 0, width: 156, height: 132 },
+});
 
 export default function NotificationsStep() {
   const { t } = useT('onboarding');
@@ -53,6 +79,7 @@ export default function NotificationsStep() {
   return (
     <OnboardingStep
       header="intro"
+      art={<NotificationsArt />}
       title={t('notificationsTitle')}
       body={t('notificationsBody')}
       primaryLabel={t('notificationsEnable')}

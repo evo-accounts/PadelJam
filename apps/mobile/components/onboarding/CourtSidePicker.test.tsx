@@ -47,6 +47,8 @@ vi.mock('../../theme', () => ({
 vi.mock('react-native-svg', () => ({
   default: (p: { children?: ReactNode }) => createElement('svg', null, p.children),
   Polygon: () => createElement('polygon'),
+  Rect: () => createElement('rect'),
+  Line: () => createElement('line'),
 }));
 vi.mock('../ui/native', () => ({
   Text: (p: { children?: ReactNode }) => createElement('span', null, p.children),

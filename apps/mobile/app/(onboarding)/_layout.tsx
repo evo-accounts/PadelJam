@@ -4,6 +4,7 @@ export default function OnboardingLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="location" />
+      <Stack.Screen name="level" />
       <Stack.Screen name="hand" />
       <Stack.Screen name="side" />
       <Stack.Screen name="notifications" />

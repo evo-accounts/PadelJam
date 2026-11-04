@@ -11,7 +11,7 @@
 // checkout `supabase start` ran from (CI's db-tests job starts it from the branch). In a worktree,
 // serve this branch's copy yourself and point DELETE_ACCOUNT_URL at it — the docker line is in the
 // header of complete-account-consent.test.mjs.
-import { BASE_URL, user, rpc, anonRpc, req, sel, expectError, assert, run } from './lib.mjs';
+import { BASE_URL, user, rpc, anonRpc, req, sel, patch, expectError, assert, run } from './lib.mjs';
 
 const FN_URL = process.env.DELETE_ACCOUNT_URL || `${BASE_URL}/functions/v1/delete-account`;
 const DENIED = 'permission denied for function soft_delete_account';
@@ -31,7 +31,7 @@ const isBanned = async (id) => {
   const u = await authUser(id);
   return Boolean(u.banned_until) && Date.parse(u.banned_until) > IN_99_YEARS;
 };
-const profile = async (id) => (await sel('profiles', `id=eq.${id}&select=full_name,deleted_at`))[0];
+const profile = async (id) => (await sel('profiles', `id=eq.${id}&select=full_name,deleted_at,level`))[0];
 const hasBlock = async (blocker, blocked) =>
   (await sel('blocks', `blocker_id=eq.${blocker}&blocked_id=eq.${blocked}&select=id`)).length === 1;
 const leftRows = (eventId, actorId) =>
@@ -79,6 +79,7 @@ await rpc(blocker.jwt, 'block_user', { p_target: target.id });
 await rpc(blocker.jwt, 'block_user', { p_target: svc.id });
 await rpc(target.jwt, 'block_user', { p_target: blockee.id });
 const targetEvent = await upcomingEventWith(host, target);
+await patch('profiles', `id=eq.${svc.id}`, { level: 3 }); // so the deletion has something to clear
 const svcEvent = await upcomingEventWith(host, svc);
 
 await run('a signed-in user cannot run soft_delete_account over PostgREST, for themselves', async () => {
@@ -110,6 +111,7 @@ await run('service_role CAN run soft_delete_account for an explicit user, which 
   await rpc(null, 'soft_delete_account', { p_user: svc.id }); // no jwt → the service key, no `sub`
   const p = await profile(svc.id);
   assert(p.full_name === 'Deleted user' && p.deleted_at !== null, 'the profile is anonymized and marked deleted');
+  assert(p.level === null, 'level is cleared');
   assert(await isBanned(svc.id), 'banned in the same call, with no GoTrue admin request involved');
   assert(await hasBlock(blocker.id, svc.id), 'the block another user placed survives');
   // The service role carries no `sub`; the function pins auth.uid() so 0122's trigger still logs it.

@@ -11,6 +11,7 @@
 export type OnboardingProfile = {
   onboarded_at: string | null;
   location_text: string | null;
+  level: number | null;
   dominant_hand: string | null;
   court_side: string | null;
   notifications_prompted_at: string | null;
@@ -19,6 +20,7 @@ export type OnboardingProfile = {
 export type OnboardingRoute =
   | '/(tabs)'
   | '/(onboarding)/location'
+  | '/(onboarding)/level'
   | '/(onboarding)/hand'
   | '/(onboarding)/side'
   | '/(onboarding)/notifications'
@@ -26,15 +28,16 @@ export type OnboardingRoute =
 
 /**
  * The question steps in the order they are asked. The progress bar's "n/N" is
- * derived from this list, so adding a step (Level) is one entry here.
+ * derived from this list, so adding a step is one entry here.
  */
-export const ONBOARDING_QUESTION_STEPS = ['location', 'hand', 'side'] as const;
+export const ONBOARDING_QUESTION_STEPS = ['location', 'level', 'hand', 'side'] as const;
 
 export type OnboardingQuestionStep = (typeof ONBOARDING_QUESTION_STEPS)[number];
 
 export function onboardingRoute(profile: OnboardingProfile): OnboardingRoute {
   if (profile.onboarded_at) return '/(tabs)';
   if (!profile.location_text) return '/(onboarding)/location';
+  if (profile.level == null) return '/(onboarding)/level';
   if (!profile.dominant_hand) return '/(onboarding)/hand';
   if (!profile.court_side) return '/(onboarding)/side';
   // Keyed on "was it shown", not on the permission result — the OS owns that,

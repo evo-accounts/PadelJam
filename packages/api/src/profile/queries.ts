@@ -116,7 +116,7 @@ export const useMyProfile = () => {
       const [{ data, error }, { data: auth }] = await Promise.all([
         db
           .from('profiles')
-          .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, preferred_time, location_text')
+          .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, level, preferred_time, location_text')
           .eq('id', uid!)
           .single(),
         db.auth.getSession(),

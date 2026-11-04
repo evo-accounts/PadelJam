@@ -46,6 +46,7 @@ export default function GamePreferencesScreen() {
 
   const [hand, setHand] = useState<string | null>(null);
   const [side, setSide] = useState<string | null>(null);
+  const [level, setLevel] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
@@ -55,6 +56,7 @@ export default function GamePreferencesScreen() {
     if (!p) return;
     setHand(p.dominant_hand ?? null);
     setSide(p.court_side ?? null);
+    setLevel(p.level == null ? null : String(p.level));
     setTime(p.preferred_time ?? null);
     setPrefilled(true);
   }, [my.data]);
@@ -63,17 +65,24 @@ export default function GamePreferencesScreen() {
     () => ({
       hand: my.data?.dominant_hand ?? null,
       side: my.data?.court_side ?? null,
+      level: my.data?.level == null ? null : String(my.data.level),
       time: my.data?.preferred_time ?? null,
     }),
     [my.data],
   );
-  const dirty = useDirty({ hand, side, time }, initial);
+  const dirty = useDirty({ hand, side, level, time }, initial);
 
   const onSave = async () => {
     if (saving) return;
     setSaving(true);
     try {
-      await update.mutateAsync({ dominant_hand: hand, court_side: side, preferred_time: time });
+      await update.mutateAsync({
+        dominant_hand: hand,
+        court_side: side,
+        // Never write null over a level the user hasn't touched: only send what is set.
+        ...(level ? { level: Number(level) } : {}),
+        preferred_time: time,
+      });
       router.back();
     } catch (e) {
       banner.show(t(e instanceof Error ? e.message : 'unknown_error'));
@@ -113,6 +122,21 @@ export default function GamePreferencesScreen() {
               { value: 'right', label: t('sideRight') },
             ]}
             testID="pref-side"
+          />
+        </Block>
+
+        <Block title={t('levelLabel')} description={t('levelDescription')}>
+          <Segmented
+            value={level ?? ''}
+            onChange={setLevel}
+            singleLine
+            options={[
+              { value: '1', label: t('levelBeginner') },
+              { value: '2', label: t('levelCasual') },
+              { value: '3', label: t('levelIntermediate') },
+              { value: '4', label: t('levelAdvanced') },
+            ]}
+            testID="pref-level"
           />
         </Block>
 

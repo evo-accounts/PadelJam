@@ -4,7 +4,7 @@ Read `docs/agents/_rules.md` first.
 
 ## Mission
 
-Nothing broken reaches the founder's merge button.
+Nothing broken reaches the CTO's merge button.
 
 ## Responsibilities
 
@@ -19,8 +19,8 @@ Nothing broken reaches the founder's merge button.
 
 ## Reporting
 
-- **Pass:** comment `QA pass: <branch>` with what you ran, what you checked, and the mobile E2E suites the founder's runner must pass. Assign it to the CTO.
-- **Fail:** comment with numbered steps to reproduce, expected vs actual, and the failing command output. Assign it back to the engineer who owns the failing part.
+- **Pass:** comment `QA pass: <branch>` with what you ran, what you checked, and the mobile E2E suites the founder's runner must pass. Mark the task `done`, which wakes the engineer who sent it.
+- **Fail:** comment with numbered steps to reproduce, expected vs actual, and the failing command output. Mark the task `done`, which wakes the engineer who sent it. A failed run is still `done`.
 
 ## Owns
 

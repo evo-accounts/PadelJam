@@ -10,9 +10,10 @@
  * The court is drawn in perspective (an SVG layer); the halves are plain
  * rectangular `Pressable`s on top, transparent, as the hit targets.
  */
+import { Fragment } from 'react';
 import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
-import Svg, { Polygon } from 'react-native-svg';
+import Svg, { Line, Polygon, Rect } from 'react-native-svg';
 
 import { colors, onboardingColors, radius, space, type } from '../../theme';
 import { Text as RNText } from '../ui/native';
@@ -22,9 +23,12 @@ export type CourtSide = 'left' | 'right';
 const FOX = 120;
 const SWAP = 44;
 const COURT_H = 280;
-// Court drawing in a 300 x 280 box, stretched to the width. Far edge inset by 40.
-const LEFT_POLY = '40,0 150,0 150,280 0,280';
-const RIGHT_POLY = '150,0 260,0 300,280 150,280';
+// Court drawing in a 300 x 280 box, stretched to the width, kept 3 units off the edges so
+// strokes are not clipped. Net on top (y 3-12), far edge inset 21 (about 7%, as in frame 7),
+// near edge 3. The service line sits at the top of the label row (y 228).
+const LEFT_POLY = '21,12 150,12 150,277 3,277';
+const RIGHT_POLY = '150,12 279,12 297,277 150,277';
+const SERVICE = { y: 228, leftX: 6.2, rightX: 293.8 };
 
 export function CourtSidePicker({
   value,
@@ -69,7 +73,6 @@ export function CourtSidePicker({
 
   return (
     <View style={styles.wrap} testID={testID}>
-      <View style={styles.net} />
       <View accessibilityRole="radiogroup" style={styles.court}>
         <Svg
           style={StyleSheet.absoluteFill}
@@ -79,15 +82,33 @@ export function CourtSidePicker({
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         >
-          {(['left', 'right'] as const).map((side) => (
-            <Polygon
-              key={side}
-              points={side === 'left' ? LEFT_POLY : RIGHT_POLY}
-              fill={value === side ? onboardingColors.courtSelectedBg : 'none'}
-              stroke={value === side ? onboardingColors.courtSelectedBorder : onboardingColors.courtLine}
-              strokeWidth={value === side ? 3 : 1.5}
-            />
-          ))}
+          <Rect x={21} y={3} width={258} height={9} rx={2} fill={onboardingColors.courtLine} />
+          {/* Selected half last, so its border is not painted over at the centre line. */}
+          {(['left', 'right'] as const)
+            .slice()
+            .sort((x) => (x === value ? 1 : -1))
+            .map((side) => {
+              const on = value === side;
+              const stroke = on ? onboardingColors.courtSelectedBorder : onboardingColors.courtLine;
+              return (
+                <Fragment key={side}>
+                  <Polygon
+                    points={side === 'left' ? LEFT_POLY : RIGHT_POLY}
+                    fill={on ? onboardingColors.courtSelectedBg : 'none'}
+                    stroke={stroke}
+                    strokeWidth={on ? 3 : 1.5}
+                  />
+                  <Line
+                    x1={side === 'left' ? SERVICE.leftX : 150}
+                    x2={side === 'left' ? 150 : SERVICE.rightX}
+                    y1={SERVICE.y}
+                    y2={SERVICE.y}
+                    stroke={stroke}
+                    strokeWidth={on ? 3 : 1.5}
+                  />
+                </Fragment>
+              );
+            })}
         </Svg>
         {half('left', leftLabel)}
         {half('right', rightLabel)}
@@ -109,18 +130,12 @@ export function CourtSidePicker({
 
 const styles = StyleSheet.create({
   wrap: { marginTop: space[8], justifyContent: 'center' },
-  net: {
-    height: space[2],
-    borderTopLeftRadius: radius.sm,
-    borderTopRightRadius: radius.sm,
-    backgroundColor: onboardingColors.courtLine,
-  },
   court: {
     flexDirection: 'row',
     height: COURT_H,
   },
   half: { flex: 1, justifyContent: 'flex-end' },
-  fox: { position: 'absolute', top: space[2], left: 0, right: 0, alignItems: 'center' },
+  fox: { position: 'absolute', top: -space[10], left: 0, right: 0, alignItems: 'center' },
   foxImage: { width: FOX, height: FOX },
   labelRow: { height: 52, alignItems: 'center', justifyContent: 'center' },
   label: { color: colors.mutedForeground },

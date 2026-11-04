@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { CourtSidePicker, type CourtSide } from '@/components/onboarding/CourtSidePicker';
 
+const FOX = require('../../assets/onboarding/fox-court@2x.png');
+
 export default function SideStep() {
   const { t } = useT('onboarding');
   const router = useRouter();
@@ -43,6 +45,7 @@ export default function SideStep() {
         leftLabel={t('sideLeft')}
         rightLabel={t('sideRight')}
         switchLabel={t('switchSide')}
+        fox={FOX}
         testID="side-picker"
       />
     </OnboardingStep>
