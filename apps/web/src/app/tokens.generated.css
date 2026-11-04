@@ -238,6 +238,27 @@
   --button-invalid-ring: rgba(220, 38, 38, 0.2);
 }
 
+/* Onboarding tokens (component tier). Light only; see packages/ui semantic.ts. */
+:root {
+  --onboarding-option-bg: #f1f5f9;
+  --onboarding-option-title: #334155;
+  --onboarding-option-selected-bg: #eddeff;
+  --onboarding-option-selected-border: #b57bff;
+  --onboarding-option-selected-title: #2f103d;
+  --onboarding-back-bg: #fbf8ff;
+  --onboarding-progress-fill: #b57bff;
+  --onboarding-progress-track: #e2e8f0;
+  --onboarding-progress-label: #64748b;
+  --onboarding-secondary-action-bg: #f1f5f9;
+  --onboarding-secondary-action-fg: #1e293b;
+  --onboarding-court-line: #cbd5e1;
+  --onboarding-court-selected-bg: #eddeff;
+  --onboarding-court-selected-border: #2f103d;
+  --onboarding-plans-from: #2f103d;
+  --onboarding-plans-to: #9162cc;
+  --onboarding-plans-accent: #c394ff;
+}
+
 /* Semantic tokens — dark. Defined for fidelity; the app ships light-only and
  * nothing adds the .dark class today. NOTE: --background and --primary are both
  * purple-900 here, carried over from the original export — a primary button
