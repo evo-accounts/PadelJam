@@ -7,18 +7,24 @@
  * ("Left side" / "Right side"). The swap button is named "Switch side". The fox
  * is decorative.
  *
- * Flat rectangles rather than the design's perspective trapezoids: the halves
- * need to be plain hit targets, and the perspective is only a drawing.
+ * The court is drawn in perspective (an SVG layer); the halves are plain
+ * rectangular `Pressable`s on top, transparent, as the hit targets.
  */
 import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
-import { onboardingColors, radius, space, type } from '../../theme';
+import Svg, { Polygon } from 'react-native-svg';
+
+import { colors, onboardingColors, radius, space, type } from '../../theme';
 import { Text as RNText } from '../ui/native';
 
 export type CourtSide = 'left' | 'right';
 
 const FOX = 120;
 const SWAP = 44;
+const COURT_H = 280;
+// Court drawing in a 300 x 280 box, stretched to the width. Far edge inset by 40.
+const LEFT_POLY = '40,0 150,0 150,280 0,280';
+const RIGHT_POLY = '150,0 260,0 300,280 150,280';
 
 export function CourtSidePicker({
   value,
@@ -46,7 +52,7 @@ export function CourtSidePicker({
         accessibilityRole="radio"
         accessibilityLabel={label}
         accessibilityState={{ checked }}
-        style={[styles.half, checked && styles.halfChecked]}
+        style={styles.half}
         testID={testID ? `${testID}-${side}` : undefined}
       >
         {checked && fox ? (
@@ -65,6 +71,24 @@ export function CourtSidePicker({
     <View style={styles.wrap} testID={testID}>
       <View style={styles.net} />
       <View accessibilityRole="radiogroup" style={styles.court}>
+        <Svg
+          style={StyleSheet.absoluteFill}
+          viewBox="0 0 300 280"
+          preserveAspectRatio="none"
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          {(['left', 'right'] as const).map((side) => (
+            <Polygon
+              key={side}
+              points={side === 'left' ? LEFT_POLY : RIGHT_POLY}
+              fill={value === side ? onboardingColors.courtSelectedBg : 'none'}
+              stroke={value === side ? onboardingColors.courtSelectedBorder : onboardingColors.courtLine}
+              strokeWidth={value === side ? 3 : 1.5}
+            />
+          ))}
+        </Svg>
         {half('left', leftLabel)}
         {half('right', rightLabel)}
       </View>
@@ -93,25 +117,13 @@ const styles = StyleSheet.create({
   },
   court: {
     flexDirection: 'row',
-    height: 280,
-    borderWidth: 1,
-    borderColor: onboardingColors.courtLine,
+    height: COURT_H,
   },
-  half: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    borderWidth: 1,
-    borderColor: onboardingColors.courtLine,
-  },
-  halfChecked: {
-    backgroundColor: onboardingColors.courtSelectedBg,
-    borderColor: onboardingColors.courtSelectedBorder,
-    borderWidth: 2,
-  },
+  half: { flex: 1, justifyContent: 'flex-end' },
   fox: { position: 'absolute', top: space[2], left: 0, right: 0, alignItems: 'center' },
   foxImage: { width: FOX, height: FOX },
   labelRow: { height: 52, alignItems: 'center', justifyContent: 'center' },
-  label: { color: onboardingColors.courtLine },
+  label: { color: colors.mutedForeground },
   labelChecked: { color: onboardingColors.optionSelectedTitle },
   swap: {
     position: 'absolute',

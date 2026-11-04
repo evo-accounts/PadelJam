@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * OptionList: selection, accessibility state and disabled.
+ * CourtSidePicker: selection, swap and accessibility state.
  *
  * The container is a `radiogroup` and every card a `radio` that reports
  * `checked`. The E2E harness reads those, so they are asserted here rather
@@ -34,17 +34,19 @@ vi.mock('react-native', () => {
         { ...a11y(p), disabled: p.disabled as boolean | undefined, onClick: p.onPress as () => void },
         p.children,
       ),
-    StyleSheet: { create: <T,>(s: T) => s },
+    StyleSheet: { create: <T,>(s: T) => s, absoluteFill: {} },
   };
 });
 vi.mock('../../theme', () => ({
+  colors: new Proxy({}, { get: () => 'token' }),
   onboardingColors: new Proxy({}, { get: () => 'token' }),
   radius: new Proxy({}, { get: () => 8 }),
   space: new Proxy({}, { get: () => 8 }),
   type: new Proxy({}, { get: () => ({}) }),
 }));
-vi.mock('../ui', () => ({
-  Text: (p: { children?: ReactNode }) => createElement('span', null, p.children),
+vi.mock('react-native-svg', () => ({
+  default: (p: { children?: ReactNode }) => createElement('svg', null, p.children),
+  Polygon: () => createElement('polygon'),
 }));
 vi.mock('../ui/native', () => ({
   Text: (p: { children?: ReactNode }) => createElement('span', null, p.children),
