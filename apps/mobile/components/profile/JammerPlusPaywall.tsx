@@ -1,7 +1,7 @@
 import { useAccountPlan, useSetAccountPlan } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -9,6 +9,9 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { PRIVACY_URL, TERMS_URL } from '@/lib/externalUrls';
 import { colors, onboardingColors, palette, radius, space, type } from '../../theme';
 import { Badge, Card, TopBar, useBanner, useConfirm } from '../ui';
+
+const SPACE_BG = require('../../assets/onboarding/space-bg@2x.jpg');
+const ASTRONAUT = require('../../assets/onboarding/astronaut@2x.png');
 
 const BENEFIT_KEYS = [
   'jammerPlusBenefit1',
@@ -248,6 +251,7 @@ function OnboardingPlans({
         </Defs>
         <Rect width="100%" height="100%" fill="url(#plansBackdrop)" />
       </Svg>
+      <Image source={SPACE_BG} style={plans.spaceBg} resizeMode="cover" accessibilityElementsHidden />
 
       <View style={plans.closeRow}>
         <Pressable
@@ -263,6 +267,13 @@ function OnboardingPlans({
       </View>
 
       <ScrollView contentContainerStyle={plans.scroll} showsVerticalScrollIndicator={false}>
+        <Image
+          source={ASTRONAUT}
+          style={plans.astronaut}
+          resizeMode="contain"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
         <Text style={plans.title} accessibilityRole="header">
           {t('jammerPlusLead')} <Text style={plans.accent}>Jammer+</Text>
         </Text>
@@ -325,7 +336,8 @@ const plans = StyleSheet.create({
     backgroundColor: palette.purple[800],
   },
   closeGlyph: { ...type.bodyStrong, color: colors.card },
-  // The art that fills the top of frame 11 is still to come; the copy sits at the bottom meanwhile.
+  spaceBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 300, opacity: 0.55 },
+  astronaut: { alignSelf: 'center', width: 200, height: 225, marginBottom: space[4] },
   scroll: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: space[6] },
   title: { ...type.display, color: colors.card, textAlign: 'center' },
   accent: { color: onboardingColors.plansAccent },

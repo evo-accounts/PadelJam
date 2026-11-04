@@ -3,7 +3,7 @@ import { useT } from '@padel/i18n';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '@/components/ui/native';
 
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
@@ -11,6 +11,11 @@ import { OptionCard } from '@/components/onboarding/OptionList';
 import { IconButton } from '@/components/ui';
 import { formatAddress, useGeocodeSearch } from '@/lib/useGeocodeSearch';
 import { colors, onboardingColors, radius, space, type } from '../../theme';
+
+const BADGE_PIN = require('../../assets/onboarding/badge-pin@2x.png');
+const BUNNY = require('../../assets/onboarding/bunny@2x.png');
+const CLOUD_A = require('../../assets/onboarding/cloud-a@2x.png');
+const CLOUD_B = require('../../assets/onboarding/cloud-b@2x.png');
 
 type Coords = { lat: number; lng: number };
 
@@ -122,6 +127,13 @@ export default function LocationStep() {
           setMode('manual');
         }}
         onSkip={goNext}
+        art={
+          <View style={styles.art} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Image source={CLOUD_B} style={styles.cloudB} resizeMode="contain" />
+            <Image source={CLOUD_A} style={styles.cloudA} resizeMode="contain" />
+            <Image source={BUNNY} style={styles.bunny} resizeMode="contain" />
+          </View>
+        }
       >
         {saveError}
       </OnboardingStep>
@@ -168,7 +180,10 @@ export default function LocationStep() {
             accessibilityLabel={t('locationClear')}
             size="sm"
             style={styles.clear}
-            onPress={() => setText('')}
+            onPress={() => {
+              setText('');
+              setSaveFailed(false);
+            }}
             testID="location-clear"
           />
         ) : null}
@@ -181,6 +196,7 @@ export default function LocationStep() {
             title={place.title ?? place.label}
             description={place.subtitle}
             checked={i === picked}
+            badge={BADGE_PIN}
             onPress={() => setPicked(i)}
             testID={`location-result-${i}`}
           />
@@ -194,6 +210,10 @@ export default function LocationStep() {
 }
 
 const styles = StyleSheet.create({
+  art: { width: '100%', flex: 1, minHeight: 200, alignItems: 'center', justifyContent: 'flex-end' },
+  bunny: { width: 200, height: 227 },
+  cloudA: { position: 'absolute', top: space[2], left: 0, width: 119, height: 58, opacity: 0.9 },
+  cloudB: { position: 'absolute', top: space[8], right: 0, width: 188, height: 93, opacity: 0.9 },
   field: { justifyContent: 'center', marginBottom: space[4] },
   input: {
     backgroundColor: onboardingColors.optionBg,

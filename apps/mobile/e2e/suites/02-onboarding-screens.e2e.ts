@@ -7,7 +7,7 @@ import { tap, typeText } from '../driver/actions';
 import { freshInstall, relaunch } from '../driver/app';
 import { CONFIG } from '../driver/config';
 import { expectVisible } from '../driver/expect';
-import { loginAs } from '../driver/flows';
+import { deepLink, loginAs, tapAlertButton } from '../driver/flows';
 import { overrideStatusBar, screenshot } from '../driver/sim';
 import { rest } from '../fixtures/db';
 import { PERSONAS } from '../fixtures/personas';
@@ -49,14 +49,14 @@ describe('02 onboarding screens', () => {
       });
 
       it('saves the frames', async () => {
-        await expectVisible(title(t.locationTitle), { timeout: 30_000 });
+        await expectVisible(title(t.locationShareTitle), { timeout: 30_000 });
         await shot('location');
 
         await tap({ text: new RegExp(escape(t.locationAddManually), 'i') });
-        await expectVisible(title(t.locationManualTitle));
+        await expectVisible(title(t.locationTitle));
         await typeText({ type: 'TextField' }, 'Lisboa');
         // Continue stays disabled until the debounced geocode resolves.
-        await expectVisible({ text: /lisboa/i, type: 'StaticText' }, { timeout: 10_000 });
+        await expectVisible({ id: 'location-result-0' }, { timeout: 10_000 });
         await shot('location-manual');
         await tap({ label: t.continue, type: 'Button' });
 
@@ -77,6 +77,17 @@ describe('02 onboarding screens', () => {
 
         await expectVisible(title(t.notificationsTitle));
         await shot('notifications');
+
+        await tap({ text: new RegExp(escape(t.notificationsEnable), 'i'), type: 'Button' });
+        await tapAlertButton(/allow|permitir/i);
+        await expectVisible({ text: /Jammer\+/ }, { timeout: 30_000 });
+        await shot('plans');
+
+        // Leaving by the ✕ marks onboarding done; then the settings-mode paywall must look as before.
+        await tap({ label: t.jammerPlusFree });
+        await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 30_000 });
+        await deepLink('mobile:///profile/plan', /Jammer\+/);
+        await shot('paywall-settings');
       });
     });
   }

@@ -179,6 +179,18 @@ describe('useGeocodeSearch', () => {
     expect(latest.places).toHaveLength(1);
   });
 
+  it('lists one card when two hits differ in label but show the same title and subtitle', async () => {
+    geocodeAsync.mockResolvedValue([LISBOA, { latitude: 38.71, longitude: -9.13 }]);
+    reverseGeocodeAsync
+      .mockResolvedValueOnce([{ name: 'Baixa', city: 'Lisboa', region: 'Lisboa', country: 'Portugal' }])
+      .mockResolvedValueOnce([{ name: 'Alfama', city: 'Lisboa', region: 'Lisboa', country: 'Portugal' }]);
+
+    await type('Lisboa');
+    await wait(500);
+
+    expect(latest.places).toHaveLength(1);
+  });
+
   it('offers the typed text as the only entry when the lookup finds nothing', async () => {
     geocodeAsync.mockResolvedValue([]);
 

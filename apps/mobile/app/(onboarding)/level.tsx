@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { OptionList } from '@/components/onboarding/OptionList';
 
+const BADGE_TARGET = require('../../assets/onboarding/badge-target@2x.png');
+
 // Stored as profiles.level 1-4; the radio group deals in strings.
 const BANDS = [
   { value: '1', title: 'levelBeginner', description: 'levelBeginnerDesc' },
@@ -48,6 +50,7 @@ export default function LevelStep() {
           value: b.value,
           title: t(b.title),
           description: t(b.description),
+          badge: BADGE_TARGET,
         }))}
         testID="level-options"
       />

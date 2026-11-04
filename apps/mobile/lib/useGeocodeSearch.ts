@@ -95,8 +95,9 @@ async function nameHit(hit: Location.LocationGeocodedLocation, q: string): Promi
 async function lookup(q: string): Promise<ResolvedPlace[]> {
   const hits = (await Location.geocodeAsync(q)).slice(0, MAX_PLACES);
   const named = await Promise.all(hits.map((hit) => nameHit(hit, q)));
-  // Two hits can name the same place; show it once.
-  return named.filter((p, i) => named.findIndex((o) => o.label === p.label) === i);
+  // Show what the card shows once: "Baixa, Lisboa" and "Alfama, Lisboa" are both a "Lisboa / Portugal" card.
+  const key = (p: ResolvedPlace) => (p.title ? `${p.title}|${p.subtitle ?? ''}` : p.label);
+  return named.filter((p, i) => named.findIndex((o) => key(o) === key(p)) === i);
 }
 
 export function useGeocodeSearch(text: string): {
