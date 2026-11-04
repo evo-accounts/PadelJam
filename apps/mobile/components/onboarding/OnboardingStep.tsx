@@ -63,9 +63,13 @@ export function OnboardingStep(props: IntroProps | QuestionProps) {
    * shrunken viewport instead of staying above the keyboard.
    */
   return (
+    // The bottom inset is on `actions`, not here: with behavior="padding" RN overwrites this
+    // view's paddingBottom with the keyboard height (0 when closed), so it would be lost.
+    // The negative offset stops the inset being counted twice when the keyboard is open.
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top + space[4], paddingBottom: insets.bottom + space[6] }]}
+      style={[styles.container, { paddingTop: insets.top + space[4] }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={-insets.bottom}
     >
       {props.header === 'question' ? (
         <QuestionHeader step={props.step} onBack={props.onBack} />
@@ -88,7 +92,7 @@ export function OnboardingStep(props: IntroProps | QuestionProps) {
         {props.header === 'intro' && props.art ? <View style={styles.art}>{props.art}</View> : null}
       </ScrollView>
 
-      <View style={styles.actions}>
+      <View style={[styles.actions, { paddingBottom: insets.bottom + space[6] }]}>
         <Button
           size="lg"
           fullWidth
