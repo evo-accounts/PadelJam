@@ -12,10 +12,10 @@ import { IconButton } from '@/components/ui';
 import { formatAddress, useGeocodeSearch } from '@/lib/useGeocodeSearch';
 import { colors, onboardingColors, radius, space, type } from '../../theme';
 
-const BADGE_PIN = require('../../assets/onboarding/badge-pin@2x.png');
-const BUNNY = require('../../assets/onboarding/bunny@2x.png');
-const CLOUD_A = require('../../assets/onboarding/cloud-a@2x.png');
-const CLOUD_B = require('../../assets/onboarding/cloud-b@2x.png');
+const BADGE_PIN = require('../../assets/onboarding/badge-pin.png');
+const BUNNY = require('../../assets/onboarding/bunny.png');
+const CLOUD_A = require('../../assets/onboarding/cloud-a.png');
+const CLOUD_B = require('../../assets/onboarding/cloud-b.png');
 
 type Coords = { lat: number; lng: number };
 

@@ -10,8 +10,8 @@ import { PRIVACY_URL, TERMS_URL } from '@/lib/externalUrls';
 import { colors, onboardingColors, palette, radius, space, type } from '../../theme';
 import { Badge, Card, TopBar, useBanner, useConfirm } from '../ui';
 
-const SPACE_BG = require('../../assets/onboarding/space-bg@2x.jpg');
-const ASTRONAUT = require('../../assets/onboarding/astronaut@2x.png');
+const SPACE_BG = require('../../assets/onboarding/space-bg.jpg');
+const ASTRONAUT = require('../../assets/onboarding/astronaut.png');
 
 const BENEFIT_KEYS = [
   'jammerPlusBenefit1',
@@ -251,7 +251,7 @@ function OnboardingPlans({
         </Defs>
         <Rect width="100%" height="100%" fill="url(#plansBackdrop)" />
       </Svg>
-      <Image source={SPACE_BG} style={plans.spaceBg} resizeMode="cover" accessibilityElementsHidden />
+      <Image source={SPACE_BG} style={plans.spaceBg} resizeMode="cover" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
 
       <View style={plans.closeRow}>
         <Pressable

@@ -20,7 +20,7 @@ describe('02 onboarding', () => {
 
   it('location Skip leaves it null and relaunch resumes there', async () => {
     await tap({ label: 'Skip' });
-    await expectVisible({ text: /dominant hand/i }, { timeout: 30_000 });
+    await expectVisible({ text: /what.s your level/i }, { timeout: 30_000 });
     const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=location_text`);
     expect((rows as { location_text: string | null }[])[0]?.location_text).toBeNull();
     await relaunch();

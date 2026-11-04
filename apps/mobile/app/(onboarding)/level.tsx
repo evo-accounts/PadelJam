@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { OptionList } from '@/components/onboarding/OptionList';
 
-const BADGE_TARGET = require('../../assets/onboarding/badge-target@2x.png');
+const BADGE_TARGET = require('../../assets/onboarding/badge-target.png');
 
 // Stored as profiles.level 1-4; the radio group deals in strings.
 const BANDS = [

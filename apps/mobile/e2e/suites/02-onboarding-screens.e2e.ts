@@ -85,7 +85,7 @@ describe('02 onboarding screens', () => {
 
         // Leaving by the ✕ marks onboarding done; then the settings-mode paywall must look as before.
         await tap({ label: t.jammerPlusFree });
-        await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 30_000 });
+        await expectVisible({ text: MOBILE_NAMESPACES.home[locale === 'en' ? 'en' : 'pt-BR'].title, type: 'Heading' }, { timeout: 30_000 });
         await deepLink('mobile:///profile/plan', /Jammer\+/);
         await shot('paywall-settings');
       });
