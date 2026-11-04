@@ -1,12 +1,17 @@
 import { useAccountPlan, useSetAccountPlan } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
-import { colors, palette } from '../../theme';
+import { PRIVACY_URL, TERMS_URL } from '@/lib/externalUrls';
+import { colors, onboardingColors, palette, radius, space, type } from '../../theme';
 import { Badge, Card, TopBar, useBanner, useConfirm } from '../ui';
+
+const SPACE_BG = require('../../assets/onboarding/space-bg.jpg');
+const ASTRONAUT = require('../../assets/onboarding/astronaut.png');
 
 const BENEFIT_KEYS = [
   'jammerPlusBenefit1',
@@ -115,22 +120,21 @@ export function JammerPlusPaywall({ mode, onDone, onBack }: Props) {
     );
   }
 
+  // Onboarding has its own layout (frame 11); `settings` keeps the one below, unchanged.
+  if (mode === 'onboarding') {
+    return (
+      <OnboardingPlans
+        isJammerPlus={isJammerPlus}
+        busy={busy}
+        onTry={activateTrial}
+        onDone={onDone}
+      />
+    );
+  }
+
   return (
-    <View style={[styles.root, mode === 'onboarding' && { paddingTop: insets.top }]}>
-      {mode === 'onboarding' ? (
-        <View style={styles.closeRow}>
-          <Pressable
-            onPress={onDone}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel={t('close')}
-          >
-            <Text style={styles.closeBtn}>✕</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <TopBar variant="nav" onBack={onBack} />
-      )}
+    <View style={styles.root}>
+      <TopBar variant="nav" onBack={onBack} />
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -191,11 +195,6 @@ export function JammerPlusPaywall({ mode, onDone, onBack }: Props) {
           </View>
         )}
 
-        {mode === 'onboarding' && !isJammerPlus ? (
-          <Pressable onPress={onDone} hitSlop={8} style={styles.freeLinkWrapper}>
-            <Text style={styles.freeLink}>{t('jammerPlusFree')}</Text>
-          </Pressable>
-        ) : null}
       </ScrollView>
 
       <View style={[styles.ctaWrapper, { paddingBottom: insets.bottom + 16 }]}>
@@ -223,6 +222,161 @@ export function JammerPlusPaywall({ mode, onDone, onBack }: Props) {
   );
 }
 
+/**
+ * Frame 11, onboarding only. There is no purchase yet, so it carries no price, trial length,
+ * reminder or "Restore purchases" (spec §4.7): each would be untrue. ✕ finishes onboarding on
+ * Free, and is named for what it does rather than "close".
+ */
+function OnboardingPlans({
+  isJammerPlus,
+  busy,
+  onTry,
+  onDone,
+}: {
+  isJammerPlus: boolean;
+  busy: boolean;
+  onTry: () => void;
+  onDone: () => void;
+}) {
+  const { t } = useT('onboarding');
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[plans.root, { paddingTop: insets.top + space[2] }]} testID="plans-screen">
+      <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none" pointerEvents="none">
+        <Defs>
+          <LinearGradient id="plansBackdrop" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={onboardingColors.plansFrom} />
+            <Stop offset="0.62" stopColor={onboardingColors.plansFrom} />
+            <Stop offset="1" stopColor={onboardingColors.plansTo} />
+          </LinearGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#plansBackdrop)" />
+      </Svg>
+      <Image source={SPACE_BG} style={plans.spaceBg} resizeMode="cover" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      <Svg style={plans.spaceFade} preserveAspectRatio="none" pointerEvents="none">
+        <Defs>
+          <LinearGradient id="plansSpaceFade" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0.35" stopColor={onboardingColors.plansFrom} stopOpacity="0" />
+            <Stop offset="1" stopColor={onboardingColors.plansFrom} stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#plansSpaceFade)" />
+      </Svg>
+
+      <View style={plans.closeRow}>
+        <Pressable
+          onPress={onDone}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t('jammerPlusFree')}
+          style={plans.close}
+          testID="plans-close"
+        >
+          <Text style={plans.closeGlyph}>✕</Text>
+        </Pressable>
+      </View>
+
+      <ScrollView contentContainerStyle={plans.scroll} showsVerticalScrollIndicator={false}>
+        <Image
+          source={ASTRONAUT}
+          style={plans.astronaut}
+          resizeMode="contain"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+        <Text style={plans.title} accessibilityRole="header">
+          {t('jammerPlusLead')} <Text style={plans.accent}>Jammer+</Text>
+        </Text>
+        <Text style={plans.body}>{t('jammerPlusOnboardingBody')}</Text>
+        <View style={plans.today}>
+          <View style={plans.dot} />
+          <View style={plans.todayText}>
+            <Text style={plans.todayTitle}>{t('jammerPlusToday')}</Text>
+            <Text style={plans.todayBody}>{t('jammerPlusTodayBody')}</Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={[plans.actions, { paddingBottom: insets.bottom + space[4] }]}>
+        <Pressable
+          style={[plans.cta, busy && plans.ctaDisabled]}
+          onPress={isJammerPlus ? onDone : onTry}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={isJammerPlus ? t('continue') : t('jammerPlusTry')}
+          testID="plans-try"
+        >
+          <Text style={plans.ctaText}>{isJammerPlus ? t('continue') : t('jammerPlusTry')}</Text>
+        </Pressable>
+        <View style={plans.links}>
+          <Pressable
+            onPress={() => void Linking.openURL(TERMS_URL)}
+            hitSlop={8}
+            accessibilityRole="link"
+            accessibilityLabel={t('jammerPlusTerms')}
+          >
+            <Text style={plans.link}>{t('jammerPlusTerms')}</Text>
+          </Pressable>
+          <Text style={plans.link} accessibilityElementsHidden importantForAccessibility="no">
+            ·
+          </Text>
+          <Pressable
+            onPress={() => void Linking.openURL(PRIVACY_URL)}
+            hitSlop={8}
+            accessibilityRole="link"
+            accessibilityLabel={t('jammerPlusPrivacy')}
+          >
+            <Text style={plans.link}>{t('jammerPlusPrivacy')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const plans = StyleSheet.create({
+  root: { flex: 1, backgroundColor: onboardingColors.plansFrom, paddingHorizontal: space[6] },
+  closeRow: { alignItems: 'flex-end' },
+  close: {
+    width: space[10],
+    height: space[10],
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.purple[800],
+  },
+  closeGlyph: { ...type.bodyStrong, color: colors.card },
+  spaceBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 300, opacity: 0.55 },
+  spaceFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 300 },
+  astronaut: { alignSelf: 'center', width: 200, height: 225, marginBottom: space[4] },
+  scroll: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: space[6] },
+  title: { ...type.display, color: colors.card, textAlign: 'center' },
+  accent: { color: onboardingColors.plansAccent },
+  body: { ...type.body, color: palette.purple[100], textAlign: 'center', marginTop: space[3], marginBottom: space[8] },
+  today: { flexDirection: 'row', gap: space[4] },
+  dot: {
+    width: space[6],
+    height: space[6],
+    borderRadius: radius.full,
+    backgroundColor: onboardingColors.plansAccent,
+  },
+  todayText: { flex: 1 },
+  todayTitle: { ...type.bodyStrong, color: onboardingColors.plansAccent },
+  todayBody: { ...type.body, color: colors.card, marginTop: space[1] },
+  actions: { gap: space[4], paddingTop: space[4] },
+  cta: {
+    height: 56,
+    borderRadius: radius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.slate[50],
+  },
+  ctaDisabled: { opacity: 0.6 },
+  ctaText: { ...type.buttonLg, color: palette.slate[800] },
+  links: { flexDirection: 'row', justifyContent: 'center', gap: space[2] },
+  link: { ...type.caption, color: palette.purple[200] },
+});
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -231,17 +385,6 @@ const styles = StyleSheet.create({
   loadingRoot: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  closeRow: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
-    alignItems: 'flex-end',
-  },
-  closeBtn: {
-    fontSize: 18,
-    color: colors.foreground,
-    fontWeight: '600',
   },
   scroll: {
     paddingHorizontal: 24,
@@ -353,15 +496,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.foreground,
-  },
-  freeLinkWrapper: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  freeLink: {
-    fontSize: 14,
-    color: colors.mutedForeground,
-    textDecorationLine: 'underline',
   },
   ctaWrapper: {
     paddingHorizontal: 24,

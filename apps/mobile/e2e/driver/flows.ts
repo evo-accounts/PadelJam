@@ -50,7 +50,7 @@ export async function loginAs(key: PersonaKey): Promise<void> {
   await typeText({ type: 'TextField' }, code);
   await tap({ label: 'Verify' });
   const landed = await waitFor(
-    { text: /Home|Where do you play|Select your dominant hand|Select your court side|Don.t miss a thing|Jammer\+|Login or Sign Up/ },
+    { text: /Home|Share your location|Where do you play|Select your dominant hand|Select your court side|Don.t miss a thing|Jammer\+|Login or Sign Up/ },
     { timeout: 30_000 },
   );
   let bounced = /login or sign up/i.test(landed.AXLabel ?? '');
@@ -171,6 +171,18 @@ export async function logout(): Promise<void> {
 export async function switchUser(key: PersonaKey): Promise<void> {
   await logout();
   await loginAs(key);
+}
+
+/** From the location onboarding step, skip everything through the paywall to reach tabs. */
+export async function completeOnboardingBySkipping(): Promise<void> {
+  for (const step of [/Share your location/, /Select your dominant hand/, /Select your court side/, /Don.t miss a thing/]) {
+    await expectVisible({ text: step });
+    await tap({ label: 'Skip' });
+    await sleep(600);
+  }
+  await expectVisible({ text: /Jammer\+/ });
+  await tap({ text: /continue with free/i });
+  await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
 }
 
 /** Tap a button on a system alert (springboard) by its label. */

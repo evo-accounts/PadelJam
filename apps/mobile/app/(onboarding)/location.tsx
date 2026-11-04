@@ -2,13 +2,20 @@ import { useSetMyLocation } from '@padel/api';
 import { useT } from '@padel/i18n';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '@/components/ui/native';
 
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
+import { OptionCard } from '@/components/onboarding/OptionList';
+import { IconButton } from '@/components/ui';
 import { formatAddress, useGeocodeSearch } from '@/lib/useGeocodeSearch';
-import { colors, type } from '../../theme';
+import { colors, onboardingColors, radius, space, type } from '../../theme';
+
+const BADGE_PIN = require('../../assets/onboarding/badge-pin.png');
+const BUNNY = require('../../assets/onboarding/bunny.png');
+const CLOUD_A = require('../../assets/onboarding/cloud-a.png');
+const CLOUD_B = require('../../assets/onboarding/cloud-b.png');
 
 type Coords = { lat: number; lng: number };
 
@@ -22,7 +29,11 @@ export default function LocationStep() {
   const [text, setText] = useState('');
   // Same resolution Account Settings uses (UX-SET-02). It was lifted out of this file unchanged,
   // so that screen reuses what already works here instead of growing a second geocode path.
-  const { resolved, searching, approximate } = useGeocodeSearch(text);
+  const { places, searching, approximate } = useGeocodeSearch(text);
+  // The card the user picked; the first is preselected, so Continue works as soon as a lookup ends.
+  const [picked, setPicked] = useState(0);
+  useEffect(() => setPicked(0), [places]);
+  const resolved = places[picked] ?? null;
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
   // The last `set_my_location` call failed. supabase-js resolves an RPC error rather than
@@ -105,8 +116,8 @@ export default function LocationStep() {
     return (
       <OnboardingStep
         header="intro"
-        title={t('locationTitle')}
-        body={t('locationBody')}
+        title={t('locationShareTitle')}
+        body={t('locationShareBody')}
         primaryLabel={t('locationUseCurrentTitle')}
         primaryLoading={locating}
         onPrimary={useCurrentLocation}
@@ -116,6 +127,13 @@ export default function LocationStep() {
           setMode('manual');
         }}
         onSkip={goNext}
+        art={
+          <View style={styles.art} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Image source={CLOUD_B} style={styles.cloudB} resizeMode="contain" />
+            <Image source={CLOUD_A} style={styles.cloudA} resizeMode="contain" />
+            <Image source={BUNNY} style={styles.bunny} resizeMode="contain" />
+          </View>
+        }
       >
         {saveError}
       </OnboardingStep>
@@ -126,8 +144,8 @@ export default function LocationStep() {
     <OnboardingStep
       header="question"
       step="location"
-      title={t('locationManualTitle')}
-      body={t('locationBody')}
+      title={t('locationTitle')}
+      body={t('locationManualBody')}
       primaryLabel={saveFailed ? tc('retry') : t('continue')}
       // Gated on a FINISHED lookup, not on the field being non-empty. Typing
       // three characters used to enable Continue, which made it behave exactly
@@ -143,35 +161,73 @@ export default function LocationStep() {
     >
       {/* No autoFocus. The keyboard opening uninvited is UX-AUTH-01's complaint;
           it now appears only when the user taps the field. */}
-      <TextInput
-        style={styles.input}
-        value={text}
-        onChangeText={(next) => {
-          setText(next);
-          setSaveFailed(false);
-        }}
-        placeholder={t('locationManualPlaceholder')}
-        autoCapitalize="words"
-      />
+      <View style={styles.field}>
+        <TextInput
+          style={styles.input}
+          value={text}
+          onChangeText={(next) => {
+            setText(next);
+            setSaveFailed(false);
+          }}
+          placeholder={t('locationManualPlaceholder')}
+          accessibilityLabel={t('locationManualPlaceholder')}
+          autoCapitalize="words"
+          testID="location-search"
+        />
+        {text ? (
+          <IconButton
+            icon="✕"
+            accessibilityLabel={t('locationClear')}
+            size="sm"
+            style={styles.clear}
+            onPress={() => {
+              setText('');
+              setSaveFailed(false);
+            }}
+            testID="location-clear"
+          />
+        ) : null}
+      </View>
       {searching ? <Text style={styles.notice}>{t('locationSearching')}</Text> : null}
-      {resolved ? <Text style={styles.resolved}>{resolved.label}</Text> : null}
+      <View accessibilityRole="radiogroup" style={styles.results}>
+        {places.map((place, i) => (
+          <OptionCard
+            key={`${place.label}-${i}`}
+            title={place.title ?? place.label}
+            description={place.subtitle}
+            checked={i === picked}
+            badge={BADGE_PIN}
+            onPress={() => setPicked(i)}
+            testID={`location-result-${i}`}
+          />
+        ))}
+      </View>
       {approximate ? <Text style={styles.notice}>{t('locationGeocodeFailed')}</Text> : null}
       {saveError}
+      <Text style={styles.footnote}>{t('locationChangeLater')}</Text>
     </OnboardingStep>
   );
 }
 
 const styles = StyleSheet.create({
+  art: { width: '100%', flex: 1, minHeight: 200, alignItems: 'center', justifyContent: 'flex-end' },
+  bunny: { width: 200, height: 227 },
+  cloudA: { position: 'absolute', top: space[2], left: 0, width: 119, height: 58, opacity: 0.9 },
+  cloudB: { position: 'absolute', top: space[8], right: 0, width: 188, height: 93, opacity: 0.9 },
+  field: { justifyContent: 'center', marginBottom: space[4] },
   input: {
+    backgroundColor: onboardingColors.optionBg,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: radius.xl,
+    paddingLeft: space[4],
+    paddingRight: space[12],
+    paddingVertical: space[4],
     fontSize: 16,
   },
-  notice: { marginTop: 10, color: colors.mutedForeground, fontSize: 13 },
-  // The confirmed place reads as an answer, not as a hint.
-  resolved: { marginTop: 10, color: colors.foreground, fontSize: 15, fontWeight: '600' },
-  error: { ...type.caption, marginTop: 10, color: colors.destructive },
+  clear: { position: 'absolute', right: space[2] },
+  results: { gap: space[3] },
+  notice: { marginTop: space[2], color: colors.mutedForeground, fontSize: 13 },
+  footnote: { ...type.caption, marginTop: space[6], textAlign: 'center', color: colors.mutedForeground },
+  error: { ...type.caption, marginTop: space[3], color: colors.destructive },
 });
