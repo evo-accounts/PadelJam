@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { RADIUS_BASE_PX, radius } from './radius';
 import { SPACE_STEP_PX, space, text, weight } from './scale';
 import { alpha, buttonSize } from './button';
-import { dark, light } from './semantic';
+import { dark, light, onboarding } from './semantic';
 import { palette } from './palette';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../../..');
@@ -92,6 +92,25 @@ describe('semantic tokens resolve to real palette values', () => {
       if (value.startsWith('rgba(')) continue; // the two deliberate alpha values
       expect(known, `${token} = ${value} is not in the palette`).toContain(value);
     }
+  });
+});
+
+describe('onboarding tokens', () => {
+  const known = new Set<string>();
+  for (const v of Object.values(palette)) {
+    if (typeof v === 'string') known.add(v);
+    else for (const stop of Object.values(v)) known.add(stop);
+  }
+
+  it('name only palette colours: no new colour enters with the group', () => {
+    for (const [token, value] of Object.entries(onboarding)) {
+      expect(known, `${token} = ${value} is not in the palette`).toContain(value);
+    }
+  });
+
+  it('a selected card is distinguishable from an unselected one', () => {
+    expect(onboarding.optionSelectedBg).not.toBe(onboarding.optionBg);
+    expect(onboarding.optionSelectedTitle).not.toBe(onboarding.optionTitle);
   });
 });
 

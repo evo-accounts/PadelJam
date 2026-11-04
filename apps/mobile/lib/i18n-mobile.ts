@@ -317,6 +317,7 @@ const mobileOnboarding = {
     handRight: 'Direita',
     sideLeft: 'Esquerda',
     sideRight: 'Direita',
+    progressStep: 'Passo {{n}} de {{total}}',
   },
   'pt-BR': {
     locationTitle: 'Onde você joga?',
@@ -367,6 +368,7 @@ const mobileOnboarding = {
     handRight: 'Direita',
     sideLeft: 'Esquerda',
     sideRight: 'Direita',
+    progressStep: 'Passo {{n}} de {{total}}',
   },
   en: {
     locationTitle: 'Where do you play?',
@@ -417,6 +419,7 @@ const mobileOnboarding = {
     handRight: 'Right',
     sideLeft: 'Left',
     sideRight: 'Right',
+    progressStep: 'Step {{n}} of {{total}}',
   },
 } as const;
 

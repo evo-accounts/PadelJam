@@ -31,6 +31,7 @@ import type { TextStyle } from 'react-native';
 
 import {
   light,
+  onboarding,
   palette,
   radius as sharedRadius,
   space as sharedSpace,
@@ -63,6 +64,9 @@ export const avatarRamp = [
   palette.orange[700],
   palette.red[700],
 ] as const;
+
+/** The onboarding steps' component-tier colours (`packages/ui` `onboarding` group). */
+export const onboardingColors = onboarding;
 
 export const radius = sharedRadius;
 export const space = sharedSpace;

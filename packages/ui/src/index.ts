@@ -23,6 +23,7 @@ export {
   semantic,
   light,
   dark,
+  onboarding,
   type SemanticName,
   type SemanticScheme,
 } from './tokens/semantic.ts';

@@ -3,7 +3,8 @@ import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import { ChoiceRow, OnboardingStep } from '@/components/OnboardingStep';
+import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
+import { OptionList } from '@/components/onboarding/OptionList';
 
 export default function SideStep() {
   const { t } = useT('onboarding');
@@ -27,21 +28,23 @@ export default function SideStep() {
 
   return (
     <OnboardingStep
+      header="question"
+      step="side"
       title={t('sideTitle')}
       body={t('sideBody')}
       primaryLabel={t('continue')}
       primaryDisabled={!side || update.isPending}
       onPrimary={onContinue}
       onBack={() => router.back()}
-      onSkip={goNext}
     >
-      <ChoiceRow
+      <OptionList
         value={side}
         onChange={setSide}
         options={[
-          { key: 'left', label: t('sideLeft') },
-          { key: 'right', label: t('sideRight') },
+          { value: 'left', title: t('sideLeft') },
+          { value: 'right', title: t('sideRight') },
         ]}
+        testID="side-options"
       />
     </OnboardingStep>
   );

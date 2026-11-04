@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 
-import { OnboardingStep } from '@/components/OnboardingStep';
+import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { markNotificationsPrompted, onStampFailure, stampWithRetry } from '@/lib/onboardingStamps';
 import { registerForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
@@ -52,12 +52,12 @@ export default function NotificationsStep() {
 
   return (
     <OnboardingStep
+      header="intro"
       title={t('notificationsTitle')}
       body={t('notificationsBody')}
       primaryLabel={t('notificationsEnable')}
       primaryDisabled={busy}
       onPrimary={onEnable}
-      onBack={() => router.back()}
       onSkip={() => void goNext()}
     />
   );
