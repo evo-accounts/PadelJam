@@ -52,11 +52,11 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         if: github.event_name != 'workflow_dispatch'
         run: |
-          git diff --name-only --diff-filter=AM "$BASE" "$GITHUB_SHA" -- infra/supabase/migrations > changed.txt
+          git diff --name-only --diff-filter=AMR "$BASE" "$GITHUB_SHA" -- infra/supabase/migrations > changed.txt
           echo "Migrations in this change:"; cat changed.txt
           # shortcut: keyword scan, not a SQL parser; upgrade to a reviewed allowlist if migrations get clever.
-          # Function bodies are skipped: defining a function deletes nothing (0148 redefines soft_delete_account).
-          if [ -s changed.txt ] && perl -0pe 's/create\s+(or\s+replace\s+)?function.*?\$(\w*)\$.*?\$\2\$//gis' $(cat changed.txt) | grep -inE '\b(drop[[:space:]]+(table|column|schema|type|view|materialized)|truncate|delete[[:space:]]+from)\b'; then
+          # Comments and function bodies are skipped: defining a function deletes nothing (0148 redefines soft_delete_account).
+          if [ -s changed.txt ] && perl -0pe 's/--[^\n]*//g; s/create\s+(or\s+replace\s+)?function[^;]*?\$(\w*)\$.*?\$\2\$//gis' $(cat changed.txt) | grep -inE '\b(drop[[:space:]]+(table|column|schema|type|view|materialized)|truncate|delete[[:space:]]+from)\b'; then
             echo "destructive=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Destructive migration: applying it to the hosted database needs the founder's approval."
           else
