@@ -10,7 +10,7 @@ import { user, rpc, req, sel, ANON, BASE_URL, assert, expectError, run } from '.
 
 /** The exact column list `useMyProfile` selects (packages/api/src/profile/queries.ts). */
 const MY_PROFILE_COLUMNS =
-  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text';
+  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text,level';
 
 const asUser = (u, qs) => req(`/rest/v1/profiles?${qs}`, { jwt: u.jwt });
 
@@ -48,6 +48,13 @@ await run('your own phone comes from the auth user, not profiles', async () => {
   assert(`+${me.phone.replace(/^\+/, '')}` === stored.phone, 'and it is the same number profiles held');
 });
 
+await run('level is readable by a signed-in user, by name and through the own-profile list (0148)', async () => {
+  const rows = await asUser(bob, `id=eq.${alice.id}&select=id,level`);
+  assert(rows.length === 1 && rows[0].id === alice.id && 'level' in rows[0], 'level resolves on another user');
+  const [mine] = await asUser(alice, `id=eq.${alice.id}&select=${MY_PROFILE_COLUMNS}`);
+  assert(mine && 'level' in mine, "useMyProfile's column list includes level");
+});
+
 await run('named profile embeds still resolve; profiles(*) does not', async () => {
   const cid = await rpc(alice.jwt, 'create_community_with_personal_tenant', {
     p_name: `PP ${Date.now().toString(36)}`, p_type: 'club', p_country: 'PT', p_privacy: 'public',
@@ -69,4 +76,6 @@ await run('anon: phone is closed, the schema probe still answers', async () => {
   const rows = await asAnon('select=onboarded_at,location_text&limit=1');
   assert(Array.isArray(rows) && rows.length === 0, 'anon named-column read returns [] rather than 42501');
   await expectError(() => asAnon('select=phone&limit=1'), '42501');
+  const lv = await asAnon('select=level&limit=1');
+  assert(Array.isArray(lv) && lv.length === 0, 'anon level probe returns [] rather than 42501');
 });

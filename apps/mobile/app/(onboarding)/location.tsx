@@ -31,7 +31,7 @@ export default function LocationStep() {
   const [saveFailed, setSaveFailed] = useState(false);
   const setLocation = useSetMyLocation();
 
-  const goNext = () => router.push('/(onboarding)/hand');
+  const goNext = () => router.push('/(onboarding)/level');
 
   /*
    * Best-effort stops at having a position. Denied permission, no fix, or a failed reverse

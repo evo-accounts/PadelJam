@@ -179,20 +179,20 @@ const CASCAIS = { lat: 38.6979, lng: -9.4215 };
 const CAST = [
   // alex lives in Cascais (a point, not just a label), ~24 km from E2's court in central Lisbon,
   // so suite 03 can check the "N km away" label on a card he sees in Explore.
-  { key: 'alex',  email: 'demo@padeljam.test',  phone: '+351910000001', name: 'Alex Organizer', gender: 'male',   hand: 'right', side: 'left',  time: 'night', point: CASCAIS },
-  { key: 'maria', email: 'maria@padeljam.test', phone: '+351910000002', name: 'Maria Santos',   gender: 'female', hand: 'right', side: 'right', time: 'evening' },
-  { key: 'joao',  email: 'joao@padeljam.test',  phone: '+351910000003', name: 'João Pereira',   gender: 'male',   hand: 'left',  side: 'left',  time: 'morning' },
-  { key: 'sofia', email: 'sofia@padeljam.test', phone: '+351910000004', name: 'Sofia Costa',    gender: 'female', hand: 'right', side: 'right', time: 'afternoon' },
-  { key: 'bruno', email: 'bruno@padeljam.test', phone: '+351910000005', name: 'Bruno Almeida',  gender: 'male',   hand: 'right', side: 'left',  time: 'any' },
-  { key: 'rita',  email: 'rita@padeljam.test',  phone: '+351910000006', name: 'Rita Fernandes', gender: 'female', hand: 'left',  side: 'right', time: 'evening' },
-  { key: 'pedro', email: 'pedro@padeljam.test', phone: '+351910000007', name: 'Pedro Lopes',    gender: 'male',   hand: 'right', side: 'left',  time: 'morning' },
+  { key: 'alex',  email: 'demo@padeljam.test',  phone: '+351910000001', name: 'Alex Organizer', gender: 'male',   hand: 'right', side: 'left',  time: 'night', point: CASCAIS, level: 4 },
+  { key: 'maria', email: 'maria@padeljam.test', phone: '+351910000002', name: 'Maria Santos',   gender: 'female', hand: 'right', side: 'right', time: 'evening', level: 3 },
+  { key: 'joao',  email: 'joao@padeljam.test',  phone: '+351910000003', name: 'João Pereira',   gender: 'male',   hand: 'left',  side: 'left',  time: 'morning', level: 2 },
+  { key: 'sofia', email: 'sofia@padeljam.test', phone: '+351910000004', name: 'Sofia Costa',    gender: 'female', hand: 'right', side: 'right', time: 'afternoon', level: 3 },
+  { key: 'bruno', email: 'bruno@padeljam.test', phone: '+351910000005', name: 'Bruno Almeida',  gender: 'male',   hand: 'right', side: 'left',  time: 'any', level: 2 },
+  { key: 'rita',  email: 'rita@padeljam.test',  phone: '+351910000006', name: 'Rita Fernandes', gender: 'female', hand: 'left',  side: 'right', time: 'evening', level: 3 },
+  { key: 'pedro', email: 'pedro@padeljam.test', phone: '+351910000007', name: 'Pedro Lopes',    gender: 'male',   hand: 'right', side: 'left',  time: 'morning', level: 1 },
   // E2E-only personas. The one-community cap is gone (0098); they stay distinct because each
   // fixture community needs a creator who is NOT a member of the others.
-  { key: 'nina',  email: 'nina@padeljam.test',  phone: '+351910000008', name: 'Nina Privada',   gender: 'female', hand: 'right', side: 'left',  time: 'evening' },
-  { key: 'tiago', email: 'tiago@padeljam.test', phone: '+351910000009', name: 'Tiago Reviews',  gender: 'male',   hand: 'right', side: 'right', time: 'night' },
-  { key: 'carla', email: 'carla@padeljam.test', phone: '+351910000010', name: 'Carla Solo',     gender: 'female', hand: 'left',  side: 'left',  time: 'any' },
-  { key: 'dora',  email: 'dora@padeljam.test',  phone: '+351910000011', name: 'Dora Descartável', gender: 'female', hand: 'right', side: 'right', time: 'any', noLocation: true },
-  { key: 'omar',  email: 'omar@padeljam.test',  phone: '+351910000012', name: 'Omar Novato',    gender: 'male',   hand: null,    side: null,    time: null, notOnboarded: true },
+  { key: 'nina',  email: 'nina@padeljam.test',  phone: '+351910000008', name: 'Nina Privada',   gender: 'female', hand: 'right', side: 'left',  time: 'evening', level: 2 },
+  { key: 'tiago', email: 'tiago@padeljam.test', phone: '+351910000009', name: 'Tiago Reviews',  gender: 'male',   hand: 'right', side: 'right', time: 'night', level: 4 },
+  { key: 'carla', email: 'carla@padeljam.test', phone: '+351910000010', name: 'Carla Solo',     gender: 'female', hand: 'left',  side: 'left',  time: 'any', level: 1 },
+  { key: 'dora',  email: 'dora@padeljam.test',  phone: '+351910000011', name: 'Dora Descartável', gender: 'female', hand: 'right', side: 'right', time: 'any', noLocation: true, level: 2 },
+  { key: 'omar',  email: 'omar@padeljam.test',  phone: '+351910000012', name: 'Omar Novato',    gender: 'male',   hand: null,    side: null,    time: null, notOnboarded: true, level: null },
 ];
 const TIME_ENUM = { evening: 'night', morning: 'morning', afternoon: 'afternoon', night: 'night', any: 'any' };
 
@@ -248,7 +248,7 @@ async function main() {
     await insert('profiles', {
       id: uid, email: c.email, phone: c.phone, full_name: c.name, locale: 'en',
       onboarded_at: c.notOnboarded ? null : new Date().toISOString(),
-      gender: c.gender, dominant_hand: c.hand, court_side: c.side,
+      gender: c.gender, dominant_hand: c.hand, court_side: c.side, level: c.level,
       preferred_time: c.time ? TIME_ENUM[c.time] : null,
       description: `${c.name} — e2e player.`,
       location_text: c.noLocation || c.notOnboarded ? null : 'Lisbon, PT',
