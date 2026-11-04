@@ -13,6 +13,7 @@ import { decidePostVerifyRoute, type OnboardingProfile } from './postVerifyRoute
 const profile = (overrides: Partial<OnboardingProfile> = {}): OnboardingProfile => ({
   onboarded_at: null,
   location_text: null,
+  level: null,
   dominant_hand: null,
   court_side: null,
   notifications_prompted_at: null,
@@ -34,17 +35,23 @@ describe('decidePostVerifyRoute', () => {
     });
     expect(decidePostVerifyRoute(profile({ location_text: 'Lisboa' }), null)).toEqual({
       kind: 'route',
-      target: '/(onboarding)/hand',
+      target: '/(onboarding)/level',
     });
     expect(
-      decidePostVerifyRoute(profile({ location_text: 'Lisboa', dominant_hand: 'right' }), null),
+      decidePostVerifyRoute(profile({ location_text: 'Lisboa', level: 2 }), null),
+    ).toEqual({ kind: 'route', target: '/(onboarding)/hand' });
+    expect(
+      decidePostVerifyRoute(
+        profile({ location_text: 'Lisboa', level: 2, dominant_hand: 'right' }),
+        null,
+      ),
     ).toEqual({ kind: 'route', target: '/(onboarding)/side' });
     // The notifications step used to be absent from this sequence entirely
     // (UX-AUTH-03): the forward path reached it, but a user who quit after the
     // side step resumed straight at jammer-plus and was never asked.
     expect(
       decidePostVerifyRoute(
-        profile({ location_text: 'Lisboa', dominant_hand: 'right', court_side: 'left' }),
+        profile({ location_text: 'Lisboa', level: 1, dominant_hand: 'right', court_side: 'left' }),
         null,
       ),
     ).toEqual({ kind: 'route', target: '/(onboarding)/notifications' });
@@ -52,6 +59,7 @@ describe('decidePostVerifyRoute', () => {
       decidePostVerifyRoute(
         profile({
           location_text: 'Lisboa',
+          level: 1,
           dominant_hand: 'right',
           court_side: 'left',
           notifications_prompted_at: '2026-08-04T00:00:00Z',
@@ -59,6 +67,12 @@ describe('decidePostVerifyRoute', () => {
         null,
       ),
     ).toEqual({ kind: 'route', target: '/(onboarding)/jammer-plus' });
+  });
+
+  it('sends an onboarded user to tabs whether or not level is answered', () => {
+    expect(
+      decidePostVerifyRoute(profile({ onboarded_at: '2026-07-01T00:00:00Z', level: null }), null),
+    ).toEqual({ kind: 'route', target: '/(tabs)' });
   });
 
   it('routes to create-account when no profile row exists', () => {

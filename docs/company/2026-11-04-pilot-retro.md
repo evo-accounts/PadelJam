@@ -4,7 +4,7 @@ Pilot: 2026-10-30 to 11-04. Agents: CEO, CTO, Engineer A, Engineer B, QA. Writte
 
 ## The call
 
-**Go, in stages, for the non-engineering team. No more engineers yet.** Adding agents is the founder's decision (gate 7), so this is my recommendation, on [PAD-33](/PAD/issues/PAD-33).
+**Go, in stages, for the non-engineering team. No more engineers yet.** Adding agents is the founder's decision (gate 7), so this was my recommendation, on [PAD-33](/PAD/issues/PAD-33). **The founder accepted it with two additions;** see the update below.
 
 - **~11-06:** PM, Release & Ops, Head of Business.
 - **~11-12:** Designer, Legal, Growth, if there are still no usage-limit stops.
@@ -34,7 +34,7 @@ Also proven: plan → build → QA → review → merge ran twice on backend wor
 
 | Hand-off | What happened | Cost |
 |---|---|---|
-| Engineering → mobile E2E | Port collisions on 55321, then simulator wedges, then the real cause: the Mac was overloaded (load ~400, swap 6.5/8 GB). I first blamed the simulator and corrected that on 11-03. | Biggest delay. #294 waited from 11-02 19:09 to 11-03 22:47. **2 green of the last 14 runs** (9 failed, 3 cancelled), some of them PAD-11's own debugging. |
+| Engineering → mobile E2E | Port collisions on 55321, then simulator wedges, then the real cause: the Mac was overloaded (load ~400, swap 6.5/8 GB). I first blamed the simulator and corrected that on 11-03. | Biggest delay. #294 waited from 11-02 19:09 to 11-03 22:47. **2 green of the last 14 runs** at the time (9 failed, 3 cancelled), some of them PAD-11's own debugging. See the update below. |
 | QA → CTO | #294's first QA hand-off never started. QA's pass on 11-03 at 22:52 didn't result in a CTO run, and the board found it at 01:12. | About 2 hours overnight, and the board had to step in. |
 | Agents → founder | The token for agent pushes held #292 from 10-31 to 11-01. [PAD-25](/PAD/issues/PAD-25) and [PAD-27](/PAD/issues/PAD-27) exist because agent tokens can't change workflows or re-run jobs. | Every runner problem needs a person. |
 | CTO → founder, hosted SQL | The Supabase editor shows only the last statement's result, and the history row for 0146 was missing. | One extra round. The migrations workflow should remove this. |
@@ -69,16 +69,16 @@ Paperclip shows **$0**: everything runs on the shared subscription, so dollars a
 
 ## Still open from the pilot
 
+Updated 11-04 10:30 UTC.
+
 | Check | Owner | Status |
 |---|---|---|
-| #294 merged: first agent-built mobile code through the runner | CTO | Green, QA passed with two open items |
-| [PAD-23](/PAD/issues/PAD-23) Part B on `main` | QA | Running now the runner is idle |
-| #298 `e2e` re-run ([PAD-27](/PAD/issues/PAD-27)) | Board | After Part B |
-| Runner stability: 3 green runs in a row with no reboot | CTO | Not met |
-| First migration through the workflow (#295) | CTO, founder | Workflow not on `main` |
+| First agent-built mobile code through the runner | CTO | **Done.** #294 merged at 01:31 on 11-04. |
+| [PAD-23](/PAD/issues/PAD-23) Part B on `main` | QA | Closed |
+| #298 merged | CTO | Merged with `e2e` waived for that PR ([PAD-44](/PAD/issues/PAD-44)), not on a green run |
+| Runner stability | CTO | Not met; see the update below |
+| First migration through the workflow (#295) | CTO, founder | #300 open, founder steps in [PAD-36](/PAD/issues/PAD-36) |
 | Backend → web → mobile hand-off on one branch | CTO | Accepted as unproven until a feature needs it. I wouldn't invent a task to prove it. |
-
-These hold up any decision on Engineer C. They don't hold up the first three roles.
 
 ## Xcode on the agents Mac
 
@@ -94,8 +94,23 @@ The plan folds these into `docs/agents/`, which sits outside my lane. If the fou
 4. **Keep the runner Mac free of heavy background apps,** and check its load before treating an `e2e` failure as code.
 5. **A CEO routine for the status note,** so timer runs have a task.
 
+## Update, 11-04 10:30 UTC: the founder's decision and corrected numbers
+
+**Decision:** staged, with two additions ([PAD-33](/PAD/issues/PAD-33)). The plan is `docs/company/2026-11-04-team-on-plan.md`.
+1. The hand-off fix must be live before the first group starts. Overnight the board had to wake agents about 8 times after reassignments.
+2. The second group needs more than "no usage-limit stops": e2e reliability and hand rescues must not have got worse on the Mac.
+
+**What I got wrong or left out:**
+- **"2 green of the last 14" is out of date.** Since #296 merged it's **3 green of 9 finished attempts**, which I checked against GitHub. It also didn't separate causes: some of those failures are a real selector bug, not the Mac. That bug is in the tests (`02-onboarding` tapped an `OptionCard` as a `Button`), not in the app, so my answer above still stands: the E2E hasn't caught a product bug yet. Why the same selector passed on #301 hasn't been fully explained.
+- **I treated the first group as a subscription question.** The Mac hosts 23 agents across four companies on 16 GB, so three more also share that memory. The first group therefore runs without timers, and memory is one of the measures.
+- **"No usage-limit stops" was the wrong bar on its own.** The founder's is better.
+
+**Causes of e2e failures, from [PAD-45](/PAD/issues/PAD-45):** high load alone doesn't fail suites. Environment-signature failures cluster when 2 or more agents are active (7 of 27 suites, against 1 of 69), over a few windows on one night. The cause of the `idb` timeouts isn't proven, and memory pressure is the best guess, with no memory history to test it.
+
+**Also new:** Engineer B has four `adapter_failed` runs today and is in `error`. The logs show a background watcher being killed at the end of a run, which `_rules.md` already forbids. It isn't a usage limit, and it's in the hand-off task ([PAD-50](/PAD/issues/PAD-50)).
+
 ## Next
 
-- **Founder:** [PAD-33](/PAD/issues/PAD-33) (go/no-go) and [PAD-32](/PAD/issues/PAD-32) (device pass).
-- **CEO, on go:** the week-2 plan (plan Task 6, Step 5), then hire requests for the founder's approval.
-- **CTO:** merge this PR, the migrations workflow task, the onboarding queue, and [PAD-31](/PAD/issues/PAD-31) when the pass is done.
+- **CTO:** the hand-off fix ([PAD-50](/PAD/issues/PAD-50), by end of 11-05) and the numbers ([PAD-51](/PAD/issues/PAD-51)).
+- **CEO:** hire requests once the fix is live ([PAD-49](/PAD/issues/PAD-49)), then the second-group check ([PAD-52](/PAD/issues/PAD-52), 11-11).
+- **Founder:** [PAD-32](/PAD/issues/PAD-32) (device pass), [PAD-36](/PAD/issues/PAD-36) and [PAD-46](/PAD/issues/PAD-46).

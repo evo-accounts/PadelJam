@@ -22,7 +22,7 @@ The agents Mac has no Xcode or simulator. You prove a change with unit tests, ty
 
 ## Hand-off (to QA)
 
-Run the checks in `_rules.md`. Then comment on the task with: the branch name, what changed, the commands you ran and their results, the E2E suites that cover it, and anything QA should look at closely. Assign it to QA.
+Run the checks in `_rules.md`. Then create a task for QA (see **Hand-offs** in `_rules.md`) that says: the branch name, what changed, the commands you ran and their results, the E2E suites that cover it, and anything QA should look at closely. After QA passes, create the review task for the CTO. Mark your own task `done` once the PR has merged.
 
 If a red mobile E2E run comes back to you, read its log before changing code: an interrupted job (failure with no failed step and no artifacts) is not a test failure.
 

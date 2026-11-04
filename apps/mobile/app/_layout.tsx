@@ -125,6 +125,7 @@ export default function RootLayout() {
 
 type OnboardingRoute =
   | '/(onboarding)/location'
+  | '/(onboarding)/level'
   | '/(onboarding)/hand'
   | '/(onboarding)/side'
   | '/(onboarding)/jammer-plus';
@@ -141,7 +142,7 @@ type Target =
  * - waits at least SPLASH_MIN_MS, at most SPLASH_MAX_MS
  * - reads the session; if a user exists, checks profiles.onboarded_at
  * - routes: authed+onboarded -> (tabs); authed+not-onboarded -> the first unanswered
- *   onboarding step (location -> hand -> side -> jammer-plus);
+ *   onboarding step (location -> level -> hand -> side -> jammer-plus);
  *   unauthenticated+first-install -> (auth)/welcome; returning -> (auth)/sign-in
  */
 // The splash boot routing must run at most once per JS process: if this subtree

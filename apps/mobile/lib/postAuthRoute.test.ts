@@ -41,8 +41,16 @@ describe('resolvePostAuthRoute', () => {
 
   it('returns tabs when profile is onboarded', async () => {
     mockGetSession.mockResolvedValue(makeSession('email'));
-    mockFrom.mockReturnValue(makeProfileQuery({ onboarded_at: '2026-01-01', location_text: 'Lisbon', dominant_hand: 'right', court_side: 'left' }).from());
+    mockFrom.mockReturnValue(makeProfileQuery({ onboarded_at: '2026-01-01', location_text: 'Lisbon', level: 2, dominant_hand: 'right', court_side: 'left' }).from());
     expect(await resolvePostAuthRoute()).toBe('/(tabs)');
+  });
+
+  it('location answered, level not → resumes at level; level answered → hand', async () => {
+    mockGetSession.mockResolvedValue(makeSession('email'));
+    mockFrom.mockReturnValue(makeProfileQuery({ onboarded_at: null, location_text: 'Lisbon', level: null, dominant_hand: null, court_side: null }).from());
+    expect(await resolvePostAuthRoute()).toBe('/(onboarding)/level');
+    mockFrom.mockReturnValue(makeProfileQuery({ onboarded_at: null, location_text: 'Lisbon', level: 3, dominant_hand: null, court_side: null }).from());
+    expect(await resolvePostAuthRoute()).toBe('/(onboarding)/hand');
   });
 
   it('OTP user with no profile → create-account (no provision called)', async () => {
@@ -64,7 +72,7 @@ describe('resolvePostAuthRoute', () => {
             // First call: no profile. Second call (after provision): profile exists.
             return calls === 1
               ? { data: null }
-              : { data: { onboarded_at: null, location_text: null, dominant_hand: null, court_side: null } };
+              : { data: { onboarded_at: null, location_text: null, level: null, dominant_hand: null, court_side: null } };
           },
         }),
       }),
@@ -99,7 +107,7 @@ describe('resolvePostAuthRoute', () => {
             // First call: no profile. Second call (after provision): profile exists.
             return calls === 1
               ? { data: null }
-              : { data: { onboarded_at: null, location_text: null, dominant_hand: null, court_side: null } };
+              : { data: { onboarded_at: null, location_text: null, level: null, dominant_hand: null, court_side: null } };
           },
         }),
       }),
