@@ -58,7 +58,8 @@ export default function NotificationsStep() {
       primaryLabel={t('notificationsEnable')}
       primaryDisabled={busy}
       onPrimary={onEnable}
-      onSkip={() => void goNext()}
+      secondaryLabel={t('notificationsSkip')}
+      onSecondary={() => void goNext()}
     />
   );
 }
