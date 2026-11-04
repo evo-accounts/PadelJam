@@ -182,20 +182,6 @@ describe('12 profile & settings', () => {
   });
 
   /**
-   * The form moved to /profile/support/contact — /profile/support is the four-row hub now
-   * (UX-SET-12).
-   *
-   * The old guard would NOT have caught that. It deep-linked blind and then asserted
-   * `{ text: /support|contact/i }`, which the HUB satisfies twice over: its title is "Support" and
-   * one of its rows is "Contact support". The test would have sailed past the check and failed
-   * three lines later on a missing text field, reporting the wrong thing. The `expect` argument to
-   * `deepLink` exists for exactly this — it retries the open URL until the screen renders — so it
-   * is used here rather than asserting separately afterwards.
-   *
-   * The fields are selected by ID now. They were selected by AX element type only because the
-   * screen carried no testIDs at all; it has them as of this PR.
-   */
-  /**
    * Game preferences carries a Level field (migration 0148). Two things matter: picking a level
    * and saving writes `profiles.level`, and saving a different field WITHOUT touching Level leaves
    * it alone (the save must not send a null for a field the user never changed).
@@ -223,6 +209,20 @@ describe('12 profile & settings', () => {
     if ((await levelOf()) !== 4) throw new Error('saving without touching Level changed it');
   });
 
+  /**
+   * The form moved to /profile/support/contact — /profile/support is the four-row hub now
+   * (UX-SET-12).
+   *
+   * The old guard would NOT have caught that. It deep-linked blind and then asserted
+   * `{ text: /support|contact/i }`, which the HUB satisfies twice over: its title is "Support" and
+   * one of its rows is "Contact support". The test would have sailed past the check and failed
+   * three lines later on a missing text field, reporting the wrong thing. The `expect` argument to
+   * `deepLink` exists for exactly this — it retries the open URL until the screen renders — so it
+   * is used here rather than asserting separately afterwards.
+   *
+   * The fields are selected by ID now. They were selected by AX element type only because the
+   * screen carried no testIDs at all; it has them as of this PR.
+   */
   it('support ticket submits', async () => {
     const m = manifest();
     await deepLink('mobile:///profile/support/contact', /contact support/i);
