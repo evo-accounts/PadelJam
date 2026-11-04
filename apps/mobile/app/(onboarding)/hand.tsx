@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { OptionList } from '@/components/onboarding/OptionList';
 
-const BADGE_HAND = require('../../assets/onboarding/badge-hand@2x.png');
+const BADGE_HAND = require('../../assets/onboarding/badge-hand.png');
 
 export default function HandStep() {
   const { t } = useT('onboarding');

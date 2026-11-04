@@ -10,10 +10,10 @@ import { registerForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { useBanner } from '../../components/ui';
 
-const TURTLE = require('../../assets/onboarding/turtle@2x.png');
-const DOVE = require('../../assets/onboarding/dove@2x.png');
-const CLOUD_A = require('../../assets/onboarding/cloud-a@2x.png');
-const CLOUD_B = require('../../assets/onboarding/cloud-b@2x.png');
+const TURTLE = require('../../assets/onboarding/turtle.png');
+const DOVE = require('../../assets/onboarding/dove.png');
+const CLOUD_A = require('../../assets/onboarding/cloud-a.png');
+const CLOUD_B = require('../../assets/onboarding/cloud-b.png');
 
 /** Frame 9: the turtle reaching for the dove, with a cloud behind each side. Decorative. */
 function NotificationsArt() {

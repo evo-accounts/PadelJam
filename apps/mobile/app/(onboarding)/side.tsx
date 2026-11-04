@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { CourtSidePicker, type CourtSide } from '@/components/onboarding/CourtSidePicker';
 
-const FOX = require('../../assets/onboarding/fox-court@2x.png');
+const FOX = require('../../assets/onboarding/fox-court.png');
 
 export default function SideStep() {
   const { t } = useT('onboarding');
