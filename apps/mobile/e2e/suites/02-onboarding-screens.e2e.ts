@@ -59,12 +59,12 @@ describe('02 onboarding screens', () => {
 
         await expectVisible(title(t.handTitle), { timeout: 30_000 });
         await shot('hand');
-        await tap({ label: t.handRight, type: 'Button' });
+        await tap({ label: t.handRight });
         await tap({ label: t.continue, type: 'Button' });
 
         await expectVisible(title(t.sideTitle));
         await shot('side');
-        await tap({ label: t.sideLeft, type: 'Button' });
+        await tap({ label: t.sideLeft });
         await tap({ label: t.continue, type: 'Button' });
 
         await expectVisible(title(t.notificationsTitle));

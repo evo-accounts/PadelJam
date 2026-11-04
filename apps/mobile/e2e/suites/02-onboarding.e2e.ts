@@ -36,10 +36,10 @@ describe('02 onboarding', () => {
   });
 
   it('hand and side selections persist', async () => {
-    await tap({ label: 'Right', type: 'Button' });
+    await tap({ label: 'Right' });
     await tap({ label: 'Continue', type: 'Button' });
     await expectVisible({ text: /preferred side/i });
-    await tap({ label: 'Left', type: 'Button' });
+    await tap({ label: 'Left' });
     await tap({ label: 'Continue', type: 'Button' });
     await expectVisible({ text: /enable notifications/i });
     const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=dominant_hand,court_side`);
