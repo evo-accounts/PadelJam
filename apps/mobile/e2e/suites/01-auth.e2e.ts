@@ -256,7 +256,7 @@ describe('01 auth', () => {
       // signInWithPassword inside the flow can trigger the system Save Password sheet.
       await dismissSavePasswordSheetIfPresent();
       const tree = await snapshot();
-      if (query(tree, { text: /where do you play/i })) {
+      if (query(tree, { text: /share your location/i })) {
         done = true;
         break;
       }
@@ -274,7 +274,7 @@ describe('01 auth', () => {
       }
       await new Promise((r) => setTimeout(r, 600));
     }
-    if (!done) await expectVisible({ text: /where do you play/i }, { timeout: 5_000 });
+    if (!done) await expectVisible({ text: /share your location/i }, { timeout: 5_000 });
 
     /**
      * THE CONSENT RECORD. The box above was ticked, so the account must carry a timestamp

@@ -50,7 +50,7 @@ export async function loginAs(key: PersonaKey): Promise<void> {
   await typeText({ type: 'TextField' }, code);
   await tap({ label: 'Verify' });
   const landed = await waitFor(
-    { text: /Home|Where do you play|Dominant hand|Preferred side|Jammer\+|Login or Sign Up/ },
+    { text: /Home|Share your location|Where do you play|Dominant hand|Preferred side|Jammer\+|Login or Sign Up/ },
     { timeout: 30_000 },
   );
   let bounced = /login or sign up/i.test(landed.AXLabel ?? '');
