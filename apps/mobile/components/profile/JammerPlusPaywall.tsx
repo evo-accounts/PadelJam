@@ -246,12 +246,22 @@ function OnboardingPlans({
         <Defs>
           <LinearGradient id="plansBackdrop" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={onboardingColors.plansFrom} />
+            <Stop offset="0.62" stopColor={onboardingColors.plansFrom} />
             <Stop offset="1" stopColor={onboardingColors.plansTo} />
           </LinearGradient>
         </Defs>
         <Rect width="100%" height="100%" fill="url(#plansBackdrop)" />
       </Svg>
       <Image source={SPACE_BG} style={plans.spaceBg} resizeMode="cover" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      <Svg style={plans.spaceFade} preserveAspectRatio="none" pointerEvents="none">
+        <Defs>
+          <LinearGradient id="plansSpaceFade" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0.35" stopColor={onboardingColors.plansFrom} stopOpacity="0" />
+            <Stop offset="1" stopColor={onboardingColors.plansFrom} stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#plansSpaceFade)" />
+      </Svg>
 
       <View style={plans.closeRow}>
         <Pressable
@@ -337,6 +347,7 @@ const plans = StyleSheet.create({
   },
   closeGlyph: { ...type.bodyStrong, color: colors.card },
   spaceBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 300, opacity: 0.55 },
+  spaceFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 300 },
   astronaut: { alignSelf: 'center', width: 200, height: 225, marginBottom: space[4] },
   scroll: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: space[6] },
   title: { ...type.display, color: colors.card, textAlign: 'center' },

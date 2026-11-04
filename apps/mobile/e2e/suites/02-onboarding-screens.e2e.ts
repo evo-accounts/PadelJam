@@ -54,6 +54,7 @@ describe('02 onboarding screens', () => {
 
         await tap({ text: new RegExp(escape(t.locationAddManually), 'i') });
         await expectVisible(title(t.locationTitle));
+        await shot('location-manual-empty');
         await typeText({ type: 'TextField' }, 'Lisboa');
         // Continue stays disabled until the debounced geocode resolves.
         await expectVisible({ id: 'location-result-0' }, { timeout: 10_000 });
@@ -63,6 +64,7 @@ describe('02 onboarding screens', () => {
         await expectVisible(title(t.levelTitle), { timeout: 30_000 });
         await shot('level');
         await tap({ text: new RegExp(escape(t.levelIntermediate), 'i') });
+        await shot('level-selected');
         await tap({ label: t.continue, type: 'Button' });
 
         await expectVisible(title(t.handTitle), { timeout: 30_000 });
