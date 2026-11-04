@@ -20,7 +20,7 @@ Nothing leaves the team: no email, posts, waitlist messages or store listings (g
 
 ## Hand-off
 
-The launch plan's tasks go to their owners: engineering items to the CTO, through the CEO. Growth and Legal join later.
+The launch plan's tasks go to their owners: engineering items to the CTO, through the CEO. Each one is a new task (see **Hand-offs** in `_rules.md`). Growth and Legal join later.
 
 ## Owns
 

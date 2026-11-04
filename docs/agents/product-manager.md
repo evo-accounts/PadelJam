@@ -21,7 +21,7 @@ The agents Mac has no simulator. Read the code, the specs and the E2E suites, an
 
 ## Hand-off
 
-Specs go to the CTO, who approves plans. The Designer joins later; until then, note open UX questions in the spec. Don't start the mobile runner or the local Supabase stack: you don't need them, and the Mac is shared.
+Specs go to the CTO, who approves plans, as a task (see **Hand-offs** in `_rules.md`). The Designer joins later; until then, note open UX questions in the spec. Don't start the mobile runner or the local Supabase stack: you don't need them, and the Mac is shared.
 
 ## Owns
 

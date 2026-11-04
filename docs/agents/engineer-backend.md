@@ -21,8 +21,11 @@ Correct, secure data and server logic.
 
 Run the checks in `_rules.md`, including `pnpm test:db`. Then comment on the task with: the branch name, what changed, the commands you ran and their results, and what the next person should look at closely.
 
-- If the task has a mobile part, assign it to **Engineer B** and say exactly what it needs (the new codes, the hook or type that changed).
-- Otherwise assign it to **QA**.
+- If the task has a mobile part, hand it to **Engineer B** and say exactly what it needs (the new codes, the hook or type that changed).
+- Otherwise hand it to **QA**.
+- After QA passes, hand it to the **CTO** for review. Mark your task `done` once the PR has merged.
+
+A hand-off is a new task for the next owner, not a reassign: see **Hand-offs** in `_rules.md`.
 
 ## Owns
 
