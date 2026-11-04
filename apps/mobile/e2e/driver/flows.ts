@@ -50,7 +50,7 @@ export async function loginAs(key: PersonaKey): Promise<void> {
   await typeText({ type: 'TextField' }, code);
   await tap({ label: 'Verify' });
   const landed = await waitFor(
-    { text: /Home|Where do you play|Dominant hand|Preferred side|Jammer\+|Login or Sign Up/ },
+    { text: /Home|Share your location|Where do you play|Dominant hand|Preferred side|Jammer\+|Login or Sign Up/ },
     { timeout: 30_000 },
   );
   let bounced = /login or sign up/i.test(landed.AXLabel ?? '');
@@ -175,7 +175,7 @@ export async function switchUser(key: PersonaKey): Promise<void> {
 
 /** From the location onboarding step, skip everything through the paywall to reach tabs. */
 export async function completeOnboardingBySkipping(): Promise<void> {
-  for (const step of [/Where do you play/, /Dominant hand/, /Preferred side/, /Enable Notifications/]) {
+  for (const step of [/Share your location/, /Dominant hand/, /Preferred side/, /Enable Notifications/]) {
     await expectVisible({ text: step });
     await tap({ label: 'Skip' });
     await sleep(600);
