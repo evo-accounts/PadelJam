@@ -29,8 +29,11 @@ describe('02 onboarding screens', () => {
     describe(locale, () => {
       const t = MOBILE_NAMESPACES.onboarding[locale === 'en' ? 'en' : 'pt-BR'];
       const title = (s: string) => ({ text: new RegExp(escape(s), 'i') });
-      const shot = (frame: string) =>
-        screenshot(join(CONFIG.artifactsDir, 'onboarding-screens', `${locale}-${frame}.png`));
+      const shot = async (frame: string) => {
+        // Let the push animation finish, or the frame catches rounded corners and the previous screen.
+        await new Promise((r) => setTimeout(r, 800));
+        await screenshot(join(CONFIG.artifactsDir, 'onboarding-screens', `${locale}-${frame}.png`));
+      };
 
       beforeAll(async () => {
         await resetDb('full'); // omar is seeded not-onboarded

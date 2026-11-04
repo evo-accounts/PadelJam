@@ -19,7 +19,7 @@ Hand and side have role `radio`, and the suite only needs to select one to enabl
 
 ## Not in scope
 
-- No app code, workflow or `run.mjs` changes.
+- No workflow or run.mjs changes. The only app code is the OnboardingStep bottom-inset fix the first frames found (CTO approved, PAD-37).
 - No changes to `02-onboarding.e2e.ts`.
 - No assertions on layout: the images are for people to look at.
 
