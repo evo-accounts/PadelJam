@@ -11,15 +11,17 @@
  * Only ONE run may hold the simulator + local Supabase at a time; a second run
  * fails fast (or queues with --wait) rather than silently corrupting both.
  *
- * Env: E2E_UDID, E2E_IDB_PATH, E2E_STREAM=1, E2E_OAUTH=1, E2E_PUSH_DELIVERY=1.
+ * Env: E2E_STACK=dev|ci (default dev; ci = padeljam_ci on :56321, brought up by
+ * scripts/e2e/ci-stack.mjs), E2E_UDID, E2E_IDB_PATH, E2E_STREAM=1, E2E_OAUTH=1, E2E_PUSH_DELIVERY=1.
  * Requires: Docker + local Supabase stack running, Xcode installed.
  */
 import { execFileSync, execSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveStack, urlMismatches } from './stack.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
@@ -97,6 +99,19 @@ const ENV = {
   EXPO_PUBLIC_STORYBOOK: '1',
   STORYBOOK_DISABLE_TELEMETRY: '1',
 };
+
+const STACK = (() => {
+  try { return resolveStack(); } catch (e) { console.error(`[e2e] ERROR: ${e.message}`); process.exit(1); }
+})();
+// Wipe, seed and app must point at the same stack, or the run does not start.
+for (const [k, v] of [
+  ['SUPABASE_URL', STACK.apiUrl],
+  ['E2E_SUPABASE_URL', STACK.apiUrl],
+  ['E2E_MAILPIT_URL', STACK.mailpitUrl],
+  ['E2E_DB_CONTAINER', STACK.dbContainer],
+]) {
+  if (!ENV[k]) ENV[k] = v;
+}
 
 const log = (msg) => console.log(`[e2e] ${msg}`);
 const die = (msg) => { console.error(`[e2e] ERROR: ${msg}`); process.exit(1); };
@@ -351,12 +366,30 @@ function assertDotenvFiles() {
 
 async function preflight() {
   assertDotenvFiles();
+  log(`stack: ${STACK.name} (${STACK.projectId}, ${STACK.apiUrl})`);
+  const bad = urlMismatches(STACK, [
+    { file: ROOT_ENV, key: 'SUPABASE_URL', value: process.env.SUPABASE_URL ?? parseDotenv(ROOT_ENV).SUPABASE_URL },
+    { file: MOBILE_ENV, key: 'EXPO_PUBLIC_SUPABASE_URL', value: parseDotenv(MOBILE_ENV).EXPO_PUBLIC_SUPABASE_URL },
+  ]);
+  if (bad.length) {
+    die([
+      `the .env files point at a different Supabase than stack "${STACK.name}" (${STACK.apiUrl}).`,
+      'Wipe, seed and app must use the same stack.',
+      ...bad.map((b) => `  ${b.file}: ${b.key}=${b.value} (expected ${b.expected})`),
+      '',
+      STACK.name === 'ci'
+        ? 'Regenerate them: node scripts/e2e/ci-stack.mjs'
+        : 'Regenerate them from the dev stack, or set E2E_STACK=ci and run node scripts/e2e/ci-stack.mjs.',
+    ].join('\n'));
+  }
 
-  const stackHint = `Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@2.117.0 --workdir "${join(ROOT, 'infra')}" start`;
+  const stackHint = STACK.name === 'ci'
+    ? 'Start the CI stack first:\n  node scripts/e2e/ci-stack.mjs'
+    : `Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@2.117.0 --workdir "${join(ROOT, 'infra')}" start`;
 
   // A stack that is "already running" can still be missing pieces: `supabase
   // start` reports a container that died as an informational
-  //   Stopped services: [supabase_edge_runtime_padeljam ...]
+  //   Stopped services: [supabase_edge_runtime_<project> ...]
   // and still exits 0, so nothing repairs it and nothing fails.
   //
   // Measured 2026-09-09 (run 34377160736): the edge runtime had been down since
@@ -367,17 +400,17 @@ async function preflight() {
   const edgeHint = 'The stack is up but the Edge Functions runtime is not.\n'
     + '  `supabase start` reports this as "Stopped services: [...]" and still exits 0,\n'
     + '  so re-running it will NOT fix this. Restart the container directly:\n'
-    + '    docker start supabase_edge_runtime_padeljam';
+    + `    docker start ${STACK.edgeContainer}`;
 
   const checks = [
-    ['Supabase API', async () => (await fetch('http://127.0.0.1:55321/auth/v1/health')).ok, stackHint],
-    ['Mailpit', async () => (await fetch('http://127.0.0.1:55324/api/v1/info')).ok, stackHint],
-    ['Postgres', async () => spawnSync('docker', ['exec', 'supabase_db_padeljam', 'psql', '-U', 'postgres', '-c', 'select 1'], { env: ENV }).status === 0, stackHint],
+    ['Supabase API', async () => (await fetch(`${STACK.apiUrl}/auth/v1/health`)).ok, stackHint],
+    ['Mailpit', async () => (await fetch(`${STACK.mailpitUrl}/api/v1/info`)).ok, stackHint],
+    ['Postgres', async () => spawnSync('docker', ['exec', STACK.dbContainer, 'psql', '-U', 'postgres', '-c', 'select 1'], { env: ENV }).status === 0, stackHint],
     // 503 = Kong has no upstream for /functions/v1, i.e. the runtime is down.
     // A served function answers 401 without a JWT; a missing one answers 404.
     // Both mean the runtime is up, which is all this checks.
     ['Edge Functions', async () => {
-      const r = await fetch('http://127.0.0.1:55321/functions/v1/complete-account', {
+      const r = await fetch(`${STACK.apiUrl}/functions/v1/complete-account`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
@@ -519,11 +552,27 @@ function installPodsIfStale() {
 function buildIfStale(udid) {
   const hash = sourceHash();
   if (existsSync(APP_PATH) && existsSync(STAMP) && readFileSync(STAMP, 'utf8') === hash && !flag('--force-build')) {
-    log('Build is fresh — skipping xcodebuild');
-    return;
+    // A matching stamp is not enough on its own: the stamp is written right after xcodebuild,
+    // BEFORE assertPublicEnvInlined() checks the bundle, so a build that inlined stale values
+    // stays "fresh" forever and every later run dies on that check. Measured on #296: the run
+    // after the stale-cache build skipped xcodebuild and failed in 28s.
+    if (bundleCarriesPublicEnv() !== false) {
+      log('Build is fresh — skipping xcodebuild');
+      return;
+    }
+    log('Build is stamped fresh but does not carry the current EXPO_PUBLIC_* values — rebuilding');
   }
   log('Building Release for simulator (this takes a few minutes)…');
   installPodsIfStale();
+  // Clear Metro's transform cache (expo/metro-config's FileStore at <tmpdir>/metro-cache; this
+  // process and xcodebuild's script phase share TMPDIR). The cache is not keyed on EXPO_PUBLIC_*
+  // values, so when only apps/mobile/.env changed it reused transforms with the OLD values
+  // inlined. `--reset-cache` cannot do this: react-native-xcode.sh always passes it, and
+  // `expo export:embed` drops it whenever CI is set (exportEmbedAsync.js), which it is on
+  // Actions. Measured on #296: the switch to the ci stack bundled 4,776 modules in 2.8s and the
+  // app still held 55321. We only get here when a build is needed, so a cold transform
+  // (~25s on this Mac) is a small part of it.
+  rmSync(join(tmpdir(), 'metro-cache'), { recursive: true, force: true });
   sh('xcodebuild', [
     '-workspace', join(MOBILE, 'ios', 'PadelJam.xcworkspace'),
     '-scheme', 'PadelJam',
@@ -544,16 +593,28 @@ function buildIfStale(udid) {
  * Hermes keeps string literals in its string table, so a plain substring search
  * works on the bytecode bundle exactly as it does on a plain-text one.
  */
-function assertPublicEnvInlined() {
+/**
+ * Whether the built bundle contains EXPO_PUBLIC_SUPABASE_URL: `null` when there is no
+ * embedded bundle to check (a Debug build loads JS from Metro) or no URL to look for.
+ */
+function bundleCarriesPublicEnv() {
   const bundle = join(APP_PATH, 'main.jsbundle');
+  const url = ENV.EXPO_PUBLIC_SUPABASE_URL;
+  if (!existsSync(bundle) || !url) return null;
+  return readFileSync(bundle, 'latin1').includes(url);
+}
+
+function assertPublicEnvInlined() {
   // A Debug build loads JS from Metro and embeds nothing — nothing to check.
-  if (!existsSync(bundle)) return;
+  if (!existsSync(join(APP_PATH, 'main.jsbundle'))) return;
   // preflight()'s assertDotenvFiles() already guaranteed this, seconds into the
   // run rather than ten minutes in. Kept only so a reordering cannot quietly turn
   // the substring test below into a search for the string "undefined".
   const url = ENV.EXPO_PUBLIC_SUPABASE_URL;
   if (!url) die(`EXPO_PUBLIC_SUPABASE_URL is not set — see ${MOBILE_ENV}.`);
-  if (!readFileSync(bundle, 'latin1').includes(url)) {
+  if (!bundleCarriesPublicEnv()) {
+    // Drop the stamp so the next run rebuilds instead of calling this build fresh.
+    rmSync(STAMP, { force: true });
     die(`the built app does not contain ${url}.\n`
       + '  EXPO_PUBLIC_* was not inlined, so the app will throw\n'
       + '  "[@padel/config] Invalid environment" before it renders anything and\n'

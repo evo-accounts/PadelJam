@@ -1,8 +1,12 @@
 import { spawn } from 'node:child_process';
+import { closeSync, existsSync, openSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { CONFIG } from './config';
 import { describeFailure, run, runOk } from './proc';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const COMPANION_START_MS = 30_000;
 
 /**
  * idb talks to a per-device `idb_companion` over a unix socket. The companion
@@ -10,29 +14,54 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * failing with "Connection lost"/"Connection refused". Respawn it on the socket
  * path the client expects, then retry once. Exported for the wedged-AX reboot
  * in app.ts, which knows the companion just lost its simulator.
+ *
+ * Waits for the socket to appear rather than a fixed 6 s: on a sluggish CoreSimulator the new
+ * companion took longer than that, and the retry then failed with "[Errno 2] No such file or
+ * directory" on the socket (PR 296). The old socket is removed first so its presence means the
+ * new companion is listening, and the companion's output goes to a log so a start that never
+ * comes up says why.
  */
 export async function restartCompanion(): Promise<void> {
   const sock = `/tmp/idb/${CONFIG.udid}_companion.sock`;
+  const log = join(tmpdir(), `idb_companion_${CONFIG.udid}.log`);
   await run('pkill', ['-f', `idb_companion.*${CONFIG.udid}`]);
   await sleep(1500);
+  rmSync(sock, { force: true });
+  const out = openSync(log, 'w');
   const child = spawn('idb_companion', ['--udid', CONFIG.udid, '--grpc-domain-sock', sock], {
     detached: true,
-    stdio: 'ignore',
+    stdio: ['ignore', out, out],
   });
   child.unref();
-  await sleep(6000);
+  closeSync(out);
+  const deadline = Date.now() + COMPANION_START_MS;
+  while (!existsSync(sock) && Date.now() < deadline) await sleep(500);
+  if (!existsSync(sock)) {
+    const tail = readFileSync(log, 'utf8').trim().split('\n').slice(-5).join('\n');
+    console.warn(`[e2e] idb companion did not open ${sock} within ${COMPANION_START_MS / 1000}s:\n${tail || '(no output)'}`);
+    return;
+  }
+  await sleep(1000); // the socket exists slightly before the companion accepts on it
 }
 
-/** Thin wrapper over the fb-idb CLI, always scoped to the configured UDID. */
-export async function idb(args: string[], timeoutMs = 30_000): Promise<string> {
+/**
+ * Thin wrapper over the fb-idb CLI, always scoped to the configured UDID.
+ * `retryOnHang` also restarts the companion when the call hangs with no output, which is how a
+ * stuck companion looks from here (PR 296: one 30 s describe-all hang failed a whole run that
+ * otherwise passed 138/139). Only for calls that are safe to repeat — a tap or typed text that
+ * timed out may still have landed.
+ */
+export async function idb(args: string[], timeoutMs = 30_000, opts: { retryOnHang?: boolean } = {}): Promise<string> {
   const argv = [...args, '--udid', CONFIG.udid];
   const first = await run(CONFIG.idbPath, argv, { timeoutMs });
   if (first.code === 0) return first.stdout;
   const err = `${first.stderr}${first.stdout}`;
-  if (!/Connection lost|Connection refused|No Companion Connected|Failed to connect to companion/i.test(err)) {
+  const unreachable = /Connection lost|Connection refused|No Companion Connected|Failed to connect to companion/i.test(err);
+  const hung = Boolean(opts.retryOnHang) && first.timedOut && !err.trim();
+  if (!unreachable && !hung) {
     throw new Error(describeFailure(CONFIG.idbPath, argv, first));
   }
-  console.warn('[e2e] idb companion unreachable — restarting it');
+  console.warn(`[e2e] idb companion ${hung ? 'hung' : 'unreachable'} — restarting it`);
   await restartCompanion();
   return runOk(CONFIG.idbPath, argv, { timeoutMs });
 }
@@ -47,4 +76,10 @@ export const idbText = (text: string) => idb(['ui', 'text', text]);
 export const idbKey = (code: number) => idb(['ui', 'key', String(code)]);
 export const idbSwipe = (x1: number, y1: number, x2: number, y2: number, durationMs = 300) =>
   idb(['ui', 'swipe', String(x1), String(y1), String(x2), String(y2), '--duration', String(durationMs / 1000)]);
-export const idbDescribeAll = (timeoutMs = 30_000) => idb(['ui', 'describe-all', '--json'], timeoutMs);
+/**
+ * Read-only, so a hang is retried — but only for the default 30 s read. A caller that passes its
+ * own bound is a wait polling against a deadline (expect.ts `readTimeout`); it polls again by
+ * itself, and a 7.5 s companion restart inside it would eat that budget.
+ */
+export const idbDescribeAll = (timeoutMs?: number) =>
+  idb(['ui', 'describe-all', '--json'], timeoutMs ?? 30_000, { retryOnHang: timeoutMs == null });

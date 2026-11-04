@@ -24,6 +24,14 @@ export type OnboardingRoute =
   | '/(onboarding)/notifications'
   | '/(onboarding)/jammer-plus';
 
+/**
+ * The question steps in the order they are asked. The progress bar's "n/N" is
+ * derived from this list, so adding a step (Level) is one entry here.
+ */
+export const ONBOARDING_QUESTION_STEPS = ['location', 'hand', 'side'] as const;
+
+export type OnboardingQuestionStep = (typeof ONBOARDING_QUESTION_STEPS)[number];
+
 export function onboardingRoute(profile: OnboardingProfile): OnboardingRoute {
   if (profile.onboarded_at) return '/(tabs)';
   if (!profile.location_text) return '/(onboarding)/location';

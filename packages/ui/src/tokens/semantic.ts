@@ -168,6 +168,41 @@ export const dark = {
   sidebarRing: p.slate[500],
 } as const;
 
+/**
+ * Onboarding tokens (component tier) — the question steps, the intro steps and
+ * the Jammer+ backdrop. Source: the "Onboarding" section of the PJAM Mobile App
+ * Figma file; see docs/superpowers/specs/2026-11-02-onboarding-redesign.md §3.1.
+ *
+ * Every value names an existing palette step: no new colour. Light only, like
+ * `button.ts` — dark mode is not wired anywhere.
+ */
+export const onboarding = {
+  /** Option card, unselected. */
+  optionBg: p.slate[100],
+  optionTitle: p.slate[700],
+  /** Option card, selected: filled, with a 2px border. */
+  optionSelectedBg: p.purple[100],
+  optionSelectedBorder: p.purple[500],
+  optionSelectedTitle: p.purple[900],
+  /** The square back button. */
+  backBg: p.purple[50],
+  /** Segmented progress bar and its "n/N" label. */
+  progressFill: p.purple[500],
+  progressTrack: p.slate[200],
+  progressLabel: p.slate[500],
+  /** The grey action under the primary one ("Enter address manually", "Skip for now"). */
+  secondaryActionBg: p.slate[100],
+  secondaryActionFg: p.slate[800],
+  /** Court diagram. */
+  courtLine: p.slate[300],
+  courtSelectedBg: p.purple[100],
+  courtSelectedBorder: p.purple[900],
+  /** Jammer+ backdrop (purple-900 to purple-600) and its accent word. */
+  plansFrom: p.purple[900],
+  plansTo: p.purple[600],
+  plansAccent: p.purple[400],
+} as const;
+
 export const semantic = { light, dark } as const;
 
 export type SemanticName = keyof typeof light;

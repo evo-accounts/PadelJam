@@ -3,10 +3,10 @@ import { useT } from '@padel/i18n';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Text, TextInput } from '@/components/ui/native';
 
-import { OnboardingStep } from '@/components/OnboardingStep';
+import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { formatAddress, useGeocodeSearch } from '@/lib/useGeocodeSearch';
 import { colors, type } from '../../theme';
 
@@ -104,38 +104,19 @@ export default function LocationStep() {
   if (mode === 'pick') {
     return (
       <OnboardingStep
+        header="intro"
         title={t('locationTitle')}
         body={t('locationBody')}
-        primaryLabel=""
-        hidePrimary
-        onPrimary={() => {}}
-        onBack={() => router.back()}
+        primaryLabel={t('locationUseCurrentTitle')}
+        primaryLoading={locating}
+        onPrimary={useCurrentLocation}
+        secondaryLabel={t('locationAddManually')}
+        onSecondary={() => {
+          setSaveFailed(false);
+          setMode('manual');
+        }}
         onSkip={goNext}
       >
-        <View style={styles.pickButtons}>
-          <Pressable
-            style={[styles.pickPrimary, locating && styles.pickPrimaryDisabled]}
-            onPress={useCurrentLocation}
-            disabled={locating}
-            accessibilityRole="button"
-          >
-            {locating ? (
-              <ActivityIndicator color={colors.card} />
-            ) : (
-              <Text style={styles.pickPrimaryText}>{t('locationUseCurrentTitle')}</Text>
-            )}
-          </Pressable>
-          <Pressable
-            style={styles.pickSecondary}
-            onPress={() => {
-              setSaveFailed(false);
-              setMode('manual');
-            }}
-            accessibilityRole="button"
-          >
-            <Text style={styles.pickSecondaryText}>{t('locationAddManually')}</Text>
-          </Pressable>
-        </View>
         {saveError}
       </OnboardingStep>
     );
@@ -143,6 +124,8 @@ export default function LocationStep() {
 
   return (
     <OnboardingStep
+      header="question"
+      step="location"
       title={t('locationManualTitle')}
       body={t('locationBody')}
       primaryLabel={saveFailed ? tc('retry') : t('continue')}
@@ -157,7 +140,6 @@ export default function LocationStep() {
         setSaveFailed(false);
         setMode('pick');
       }}
-      onSkip={goNext}
     >
       {/* No autoFocus. The keyboard opening uninvited is UX-AUTH-01's complaint;
           it now appears only when the user taps the field. */}
@@ -180,27 +162,6 @@ export default function LocationStep() {
 }
 
 const styles = StyleSheet.create({
-  pickButtons: {
-    gap: 12,
-  },
-  pickPrimary: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  pickPrimaryDisabled: {
-    opacity: 0.6,
-  },
-  pickPrimaryText: { color: colors.card, fontSize: 16, fontWeight: '600' },
-  pickSecondary: {
-    borderWidth: 1,
-    borderColor: colors.foreground,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  pickSecondaryText: { color: colors.foreground, fontSize: 16, fontWeight: '600' },
   input: {
     borderWidth: 1,
     borderColor: colors.border,

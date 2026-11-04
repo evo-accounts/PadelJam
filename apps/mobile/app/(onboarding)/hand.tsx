@@ -3,7 +3,8 @@ import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import { ChoiceRow, OnboardingStep } from '@/components/OnboardingStep';
+import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
+import { OptionList } from '@/components/onboarding/OptionList';
 
 export default function HandStep() {
   const { t } = useT('onboarding');
@@ -27,21 +28,23 @@ export default function HandStep() {
 
   return (
     <OnboardingStep
+      header="question"
+      step="hand"
       title={t('handTitle')}
       body={t('handBody')}
       primaryLabel={t('continue')}
       primaryDisabled={!hand || update.isPending}
       onPrimary={onContinue}
       onBack={() => router.back()}
-      onSkip={goNext}
     >
-      <ChoiceRow
+      <OptionList
         value={hand}
         onChange={setHand}
         options={[
-          { key: 'left', label: t('handLeft') },
-          { key: 'right', label: t('handRight') },
+          { value: 'left', title: t('handLeft') },
+          { value: 'right', title: t('handRight') },
         ]}
+        testID="hand-options"
       />
     </OnboardingStep>
   );

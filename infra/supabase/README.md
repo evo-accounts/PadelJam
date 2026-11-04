@@ -24,6 +24,9 @@ Docker must be running.
 - Ports are shifted to the **55xxx** range (API 55321, DB 55322, Studio 55323, Inbucket 55324,
   Analytics 55327) so this stack can run alongside another local Supabase project on the default
   54xxx ports.
+- The **5632x** block and `project_id` `padeljam_ci` are reserved for the mobile e2e runner
+  (`scripts/e2e/stack.mjs`, brought up by `node scripts/e2e/ci-stack.mjs`, selected with env vars only).
+  Don't use them for anything else; `config.toml` stays on 55xxx.
 - This CLI emits the **new key format**: `sb_publishable_*` (client/anon) and `sb_secret_*`
   (server/service_role). They are written to the git-ignored root `.env`.
 

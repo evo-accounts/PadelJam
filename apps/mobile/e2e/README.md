@@ -10,7 +10,7 @@ The web app has its own separate end-to-end suite (Playwright) at
 
 ## Prerequisites
 
-- Docker running, local stack up:
+- Docker running, local `dev` stack up (CI uses its own, see "Which stack" below):
   `export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token && pnpm dlx supabase@2.117.0 --workdir infra start`
   (pinned to the version in the workflow's `SUPABASE_CLI_VERSION`, see
   `infra/supabase/README.md` for why; anything ≤2.75 pairs an ES256-signing GoTrue with an
@@ -180,7 +180,8 @@ the DB, then runs vitest sequentially. Failure artifacts (screenshot, accessibil
 dump, app log tail) land in `e2e/artifacts/<run>/<test>/`.
 
 Env knobs: `E2E_UDID` (simulator), `E2E_IDB_PATH`, `E2E_STREAM=1` / `E2E_OAUTH=1` /
-`E2E_PUSH_DELIVERY=1` (enable locally-blocked areas), `E2E_WAIT_TIMEOUT_MS`.
+`E2E_PUSH_DELIVERY=1` (enable locally-blocked areas), `E2E_WAIT_TIMEOUT_MS`,
+`E2E_STACK` (`dev`, the default, or `ci`: see below).
 
 ## In CI: a self-hosted macOS runner, not a hosted one
 
@@ -207,6 +208,52 @@ ensures the stack is up, writes the two `.env` files into its own workspace, and
 the orchestrator with `--wait` so it queues behind a hand-run suite instead of going
 red over a held lock. It does **not** run `supabase stop` afterwards, since that
 would take down the stack you develop against.
+
+### Which stack: `dev` or `ci`
+
+The stacks are defined in [`scripts/e2e/stack.mjs`](../../../scripts/e2e/stack.mjs).
+
+| | project | API | Mailpit | DB container |
+|---|---|---|---|---|
+| `dev` (default) | `padeljam` | 55321 | 55324 | `supabase_db_padeljam` |
+| `ci` | `padeljam_ci` | 56321 | 56324 | `supabase_db_padeljam_ci` |
+
+CI runs on the `ci` stack, brought up by `node scripts/e2e/ci-stack.mjs`. That script also
+writes the repo-root `.env` and `apps/mobile/.env` with the stack's URL and keys. Because it
+shares no ports with the dev stack, it can't collide with the agents' stack. The `5632x`
+block is reserved for this runner: don't use it for anything else. Don't run the `ci` stack by
+hand on the runner Mac while an `e2e` job is running (its stack holds 56321/56322 in its own VM, and
+`ci-stack.mjs` now refuses to start). Check with `gh run list --workflow e2e-mobile.yml --status in_progress`
+and `/tmp/padeljam-e2e.lock`.
+
+A local run still defaults to `E2E_STACK=dev` (`padeljam`, 55321), the stack in the
+Prerequisites above. To run against the CI stack by hand:
+
+```bash
+node scripts/e2e/ci-stack.mjs && E2E_STACK=ci node scripts/e2e/run.mjs
+```
+
+This **overwrites both `.env` files** with the CI stack's keys. To go back to `dev`,
+regenerate them from the dev stack.
+
+`run.mjs` refuses to start when `SUPABASE_URL` (root `.env`) or `EXPO_PUBLIC_SUPABASE_URL`
+(`apps/mobile/.env`) is not the selected stack's API URL:
+
+```
+[e2e] ERROR: the .env files point at a different Supabase than stack "ci" (http://127.0.0.1:56321).
+```
+
+It means the wipe, the seed and the app would talk to different databases. Fix it by
+regenerating the files (`node scripts/e2e/ci-stack.mjs` for `ci`), or by selecting the
+stack the files already point at.
+
+To remove the CI stack:
+
+```bash
+SUPABASE_PROJECT_ID=padeljam_ci pnpm dlx supabase@2.117.0 --workdir infra stop --project-id padeljam_ci --no-backup
+```
+
+**Never run a bare `supabase stop`**: it targets `padeljam` and takes down the agents' stack.
 
 ### When it runs
 
@@ -242,7 +289,7 @@ extension — notably PostGIS's `public.spatial_ref_sys`, which it used to trunc
 no SRID 4326 every geography op (distance, explore ranking, `set_my_location`,
 `create_event`) fails with "Cannot find SRID (4326)". A DB emptied by an older run is
 refilled on the next wipe from PostGIS's own `spatial_ref_sys.sql` in the db container. Email OTPs are read from Mailpit
-(`:55324`); the phone test number `+351912345678` verifies with `123456`.
+(`:55324` on `dev`, `:56324` on `ci`); the phone test number `+351912345678` verifies with `123456`.
 
 **The plan caps are live, and the seed sits inside them.** `plan_limits` used to be
 truncated by the wipe, which made `community_limit()` return null for every key and
