@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { tap, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
-import { freshInstall } from '../driver/app';
+import { freshInstall, relaunch } from '../driver/app';
 import { loginAs, tapAlertButton } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
 import { select } from '../fixtures/db';
@@ -30,9 +30,24 @@ describe('02 onboarding', () => {
     // as a StaticText, so this doesn't match the TextField's own value.
     await expectVisible({ text: /lisboa/i, type: 'StaticText' }, { timeout: 10_000 });
     await tap({ label: 'Continue', type: 'Button' });
-    await expectVisible({ text: /dominant hand/i }, { timeout: 30_000 });
+    await expectVisible({ text: /what is your level/i }, { timeout: 30_000 });
     const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=location_text`);
     expect((rows as { location_text: string | null }[])[0]?.location_text).toBeTruthy();
+  });
+
+  it('leaving level unanswered and relaunching resumes at level', async () => {
+    await relaunch();
+    await expectVisible({ text: /what is your level/i }, { timeout: 30_000 });
+    const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=level`);
+    expect((rows as { level: number | null }[])[0]?.level).toBeNull();
+  });
+
+  it('level persists', async () => {
+    await tap({ text: /intermediate/i });
+    await tap({ label: 'Continue', type: 'Button' });
+    await expectVisible({ text: /dominant hand/i }, { timeout: 30_000 });
+    const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=level`);
+    expect((rows as { level: number | null }[])[0]?.level).toBe(3);
   });
 
   it('hand and side selections persist', async () => {
