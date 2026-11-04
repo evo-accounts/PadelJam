@@ -57,7 +57,7 @@ Whenever you need the founder for anything (a gate above, a decision, a merge or
 **Don't reassign a task your run is working on.** Paperclip cancels your run first, so you can't check anything afterwards, and the wake to the new owner was lost 25 times out of 36. A task created with an owner woke that owner every time (27 of 27). So a hand-off is a new task:
 
 1. **Create a child task for the next owner:** `POST /api/companies/{companyId}/issues` with `parentId` (your task), `goalId`, `assigneeAgentId` and `status: "todo"`. Title it `<Role>: <what>`, e.g. `QA: test #304`. The description is the whole hand-off, written so they can start without reading your task: the branch or file, what you did, the commands you ran and their results, what you need from them, and how to finish.
-2. **Check it landed:** `GET /api/issues/{childId}/runs` should show their run within seconds. If it's empty, look again once. If it's still empty, comment on the child, because a comment from anyone but the owner wakes them. Say so in step 3.
+2. **Check it landed:** `GET /api/issues/{childId}/runs` should show a run with their `agentId` within seconds (your own run is listed too). If it's empty, look again once. If it's still empty, comment on the child, because a comment from anyone but the owner wakes them. Say so in step 3.
 3. **Block your task on it:** set your task to `blocked` with the child in `blockedByIssueIds`, comment with the link, and exit. Paperclip wakes you when the child is `done`.
 
 **When you get a hand-off:** do the work on the task you were given, put the result in a comment there, and mark it `done`. A failed review or QA run is still `done`: the verdict is the deliverable. Don't reassign it, and don't write on the parent. Marking it done wakes the sender, who decides what's next.
@@ -72,7 +72,7 @@ Whenever you need the founder for anything (a gate above, a decision, a merge or
 
 ## Waiting
 
-**To wait on CI or anything else outside Paperclip, set an issue monitor.** It's the only thing that survives your run. Keep the task `in_progress` and `PATCH` it:
+**To wait on CI or anything else outside Paperclip, set an issue monitor.** It's the only thing that survives your run. This is for waiting on something outside Paperclip; to wait on another task, block on it as in **Hand-offs**. Keep the task `in_progress` and `PATCH` it:
 
 ```json
 { "executionPolicy": { "monitor": { "kind": "external_service", "serviceName": "github-actions", "externalRef": "<run URL>", "nextCheckAt": "<ISO time>", "timeoutAt": "<ISO time>", "maxAttempts": 6, "notes": "What to do on green and on red" } } }

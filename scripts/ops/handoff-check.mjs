@@ -102,7 +102,7 @@ export function analyseIssue({ issue, activity, runs, interactions = [] }, { sin
       result.pending.push(entry);
     } else {
       const firstRun = ownerRuns
-        .filter((run) => ms(run.createdAt) > at)
+        .filter((run) => run.startedAt && ms(run.createdAt) > at)
         .sort((a, b) => ms(a.createdAt) - ms(b.createdAt))[0];
       const stillOpen =
         !next && !CLOSED.has(issue.status) && issue.status !== 'blocked' && issue.assigneeAgentId === change.to;

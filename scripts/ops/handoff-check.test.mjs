@@ -86,6 +86,12 @@ test('a queued run that never started does not land the hand-off', () => {
   assert.equal(r.stranded.length, 1);
 });
 
+test('the wait runs to the first run that started, not one cancelled before starting', () => {
+  const runs = [run(5, CTO, { startedAt: null, status: 'cancelled' }), run(120, CTO)];
+  const r = analyseIssue({ issue, activity: [reassign(0, QA, CTO)], runs }, opts);
+  assert.equal(r.stranded[0].waitedMinutes, 120);
+});
+
 test('a task moved to blocked with the reassign is explained', () => {
   const activity = [{
     action: 'issue.updated',
