@@ -32,7 +32,18 @@ import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 
 /** Coordinates are null when the lookup could not place the text; see `approximate`. */
-export type ResolvedPlace = { lat: number | null; lng: number | null; label: string };
+export type ResolvedPlace = {
+  lat: number | null;
+  lng: number | null;
+  label: string;
+  /** Card headline (onboarding's result list); falls back to `label`. */
+  title?: string;
+  /** Card second line: region and country. Absent for the typed-text fallback. */
+  subtitle?: string;
+};
+
+/** How many places the result list shows. The device geocoder usually answers with one. */
+const MAX_PLACES = 3;
 
 /**
  * Long enough for a healthy lookup, which answers in well under a second, and short enough that
@@ -64,31 +75,46 @@ export function formatAddress(p: Location.LocationGeocodedAddress | undefined): 
   return [...new Set(parts)].join(', ');
 }
 
-/** Geocode, then name the hit. Null when the geocoder answered but knows no such place. */
-async function lookup(q: string): Promise<ResolvedPlace | null> {
-  const hits = await Location.geocodeAsync(q);
-  const hit = hits[0];
-  if (!hit) return null;
-  const places = await Location.reverseGeocodeAsync({
-    latitude: hit.latitude,
-    longitude: hit.longitude,
-  });
-  return { lat: hit.latitude, lng: hit.longitude, label: formatAddress(places[0]) || q };
+/** Name one hit. A failed reverse geocode throws, so the whole lookup falls back to the typed text, as before. */
+async function nameHit(hit: Location.LocationGeocodedLocation, q: string): Promise<ResolvedPlace> {
+  const [address] = await Location.reverseGeocodeAsync({ latitude: hit.latitude, longitude: hit.longitude });
+  const title = address?.city ?? address?.subregion ?? address?.name ?? undefined;
+  const subtitle = [...new Set([address?.region, address?.country].filter(Boolean) as string[])]
+    .filter((part) => part !== title)
+    .join(', ');
+  return {
+    lat: hit.latitude,
+    lng: hit.longitude,
+    label: formatAddress(address) || q,
+    title,
+    subtitle: subtitle || undefined,
+  };
+}
+
+/** Geocode, then name up to `MAX_PLACES` hits. Empty when the geocoder knows no such place. */
+async function lookup(q: string): Promise<ResolvedPlace[]> {
+  const hits = (await Location.geocodeAsync(q)).slice(0, MAX_PLACES);
+  const named = await Promise.all(hits.map((hit) => nameHit(hit, q)));
+  // Two hits can name the same place; show it once.
+  return named.filter((p, i) => named.findIndex((o) => o.label === p.label) === i);
 }
 
 export function useGeocodeSearch(text: string): {
+  /** The first of `places`. Callers that want one answer (Account Settings) read this. */
   resolved: ResolvedPlace | null;
+  /** Up to three places, best first; one typed-text entry when `approximate`. */
+  places: ResolvedPlace[];
   searching: boolean;
   /** True when `resolved` is the typed text, because the lookup timed out, failed or found nothing. */
   approximate: boolean;
 } {
-  const [resolved, setResolved] = useState<ResolvedPlace | null>(null);
+  const [places, setPlaces] = useState<ResolvedPlace[]>([]);
   const [approximate, setApproximate] = useState(false);
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     const q = text.trim();
-    setResolved(null);
+    setPlaces([]);
     setApproximate(false);
     if (q.length < 3) {
       setSearching(false);
@@ -97,14 +123,14 @@ export function useGeocodeSearch(text: string): {
     setSearching(true);
     let cancelled = false;
     const asTyped = () => {
-      setResolved({ lat: null, lng: null, label: q });
+      setPlaces([{ lat: null, lng: null, label: q }]);
       setApproximate(true);
     };
     const id = setTimeout(async () => {
       try {
-        const place = await withTimeout(lookup(q), LOOKUP_TIMEOUT_MS);
+        const found = await withTimeout(lookup(q), LOOKUP_TIMEOUT_MS);
         if (cancelled) return;
-        if (place) setResolved(place);
+        if (found.length > 0) setPlaces(found);
         else asTyped();
       } catch {
         if (!cancelled) asTyped();
@@ -118,5 +144,5 @@ export function useGeocodeSearch(text: string): {
     };
   }, [text]);
 
-  return { resolved, searching, approximate };
+  return { resolved: places[0] ?? null, places, searching, approximate };
 }

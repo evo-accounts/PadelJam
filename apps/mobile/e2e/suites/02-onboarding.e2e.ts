@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { tap, typeText } from '../driver/actions';
 import { expectVisible } from '../driver/expect';
-import { freshInstall } from '../driver/app';
+import { freshInstall, relaunch } from '../driver/app';
 import { loginAs, tapAlertButton } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
 import { select } from '../fixtures/db';
@@ -15,20 +15,29 @@ describe('02 onboarding', () => {
   });
 
   it('routes a not-onboarded user to the location step', async () => {
-    await expectVisible({ text: /where do you play/i }, { timeout: 30_000 });
+    await expectVisible({ text: /share your location/i }, { timeout: 30_000 });
+  });
+
+  it('location Skip leaves it null and relaunch resumes there', async () => {
+    await tap({ label: 'Skip' });
+    await expectVisible({ text: /dominant hand/i }, { timeout: 30_000 });
+    const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=location_text`);
+    expect((rows as { location_text: string | null }[])[0]?.location_text).toBeNull();
+    await relaunch();
+    await expectVisible({ text: /share your location/i }, { timeout: 30_000 });
   });
 
   it('manual location entry persists', async () => {
-    await tap({ text: /add location manually/i });
-    await typeText({ type: 'TextField' }, 'Lisboa');
-    // Continue is gated on a debounced, geocoded place (not just 3+ typed
+    await tap({ label: 'Enter address manually' });
+    await expectVisible({ text: /where do you play/i });
+    await typeText({ id: 'location-search' }, 'Lisboa');
+    // Continue is gated on a debounced, geocoded result (not just 3+ typed
     // characters) — see location.tsx's `primaryDisabled={!resolved || saving}`.
     // Tapping immediately after typeText races that debounce: the button is
     // still disabled, the tap is swallowed, and the screen never advances.
-    // The resolved label always contains the typed query (it falls back to the
-    // raw text when reverse-geocoding doesn't return a name), so wait for it —
-    // as a StaticText, so this doesn't match the TextField's own value.
-    await expectVisible({ text: /lisboa/i, type: 'StaticText' }, { timeout: 10_000 });
+    // The first result card is preselected and its name always contains the
+    // typed query (it falls back to the raw text), so wait for the card.
+    await expectVisible({ id: 'location-result-0' }, { timeout: 10_000 });
     await tap({ label: 'Continue', type: 'Button' });
     await expectVisible({ text: /dominant hand/i }, { timeout: 30_000 });
     const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=location_text`);
@@ -55,7 +64,7 @@ describe('02 onboarding', () => {
   });
 
   it('paywall "continue free" marks the user onboarded and lands on tabs', async () => {
-    await tap({ text: /continue with free/i });
+    await tap({ label: 'Continue with Free' });
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 30_000 });
     const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=onboarded_at`);
     expect((rows as { onboarded_at: string | null }[])[0]?.onboarded_at).toBeTruthy();

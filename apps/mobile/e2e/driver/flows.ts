@@ -175,7 +175,7 @@ export async function switchUser(key: PersonaKey): Promise<void> {
 
 /** From the location onboarding step, skip everything through the paywall to reach tabs. */
 export async function completeOnboardingBySkipping(): Promise<void> {
-  for (const step of [/Where do you play/, /Dominant hand/, /Preferred side/, /Enable Notifications/]) {
+  for (const step of [/Share your location/, /Dominant hand/, /Preferred side/, /Enable Notifications/]) {
     await expectVisible({ text: step });
     await tap({ label: 'Skip' });
     await sleep(600);
