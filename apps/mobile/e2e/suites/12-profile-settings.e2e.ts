@@ -191,14 +191,14 @@ describe('12 profile & settings', () => {
       ((await select('profiles', `email=eq.${PERSONAS.maria.email}&select=level`)) as { level: number | null }[])[0]?.level;
     await psql(`update public.profiles set level = 2 where email = '${PERSONAS.maria.email}'`);
     await deepLink('mobile:///profile/game', /game preferences/i);
-    await expectVisible({ id: 'pref-level' }, { timeout: 15_000 });
+    await expectVisible({ id: 'pref-level-1' }, { timeout: 15_000 });
     await tap({ text: /^Advanced$/ });
     await tap({ id: 'game-save' });
     await pollUntil(levelOf, (level) => level === 4, { label: 'level persisted as 4' });
 
     // Second visit: change only the time of day, leave Level alone.
     await deepLink('mobile:///profile/game', /game preferences/i);
-    await expectVisible({ id: 'pref-level' }, { timeout: 15_000 });
+    await expectVisible({ id: 'pref-level-1' }, { timeout: 15_000 });
     await tap({ text: /^Morning$/ });
     await tap({ id: 'game-save' });
     await pollUntil(
