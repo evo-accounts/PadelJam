@@ -10,8 +10,8 @@ New file `apps/mobile/e2e/suites/02-onboarding-screens.e2e.ts`. For each locale,
 
 1. `resetDb('full')`, `freshInstall()`, and set omar's `profiles.locale` in the DB. Omar is seeded not-onboarded.
 2. `loginAs('omar')`, then `relaunch()` so the app re-reads the locale. `apps/mobile/app/_layout.tsx` reads `profiles.locale` once, at startup, and only when a session exists, so logging in alone leaves it on the device language.
-3. Walk location → manual location → hand → side → notifications, without tapping Skip. Before each `screenshot()`, assert that frame's title in that locale.
-4. Save to `join(CONFIG.artifactsDir, 'onboarding-screens', '<locale>-<frame>.png')`, with frame `location`, `location-manual` (keyboard open), `hand`, `side` or `notifications`. That is 10 files.
+3. Walk location → manual location → level → hand → side → notifications, without tapping Skip. Before each `screenshot()`, assert that frame's title in that locale.
+4. Save to `join(CONFIG.artifactsDir, 'onboarding-screens', '<locale>-<frame>.png')`, with frame `location`, `location-manual` (keyboard open), `level`, `hand`, `side` or `notifications`. That is 12 files.
 
 Take the strings from the `onboarding` JSON for each locale instead of hardcoding them, so PR 2 and PR 3 only have to change the frame list. Set status bars with `overrideStatusBar()`, as suite 00 does. Reuse the existing driver helpers; a small `updateRow`-style helper in `fixtures/db` is fine if none exists.
 
@@ -20,7 +20,6 @@ Hand and side have role `radio`, and the suite only needs to select one to enabl
 ## Not in scope
 
 - No workflow or run.mjs changes. The only app code is the OnboardingStep bottom-inset fix the first frames found (CTO approved, PAD-37).
-- No changes to `02-onboarding.e2e.ts`.
 - No assertions on layout: the images are for people to look at.
 
 ## Done means

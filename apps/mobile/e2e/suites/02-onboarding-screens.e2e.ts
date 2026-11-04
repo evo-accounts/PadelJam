@@ -60,6 +60,11 @@ describe('02 onboarding screens', () => {
         await shot('location-manual');
         await tap({ label: t.continue, type: 'Button' });
 
+        await expectVisible(title(t.levelTitle), { timeout: 30_000 });
+        await shot('level');
+        await tap({ text: new RegExp(escape(t.levelIntermediate), 'i') });
+        await tap({ label: t.continue, type: 'Button' });
+
         await expectVisible(title(t.handTitle), { timeout: 30_000 });
         await shot('hand');
         await tap({ label: t.handRight });
