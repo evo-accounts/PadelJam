@@ -195,6 +195,34 @@ describe('12 profile & settings', () => {
    * The fields are selected by ID now. They were selected by AX element type only because the
    * screen carried no testIDs at all; it has them as of this PR.
    */
+  /**
+   * Game preferences carries a Level field (migration 0148). Two things matter: picking a level
+   * and saving writes `profiles.level`, and saving a different field WITHOUT touching Level leaves
+   * it alone (the save must not send a null for a field the user never changed).
+   */
+  it('game preferences saves the level and keeps it when only another field changes', async () => {
+    const levelOf = async () =>
+      ((await select('profiles', `email=eq.${PERSONAS.maria.email}&select=level`)) as { level: number | null }[])[0]?.level;
+    await psql(`update public.profiles set level = 2 where email = '${PERSONAS.maria.email}'`);
+    await deepLink('mobile:///profile/game', /game preferences/i);
+    await expectVisible({ id: 'pref-level' }, { timeout: 15_000 });
+    await tap({ text: /^Advanced$/ });
+    await tap({ id: 'game-save' });
+    await pollUntil(levelOf, (level) => level === 4, { label: 'level persisted as 4' });
+
+    // Second visit: change only the time of day, leave Level alone.
+    await deepLink('mobile:///profile/game', /game preferences/i);
+    await expectVisible({ id: 'pref-level' }, { timeout: 15_000 });
+    await tap({ text: /^Morning$/ });
+    await tap({ id: 'game-save' });
+    await pollUntil(
+      () => select('profiles', `email=eq.${PERSONAS.maria.email}&select=preferred_time`),
+      (rows) => (rows as { preferred_time: string | null }[])[0]?.preferred_time === 'morning',
+      { label: 'time persisted' },
+    );
+    if ((await levelOf()) !== 4) throw new Error('saving without touching Level changed it');
+  });
+
   it('support ticket submits', async () => {
     const m = manifest();
     await deepLink('mobile:///profile/support/contact', /contact support/i);

@@ -28,7 +28,7 @@ export type OnboardingRoute =
 
 /**
  * The question steps in the order they are asked. The progress bar's "n/N" is
- * derived from this list, so adding a step (Level) is one entry here.
+ * derived from this list, so adding a step is one entry here.
  */
 export const ONBOARDING_QUESTION_STEPS = ['location', 'level', 'hand', 'side'] as const;
 
