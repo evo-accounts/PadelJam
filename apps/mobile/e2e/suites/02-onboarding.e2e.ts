@@ -70,8 +70,7 @@ describe('02 onboarding', () => {
     expect((rows as { notifications_prompted_at: string | null }[])[0]?.notifications_prompted_at).toBeTruthy();
     // Un-stamp and relaunch: onboarding resumes at the first unanswered step, which is notifications again.
     await psql(`update profiles set notifications_prompted_at = null where email = '${PERSONAS.omar.email}'`, { su: true });
-    await freshInstall();
-    await loginAs('omar');
+    await relaunch();
     await expectVisible({ text: /don.t miss a thing/i }, { timeout: 30_000 });
   });
 
