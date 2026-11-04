@@ -36,7 +36,7 @@ describe('02 onboarding', () => {
   });
 
   it('hand and side selections persist', async () => {
-    await tap({ label: 'Right', type: 'Button' });
+    await tap({ label: 'Right' });
     await tap({ label: 'Continue', type: 'Button' });
     await expectVisible({ text: /court side/i });
     await tap({ label: 'Left side' });
