@@ -18,7 +18,7 @@
 Every "must be true" line is written so the CTO or QA can check it from the code, a test or the founder's device pass. Lines tagged **[device]** can only be confirmed on hardware, so they go on the founder's device pass ([PAD-32](/PAD/issues/PAD-32)); I'm not asking QA for them.
 
 **Launch criteria that apply to every area** (not repeated below):
-- **L1.** Every user-facing string exists in pt-PT, pt-BR and en. `pnpm i18n:check` passes (mobile only: see gap G2).
+- **L1.** Every user-facing string exists in pt-PT, pt-BR and en. `pnpm i18n:check` passes (mobile only: see T-I18N).
 - **L2.** Every write is checked on the server for entitlement and permission (the two-check rule). Hiding UI is never the check.
 - **L3.** `check` and the area's E2E suite are green on the release candidate.
 - **L4.** The area works on both iOS and Android **[device]**. No Android pass is on record at all (Release & Ops owns the Android gap list).
@@ -42,7 +42,7 @@ Every "must be true" line is written so the CTO or QA can check it from the code
 **Today.** Built, E2E-covered (suite 01, 98; account deletion in suite 12). Social sign-in, password rules, recovery, account deletion and session-loss handling all merged before September.
 **Evidence for the gaps:**
 - *SMS:* the hand-off doc says "No SMS has ever been sent by this project" and was last touched 2026-09-15. I found nothing since saying the Twilio setup was done. **Unverified.** Twilio is a paid service, so this is a gate-4 decision for the founder, with a Brazil sender registration lead time. This is the biggest auth risk to the January date.
-- *Email:* the local edge runtime has no email provider (`email_not_configured`, Manage Event plan, "Blast emails untested"). Hosted delivery of OTP and recovery mail is **unverified** from the repo.
+- *Email / SMTP:* the local edge runtime has no email provider (`email_not_configured`), and `config.toml` has auth SMTP commented out; hosted may differ. OTP and recovery email depend on hosted auth SMTP, which is **unverified** and its own T-HOSTED line.
 - *Android:* `81be686` made the Android Apple provision non-fatal, which implies Apple sign-in on Android is known to be awkward. **Unverified** on a device.
 - *Terms/Privacy:* the URLs are centralised (`lib/externalUrls.ts`); whether the pages they point to carry the reviewed text is Legal's and the founder's call (gate 5).
 
@@ -56,7 +56,7 @@ Every "must be true" line is written so the CTO or QA can check it from the code
 5. Three locales; VoiceOver can page the steps.
 
 **Today.** Built, E2E-covered by suites 02 and 02-onboarding-screens (#302, #307), all four PRs on `main` (#294, #304, #303, #295). **No build has it and none of it has run on a device**, so layout, illustrations and the OS permission alerts are **unverified**. The Level step has no Skip by design; whether that suits players who don't know their level is a UX question for the Designer.
-**Evidence:** `docs/company/roadmap.md` initiative 3; migration `0148_profiles_level.sql` exists locally and the hosted state is not stated anywhere I could read.
+**Evidence:** `docs/company/roadmap.md` initiative 3; `0148_profiles_level.sql` is applied on hosted: migration history is in sync through 0148 (workflow run 42034340226, 11-05, `Remote database is up to date`) and `schema:check` on #315 passed against hosted, so `profiles.level` exists (CTO review on PAD-125). The onboarding half of the 0148 condition is met; [PAD-65](/PAD/issues/PAD-65) remains.
 
 ### 1.3 Home
 
@@ -115,7 +115,7 @@ Every "must be true" line is written so the CTO or QA can check it from the code
 **Today.** Built, E2E-covered (suites 04, 05, 06, 08). All of the Create & Join plan (M1–M5, W1–W5, migrations 0111–0118) and the Manage Event plan (0121–0127, M1–M5, W1–W5) is merged.
 **Unverified:**
 - *Blast email delivery.* The Manage Event plan says delivery "was only seen failing and retrying" locally; no end-to-end send is on record. Blasts are a paid-plan feature, so (see D1) this is either verified before launch or hidden.
-- *Hosted state after 0127.* I can't tell from the repo whether `pg_cron` is enabled and whether 0121–0127 and the `send-push`/`send-blast` redeploys have been applied; the 09-30 notes said hosted was current through 0130.
+- *Hosted state* (CTO, PAD-125). **Confirmed:** migrations in sync through 0148; `geocode` and `send-blast` answer on hosted (via `schema:check`'s CORS probe, so they carry at least #285). **Not provable from the repo, still to verify (T-HOSTED):** `pg_cron` (0117's block is guarded, so a clean history proves nothing), the `send-push` version (last change #236), auth SMTP, Resend key, Twilio, Stream production keys, FCM.
 - *Team drag and drop* has no E2E (the "+" path does). **[device]**
 - *Add to calendar* uses `expo-calendar`, a native module: **[device]** on both OSes, including the Android permission prompt (`READ_CALENDAR`/`WRITE_CALENDAR` are in `app.json`, which also touches the store data-safety form).
 
@@ -157,7 +157,7 @@ Every "must be true" line is written so the CTO or QA can check it from the code
 - "Rate the app" is deliberately hidden: `STORE_URL` is empty in `lib/externalUrls.ts`. It needs the store listing, so it is a post-approval one-line change (Release & Ops).
 - Badges: the plan said the work was "blocked on the final catalogue"; #185 merged. I did not check whether the catalogue is final. **Unverified.**
 - Web has a dark-mode toggle (`ThemeToggle` in App preferences), but the primary-button token equals the background in dark mode, so Join, Follow and Apply are invisible fills. Flagged in two plans (see triage T-DM).
-- Web `PlanSection` and the Settings hub's Subscription group exist (mobile #182). See D1.
+- The Subscription group and `PlanSection` are mobile only (`apps/web/.../settings/page.tsx:5` says so). See D1.
 
 ### 1.11 Notifications
 
@@ -178,10 +178,10 @@ All of these are proposals. "Hide" means feature-flag or remove the entry point,
 
 | # | Item | Why it might not be ready | Proposal |
 |---|---|---|---|
-| W1 | **Phone OTP sign-in** | Needs paid Twilio and a registered Brazil sender; lead time is outside the team's control. | **Decide by 11-26.** If SMS isn't confirmed by then, launch with email OTP, Apple and Google, and hide the phone choice on the identifier screen. Caveat: `auth-onboarding.md` says every account links an email AND a phone, so hiding phone changes that rule and needs a founder decision. Flagged, not assumed. |
-| W2 | **Anything price- or plan-facing** | Billing is out of scope, but the Jammer+ onboarding screen, the Settings → Subscription group, the Plan row, the community `PlanSection` and `UpgradePrompt` exist. `set_community_plan` is self-service by design during the MVP (Manage Event plan, out of scope list). | See D1. Recommended: hide purchase and price language; leave limits enforced. |
+| W1 | **Phone OTP sign-in** | Needs paid Twilio and a registered Brazil sender; lead time is outside the team's control. Phone is the **default** mode on the first screen (`sign-in.tsx:57`), so without SMS every new user's default path fails. Email and social sign-ups are asked for a phone number (`create-account.tsx:158`) and a code is sent; they can skip only from the verify step (`:432`). | **Send the question to the founder now; 11-26 is the latest date to choose the hide**, since Brazil sender registration has a lead time we don't control. The hide is one PR, not a flag: sign-in default and channel swap, the `create-account` field, OTP "try another way", recovery, `profile/change-phone`, suite 01. The "email AND phone" rule is softer than `auth-onboarding.md:32` says (the code already treats the second identifier as optional, `create-account.tsx:355`), so that doc is what's out of date. |
+| W2 | **Anything price- or plan-facing** | See D1. The settings-mode paywall (`profile/plan.tsx` → `JammerPlusPaywall.tsx:187-217`) shows €4.99/mo, €39.99/yr and "Try 7-day free trial", and its button grants Jammer+ with no expiry and no payment: a false promise, a gate-6 issue and a store-review risk. | **Remove prices under any D1 option.** The rest depends on D1. Surfaces are listed in D1. |
 | W3 | **Event blasts by email / WhatsApp** | Email delivery never confirmed end to end; plan-gated feature; custom blast images are placeholders. | Keep only if one real blast to a test account on hosted succeeds (gate 3: the founder approves the send). Otherwise hide Send blast. |
-| W4 | **Web dark mode** | Primary buttons have no visible fill. | Hide the web `ThemeToggle` until the Designer fixes the token (T-DM). One line. |
+| W4 | **Web dark mode** | `--button-primary-bg` is `#2f103d` with no dark override, the same as the dark `--background`. `ThemeProvider` sets `defaultTheme="system"`, so anyone with an OS in dark mode, or a saved "dark", gets it even with the toggle hidden. | **Must, small:** `forcedTheme="light"` in the provider and remove the toggle at `settings/app-preferences/page.tsx:68`. Token fix **After**, Designer. *Check:* with the OS in dark mode, Join shows a visible fill (not run; `next-themes` documents `forcedTheme`). |
 | W5 | **Rate the app** | No store ID yet. | Already hidden. Switch on after approval. |
 | W6 | **Group and event preset thumbnails; blast artwork** | Artwork is blocked on the product owner/Designer. | Ship upload-only, as built. After launch. |
 | W7 | **Live-event polish** | No UX-LIVE audit exists. | Launch the live event as built, with a device-verified floor (see T-LIVE). Do not start a live redesign before January. |
@@ -281,9 +281,9 @@ Shipped (0107–0110, #196–#202). Open:
 |---|---|---|---|
 | **T-I18N** | `pnpm i18n:check` scans only `apps/mobile/app` and `apps/mobile/components` (`scripts/check-i18n-keys.mjs:34`). Web has a separate catalog, so a missing key renders raw text. | **Must** | Launch criterion L1 isn't enforceable on web. Extend the check to `apps/web`. *Check:* CI fails on a deliberately missing web key. |
 | **T-COPY** | One pt-PT register, and a pt-BR pass. | **Must** | Needs a native review; Legal & Growth join about 11-12. |
-| **T-DM** | Web dark mode: primary fill equals background. | **Hide** toggle now; token fix **After**, Designer. | One-line hide; both plans flagged it. |
-| **T-HOSTED** | Hosted state for 0131+ (the workflow-applied migrations), `pg_cron`, `geocode`, `send-push`, `send-blast` deploys. | **Must** (verify) | I can't read hosted. Ask the CTO for a probe list; hosted steps go through the founder (gates 1, 2). |
-| **T-LIVE** | A UX review of the live event, with a short floor list: score entry works one-handed; timer readable in sunlight; leaderboard shows after Finish. | **Must** (small) | The Designer joins about 11-12; ask for a heuristic pass, not a redesign. |
+| **T-DM** | Web dark mode: primary fill equals background; hiding the toggle isn't enough (see W4). | **Must, small:** `forcedTheme="light"` plus remove the toggle. Token fix **After**, Designer. | CTO review. Check in W4. |
+| **T-HOSTED** | Hosted items the repo can't prove: `pg_cron`, `send-push` version, auth SMTP, Resend key, Twilio, Stream production keys, FCM. (History in sync through 0148, `geocode` and `send-blast` answer: confirmed.) | **Must** (verify) | The CTO writes one `Founder:` task with the exact SQL and commands ([PAD-129](/PAD/issues/PAD-129) probe request). Gates 1 and 2 apply. |
+| **T-LIVE** | A UX review of the live event by the Designer (everything but sunlight and one-handed use; only blockers get fixed), plus a device floor on [PAD-32](/PAD/issues/PAD-32): score entry one-handed, timer readable in sunlight, leaderboard shows after Finish. | **Must** (small) | The device floor stands on its own, so launch doesn't wait for the Designer's start date. |
 | **T-BUILD** | One new iOS build carrying onboarding, M1–M3 and the 0148 reader. | **Must** | It must come after [PAD-65](/PAD/issues/PAD-65) and after 0148 is on hosted (onboarding spec §5.3). |
 
 ---
@@ -292,11 +292,11 @@ Shipped (0107–0110, #196–#202). Open:
 
 | # | Decision | Owner | My recommendation |
 |---|---|---|---|
-| **D1** | **What does a free launch show for plans?** Jammer+ onboarding screen, Settings → Subscription, Plan row, community `PlanSection`, `UpgradePrompt`, blast gating. Prices are gate 6, and billing is out of scope. | CEO and founder | Hide purchase, price and "upgrade" language; keep the plan *limits* enforced server-side; make the one decision explicit and tell me if the founder instead wants everyone on the top tier during launch. I haven't read each screen's copy, so this needs the CTO's list of surfaces. |
-| **D2** | **Phone sign-in: enable (needs paid Twilio) or defer?** | Founder (gate 4) | Decide by 11-26; fall back to W1's hide plan. |
+| **D1** | **What does a free launch show and allow for plans?** `starter` limits are 10 members, 1 group, 1 recurring series, 0 co-organizers, no blasts (`packages/features/src/registry.ts:54`); the member cap is a server trigger (`0098:47`), so the 11th person can't join. "Hide upgrade language, keep limits" leaves every community stuck. Prices are gate 6. | CEO and founder | **A (recommended):** hide plan surfaces and raise the `starter` limits for launch (small data migration plus the registry); blasts stay off unless W3 passes; self-service plan RPCs stay **After (billing)**. **B:** hide surfaces, keep the limits (10-member communities); then the RPC guard becomes **Must**, because any admin can call `set_community_plan` directly (`0104:94`). **C:** keep the self-service plan picker, minus prices. **Surfaces:** mobile Settings → Subscription (`profile/settings.tsx:127`), Manage Community `PlanSection`, `(onboarding)/jammer-plus` ("Try Jammer+" activates it free; stays only if Jammer+ stays), `UpgradePrompt` "See plans" (community join/manage/members, group create, event create, blast), `RecurringCapPrompt`, `EventEditSheet`, wizard `draft.ts`; web `UpgradePrompt` (OK only), `event-create`, event `manage`, `manage/blast`, `EventEditDialog`, `BlastComposer`. |
+| **D2** | **Phone sign-in: enable (needs paid Twilio) or defer?** | Founder (gate 4) | Ask now; latest date to choose the hide is 11-26 (see W1). |
 | **D3** | **Level collection** is with the founder already ([PAD-65](/PAD/issues/PAD-65)). | Founder | Approve; no build ships until it's settled. |
 | **D4** | **Is the live-event section of the UX audit coming?** | Founder | If a UX-LIVE document exists outside the repo, add it to `docs/audit/`. If not, T-LIVE stands. |
-| **D5** | **Blast send test** (one email to a test account on hosted). | Founder (gate 3) | Yes, after `send-blast` is confirmed deployed. |
+| **D5** | **Blast send test** (one email to a test account on hosted). | Founder (gate 3) | Depends on D1: `starter` has no blasts, so under A or B it may not be needed. Settle D1 first. |
 
 ## 5. What I haven't done
 
