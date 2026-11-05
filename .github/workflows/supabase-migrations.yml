@@ -1,17 +1,20 @@
 name: Supabase migrations
 
 # Applies new migrations to the hosted Supabase project when they reach main.
-# Agents merge to main but never hold database credentials: only this workflow
-# does. Two kinds of change are not applied on merge and fail the run instead:
+# Agents merge to main but never hold database credentials: only the jobs here
+# that use the hosted-migrations environment do, and GitHub releases that
+# environment's secrets to main only. Pull request runs get no secrets: never
+# add `environment:` to the scan job, and keep secrets at step level.
+# Two kinds of change are not applied on merge and fail the run instead:
 #   - a migration that drops, truncates or deletes data;
 #   - a push that would apply migrations other than the ones in the merge
 #     (the hosted migration history is out of sync with infra/supabase/migrations).
-# The founder applies those with Actions → Supabase migrations → Run workflow
-# (agents' tokens can't trigger workflows).
+# The founder applies those with Actions → Supabase migrations → Run workflow.
 #
-# Required repo config (Settings → Secrets and variables → Actions):
+# Required repo config (Settings → Environments → hosted-migrations, branch main only):
 #   Secret:   SUPABASE_ACCESS_TOKEN   (Supabase personal access token)
 #   Secret:   SUPABASE_DB_PASSWORD    (hosted database password)
+# And Settings → Secrets and variables → Actions → Variables:
 #   Variable: SUPABASE_PROJECT_REF    (hosted project ref)
 
 on:
@@ -31,16 +34,13 @@ concurrency:
 
 env:
   SUPABASE_CLI_VERSION: 2.117.0
-  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
 jobs:
-  check:
+  scan:
     name: Migration check
     runs-on: ubuntu-latest
     outputs:
       destructive: ${{ steps.scan.outputs.destructive }}
-      unexpected: ${{ steps.dry.outputs.unexpected }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,31 +52,51 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         if: github.event_name != 'workflow_dispatch'
         run: |
-          git diff --name-only --diff-filter=AMR "$BASE" "$GITHUB_SHA" -- infra/supabase/migrations > changed.txt
-          echo "Migrations in this change:"; cat changed.txt
+          git diff --name-only -z --diff-filter=AMR "$BASE" "$GITHUB_SHA" -- infra/supabase/migrations > changed.z
+          echo "Migrations in this change:"; tr '\0' '\n' < changed.z
           # shortcut: keyword scan, not a SQL parser; upgrade to a reviewed allowlist if migrations get clever.
           # Comments and function bodies are skipped: defining a function deletes nothing (0148 redefines soft_delete_account).
-          if [ -s changed.txt ] && perl -0pe 's/--[^\n]*//g; s/create\s+(or\s+replace\s+)?function[^;]*?\$(\w*)\$.*?\$\2\$//gis' $(cat changed.txt) | grep -inE '\b(drop[[:space:]]+(table|column|schema|type|view|materialized)|truncate|delete[[:space:]]+from)\b'; then
+          # Files reach perl through cat: given a filename, perl runs one ending in | as a command.
+          if [ -s changed.z ] && xargs -0 cat -- < changed.z | perl -0pe 's/--[^\n]*//g; s/create\s+(or\s+replace\s+)?function[^;]*?\$(\w*)\$.*?\$\2\$//gis' | grep -inE '\b(drop[[:space:]]+(table|column|schema|type|view|materialized)|truncate|delete[[:space:]]+from)\b'; then
             echo "destructive=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Destructive migration: applying it to the hosted database needs the founder's approval."
           else
             echo "destructive=false" >> "$GITHUB_OUTPUT"
           fi
 
+  dry-run:
+    name: Dry run against the hosted project
+    if: github.event_name != 'pull_request'
+    needs: scan
+    runs-on: ubuntu-latest
+    environment: hosted-migrations
+    outputs:
+      unexpected: ${{ steps.dry.outputs.unexpected }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: supabase/setup-cli@v1
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
-      - name: Dry run against the hosted project
+      - name: Dry run
         id: dry
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          BASE: ${{ github.event.before }}
         run: |
           set -o pipefail  # a refused dry run must fail the check, not pass through tee
           supabase --workdir infra link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --password "$SUPABASE_DB_PASSWORD"
           supabase --workdir infra db push --dry-run --password "$SUPABASE_DB_PASSWORD" 2>&1 | tee dry-run.txt
           # Every migration the push would apply must be one this change adds.
           grep -oE '[0-9]+_[A-Za-z0-9_]+\.sql' dry-run.txt | sort -u > pending.txt || true
-          touch changed.txt
-          xargs -r -n1 basename < changed.txt | sort -u > expected.txt
+          touch expected.txt
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            git diff --name-only --diff-filter=AMR "$BASE" "$GITHUB_SHA" -- infra/supabase/migrations | xargs -r -n1 basename | sort -u > expected.txt
+          fi
           extra=$(comm -23 pending.txt expected.txt)
           if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ -n "$extra" ]; then
             echo "unexpected=true" >> "$GITHUB_OUTPUT"
@@ -88,17 +108,18 @@ jobs:
   migrate:
     name: Apply to hosted database
     if: github.event_name != 'pull_request'
-    needs: check
+    needs: [scan, dry-run]
     runs-on: ubuntu-latest
+    environment: hosted-migrations
     steps:
       - name: Hold destructive migrations for the founder
-        if: needs.check.outputs.destructive == 'true'
+        if: needs.scan.outputs.destructive == 'true'
         run: |
           echo "::error::This migration drops, truncates or deletes data. The founder applies it with Actions → Supabase migrations → Run workflow."
           exit 1
 
       - name: Hold out-of-sync history for the founder
-        if: needs.check.outputs.unexpected == 'true'
+        if: needs.dry-run.outputs.unexpected == 'true'
         run: |
           echo "::error::The push would apply migrations that aren't in this merge. The founder reconciles supabase_migrations.schema_migrations, then runs this workflow by hand."
           exit 1
@@ -110,6 +131,9 @@ jobs:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           supabase --workdir infra link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --password "$SUPABASE_DB_PASSWORD"
           supabase --workdir infra db push --password "$SUPABASE_DB_PASSWORD"
