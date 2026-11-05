@@ -99,8 +99,8 @@ as $$
       select jsonb_agg(jsonb_build_object(
                'table', c.relname::text,
                'rls_on', c.relrowsecurity,
-               'anon_writes', has_table_privilege('anon', c.oid, 'insert')
-                           or has_table_privilege('anon', c.oid, 'update')
+               'anon_writes', has_any_column_privilege('anon', c.oid, 'insert')
+                           or has_any_column_privilege('anon', c.oid, 'update')
                            or has_table_privilege('anon', c.oid, 'delete'))
              order by c.relname)
         from pg_class c
