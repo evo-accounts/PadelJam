@@ -14,7 +14,7 @@
 // `supabase start` ran from (CI's db-tests job starts it from the branch). In a worktree, serve this
 // branch's copy yourself and point SEND_BLAST_URL at it — the docker line is in the header of
 // complete-account-consent.test.mjs.
-import { BASE_URL, user, rpc, anonRpc, sel, insert, expectError, assert, run } from './lib.mjs';
+import { BASE_URL, setAccountPlan, user, rpc, anonRpc, sel, insert, expectError, assert, run } from './lib.mjs';
 
 const FN_URL = process.env.SEND_BLAST_URL || `${BASE_URL}/functions/v1/send-blast`;
 const DENIED = 'permission denied for function';
@@ -53,7 +53,7 @@ const sendBlast = async (jwt, blastId) => {
 /** The exploit's setup: a private group-less event, a stranger invited, an email blast to 'invited'. */
 async function invitedStrangerBlast() {
   const org = await user('bp-org');
-  await rpc(org.jwt, 'set_account_plan', { p_plan: 'jammer_plus' }); // custom text on a group-less event
+  await setAccountPlan(org.id, 'jammer_plus'); // custom text on a group-less event
   const stranger = await user('bp-stranger');
   await optIn(stranger);
   const ev = await rpc(org.jwt, 'create_event', { p_payload: payload() });
