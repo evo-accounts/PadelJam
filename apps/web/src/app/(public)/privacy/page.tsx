@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-6 py-16">
       <h1 className="text-2xl font-semibold">Privacy Policy</h1>
-      <p>Last updated: 5 November 2026</p>
+      <p>Last updated: 6 November 2026</p>
       <h2 className="mt-6 text-lg font-medium">What we collect</h2>
       <p>
         Account identifiers (name, email, phone), profile details you provide (playing
