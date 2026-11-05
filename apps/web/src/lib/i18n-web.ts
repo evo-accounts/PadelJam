@@ -309,6 +309,7 @@ const webExplore = {
     blocked: 'Não é possível seguir esta pessoa.',
     group_private_join_forbidden: 'Este grupo é privado. Só é possível entrar por convite.',
     invite_required: 'Esta comunidade só aceita membros por convite.',
+    community_full: 'Esta comunidade está cheia.',
     unknown_error: 'Algo correu mal. Tenta novamente.',
     // Search (UX-EXPL-04..08)
     backToSuggestions: 'Voltar às sugestões',
@@ -435,6 +436,7 @@ const webExplore = {
     blocked: 'Não é possível seguir esta pessoa.',
     group_private_join_forbidden: 'Este grupo é privado. Só é possível entrar por convite.',
     invite_required: 'Esta comunidade só aceita membros por convite.',
+    community_full: 'Esta comunidade está cheia.',
     unknown_error: 'Algo deu errado. Tente novamente.',
     // Search (UX-EXPL-04..08)
     backToSuggestions: 'Voltar às sugestões',
@@ -561,6 +563,7 @@ const webExplore = {
     blocked: "You can't follow this person.",
     group_private_join_forbidden: 'This group is private. You can only join by invitation.',
     invite_required: 'This community accepts members by invitation only.',
+    community_full: 'This community is full.',
     unknown_error: 'Something went wrong. Please try again.',
     // Search (UX-EXPL-04..08)
     backToSuggestions: 'Back to suggestions',
@@ -1341,7 +1344,8 @@ const webCommunity = {
     privacyLabel: 'Privacidade',
     thumbnailLabel: 'Miniatura',
     // --- UpgradePrompt (UX-GLOB-10 on web) ---
-    upgradeRecurringCap: 'Os eventos recorrentes precisam do Community Pro.',
+    upgradeRecurringCap: 'Esta comunidade atingiu o limite de eventos recorrentes.',
+    upgradeLimitTitle: 'Limite atingido',
     upgradeBodyAdmin: 'Podes mudar o plano na secção Plano da comunidade, na app PadelJam.',
     upgradeBodyMember: 'Só um administrador da comunidade pode mudar o plano.',
     upgradeOk: 'OK',
@@ -1484,7 +1488,8 @@ const webCommunity = {
     privacyLabel: 'Privacidade',
     thumbnailLabel: 'Miniatura',
     // --- UpgradePrompt (UX-GLOB-10 on web) ---
-    upgradeRecurringCap: 'Eventos recorrentes precisam do Community Pro.',
+    upgradeRecurringCap: 'Esta comunidade atingiu o limite de eventos recorrentes.',
+    upgradeLimitTitle: 'Limite atingido',
     upgradeBodyAdmin: 'Você pode mudar o plano na seção Plano da comunidade, no app PadelJam.',
     upgradeBodyMember: 'Só um administrador da comunidade pode mudar o plano.',
     upgradeOk: 'OK',
@@ -1627,7 +1632,8 @@ const webCommunity = {
     privacyLabel: 'Privacy',
     thumbnailLabel: 'Thumbnail',
     // --- UpgradePrompt (UX-GLOB-10 on web) ---
-    upgradeRecurringCap: 'Recurring events need Community Pro.',
+    upgradeRecurringCap: 'This community has reached its recurring event limit.',
+    upgradeLimitTitle: 'Limit reached',
     upgradeBodyAdmin: 'You can change the plan in the community\'s Plan section, in the PadelJam app.',
     upgradeBodyMember: 'Only a community admin can change the plan.',
     upgradeOk: 'OK',
@@ -1875,7 +1881,7 @@ const webGroup = {
     inviteSentSomeBlocked_other: 'Convites enviados, mas não foi possível convidar {{count}} jogadores.',
     invitesBlocked_one: 'Não é possível convidar este jogador.',
     invitesBlocked_other: 'Não é possível convidar estes {{count}} jogadores.',
-    groups_per_community: 'Atingiste o limite de grupos do teu plano. Arquiva um grupo ou faz upgrade para adicionar mais.',
+    groups_per_community: 'Atingiste o limite de grupos. Arquiva um grupo para adicionar mais.',
     last_active_group: 'Não podes arquivar o último grupo ativo da comunidade — uma comunidade tem sempre pelo menos um grupo.',
     sole_admin_must_add_another: 'Adiciona outro administrador a este grupo antes de saíres.',
     group_private_join_forbidden: 'Este é um grupo privado. Precisas de um convite para te juntares.',
@@ -2041,7 +2047,7 @@ const webGroup = {
     inviteSentSomeBlocked_other: 'Convites enviados, mas não foi possível convidar {{count}} jogadores.',
     invitesBlocked_one: 'Não é possível convidar este jogador.',
     invitesBlocked_other: 'Não é possível convidar estes {{count}} jogadores.',
-    groups_per_community: 'Você atingiu o limite de grupos do seu plano. Arquive um grupo ou faça upgrade para adicionar mais.',
+    groups_per_community: 'Você atingiu o limite de grupos. Arquive um grupo para adicionar mais.',
     last_active_group: 'Não é possível arquivar o último grupo ativo da comunidade — uma comunidade sempre tem pelo menos um grupo.',
     sole_admin_must_add_another: 'Adicione outro administrador a este grupo antes de sair.',
     group_private_join_forbidden: 'Este é um grupo privado. Você precisa de um convite para entrar.',
@@ -2207,7 +2213,7 @@ const webGroup = {
     inviteSentSomeBlocked_other: 'Invitations sent, but {{count}} players could not be invited.',
     invitesBlocked_one: 'This player cannot be invited.',
     invitesBlocked_other: 'These {{count}} players cannot be invited.',
-    groups_per_community: "You've reached your plan's group limit. Archive a group or upgrade to add more.",
+    groups_per_community: "You've reached the group limit. Archive a group to add more.",
     last_active_group: "You can't archive the community's last active group — a community always has at least one.",
     sole_admin_must_add_another: 'Add another admin to this group before you leave.',
     group_private_join_forbidden: 'This is a private group. You need an invitation to join.',
@@ -2416,7 +2422,7 @@ const webEvent = {
     invalid_rounds: 'Não foi possível gerar as rondas — tenta novamente.',
     waitlist_not_confirmable: 'Não é possível confirmar um jogador da lista de espera — quem confirmar primeiro fica com a vaga.',
     // 0124: blasts (custom text / Your blasts gate, limits, scope)
-    blast_customization_required: 'Personalizar e guardar comunicados requer um plano premium. Envia o modelo tal como está.',
+    blast_customization_required: 'Não é possível personalizar este comunicado. Envia o modelo tal como está.',
     blast_too_long: 'O título pode ter até 80 caracteres e a mensagem até 1000.',
     invalid_send_to: 'Escolhe a quem enviar o comunicado.',
     template_not_found: 'Este modelo já não está disponível.',
@@ -3207,7 +3213,7 @@ const webEvent = {
     invalid_rounds: 'Não foi possível gerar as rodadas — tente novamente.',
     waitlist_not_confirmable: 'Não é possível confirmar um jogador da lista de espera — quem confirmar primeiro fica com a vaga.',
     // 0124: blasts (custom text / Your blasts gate, limits, scope)
-    blast_customization_required: 'Personalizar e salvar comunicados requer um plano premium. Envie o modelo como está.',
+    blast_customization_required: 'Não é possível personalizar este comunicado. Envie o modelo como está.',
     blast_too_long: 'O título pode ter até 80 caracteres e a mensagem até 1000.',
     invalid_send_to: 'Escolha para quem enviar o comunicado.',
     template_not_found: 'Este modelo não está mais disponível.',
@@ -3998,7 +4004,7 @@ const webEvent = {
     invalid_rounds: 'The rounds could not be generated — try again.',
     waitlist_not_confirmable: 'A waiting-list player cannot be confirmed — the first to claim a free spot takes it.',
     // 0124: blasts (custom text / Your blasts gate, limits, scope)
-    blast_customization_required: 'Customising and saving blasts needs a premium plan. Send the template as it is.',
+    blast_customization_required: "This blast can't be customised. Send the template as it is.",
     blast_too_long: 'Titles can be up to 80 characters and messages up to 1,000.',
     invalid_send_to: 'Choose who to send the blast to.',
     template_not_found: 'This template is no longer available.',
