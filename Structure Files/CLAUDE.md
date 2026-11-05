@@ -52,7 +52,9 @@ launch **January 2027**.
 
 3. **Entitlements live in the database, never in PostHog.** PostHog flags are only for
    rollout control (canaries, A/B tests, kill-switches). Plan gating is always DB-backed
-   and coupled to billing webhooks.
+   and coupled to billing webhooks. No client can write a plan: `subscriptions` and
+   `community_subscriptions` are written only with the service role. Billing isn't built
+   yet, so today no plan can be bought.
 
 4. **Chat is never imported directly.** All chat goes through `packages/chat`. A nightly
    job exports channels/messages to our own Postgres. This is migration insurance.
