@@ -77,7 +77,7 @@ Every "must be true" line is written so the CTO or QA can check it from the code
 4. Distance sorting behaves when a profile has no location point (the web disables the control with a hint).
 
 **Today.** Built, E2E-covered (suite 03, updated by #259, #272). Hosted was current through 0130 on 2026-09-30.
-**Unverified:** the Filter sheet's scroll on a real device (the plan saw quick flicks fail in the simulator); the geocode edge function is built (`infra/supabase/functions/geocode`) but its deploy is a hosted step I can't see the result of. Without it, web address Search shows an error line. Note: communities created before 0128 have no map point and sort last on Distance.
+**Unverified:** the Filter sheet's scroll on a real device (the plan saw quick flicks fail in the simulator); the geocode edge function (`infra/supabase/functions/geocode`) answers on hosted (see T-HOSTED), so web address Search should work; I haven't seen it work end to end. Note: communities created before 0128 have no map point and sort last on Distance.
 
 ### 1.5 Communities
 
@@ -243,10 +243,10 @@ Shipped (0107–0110, #196–#202). Open:
 | `i18n:check` only scans mobile | **Must** | T-I18N. |
 | pt-PT "tu" (web) vs formal register (mobile M3) | **Must** | One register across the app before the pt-PT copy is reviewed. T-COPY. |
 | Interested rows lack "partner invitation pending" | **After** | |
-| Web has no geocoder | **Closed** | Nominatim edge function; needs its hosted deploy (see T-HOSTED). |
+| Web has no geocoder | **Closed** | Nominatim edge function; it answers on hosted (T-HOSTED). |
 | Dead `activityTeam*` keys | **After** | |
 | Web locked-blast path only reviewed, not walked | **Must or Hide** | Follows W3. |
-| Hosted: redeploy `send-push` after 0122, `send-blast` after 0124 | **Must** (verify) | T-HOSTED. |
+| Hosted: redeploy `send-push` after 0122 (`send-blast` is confirmed) | **Must** (verify) | T-HOSTED. |
 | `set_community_plan`/`set_account_plan` self-service; a paid-tier gate is needed before billing | **After** (billing) | Relevant now only through D1. |
 | WhatsApp Business API delivery | **After** | The share-intent path is what ships. |
 
@@ -255,7 +255,7 @@ Shipped (0107–0110, #196–#202). Open:
 | Item | Call | Reason |
 |---|---|---|
 | Dark-mode primary buttons (web) | see T-DM | |
-| Web geocoder | **Closed** | Needs deploy (T-HOSTED). |
+| Web geocoder | **Closed** | Answers on hosted (T-HOSTED). |
 | omar@ not onboarded, `/app` blank | **Closed** | #270. |
 | No unit-test runner in `apps/web` | **After** | |
 | E2E `keyboardTop()` ignores the predictive bar | **After** | Test tool only. |
@@ -284,7 +284,7 @@ Shipped (0107–0110, #196–#202). Open:
 | **T-DM** | Web dark mode: primary fill equals background; hiding the toggle isn't enough (see W4). | **Must, small:** `forcedTheme="light"` plus remove the toggle. Token fix **After**, Designer. | CTO review. Check in W4. |
 | **T-HOSTED** | Hosted items the repo can't prove: `pg_cron`, `send-push` version, auth SMTP, Resend key, Twilio, Stream production keys, FCM. (History in sync through 0148, `geocode` and `send-blast` answer: confirmed.) | **Must** (verify) | The CTO writes one `Founder:` task with the exact SQL and commands ([PAD-130](/PAD/issues/PAD-130)). Gates 1 and 2 apply. |
 | **T-LIVE** | A UX review of the live event by the Designer (everything but sunlight and one-handed use; only blockers get fixed), plus a device floor on [PAD-32](/PAD/issues/PAD-32): score entry one-handed, timer readable in sunlight, leaderboard shows after Finish. | **Must** (small) | The device floor stands on its own, so launch doesn't wait for the Designer's start date. |
-| **T-BUILD** | One new iOS build carrying onboarding, M1–M3 and the 0148 reader. | **Must** | It must come after [PAD-65](/PAD/issues/PAD-65) and after 0148 is on hosted (onboarding spec §5.3). |
+| **T-BUILD** | One new iOS build carrying onboarding, M1–M3 and the 0148 reader. | **Must** | It must come after [PAD-65](/PAD/issues/PAD-65). The 0148 half is met: it is on hosted. (onboarding spec §5.3) |
 
 ---
 
