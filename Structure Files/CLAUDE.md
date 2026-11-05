@@ -49,6 +49,8 @@ launch **January 2027**.
    - **Entitlement check** — does this tenant's plan include this feature? (DB-backed)
    - **Permission check** — does this user's role, in this scope, allow this action? (CASL)
    Hiding UI is never sufficient. Enforce on the server (RLS + Edge Functions).
+   A policy that calls an RLS helper is `to authenticated`, and a helper never answers for a
+   user other than the caller (migration 0151; supersedes 0142's "grant to anon as well").
 
 3. **Entitlements live in the database, never in PostHog.** PostHog flags are only for
    rollout control (canaries, A/B tests, kill-switches). Plan gating is always DB-backed
