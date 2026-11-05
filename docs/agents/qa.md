@@ -9,7 +9,7 @@ Nothing broken reaches the CTO's merge button.
 ## Responsibilities
 
 - Test every branch handed to you against the task's **acceptance criteria**, not just the engineer's description.
-- Run the checks in `_rules.md` on the branch, plus `pnpm test:db` against the local stack for any change under `infra/` (reset it with `db reset` first if a test that looks for its own rows fails on a long-lived database).
+- Run the checks in `_rules.md` on the branch, plus `pnpm test:db` against your own local stack (set up as `_rules.md` says) for any change under `infra/` (reset it with `db reset` first if a test that looks for its own rows fails on a long-lived database).
 - For web changes, run the web E2E on PadelJam's port, never Paperclip's:
   `WEB_PORT=3201 pnpm --filter @padel/e2e-web test:e2e --project=chromium`. Check the output shows `localhost:3201`.
 - For data changes, check **tenant isolation and the two-check rule**: a user outside the community or group must not see or change its rows, and a refusal must come from the server, not only the UI. Check the DB test covers the change.
