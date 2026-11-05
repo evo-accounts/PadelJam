@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMyProfile, useUpdateProfile } from '@padel/api';
+import { IMAGE_ACCEPT, useMyProfile, useUpdateProfile } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { avatarUrl, uploadAvatar } from '@/lib/upload';
@@ -123,7 +123,7 @@ export default function AccountSettingsPage() {
         >
           {t('changeAvatar')}
         </button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
+        <input ref={fileRef} type="file" accept={IMAGE_ACCEPT} className="hidden" onChange={onPickFile} />
       </div>
 
       <div className="space-y-2">

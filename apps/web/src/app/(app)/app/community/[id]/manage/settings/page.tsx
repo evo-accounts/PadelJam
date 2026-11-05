@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useT } from '@padel/i18n';
-import { useCommunities, useCommunity, useSetCommunityLocation, useUpdateCommunity, type LocationPoint } from '@padel/api';
+import { IMAGE_ACCEPT, useCommunities, useCommunity, useSetCommunityLocation, useUpdateCommunity, type LocationPoint } from '@padel/api';
 import { PlacePicker } from '@/components/community/PlacePicker';
 import { parseEwkbPoint, samePoint } from '@/lib/geo-point';
 import { uploadCommunityImage } from '@/lib/upload';
@@ -216,7 +216,7 @@ export default function ManageSettingsPage() {
                 id="thumbnail"
                 type="file"
                 className="max-w-full"
-                accept="image/*"
+                accept={IMAGE_ACCEPT}
                 onChange={(e) => onThumbChange(e.target.files?.[0] ?? null)}
               />
               {thumbPreview ?? currentThumb ? (
@@ -235,7 +235,7 @@ export default function ManageSettingsPage() {
                 id="cover"
                 type="file"
                 className="max-w-full"
-                accept="image/*"
+                accept={IMAGE_ACCEPT}
                 onChange={(e) => onCoverChange(e.target.files?.[0] ?? null)}
               />
               {coverPreview ?? currentCover ? (

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '@padel/i18n';
-import { useCreatePost } from '@padel/api';
+import { IMAGE_ACCEPT, useCreatePost } from '@padel/api';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { uploadPostImage } from '@/lib/upload';
@@ -72,7 +72,7 @@ export function PostComposer({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={IMAGE_ACCEPT}
             className="hidden"
             disabled={busy}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}

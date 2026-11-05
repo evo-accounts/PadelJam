@@ -1,8 +1,9 @@
 import * as ImagePicker from 'expo-image-picker';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { IMAGE_MAX_BYTES, IMAGE_MIME_TYPES } from '@padel/api';
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB
-const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
+const MAX_BYTES = IMAGE_MAX_BYTES;
+const ALLOWED_MIME = IMAGE_MIME_TYPES;
 
 const EXT_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
