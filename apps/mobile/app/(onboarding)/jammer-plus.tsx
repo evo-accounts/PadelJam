@@ -1,5 +1,6 @@
 import { useT } from '@padel/i18n';
-import { useRouter } from 'expo-router';
+import { PLANS_VISIBLE } from '@padel/features';
+import { Redirect, useRouter } from 'expo-router';
 import { useRef } from 'react';
 
 import { markOnboarded, onStampFailure, stampWithRetry } from '@/lib/onboardingStamps';
@@ -7,7 +8,13 @@ import { supabase } from '@/lib/supabase';
 import { JammerPlusPaywall } from '../../components/profile/JammerPlusPaywall';
 import { useBanner } from '../../components/ui';
 
-export default function JammerPlusStep() {
+/** Plans are hidden for the free launch: the notifications step is the last one. */
+export default function JammerPlusRoute() {
+  if (!PLANS_VISIBLE) return <Redirect href="/(onboarding)/notifications" />;
+  return <JammerPlusStep />;
+}
+
+function JammerPlusStep() {
   const { t } = useT('onboarding');
   const router = useRouter();
   const banner = useBanner();

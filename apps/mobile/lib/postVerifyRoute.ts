@@ -8,6 +8,8 @@
  * The step resolution is shared with Boot's resolvePostAuthRoute so a signed-in
  * user lands on the same screen whether routing runs post-verify or on relaunch.
  */
+import { PLANS_VISIBLE } from '@padel/features';
+
 export type OnboardingProfile = {
   onboarded_at: string | null;
   location_text: string | null;
@@ -42,7 +44,9 @@ export function onboardingRoute(profile: OnboardingProfile): OnboardingRoute {
   if (!profile.court_side) return '/(onboarding)/side';
   // Keyed on "was it shown", not on the permission result — the OS owns that,
   // and re-asking someone who declined is what UX-AUTH-03 objects to.
-  if (!profile.notifications_prompted_at) return '/(onboarding)/notifications';
+  // With plans hidden the notifications step is the last one and stamps onboarded_at, so someone
+  // who already saw it (an older build, or a failed second stamp) sees it once more.
+  if (!profile.notifications_prompted_at || !PLANS_VISIBLE) return '/(onboarding)/notifications';
   return '/(onboarding)/jammer-plus';
 }
 
