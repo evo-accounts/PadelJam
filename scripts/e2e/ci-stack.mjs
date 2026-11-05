@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Brings the e2e Supabase stack up and writes the two .env files the run reads.
+ * Starts Docker (OrbStack) if it isn't answering, brings the e2e Supabase stack up and writes the two .env files the run reads.
  *
  *   node scripts/e2e/ci-stack.mjs [--stack ci|dev]     (default: ci)
  *
@@ -15,6 +15,7 @@ import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { connect } from 'node:net';
+import { ensureDocker } from './docker.mjs';
 import { heldByForeignStack, resolveStack } from './stack.mjs';
 
 const SUPABASE_CLI_VERSION = '2.117.0'; // keep in step with infra/supabase/README.md and apps/mobile/e2e/README.md
@@ -46,6 +47,27 @@ const supabase = (...cmd) => execFileSync(
 );
 
 console.log(`[ci-stack] stack: ${stack.name} (${stack.projectId}, ${stack.apiUrl})`);
+
+const dockerUp = () => {
+  try {
+    execFileSync('docker', ['info', '--format', '{{.ServerVersion}}'], { stdio: 'ignore', timeout: 10_000 });
+    return true;
+  } catch { return false; }
+};
+const startOrbStack = () => {
+  console.log('[ci-stack] Docker is not answering; starting OrbStack.');
+  try {
+    execFileSync('open', ['-g', '-a', 'OrbStack'], { stdio: 'ignore', timeout: 10_000 });
+  } catch (e) {
+    console.log(`[ci-stack] could not start OrbStack: ${e.message}`);
+  }
+};
+if (!(await ensureDocker({ isUp: dockerUp, start: startOrbStack, sleep: (ms) => new Promise((r) => setTimeout(r, ms)) }))) {
+  const msg = 'Docker did not answer within 2 minutes, even after starting OrbStack. Log in to the runner Mac as joaopaulos4, open OrbStack, check that `docker ps` works there, then re-run this job.';
+  console.error(`::error::${msg}`);
+  console.error(`[ci-stack] ERROR: ${msg}`);
+  process.exit(1);
+}
 
 const portOpen = (port) => new Promise((done) => {
   const sock = connect({ host: '127.0.0.1', port, timeout: 1000 });
