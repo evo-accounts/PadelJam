@@ -161,6 +161,36 @@ test('a monitor, a live run, a pending card or a recent run is not a silent wait
   assert.equal(silentWait({ issue: waiting, runs: [run(590, CTO)] }, opts), null);
 });
 
+const stuck = { identifier: 'PAD-3', status: 'blocked', assigneeAgentId: CTO };
+const flagged = (extra = {}) => silentWait({ issue: stuck, runs: [run(0, CTO)], ...extra }, opts);
+
+test('blocked with no blockers and an idle owner is a silent wait', () => {
+  const s = flagged({ blockedBy: [] });
+  assert.equal(s.issue, 'PAD-3');
+  assert.equal(s.status, 'blocked');
+});
+
+test('blocked with an open blocker is not a silent wait', () => {
+  assert.equal(flagged({ blockedBy: [{ status: 'in_progress' }] }), null);
+  assert.equal(flagged({ blockedBy: [{ status: 'done' }, { status: 'todo' }] }), null);
+});
+
+test('blocked with only closed blockers is a silent wait', () => {
+  assert.ok(flagged({ blockedBy: [{ status: 'done' }, { status: 'cancelled' }] }));
+});
+
+test('blocked with a pending card or a live owner run is not a silent wait', () => {
+  assert.equal(flagged({ blockedBy: [], interactions: [{ createdAt: at(1), resolvedAt: null }] }), null);
+  assert.equal(
+    silentWait({ issue: stuck, blockedBy: [], runs: [run(0, CTO, { status: 'running', finishedAt: null })] }, opts),
+    null,
+  );
+});
+
+test('a blocked task with no agent owner (Founder:) is not a silent wait', () => {
+  assert.equal(silentWait({ issue: { ...stuck, assigneeAgentId: null }, blockedBy: [], runs: [] }, opts), null);
+});
+
 test('board comments: only marked ones, only from the board, only in the window', () => {
   const comments = [
     { authorUserId: 'u', createdAt: at(1), body: 'Rescue: QA, this is yours' },

@@ -10,7 +10,7 @@ Correct, secure data and server logic.
 
 - Build what an approved plan describes. Nothing more.
 - Migrations in `infra/supabase/migrations/`, numbered after the last one. Every function that changes keeps `security definer set search_path = public` where it had it, and its grants. Read what **later** migrations did to an object before redefining it; restoring an old body can silently undo a fix.
-- Apply migrations to your **local** stack only (`pnpm dlx supabase@2.117.0 --workdir infra migration up` or `db reset`).
+- Apply migrations to your **own local** stack only, set up as `_rules.md` says (`pnpm dlx supabase@2.117.0 --workdir infra migration up` or `db reset`).
 - A DB test in `infra/supabase/tests/` for every data change (`*.test.mjs`, run by `pnpm test:db`).
 - Edge functions in `infra/supabase/functions/` with their node tests (`pnpm test:functions`).
 - Shared logic in `packages/` (`api`, `db`, `authz`, `permissions`, `features`, `utils`). A new error code goes in `KNOWN` in `packages/api/src/client.ts`, in the right place (the comments there explain the order).
