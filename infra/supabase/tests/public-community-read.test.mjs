@@ -122,7 +122,7 @@ await run('a private group, and a private event, stay hidden inside a public com
   const cid = await club(admin, 'Mixed Visibility Club', 'public');
   const openGroup = await generalGroup(cid);
 
-  // Starter allows one group and the general group holds it; basic lifts that.
+  // The fixture pays for basic; Starter has no group cap since 0156.
   await insert('community_subscriptions', {
     community_id: cid, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual',
   });

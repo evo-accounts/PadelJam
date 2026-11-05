@@ -2,18 +2,19 @@
 -- transfer_ownership, which no longer exists.
 --
 -- What it proves now:
---   * the creator lands as an ADMIN and the co-organizer cap still bites on the SECOND one
---     (the "beyond the first" reading — starter's limit is 0 and yet one admin exists);
---   * a Basic upgrade admits that second admin;
+--   * the creator lands as an ADMIN; Starter admits a second admin (co_organizers 3 since 0156);
+--   * on Basic (co_organizers 1, the "beyond the first" reading) a second admin fits and a third is refused;
 --   * archive still cascades to groups;
 --   * the last-admin guard refuses all four departures, and the promotion is the way out.
 begin;
 insert into auth.users (id, instance_id, aud, role) values
   ('b0000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated'),
-  ('b0000002-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated') on conflict do nothing;
+  ('b0000002-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated'),
+  ('b0000003-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000000','authenticated','authenticated') on conflict do nothing;
 insert into profiles (id, email, phone, full_name) values
   ('b0000001-0000-0000-0000-000000000001','mown@x.com','+351900300001','MOwner'),
-  ('b0000002-0000-0000-0000-000000000002','mmem@x.com','+351900300002','MMember') on conflict do nothing;
+  ('b0000002-0000-0000-0000-000000000002','mmem@x.com','+351900300002','MMember'),
+  ('b0000003-0000-0000-0000-000000000003','mmem3@x.com','+351900300003','MMember3') on conflict do nothing;
 
 -- creator makes a community; a second user joins.
 set local role authenticated;
@@ -25,9 +26,11 @@ set local request.jwt.claims = '{"sub":"b0000002-0000-0000-0000-000000000002","r
 do $$ declare cid uuid := (select id from communities where name='ManageC' order by created_at desc limit 1);
 begin perform join_community(cid, false); end $$;
 reset role;
+insert into community_members (community_id, user_id, role)
+  select id, 'b0000003-0000-0000-0000-000000000003', 'member' from communities where name='ManageC' order by created_at desc limit 1;
 
--- THE CAP, post-0098. Starter's co_organizers limit is 0, and the creator is nonetheless an admin:
--- the limit counts admins BEYOND THE FIRST. Promoting a second one must still be refused.
+-- STARTER, post-0156: co_organizers is 3, so a second admin is admitted. Demote it again so the
+-- rest of the file keeps its single-admin shape.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"b0000001-0000-0000-0000-000000000001","role":"authenticated"}';
 do $$
@@ -37,13 +40,11 @@ begin
     raise exception using errcode='PT001', message='creator should be an admin, not an owner';
   end if;
   if (select count(*) from community_members where community_id=cid and role='admin') <> 1 then
-    raise exception using errcode='PT001', message='starter should hold exactly the one admin';
+    raise exception using errcode='PT001', message='starter should start with exactly the one admin';
   end if;
-  begin
-    update community_members set role='admin' where community_id=cid and user_id='b0000002-0000-0000-0000-000000000002';
-    raise exception using errcode='PT001', message='a SECOND admin on starter should hit the co_organizers cap';
-  exception when sqlstate 'P0001' then raise notice 'OK starter: 1 admin allowed, 2nd blocked (%)', sqlerrm;
-  end;
+  update community_members set role='admin' where community_id=cid and user_id='b0000002-0000-0000-0000-000000000002';
+  raise notice 'OK starter: a 2nd admin is allowed';
+  update community_members set role='member' where community_id=cid and user_id='b0000002-0000-0000-0000-000000000002';
 end $$;
 
 -- Upgrade to Basic as postgres (community_subscriptions is service-role/seed-write-only, no client policy).
@@ -59,6 +60,15 @@ set local request.jwt.claims = '{"sub":"b0000001-0000-0000-0000-000000000001","r
 do $$
 declare cid uuid := (select id from communities where name='ManageC' order by created_at desc limit 1); n int;
 begin
+  -- Basic's cap: a 2nd admin fits, a 3rd is refused ("beyond the first" reading, limit 1).
+  update community_members set role='admin' where community_id=cid and user_id='b0000002-0000-0000-0000-000000000002';
+  begin
+    update community_members set role='admin' where community_id=cid and user_id='b0000003-0000-0000-0000-000000000003';
+    raise exception using errcode='PT001', message='a THIRD admin on basic should hit the co_organizers cap';
+  exception when sqlstate 'P0001' then raise notice 'OK basic: 2 admins allowed, 3rd blocked (%)', sqlerrm;
+  end;
+  update community_members set role='member' where community_id=cid and user_id='b0000002-0000-0000-0000-000000000002';
+
   -- archive cascades to groups, returns group count
   n := archive_community(cid, true);
   if (select count(*) from groups where community_id=cid and archived_at is null) <> 0 then

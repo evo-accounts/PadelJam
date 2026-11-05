@@ -30,7 +30,7 @@ begin
   cid := create_community_with_personal_tenant('BlastC','club','PT','public');
 
   -- ---- Seed events + participants under role postgres (fixture, bypasses RLS) ----
-  -- Reuse the community's auto-created general group (starter caps groups_per_community at 1).
+  -- Reuse the community's auto-created general group (the general group is the fixture; no extra group needed).
   perform set_config('role','postgres',true);
   select id into g from groups where community_id = cid order by created_at limit 1;
   -- 0124 (B10): custom text needs custom_broadcasts. Community Pro has it (unique(community_id)).

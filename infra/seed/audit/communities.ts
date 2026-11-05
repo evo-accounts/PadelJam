@@ -52,7 +52,7 @@ export async function seedCommunities(ctx: Ctx) {
   // Decoys for S4 (similar names). The first invites A1 (N8, community).
   ctx.ids.C_DECOY1 = await create(ctx, 'c01', { p_name: 'Padel Cascais', p_location: 'Cascais, PT' });
   ctx.ids.C_DECOY2 = await create(ctx, 'c02', { p_name: 'Clube Padel Cascais', p_location: 'Cascais, PT' });
-  // Starter allows one group; the decoy league group in groups.ts needs Basic.
+  // The decoy league group in groups.ts is a second group; Basic keeps the cap realistic.
   await ctx.c.insert('community_subscriptions', { community_id: id(ctx, 'C_DECOY1'), dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
   await ctx.c.rpc(u(ctx, 'c01').jwt, 'invite_to_community', { p_community_id: id(ctx, 'C_DECOY1'), p_invitee_ids: [u(ctx, 'a1').id], p_group_ids: [] });
   ctx.log(`communities C1=${id(ctx, 'C1')} C2=${id(ctx, 'C2')} C3=${id(ctx, 'C3')} C4=${id(ctx, 'C4')}`);

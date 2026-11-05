@@ -91,11 +91,11 @@ async function signIn(email, password) {
 // database whose reference data is gone. Fail here rather than quietly building
 // a demo graph no cap was ever checked against.
 const EXPECTED_LIMITS = {
-  'starter/groups_per_community': 1,
+  'starter/groups_per_community': null,
   'basic/groups_per_community': 3,
-  'starter/members_per_community': 10,
+  'starter/members_per_community': 250,
   'basic/members_per_community': 50,
-  'starter/co_organizers': 0,
+  'starter/co_organizers': 3,
   'basic/co_organizers': 1,
 };
 
@@ -333,7 +333,7 @@ async function main() {
     p_thumbnail_path: null, p_cover_image_path: null,
     p_cancellation_rules_enabled: true, p_cancellation_rules_text: 'Cancel at least 12h before.',
   });
-  // Subscribe A to Basic (default 'starter' caps groups=1/members=10; Basic lifts to 3/50).
+  // Subscribe A to Basic (Basic caps groups=3/members=50; Starter has no group cap since 0156).
   await insert('community_subscriptions', { community_id: commA, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
   // C: request_to_join, created by Maria — Alex is promoted to admin (Requests demo + member-view).
   const commC = await rpc(jwt('maria'), 'create_community_with_personal_tenant', {
@@ -343,8 +343,7 @@ async function main() {
     p_thumbnail_path: null, p_cover_image_path: null,
     p_cancellation_rules_enabled: false, p_cancellation_rules_text: null,
   });
-  // Subscribe C to Basic too. Starter's co_organizers limit is 0, which since 0098 means "one
-  // admin, no co-organizers" — the creator already fills that slot, so promoting Alex needs Basic.
+  // Subscribe C to Basic too. C's plan is incidental: Basic allows 1 co-organizer, so promoting Alex fits.
   await insert('community_subscriptions', { community_id: commC, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
   console.log(`  communities: A=${commA} C=${commC}`);
 
