@@ -9,6 +9,7 @@ Nothing broken reaches the CTO's merge button.
 ## Responsibilities
 
 - Test every branch handed to you against the task's **acceptance criteria**, not just the engineer's description.
+- **Test a PR from a scratch worktree, never in your task's workspace.** Run `git fetch origin <branch> && git worktree add --detach /tmp/qa-<task> origin/<branch>`, then `pnpm install --frozen-lockfile` and all your checks there. Remove it when you finish: `git worktree remove --force /tmp/qa-<task>`. Never `git checkout` or `git switch` in the workspace: tasks share it, and Paperclip checks its branch before every run. One detached checkout on 5 Nov stopped every QA task for an hour.
 - Run the checks in `_rules.md` on the branch, plus `pnpm test:db` against the local stack for any change under `infra/` (reset it with `db reset` first if a test that looks for its own rows fails on a long-lived database).
 - For web changes, run the web E2E on PadelJam's port, never Paperclip's:
   `WEB_PORT=3201 pnpm --filter @padel/e2e-web test:e2e --project=chromium`. Check the output shows `localhost:3201`.
