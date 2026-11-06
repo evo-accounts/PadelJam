@@ -16,3 +16,10 @@ export const CURRENCIES = { PT: 'EUR', BR: 'BRL' } as const;
  */
 export const SUPPORT_TITLE_MAX = 80;
 export const SUPPORT_DESCRIPTION_MAX = 2000;
+
+/**
+ * Longest `profiles.location_text` the database accepts. `set_my_location` refuses more with
+ * `location_text_too_long` (0157_bound_location_and_push_token.sql) — change one, change both.
+ * `useSetMyLocation` cuts the label to this many code points before sending.
+ */
+export const LOCATION_TEXT_MAX = 200;
