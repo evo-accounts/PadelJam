@@ -27,7 +27,7 @@ Target (roadmap): public launch on both stores in **January 2027**. Fallback: Te
 | I2 | **Level privacy line and label** must be settled before any build that collects Level ships. | [PAD-64](/PAD/issues/PAD-64), [PAD-65](/PAD/issues/PAD-65) | Founder | S | Beta+Launch |
 | I3 | **Apple signing and capability state.** Is Sign in with Apple enabled on the App ID, the Services ID and `.p8` key created, and the provider turned on in Supabase? Are distribution certificate and provisioning profile current in EAS? | `docs/handoff/padeljam-remaining-setup.html` step 2 (written 2026-06-19, unclear if done) | Founder | S | Beta+Launch. **Unverified.** Needs Apple Developer and EAS consoles. |
 | I4 | **APNs push key** uploaded to EAS and the push fan-out wired (`send-push` deployed, `PUSH_WEBHOOK_SECRET`, `app.send_push_url`, `app.send_push_secret`). | setup guide step 4; `docs/superpowers/push-setup.md` | Founder | S | Launch (beta works without push). **Unverified.** |
-| I5 | **Reviewer account is not seeded.** No reviewer fixture exists. The seed workflow targets a scratch DB only. Phone OTP is the primary sign-in, so the reviewer needs a path that does not need an SMS (a fixed OTP or an email and password account). Real SMS is not enabled either (`docs/handoff/sms-production-setup.md`). | `grep` of `scripts/`, `infra/`: no reviewer account; `.github/workflows/seed-demo.yml` | Eng (design the account), Founder (hosted seed, gate 2), R&O (review notes) | M | Launch (TestFlight external beta also needs review) |
+| I5 | **Reviewer account is not seeded.** No reviewer fixture exists. The seed workflow targets a scratch DB only. Phone sign-in is hidden for launch (PAD-137, #340), so the reviewer signs in by email, not phone OTP. They need an account that works without reading a mailbox (an email and password account, or a fixed email code). Hosted email codes are untested live: [PAD-272](/PAD/issues/PAD-272), the founder's, is still open. | `grep` of `scripts/`, `infra/`: no reviewer account; `.github/workflows/seed-demo.yml` | Eng (design the account), Founder (hosted seed, gate 2), R&O (review notes) | M | Launch (TestFlight external beta also needs review) |
 | I6 | **Permission usage strings.** Location and calendar are set. `expo-image-picker` (photo library) and `expo-media-library` (QrSheet saves a QR image) are not configured as plugins, so their iOS usage strings fall back to library defaults. Apple rejects vague or default strings (5.1.1). | `app.json` plugins; `lib/storage.ts:40`; `components/community/QrSheet.tsx:45` | Eng | S | Launch |
 | I7 | **Native Sign in with Apple flow** needs the Supabase Apple provider live. Same as I3. | `lib/appleSignIn.ts` | Founder | S | Launch |
 | I8 | **Account deletion** is required by Apple (5.1.1(v)). The screen exists. Not verified end to end on a hosted project or a device. | `app/profile/delete-account.tsx` | Eng, QA | S | Launch |
@@ -57,8 +57,8 @@ Target (roadmap): public launch on both stores in **January 2027**. Fallback: Te
 | A4 | **Play Console app not created, or unverified.** Play developer account status, app record, package `app.padeljam` claimed, Play App Signing choice. | n/a | Founder | S | Beta+Launch. **Unverified.** |
 | A5 | **First upload must be done by hand** in the Play Console (an API submit can't create the first release). Closed testing for new personal developer accounts requires **12 testers for 14 continuous days** before production access. Confirm the account type. If it is a personal account created after 2023-11, this alone pushes a public Android launch out by two weeks or more. | Play policy as I know it; **verify against current Play docs** | Founder | S to start, 14 days elapsed | Launch. **Start first.** |
 | A6 | **Android push never tested.** No notification channel is created (`setNotificationChannelAsync` has no hit), so Android 8+ uses a default channel, and the sound and importance can't be tuned. `POST_NOTIFICATIONS` (Android 13+) comes from the `expo-notifications` plugin and the prompt flow is untested. | `grep` in `apps/mobile`: no channel code; `app/(onboarding)/notifications.tsx` | Eng | M | Launch |
-| A7 | **Google sign-in on Android** is untested. It uses a browser OAuth flow with a redirect of `Linking.createURL('auth/callback')`. In a store build that is `mobile://auth/callback`, which must be an allowed redirect in Supabase. No Android OAuth client is mentioned anywhere. Phone OTP is the primary path, and real SMS is not enabled. Brazil needs a registered sender. | `lib/googleSignIn.ts:17`; `docs/superpowers/5i-social-signin-setup.md`; `docs/handoff/sms-production-setup.md` | Founder (Google Cloud, Twilio), Eng | M | Launch. Phone OTP alone is a **Beta** minimum. |
-| A8 | **Apple sign-in is hidden on Android** by design (`Platform.OS === 'ios'`), which is fine. Android has Google and phone only. Confirm that matches the Play listing's "login required" notes. | `app/(auth)/sign-in.tsx:68,231` | none | none | OK |
+| A7 | **Google sign-in on Android** is untested. It uses a browser OAuth flow with a redirect of `Linking.createURL('auth/callback')`. In a store build that is `mobile://auth/callback`, which must be an allowed redirect in Supabase. No Android OAuth client is mentioned anywhere. Email is the other sign-in, and phone is hidden for launch (#340), so real SMS and the Brazil sender are not needed. | `lib/googleSignIn.ts:17`; `docs/superpowers/5i-social-signin-setup.md`; `docs/handoff/sms-production-setup.md` (no longer needed for launch) | Founder (Google Cloud), Eng | M | Launch. Email sign-in alone is a **Beta** minimum (hosted email codes still untested: PAD-272, open). |
+| A8 | **Apple sign-in is hidden on Android** by design (`Platform.OS === 'ios'`), which is fine. Android has Google and email. Confirm that matches the Play listing's "login required" notes. | `app/(auth)/sign-in.tsx:68,231` | none | none | OK |
 | A9 | **Icons from `expo-symbols`.** 76 `SymbolView` uses, and every one has an `android:` name (Material Symbols), none has a `fallback`. On Android these draw from the Material font. A wrong name shows nothing, and no check validates the Android names. Review every tab and sheet on the device. | `app/(tabs)/_layout.tsx:48`; `grep SymbolView` | Eng (device pass), QA | M | Launch |
 | A10 | **Keyboard handling.** About 15 screens use `KeyboardAvoidingView behavior={undefined}` on Android. With `edge-to-edge` (default in current Expo / Android 15) the input can sit behind the keyboard. `BottomSheet` and `ManageSheet` have Android-specific keyboard code. Check every form. | `grep Platform.OS` (list above); `components/ui/BottomSheet.tsx:62,95`; `components/event/manage/ManageSheet.tsx:102` | Eng | M | Launch |
 | A11 | **Date picker** takes the Android path (modal dialog) only here. | `components/ui/DateField.tsx:82-97` | Eng, QA | S | Launch |
@@ -85,7 +85,7 @@ Target (roadmap): public launch on both stores in **January 2027**. Fallback: Te
 ### What has never been exercised on Android
 
 1. Any build (dev, preview, production), and so any manifest, any native module link, and the new architecture.
-2. Sign-in: phone OTP, Google redirect, session storage via `expo-secure-store`.
+2. Sign-in: email OTP (hosted email codes untested: PAD-272, open), Google redirect, session storage via `expo-secure-store`.
 3. Push: token registration, delivery, tap routing, channels, `POST_NOTIFICATIONS`.
 4. Onboarding, including the new hand, side, level, location and notifications steps.
 5. Every `Platform.OS` branch: keyboard, date picker, bottom sheets, maps URL, calendar intent, Apple button.
@@ -110,7 +110,7 @@ Recommended hardware: one recent Pixel, one mid-range Samsung. Ask the founder w
 | # | Gap | Owner | Size | Blocks |
 |---|---|---|---|---|
 | X1 | **Production env check.** `scripts/verify-production-env.mjs` and `schema:check` must pass against the hosted project before submit. Only the founder (or CI) can run these. | Founder | S | Beta+Launch |
-| X2 | **Real SMS** (Twilio Messaging Service, BR sender registration, PT alphanumeric sender). Brazil sender registration has an elapsed time of days to weeks. | Founder | M, with long lead time | Launch. Beta only with allow-listed testers. |
+| X2 | **Real SMS** (Twilio Messaging Service, BR sender registration, PT alphanumeric sender). Brazil sender registration has an elapsed time of days to weeks. | Founder | M, with long lead time | **Not needed for launch**: phone sign-in is hidden (#340). Needed only if phone returns. |
 | X3 | **Support, marketing and privacy URLs** must be live on `padeljam.app`: `/privacy`, `/terms`, `/help` exist in `apps/web` (deploy state **unverified**). | Founder (check domain), Eng | S | Beta+Launch |
 | X4 | **Help articles** in three locales (roadmap: "freeze" phase). | Head of Business / PM | M | Launch |
 | X5 | **Screenshot shot list.** One list per store, three locales, from the seeded demo data (`pnpm seed:demo`). R&O writes the list, Eng captures on the runner or a device. | R&O, Eng | M | Launch |
@@ -126,7 +126,7 @@ Dates are working backwards from submission at ~2026-12-28 and the roadmap's "Bu
 **Start this week (long lead time, mostly the founder):**
 
 1. **A4 and A5: Play Console account and closed-testing clock.** Confirm account type. If a 12-tester, 14-day closed test is required, it has to begin by about **12-10**, and earlier is safer. Ask the founder to check Play Console now.
-2. **X2: Twilio and Brazil sender registration.** Weeks of lead time, and phone OTP is the primary sign-in.
+2. **X2: Twilio and Brazil sender registration.** Weeks of lead time, but no longer a launch blocker: phone sign-in is hidden (#340), email is the way in.
 3. **I3, I4, A2, A3: Apple and Google credentials** (Apple Sign In, APNs, Firebase and FCM, Play service-account key). One sitting of console work for the founder, and the unblocker for every device test.
 4. **A1: first Android build** (`development` profile). It tells us in an hour whether Android compiles. Everything in the Android table rests on it.
 
@@ -147,7 +147,7 @@ Dates are working backwards from submission at ~2026-12-28 and the roadmap's "Bu
 
 ### What blocks a public launch, and what only the beta fallback skips
 
-- **Cannot go to beta** until: A1, A3, A4, A23, I1, I2, I3, I15, X1, X3, and a phone sign-in that works for testers.
+- **Cannot go to beta** until: A1, A3, A4, A23, I1, I2, I3, I15, X1, X3, and an email sign-in that works for testers (hosted email codes haven't been tested live yet: [PAD-272](/PAD/issues/PAD-272), the founder's, still open).
 - **Skippable for a TestFlight / Play closed-testing beta, required for public:** A2/A6 push, A7 Google sign-in on Android, I9–I12 and A24–A28 listings and labels, I14/A20 deep links, A26 deletion URL, X4 help articles, and the full device passes.
 - **Biggest schedule risk:** A5, because it is elapsed time we can't compress. Then X2. Then the unknown first Android build (A1).
 
