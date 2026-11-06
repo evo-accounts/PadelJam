@@ -64,6 +64,12 @@ launch **January 2027**.
 
 6. **Mobile native dependencies must support Expo's New Architecture.** Verify before adding.
 
+7. **New database objects start closed.** A new table, sequence or function in `public` gives
+   `anon` and `authenticated` nothing (functions since 0142, tables and sequences since the
+   default-privileges migration, see `docs/superpowers/plans/2026-11-05-default-table-privileges.md`).
+   In the same migration, enable RLS on every new table, write its policies, and grant each role
+   only what it needs. `test:db` fails if a table has RLS off or gives `anon` a write.
+
 ## Repo layout
 
 ```
