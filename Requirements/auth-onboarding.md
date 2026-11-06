@@ -493,6 +493,8 @@ A unified, identifier-first flow modelled on Airbnb. The user enters either an e
 </tbody>
 </table>
 
+> **Amendment 2026-11-05 — launch decision D1, option A (founder, PAD-142).** The Jammer+ subscription gate (6.5) is **hidden for launch**. Onboarding now ends at Court side, then Home (push prompt on first arrival). **AU-20 changes:** `profiles.onboarded_at` is set when the user completes or skips the last remaining step (Court side), not at the Jammer+ gate; every "Skip shortcuts to the Jammer+ gate" (AU-18) now reads "Skip shortcuts to Home". The gate's code stays for billing. Task: PAD-179.
+
 ## Onboarding
 
 A short sequence that runs once, immediately after a successful sign-up. Every step has a Skip in the top-right; the user can also tap through linearly. Onboarding always ends at the Jammer+ subscription gate, and from there the user lands on Home where a push-notifications permission prompt fires on first arrival.
