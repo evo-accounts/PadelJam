@@ -24,8 +24,8 @@ describe('participant profile embed', () => {
     expect(code).not.toMatch(/\bprofiles\s*\(/);
   });
 
-  it('embeds gender so mixed rosters can be counted', () => {
-    expect(PARTICIPANT_PROFILE_EMBED).toContain('gender');
+  it('does not select gender from profiles: it comes from event_participant_genders (PAD-133)', () => {
+    expect(PARTICIPANT_PROFILE_EMBED).not.toContain('gender');
   });
 });
 

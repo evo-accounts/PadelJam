@@ -50,7 +50,7 @@ export async function loginAs(key: PersonaKey): Promise<void> {
   await typeText({ type: 'TextField' }, code);
   await tap({ label: 'Verify' });
   const landed = await waitFor(
-    { text: /Home|Share your location|Where do you play|Select your dominant hand|Select your court side|Don.t miss a thing|Jammer\+|Login or Sign Up/ },
+    { text: /Home|Share your location|Where do you play|Select your dominant hand|Select your court side|Don.t miss a thing|Login or Sign Up/ },
     { timeout: 30_000 },
   );
   let bounced = /login or sign up/i.test(landed.AXLabel ?? '');
@@ -72,21 +72,13 @@ export async function loginAs(key: PersonaKey): Promise<void> {
 }
 
 /**
- * Sign-in opens in PHONE mode (UX-AUTH-02), so every email login has to flip the
- * input first. The toggle is the third outline button, labelled "Continue with
- * email"; tapping it swaps the phone row for an email `Field` and relabels
- * itself "Continue with phone".
- *
- * Waiting on the RELABELLED toggle rather than on `{ type: 'TextField' }` is the
- * robust check: phone mode has a TextField too, so a type-only selector matches
- * before the swap and the persona's email would be typed into the phone box.
- * No-op when the screen is already in email mode.
+ * Phone sign-in is hidden (PAD-137): sign-in opens on the email field and there
+ * is no channel to switch. Kept under its old name because every suite calls it;
+ * it now only waits for the email field, so a type-only selector cannot race the
+ * first render.
  */
 export async function switchToEmailMode(): Promise<void> {
-  if (query(await snapshot(), { text: /continue with phone/i })) return;
-  await tap({ text: /continue with email/i });
-  await expectVisible({ text: /continue with phone/i }, { timeout: 10_000 });
-  await expectVisible({ text: /name@example\.com/i, type: 'TextField' }, { timeout: 10_000 });
+  await expectVisible({ id: 'sign-in-email' }, { timeout: 10_000 });
 }
 
 /** Switch to a bottom tab (labels look like "Events, tab, 2 of 5"). */
@@ -132,11 +124,17 @@ export async function findFromHome(action: 'findEvent' | 'findGroup' | 'findComm
  * with an unrelated-looking timeout, which cost a long debugging detour.
  */
 export async function ensureTabs(maxPops = 4): Promise<void> {
-  const { backGesture } = await import('./actions');
+  const { tryBackGesture } = await import('./actions');
   const onTabs = async () => !!query(await snapshot(), { text: /, tab, \d of 5/ });
   for (let i = 0; i < maxPops; i++) {
     if (await onTabs()) return;
-    await backGesture();
+    const swipe = await tryBackGesture();
+    if (!swipe.changed) {
+      // A swipe that changes nothing (seen under heavy load) used to throw from here, so the
+      // relaunch below never ran. Navigation only: suite 09 still asserts the gesture itself.
+      console.warn('[e2e] ensureTabs: back gesture did not pop, relaunching');
+      break;
+    }
   }
   if (await onTabs()) return;
   // Pager screens eat the edge swipe; relaunch is the reliable escape.
@@ -171,18 +169,6 @@ export async function logout(): Promise<void> {
 export async function switchUser(key: PersonaKey): Promise<void> {
   await logout();
   await loginAs(key);
-}
-
-/** From the location onboarding step, skip everything through the paywall to reach tabs. */
-export async function completeOnboardingBySkipping(): Promise<void> {
-  for (const step of [/Share your location/, /Select your dominant hand/, /Select your court side/, /Don.t miss a thing/]) {
-    await expectVisible({ text: step });
-    await tap({ label: 'Skip' });
-    await sleep(600);
-  }
-  await expectVisible({ text: /Jammer\+/ });
-  await tap({ text: /continue with free/i });
-  await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 20_000 });
 }
 
 /** Tap a button on a system alert (springboard) by its label. */

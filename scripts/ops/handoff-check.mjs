@@ -117,16 +117,21 @@ export function analyseIssue({ issue, activity, runs, interactions = [] }, { sin
   return result;
 }
 
-/** Open and in_progress, nothing running, nothing scheduled: nobody will ever wake this owner. */
-export function silentWait({ issue, runs, interactions = [] }, { minutes, now }) {
-  if (issue.status !== 'in_progress' || !issue.assigneeAgentId) return null;
-  if (issue.monitorNextCheckAt) return null;
+/**
+ * In_progress, or blocked with no open blocker; nothing running, nothing scheduled: nobody will ever wake this owner.
+ * A blocker is open unless it is done or cancelled. A monitor never fires on a blocked task, so it doesn't count there.
+ */
+export function silentWait({ issue, runs, interactions = [], blockedBy = issue.blockedBy ?? [] }, { minutes, now }) {
+  if (!issue.assigneeAgentId) return null;
+  if (issue.status === 'blocked') {
+    if (blockedBy.some((b) => !CLOSED.has(b.status))) return null;
+  } else if (issue.status !== 'in_progress' || issue.monitorNextCheckAt) return null;
   if (cardPendingAt(interactions, now)) return null;
   const owner = runs.filter((run) => run.agentId === issue.assigneeAgentId);
   if (owner.some((run) => ['queued', 'running', 'scheduled_retry'].includes(run.status))) return null;
   const last = owner.map((run) => ms(run.finishedAt ?? run.createdAt)).sort((a, b) => b - a)[0];
   if (last && now - last < minutes * 60_000) return null;
-  return { issue: issue.identifier, to: issue.assigneeAgentId, idleMinutes: last ? Math.round((now - last) / 60_000) : null };
+  return { issue: issue.identifier, status: issue.status, to: issue.assigneeAgentId, idleMinutes: last ? Math.round((now - last) / 60_000) : null };
 }
 
 export function boardComments(issue, comments, { since, until }) {
@@ -187,7 +192,8 @@ async function main() {
       get(`/issues/${issue.id}/interactions`),
       get(`/issues/${issue.id}/comments?order=asc&limit=500`),
     ]);
-    const input = { issue, activity, runs, interactions };
+    const blockedBy = issue.status === 'blocked' ? ((await get(`/issues/${issue.id}`)).blockedBy ?? []) : [];
+    const input = { issue, activity, runs, interactions, blockedBy };
     const result = analyseIssue(input, opts);
     total.changes += result.changes;
     total.landed += result.landed;
@@ -216,8 +222,8 @@ async function main() {
     const waited = s.waitedMinutes === null ? 'no run since' : `first run after ${s.waitedMinutes} min${s.firstRunWasBoardWake ? ' (board wake)' : ''}`;
     console.log(`  ${s.at} ${s.issue} to ${name(s.to)} [${s.how}]: ${waited}${s.stillStranded ? ' STILL STRANDED' : ''}`);
   }
-  console.log(`SILENT WAITS (in_progress, nothing will wake the owner): ${total.silent.length}`);
-  for (const s of total.silent) console.log(`  ${s.issue} ${name(s.to)}: idle ${s.idleMinutes ?? '?'} min`);
+  console.log(`SILENT WAITS (in_progress, or blocked with no open blocker; nothing will wake the owner): ${total.silent.length}`);
+  for (const s of total.silent) console.log(`  ${s.issue} [${s.status}] ${name(s.to)}: idle ${s.idleMinutes ?? '?'} min`);
   console.log(`Board wakes: ${boardWakes.length}`);
   for (const w of boardWakes.sort(byTime)) console.log(`  ${w.at} ${w.agent} on ${w.issue}`);
   const rescues = total.comments.filter((c) => c.kind === 'rescue');

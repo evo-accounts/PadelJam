@@ -7,7 +7,15 @@
  * create-account on a transient backend error — observed in the post-OTP
  * bounce investigation, bounce-repro iter 7).
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+const flag = vi.hoisted(() => ({ plans: false }));
+vi.mock('@padel/features', () => ({
+  get PLANS_VISIBLE() {
+    return flag.plans;
+  },
+}));
+
 import { decidePostVerifyRoute, type OnboardingProfile } from './postVerifyRoute';
 
 const profile = (overrides: Partial<OnboardingProfile> = {}): OnboardingProfile => ({
@@ -66,7 +74,27 @@ describe('decidePostVerifyRoute', () => {
         }),
         null,
       ),
-    ).toEqual({ kind: 'route', target: '/(onboarding)/jammer-plus' });
+    ).toEqual({ kind: 'route', target: '/(onboarding)/notifications' });
+  });
+
+  it('keeps the Jammer+ step after notifications while plans are visible', () => {
+    flag.plans = true;
+    try {
+      expect(
+        decidePostVerifyRoute(
+          profile({
+            location_text: 'Lisboa',
+            level: 1,
+            dominant_hand: 'right',
+            court_side: 'left',
+            notifications_prompted_at: '2026-08-04T00:00:00Z',
+          }),
+          null,
+        ),
+      ).toEqual({ kind: 'route', target: '/(onboarding)/jammer-plus' });
+    } finally {
+      flag.plans = false;
+    }
   });
 
   it('sends an onboarded user to tabs whether or not level is answered', () => {

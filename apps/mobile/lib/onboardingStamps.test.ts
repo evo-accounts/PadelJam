@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { TypedClient } from '@padel/auth';
 
-import { markNotificationsPrompted, markOnboarded, onStampFailure, stampWithRetry } from './onboardingStamps';
+import {
+  markNotificationsPrompted,
+  markOnboarded,
+  onStampFailure,
+  stampNotificationsStep,
+  stampWithRetry,
+} from './onboardingStamps';
 
 function fakeDb(rpcError: { code: string } | null) {
   const from = vi.fn();
@@ -70,5 +76,38 @@ describe('onStampFailure: surface the first failure, never strand the user', () 
     expect(onStampFailure(1)).toBe('stay');
     expect(onStampFailure(2)).toBe('continue');
     expect(onStampFailure(3)).toBe('continue');
+  });
+});
+
+describe('stampNotificationsStep', () => {
+  const dbWith = (results: Array<{ error: unknown }>) => {
+    const rpc = vi.fn();
+    for (const r of results) rpc.mockResolvedValueOnce({ data: null, ...r });
+    const auth = { getSession: vi.fn(async () => ({ data: { session: { user: { id: 'u1' } } } })) };
+    return { db: { rpc, auth } as unknown as TypedClient, rpc };
+  };
+
+  it('with plans hidden, stamps notifications then onboarded', async () => {
+    const f = dbWith([{ error: null }, { error: null }]);
+    expect(await stampNotificationsStep(f.db, false)).toBe(true);
+    expect(f.rpc.mock.calls.map((c) => c[0])).toEqual(['mark_notifications_prompted', 'mark_onboarded']);
+  });
+
+  it('with plans hidden, returns false when the second stamp fails (after its retry)', async () => {
+    const f = dbWith([{ error: null }, { error: { code: '08000' } }, { error: { code: '08000' } }]);
+    expect(await stampNotificationsStep(f.db, false)).toBe(false);
+    expect(f.rpc).toHaveBeenCalledTimes(3);
+  });
+
+  it('with plans visible, stamps only notifications', async () => {
+    const f = dbWith([{ error: null }]);
+    expect(await stampNotificationsStep(f.db, true)).toBe(true);
+    expect(f.rpc.mock.calls.map((c) => c[0])).toEqual(['mark_notifications_prompted']);
+  });
+
+  it('does not stamp onboarded when the first stamp fails', async () => {
+    const f = dbWith([{ error: { code: '08000' } }, { error: { code: '08000' } }]);
+    expect(await stampNotificationsStep(f.db, false)).toBe(false);
+    expect(f.rpc.mock.calls.map((c) => c[0])).toEqual(['mark_notifications_prompted', 'mark_notifications_prompted']);
   });
 });

@@ -9,7 +9,7 @@
  * Save commits name, description, avatar, date of birth and gender. Three things deliberately do
  * NOT ride on it:
  *
- *  - EMAIL and MOBILE are rows that open a two-phase OTP flow. The audit's "fixed Save" and its
+ *  - EMAIL is a row that opens a two-phase OTP flow. The audit's "fixed Save" and its
  *    "changing the email triggers a verification code" cannot both be literal: a code sent to a new
  *    address has to be confirmed before the change is real, which is a round trip, not a field.
  *    Requirements PR-12 asks the same of the mobile number, and it matters more there — phone is a
@@ -170,20 +170,6 @@ export default function AccountSettingsScreen() {
           trailingLabel={my.data?.email ?? undefined}
           onPress={() => router.push('/profile/change-email')}
           testID="account-email-row"
-        />
-        <ListRow
-          variant="card"
-          title={t('changePhone')}
-          trailing={
-            my.data?.phone ? (
-              <Text variant="body" tone="muted">
-                {my.data.phone}
-              </Text>
-            ) : undefined
-          }
-          trailingLabel={my.data?.phone ?? undefined}
-          onPress={() => router.push('/profile/change-phone')}
-          testID="account-phone-row"
         />
 
         <DateField

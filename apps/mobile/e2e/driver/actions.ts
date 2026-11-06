@@ -420,6 +420,18 @@ export async function toggleSwitch(sel: Selector, opts: { attempts?: number } = 
 
 /** iOS interactive-pop back gesture: swipe from the left screen edge. */
 export async function backGesture(): Promise<void> {
+  const result = await tryBackGesture();
+  if (result.changed) return;
+  const dir = await captureFailure(result.reason);
+  throw new Error(`${result.reason}\nartifacts: ${dir}`);
+}
+
+/**
+ * The swipe behind `backGesture()`, without the throw: reports whether the
+ * screen changed. Only `ensureTabs` uses it (it has a relaunch fallback);
+ * everything else stays strict through `backGesture()`.
+ */
+export async function tryBackGesture(): Promise<{ changed: true } | { changed: false; reason: string }> {
   // Swipe through the HEADER, not the middle of the screen.
   //
   // This used to swipe at y=420, which on a community `[id]/(home)` screen lands
@@ -448,7 +460,7 @@ export async function backGesture(): Promise<void> {
   for (const y of [y0, Math.max(STATUS_BAND + 12, y0 - 10)]) {
     await idbSwipe(2, y, 240, y, 350);
     await sleep(600);
-    if (treeSignature(await snapshot()) !== before) return;
+    if (treeSignature(await snapshot()) !== before) return { changed: true };
   }
   // Deliberately NOT retrying at the old y=420, and this is MEASURED rather than
   // assumed: restoring that coordinate makes the pager flip to its next tab, so
@@ -468,8 +480,7 @@ export async function backGesture(): Promise<void> {
   const reason =
     `backGesture did not change the screen at y=${y0} or y=${Math.max(STATUS_BAND + 12, y0 - 10)} — `
     + 'the stack did not pop (a system alert left up will do this: it empties the app AX tree)';
-  const dir = await captureFailure(reason);
-  throw new Error(`${reason}\nartifacts: ${dir}`);
+  return { changed: false, reason };
 }
 
 /** Cheap stable summary of a screen, for "did anything change?" checks. */

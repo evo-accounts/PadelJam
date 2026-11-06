@@ -27,7 +27,8 @@
  * before it is worth a fix.
  *
  * Needs a running local stack and SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY,
- * from the environment or a repo-root `.env`; `lib.mjs` refuses any non-local URL.
+ * from the environment or a repo-root `.env`; `lib.mjs` refuses any non-local URL. It never starts a
+ * stack, so it can't queue for a slot or exit 75: see "Local database stacks" in docs/agents/_rules.md.
  */
 import { spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
