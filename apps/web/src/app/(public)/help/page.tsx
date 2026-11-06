@@ -8,7 +8,7 @@ export default function HelpPage() {
       <h1 className="text-2xl font-semibold">Help &amp; Support</h1>
       <h2 className="mt-6 text-lg font-medium">Getting started</h2>
       <p>
-        Sign in with your phone or email, join a community, and jump into events from
+        Sign in with your email, join a community, and jump into events from
         the Explore tab. Organizers can create groups and schedule recurring events.
       </p>
       <h2 className="mt-6 text-lg font-medium">Common questions</h2>
