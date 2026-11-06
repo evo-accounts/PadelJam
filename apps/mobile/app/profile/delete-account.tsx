@@ -88,10 +88,16 @@ export default function DeleteAccountScreen() {
 
   const removed = [
     t('deleteErasedProfile'),
-    t('deleteErasedMemberships'),
-    t('deleteErasedSocial'),
-    t('deleteErasedPayment'),
-    t('deleteErasedOther'),
+    t('deleteErasedConnections'),
+    t('deleteErasedUpcoming'),
+    t('deleteErasedReports'),
+  ];
+
+  const kept = [
+    t('deleteKeptContent'),
+    t('deleteKeptResults'),
+    t('deleteKeptCreated'),
+    t('deleteKeptSupport'),
   ];
 
   return (
@@ -112,6 +118,20 @@ export default function DeleteAccountScreen() {
         <Card padding="md" style={styles.list} testID="delete-list">
           <Text variant="label">{t('deleteListTitle')}</Text>
           {removed.map((item) => (
+            <View key={item} style={styles.item}>
+              <Text variant="body" tone="muted">
+                {'•'}
+              </Text>
+              <Text variant="body" tone="muted" style={styles.itemText}>
+                {item}
+              </Text>
+            </View>
+          ))}
+        </Card>
+
+        <Card padding="md" style={styles.list} testID="delete-kept">
+          <Text variant="label">{t('deleteKeptTitle')}</Text>
+          {kept.map((item) => (
             <View key={item} style={styles.item}>
               <Text variant="body" tone="muted">
                 {'•'}
