@@ -282,7 +282,11 @@ content_path = "./supabase/templates/email_change.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.
-enable_signup = true
+# OFF: phone sign-in is hidden for launch (PAD-137), so local runs what hosted will run. GoTrue
+# then answers phone OTP / resend / signup / phone password grants with 400/422
+# `phone_provider_disabled`. Admin-created users with a phone (the e2e personas) still work.
+# Re-enabling phone means setting this back to true and restoring [auth.sms.test_otp] (git history).
+enable_signup = false
 # If enabled, users need to confirm their phone number before signing in.
 # Kept ON so a phone attached via updateUser (secondary-identifier verification at account
 # completion, M12) requires the phone_change OTP instead of being applied unverified. The
@@ -292,12 +296,6 @@ enable_confirmations = true
 template = "Your code is {{ `{{ .Code }}` }}"
 # Controls the minimum amount of time that must pass before sending another sms otp.
 max_frequency = "5s"
-
-# Local testing only: phone OTP needs an SMS provider (Twilio) in staging/prod. Until then, use a
-# fixed map of phone number -> OTP so the phone flow is exercisable locally without sending SMS.
-[auth.sms.test_otp]
-351912345678 = "123456"
-5511987654321 = "123456"
 
 # Configure logged in session timeouts.
 # [auth.sessions]
@@ -317,8 +315,8 @@ max_frequency = "5s"
 # uri = "pg-functions://<database>/<schema>/<hook_name>"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
-# Enabled with placeholder creds so the phone-OTP flow is exercisable LOCALLY via auth.sms.test_otp
-# (GoTrue returns the test code for listed numbers without calling Twilio). Set real creds for staging/prod.
+# Placeholder creds, matching hosted now that phone sign-in is hidden (PAD-137): the token there is
+# replaced with a placeholder too. No test_otp map: no phone code is sent or accepted locally.
 [auth.sms.twilio]
 enabled = true
 account_sid = "local_test_sid"

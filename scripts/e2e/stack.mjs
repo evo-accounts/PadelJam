@@ -13,6 +13,24 @@ export const STACKS = {
   ci: { projectId: 'padeljam_ci', api: 56321, db: 56322, shadow: 56320, studio: 56323, mail: 56324, analytics: 56327, pooler: 56329, inspector: 8183 },
 };
 
+// Only two local stacks may run at once across all companies on the company Mac; this script hands
+// out the slots (PAD-219). It is not in this repo and exists only on that Mac.
+export const STACK_SLOT = '/Users/Shared/paperclip-ops/stack-slot';
+// stack-slot's exit code for "no slot came free, nothing was started". Not a test failure.
+export const NO_SLOT_EXIT = 75;
+
+/**
+ * The command that starts a stack: through the slot script where one is in force, else as it is.
+ * A GitHub job gets no slot: GitHub-hosted runners don't have the script, and the self-hosted e2e
+ * runner has its own OrbStack under its own user, which the slots don't count and whose state it
+ * can't write. Queuing it there would also turn a 75 into a red job. `slotsUsable` is false for that
+ * user by hand, and on any other machine. `wait` is seconds; left out, stack-slot's default applies.
+ */
+export function slotted(projectId, cmd, { githubActions = false, slotsUsable = false, wait } = {}) {
+  if (githubActions || !slotsUsable) return cmd;
+  return [STACK_SLOT, 'start', projectId, ...(wait === undefined ? [] : ['--wait', String(wait)]), '--', ...cmd];
+}
+
 export function resolveStack(name = process.env.E2E_STACK ?? 'dev') {
   const s = STACKS[name];
   if (!s) throw new Error(`Unknown E2E_STACK "${name}" (expected one of: ${Object.keys(STACKS).join(', ')}).`);

@@ -46,10 +46,8 @@ import {
   primaryCredential,
   signInWithPassword,
   startEmailChange,
-  startPhoneChange,
   useSession,
   verifyEmailChange,
-  verifyPhoneChange,
   safeAuthMessage,
 } from '@padel/auth';
 import { useT } from '@padel/i18n';
@@ -74,7 +72,6 @@ import {
   Field,
   Loading,
   PasswordField,
-  PhoneField,
   Screen,
   Text,
   TopBar,
@@ -120,6 +117,11 @@ export default function CreateAccountScreen() {
   const secondaryKind: IdentifierKind = primaryKind === 'phone' ? 'email' : 'phone';
   const primaryIdentifier = primaryKind === 'phone' ? sessionPhone : sessionEmail;
 
+  /**
+   * PHONE IS HIDDEN AT LAUNCH (PAD-137). An email-verified account is not asked
+   * for a phone: no field, no verify phase. Only a session verified by phone
+   * (secondaryKind 'email') still adds an email here.
+   */
   const [phase, setPhase] = useState<'form' | 'verify'>('form');
   /**
    * `null` until the user types, so the social prefill can still appear when
@@ -129,10 +131,8 @@ export default function CreateAccountScreen() {
    */
   const [typedName, setTypedName] = useState<string | null>(null);
   const fullName = typedName ?? socialName;
-  /** E.164 or '' for a phone (PhoneField's contract); the trimmed address for an email. */
+  /** The email to add. Only asked for when the session was verified by phone (secondaryKind 'email'). */
   const [secondary, setSecondary] = useState('');
-  /** National digits typed so far. The only way to tell "half a number" from "nothing". */
-  const [phoneDigits, setPhoneDigits] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -155,7 +155,8 @@ export default function CreateAccountScreen() {
    * button for a reason the user is being shown but has not finished acting on.
    * Strength is checked on submit instead, where it can redden the field.
    */
-  const canSubmit = Boolean(name) && Boolean(secondaryValue) && Boolean(password) && agreed;
+  const canSubmit =
+    Boolean(name) && (secondaryKind !== 'email' || Boolean(secondaryValue)) && Boolean(password) && agreed;
 
   const goNext = async () => {
     router.replace((await resolvePostAuthRoute()) as never);
@@ -165,15 +166,11 @@ export default function CreateAccountScreen() {
   // pre-check in complete-account can't see auth-only users) — reuse the "taken" copy for those.
   const startChangeErrorKey = (err: { code?: string } | null): string => {
     if (err?.code === 'email_exists') return 'email_taken';
-    if (err?.code === 'phone_exists') return 'phone_taken';
     return 'sendCodeFailed';
   };
 
   const startSecondaryChange = async (): Promise<'sent' | 'applied' | 'failed'> => {
-    const { data, error: changeErr } =
-      secondaryKind === 'phone'
-        ? await startPhoneChange(supabase, secondaryValue)
-        : await startEmailChange(supabase, secondaryValue);
+    const { data, error: changeErr } = await startEmailChange(supabase, secondaryValue);
     if (changeErr) {
       banner.show(t(startChangeErrorKey(changeErr)));
       return 'failed';
@@ -181,10 +178,7 @@ export default function CreateAccountScreen() {
     // If the server has confirmations disabled, GoTrue applies the change immediately (the
     // returned user already carries the new identifier — phone in GoTrue format, no '+').
     // There is no code in flight, so showing the verify step would dead-end.
-    const applied =
-      secondaryKind === 'phone'
-        ? data.user?.phone === secondaryValue.replace(/^\+/, '')
-        : data.user?.email?.toLowerCase() === secondaryValue.toLowerCase();
+    const applied = data.user?.email?.toLowerCase() === secondaryValue.toLowerCase();
     if (applied) return 'applied';
     dispatch({ type: 'sent', at: Date.now() });
     return 'sent';
@@ -197,12 +191,6 @@ export default function CreateAccountScreen() {
 
   const blurSecondary = () => {
     setErrors((prev) => {
-      if (secondaryKind === 'phone') {
-        // '' with digits typed is an INCOMPLETE number, not an empty field —
-        // PhoneField only emits a value once it is valid for the region.
-        if (secondaryValue) return prev;
-        return { ...prev, secondary: phoneDigits ? t('invalid_phone') : tc('missingInformation') };
-      }
       if (isEmailShape(secondaryValue)) return prev;
       return { ...prev, secondary: tc('missingInformation') };
     });
@@ -237,8 +225,7 @@ export default function CreateAccountScreen() {
         return;
       }
 
-      const secondaryBody =
-        secondaryKind === 'phone' ? { phone: secondaryValue } : { email: secondaryValue };
+      const secondaryBody = secondaryKind === 'email' ? { email: secondaryValue } : {};
 
       // The Edge Function sets the password AND creates the profiles row server-side from the
       // identifiers persisted on auth.users — the client never writes its own identity into the
@@ -263,7 +250,7 @@ export default function CreateAccountScreen() {
         }
         // Dev console gets the full detail; the UI copy may collapse it.
         console.warn('[complete-account] failed:', resp.status, errorCode ?? '(no error code in body)');
-        if (errorCode === 'email_taken' || errorCode === 'phone_taken' || errorCode === 'invalid_phone') {
+        if (errorCode === 'email_taken' && secondaryKind === 'email') {
           setErrors({ secondary: t(errorCode) });
           banner.show(t(errorCode));
         } else if (errorCode === 'password_weak') {
@@ -295,6 +282,10 @@ export default function CreateAccountScreen() {
       // Verify the secondary identifier as the signed-in user: updateUser sends the OTP, the
       // verify phase collects it. Enter the phase even when the send fails — the account already
       // exists, so the user retries (resend) or skips from there instead of resubmitting the form.
+      if (secondaryKind === 'phone') {
+        await goNext();
+        return;
+      }
       if ((await startSecondaryChange()) === 'applied') {
         await goNext();
         return;
@@ -311,10 +302,7 @@ export default function CreateAccountScreen() {
     if (code.length < CODE_LENGTH) { banner.show(tc('missingInformation')); return; }
     setBusy(true);
     try {
-      const { error: verifyError } =
-        secondaryKind === 'phone'
-          ? await verifyPhoneChange(supabase, secondaryValue, code)
-          : await verifyEmailChange(supabase, secondaryValue, code);
+      const { error: verifyError } = await verifyEmailChange(supabase, secondaryValue, code);
       if (verifyError) {
         dispatch({ type: 'fail' });
         const { ns, key } = safeAuthMessage(verifyError);
@@ -383,14 +371,9 @@ export default function CreateAccountScreen() {
             '/' fallback drops a signed-out user on the splash. */}
         <TopBar variant="nav" onBack={() => setPhase('form')} />
         <Screen style={styles.body}>
-          <Text variant="title">
-            {secondaryKind === 'phone' ? t('verifyPhoneTitle') : t('verifyEmailTitle')}
-          </Text>
+          <Text variant="title">{t('verifyEmailTitle')}</Text>
           <Text variant="body" tone="muted" style={styles.help}>
-            {t('otpHelp', {
-              identifier:
-                secondaryKind === 'phone' ? formatE164ForDisplay(secondaryValue) : secondaryValue,
-            })}
+            {t('otpHelp', { identifier: secondaryValue })}
           </Text>
 
           <CodeField
@@ -401,7 +384,7 @@ export default function CreateAccountScreen() {
             error={codeError}
             // iOS reads an emailed code out of Mail too; Android's SMS retriever
             // must not be armed for a code that will never arrive as a message.
-            autofill={secondaryKind === 'phone' ? 'sms' : 'email'}
+            autofill="email"
             editable={!busy && !otpState.locked}
             autoFocus
             testID="create-account-code"
@@ -482,22 +465,7 @@ export default function CreateAccountScreen() {
             testID="create-account-name"
           />
 
-          {secondaryKind === 'phone' ? (
-            <PhoneField
-              label={t('secondaryPhoneLabel')}
-              value={secondary}
-              onChangeValue={(e164, meta) => {
-                setSecondary(e164);
-                setPhoneDigits(meta.national);
-                clear('secondary');
-              }}
-              onBlur={blurSecondary}
-              error={errors.secondary ?? null}
-              editable={!busy}
-              containerStyle={styles.field}
-              testID="create-account-phone"
-            />
-          ) : (
+          {secondaryKind === 'email' ? (
             <Field
               label={t('secondaryEmailLabel')}
               value={secondary}
@@ -514,7 +482,7 @@ export default function CreateAccountScreen() {
               containerStyle={styles.field}
               testID="create-account-email"
             />
-          )}
+          ) : null}
 
           <PasswordField
             label={t('passwordLabel')}

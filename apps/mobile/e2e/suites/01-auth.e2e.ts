@@ -13,7 +13,9 @@ import {
 } from '../driver/flows';
 import { resetDb } from '../fixtures/seed';
 import { latestOtp } from '../fixtures/mailpit';
-import { PASSWORD, PERSONAS, TEST_PHONE_NATIONAL, TEST_PHONE_OTP } from '../fixtures/personas';
+import { PASSWORD, PERSONAS } from '../fixtures/personas';
+
+const NEW_EMAIL = 'e2e-new@padeljam.test';
 
 describe('01 auth', () => {
   beforeAll(async () => {
@@ -38,14 +40,14 @@ describe('01 auth', () => {
     await tap({ id: 'welcome-start' });
     await expectVisible({ label: 'Login or Sign Up' });
     await expectVisible({ text: /by continuing, you agree/i });
-    await expectVisible({ id: 'sign-in-phone-country' });
+    await expectVisible({ id: 'sign-in-email' });
   });
 
   /**
    * "Sign in" on welcome is not a different screen from "Get started": both go
    * to the combined Login or Sign Up screen, because there is no separate
    * returning-user screen and create-account needs a live session. The sign-in
-   * fingerprint here (heading, consent line, phone-country selector) is the same
+   * fingerprint here (heading, consent line, email field) is the same
    * three things the test above asserts after Get started, so if either button
    * is ever pointed somewhere else, one of the two fails.
    *
@@ -59,54 +61,39 @@ describe('01 auth', () => {
     await tap({ id: 'welcome-signin' });
     await expectVisible({ label: 'Login or Sign Up' });
     await expectVisible({ text: /by continuing, you agree/i });
-    await expectVisible({ id: 'sign-in-phone-country' });
+    await expectVisible({ id: 'sign-in-email' });
   });
 
   /**
-   * Was "rejects a non-E.164 phone identifier", typing `912345678` and expecting
-   * a failure. With the country selector that number is a perfectly VALID
-   * Portuguese mobile — it is what the happy path below now types — so the old
-   * test asserted the opposite of the intended behaviour. What is still worth
-   * pinning is that an IMPOSSIBLE number is caught client-side, before a
-   * rate-limit slot is spent, and that it is reported in both places UX-GLOB-06
-   * requires.
+   * Phone sign-in is hidden for launch (PAD-137): no phone input, no channel
+   * swap. Also leaves the screen as the next test expects it.
    */
-  it('rejects a phone number that cannot be valid', async () => {
-    await typeText({ type: 'TextField' }, '12');
-    await tap({ label: 'Continue', type: 'Button' });
-    await expectVisible({ text: /enter a valid phone number/i }, { timeout: 3_000 });
-    // The banner auto-dismisses after 4s; the FIELD's own error message must
-    // not. Re-asserting after that window is what distinguishes the two, since
-    // both carry the identical string on purpose.
-    await new Promise((r) => setTimeout(r, 5_000));
-    await expectVisible({ text: /enter a valid phone number/i }, { timeout: 3_000 });
-    await clearText({ type: 'TextField' }, 4);
+  it('sign-in offers email only: no phone input and no "Continue with phone"', async () => {
+    await expectVisible({ id: 'sign-in-email' });
+    await expectGone({ id: 'sign-in-phone' }, { timeout: 2_000 });
+    await expectGone({ id: 'sign-in-phone-country' }, { timeout: 2_000 });
+    await expectGone({ text: /continue with phone/i }, { timeout: 2_000 });
+    await expectGone({ text: /continue with email/i }, { timeout: 2_000 });
   });
 
-  it('phone OTP happy path with the test number', async () => {
-    /**
-     * Pick Portugal first. `PhoneField` starts on the DEVICE region, and the
-     * simulator is launched with `-AppleLocale en_US` (driver/app.ts), so it
-     * opens on 🇺🇸 +1 — where a nine-digit number is not valid. Searching by DIAL
-     * CODE rather than by name on purpose: country names come from
-     * `Intl.DisplayNames`, which Hermes is not guaranteed to ship, and the row is
-     * then tapped by its ISO testID rather than by the label it rendered.
-     */
-    await tap({ id: 'sign-in-phone-country' });
-    await expectVisible({ text: /search countries/i }, { timeout: 10_000 });
-    await typeText({ id: 'sign-in-phone-country-search' }, '351');
-    await tap({ id: 'sign-in-phone-country-PT' });
-    await expectGone({ text: /search countries/i }, { timeout: 10_000 });
+  it('a phone number typed into the email field is rejected and nothing is sent', async () => {
+    await typeText({ id: 'sign-in-email' }, '912345678');
+    await tap({ label: 'Continue', type: 'Button' });
+    await expectVisible({ text: /missing information/i }, { timeout: 3_000 });
+    await expectGone({ text: /confirm if it/i }, { timeout: 2_000 });
+    await clearText({ id: 'sign-in-email' }, 9);
+  });
 
-    // National digits, not '+351…': the selector now holds the country and
-    // PhoneField assembles the E.164 itself.
-    await typeText({ type: 'TextField' }, TEST_PHONE_NATIONAL);
+  /** A brand-new email, by code: no profile yet, so it lands on create-account. */
+  it('email OTP sign-up with a new address reaches create-account', async () => {
+    const sentAt = Date.now();
+    await typeText({ id: 'sign-in-email' }, NEW_EMAIL);
     await tap({ label: 'Continue', type: 'Button' });
     await expectVisible({ text: /confirm if it/i });
-    await typeText({ type: 'TextField' }, TEST_PHONE_OTP);
+    const code = await latestOtp(NEW_EMAIL, sentAt);
+    await typeText({ type: 'TextField' }, code);
     await tap({ label: 'Verify', type: 'Button' });
-    // Brand-new OTP user with no profile → create-account screen.
-    await expectVisible({ text: /full name|create/i }, { timeout: 30_000 });
+    await expectVisible({ text: /complete your account/i }, { timeout: 30_000 });
   });
 
   /**
@@ -132,7 +119,6 @@ describe('01 auth', () => {
    *     below, because a passing tap says nothing about it.
    */
   it('create-account blocks submit until terms accepted, then completes', async () => {
-    const secondaryEmail = 'e2e-new@padeljam.test';
     await expectVisible({ text: /complete your account/i });
 
     // Nothing filled: the press must do NOTHING — not even complain.
@@ -143,7 +129,9 @@ describe('01 auth', () => {
     });
 
     await typeText({ id: 'create-account-name' }, 'Test E2E User');
-    await typeText({ id: 'create-account-email' }, secondaryEmail);
+    // The account is verified by email, so there is no second-identifier field at all.
+    await expectGone({ id: 'create-account-phone' }, { timeout: 1_000 });
+    await expectGone({ id: 'create-account-email' }, { timeout: 1_000 });
     // iOS raises its "Use Strong Password?" AutoFill sheet the first time this
     // field is focused — this screen has the sign-up shape the heuristic looks
     // for (an `autoComplete="email"` field directly above a secure one), which
@@ -246,35 +234,16 @@ describe('01 auth', () => {
     // `tap({id})` would be safe now, but tapCheckbox also asserts the box flipped —
     // a tap that lands mid-transition is swallowed without a word.
     await tapCheckbox({ id: 'create-account-terms' });
-    const submittedAt = Date.now();
     await tap({ label: 'Create account', type: 'Button' });
-    // With local confirmations disabled the change can apply instantly (app jumps straight
-    // to onboarding) or briefly show the verify phase — handle both without racing.
+    // No verify phase any more: a successful submit goes straight to onboarding.
     const deadline = Date.now() + 60_000;
-    let done = false;
-    while (Date.now() < deadline && !done) {
+    while (Date.now() < deadline) {
       // signInWithPassword inside the flow can trigger the system Save Password sheet.
       await dismissSavePasswordSheetIfPresent();
-      const tree = await snapshot();
-      if (query(tree, { text: /share your location/i })) {
-        done = true;
-        break;
-      }
-      const verify = query(tree, { text: /verify your email/i });
-      const field = query(tree, { type: 'TextField' });
-      if (verify && field) {
-        const code = await latestOtp(secondaryEmail, submittedAt);
-        // Re-check we are still on the verify phase before typing (it can self-dismiss).
-        if (query(await snapshot(), { text: /verify your email/i })) {
-          await typeText({ id: 'create-account-code' }, code).catch(() => {});
-          // `type: 'Button'` again: Verify is a real `Button` here now, not the
-          // hand-rolled Pressable that surfaced as a GenericElement.
-          await tap({ label: 'Verify', type: 'Button' }).catch(() => {});
-        }
-      }
+      if (query(await snapshot(), { text: /share your location/i })) break;
       await new Promise((r) => setTimeout(r, 600));
     }
-    if (!done) await expectVisible({ text: /share your location/i }, { timeout: 5_000 });
+    await expectVisible({ text: /share your location/i }, { timeout: 5_000 });
 
     /**
      * THE CONSENT RECORD. The box above was ticked, so the account must carry a timestamp
@@ -286,10 +255,6 @@ describe('01 auth', () => {
      * never tick anything: the only accounts with a consent record were the only ones that
      * never affirmatively consented, and this screen's own function wrote nothing at all.
      *
-     * Matched on the phone because that is the identifier this test verified (GoTrue stores it
-     * without the leading '+', and complete-account copies it across verbatim). The secondary
-     * email may or may not have landed by now, depending on whether the stack applied the
-     * change immediately or sent a code.
      */
     // NOT asserted here: that `terms_accepted_at` was recorded. It cannot be.
     // The local edge runtime mounts the MAIN CHECKOUT's functions directory
@@ -382,9 +347,8 @@ describe('01 auth', () => {
    * SOFIA, and not one of the others, for two reasons. Every seeded persona is
    * created through `adminCreateUser(email, phone, password)` and none of them
    * has a social identity (infra/seed/seed-e2e.mjs), so signing in with an
-   * EMAIL makes the expected list exactly SMS + password — an assertion with
-   * something on both sides: two rows that must be there and two that must not,
-   * where the old sheet always showed all four. And she is used nowhere else in
+   * EMAIL makes the expected list exactly password — SMS is never offered while phone
+   * sign-in is hidden (PAD-137), though she has a phone on file. And she is used nowhere else in
    * this file (maria, alex and carla are), so her identifier still has all five
    * of the lookups migration 0096 allows per quarter hour — this test cannot be
    * the one that trips the rate limit, and a rate-limited lookup is
@@ -402,14 +366,13 @@ describe('01 auth', () => {
 
     // Wait for the sheet to finish presenting before asserting anything else —
     // see the note in the recovery test about tapping into a moving sheet.
-    // '+351910000004' is masked to '+351•••••0004' in SQL and typeset by
-    // formatMaskedPhone, so the row names the number without revealing it.
-    await expectVisible({ text: /get a code via sms.*\(\+351\).*0004/i }, { timeout: 15_000 });
-    await expectVisible({ text: /sign in with password/i });
+    await expectVisible({ text: /sign in with password/i }, { timeout: 15_000 });
+    // She has a phone on file, but SMS is not a method at launch.
+    await expectGone({ text: /get a code via sms/i }, { timeout: 3_000 });
 
-    // The raw number must never reach the client: 0096 masks in SQL precisely
-    // so there is no code path that could print this.
+    // Neither the raw number nor its mask may reach the screen.
     await expectGone({ text: persona.phone }, { timeout: 2_000 });
+    await expectGone({ text: /0004/ }, { timeout: 2_000 });
 
     // The half that matters. This account has no Google and no Apple identity,
     // so neither may be offered — and a provider is NEVER inferred from the
@@ -419,7 +382,7 @@ describe('01 auth', () => {
     await expectGone({ text: /get a code by email/i }, { timeout: 3_000 });
 
     // The escape hatch stays, below the methods rather than among them.
-    await expectVisible({ text: /use a different email or phone/i });
+    await expectVisible({ text: /use a different email/i });
   });
 
   /**
@@ -454,7 +417,7 @@ describe('01 auth', () => {
     await expectGone({ text: /get a code via sms/i }, { timeout: 3_000 });
 
     // And the way out actually works.
-    await tap({ text: /use a different email or phone/i });
+    await tap({ text: /use a different email/i });
     await expectVisible({ label: 'Login or Sign Up' }, { timeout: 20_000 });
   });
 
@@ -471,26 +434,6 @@ describe('01 auth', () => {
     // The native Apple button is now AppleAuthenticationButtonType.CONTINUE, so
     // it renders "Continue with Apple" — it used to be SIGN_IN.
     await expectVisible({ text: /continue with apple/i });
-    // The third outline button is the phone/email toggle, not a provider.
-    await expectVisible({ text: /continue with email/i });
-  });
-
-  /**
-   * UX-AUTH-02: the third button swaps the INPUT and relabels itself. It is the
-   * only way to reach email sign-in now that phone is the default, so every
-   * email-based suite depends on it (driver/flows.ts `switchToEmailMode`).
-   */
-  it('the third button toggles between phone and email input', async () => {
-    await expectVisible({ text: /continue with email/i });
-    await tap({ text: /continue with email/i });
-    await expectVisible({ text: /name@example\.com/i, type: 'TextField' }, { timeout: 10_000 });
-    await expectVisible({ text: /continue with phone/i });
-    await expectGone({ text: /continue with email/i }, { timeout: 3_000 });
-
-    // And back: the email box goes away and the toggle reads "Continue with email" again.
-    await tap({ text: /continue with phone/i });
-    await expectGone({ text: /name@example\.com/i, type: 'TextField' }, { timeout: 10_000 });
-    await expectVisible({ text: /continue with email/i });
   });
 
   /**
@@ -498,9 +441,7 @@ describe('01 auth', () => {
    *
    * Local rather than in driver/flows.ts: the password screen is reached from
    * exactly one place and only this suite goes there. `switchToEmailMode()` is
-   * the shared helper, as everywhere else — sign-in opens in PHONE mode
-   * (UX-AUTH-02) and a type-only selector would otherwise type an address into
-   * the phone box.
+   * the shared helper, as everywhere else.
    */
   const goToPasswordScreen = async (email: string): Promise<void> => {
     await freshInstall();
@@ -587,24 +528,24 @@ describe('01 auth', () => {
    * nothing. It opens `TryAnotherWaySheet` with `inUse: 'password'` now.
    *
    * THE ROWS ARE THE FINGERPRINT. The OTP screen's sheet for an email sign-in
-   * (inUse: 'email') offers SMS and password and never "get a code by email";
-   * this one offers SMS and email and never password. So an email row with no
-   * password row can only be THIS screen's sheet — and `router.back()` would
+   * (inUse: 'email') offers password and never "get a code by email"; this one
+   * offers email and never password. So an email row with no password row can
+   * only be THIS screen's sheet — and `router.back()` would
    * have shown no sheet at all, just the code screen.
    */
   it('Try another way on the password screen opens the sheet instead of going back', async () => {
     await goToPasswordScreen(PERSONAS.omar.email);
     await tap({ id: 'password-try-another-way' });
 
-    await expectVisible({ text: /get a code via sms/i }, { timeout: 15_000 });
-    // The method already in use is never listed.
-    await expectGone({ text: /sign in with password/i }, { timeout: 3_000 });
     // The row the OTP screen's sheet cannot show.
-    await expectVisible({ text: /get a code by email/i });
-    await expectVisible({ text: /use a different email or phone/i });
+    await expectVisible({ text: /get a code by email/i }, { timeout: 15_000 });
+    // The method already in use is never listed, and neither is SMS.
+    await expectGone({ text: /sign in with password/i }, { timeout: 3_000 });
+    await expectGone({ text: /get a code via sms/i }, { timeout: 3_000 });
+    await expectVisible({ text: /use a different email/i });
 
     // And the way out works, leaving the suite somewhere known.
-    await tap({ text: /use a different email or phone/i });
+    await tap({ text: /use a different email/i });
     await expectVisible({ label: 'Login or Sign Up' }, { timeout: 20_000 });
   });
 

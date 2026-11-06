@@ -47,12 +47,12 @@ BASE_URL=https://padeljam.app pnpm --filter @padel/e2e-web test:e2e
 
 - `tests/example.spec.ts` — scaffold smoke test (hits playwright.dev; no backend).
 - `tests/auth-identifier.spec.ts` — the `/auth` entry:
-  - _validation (real Supabase)_ — a malformed identifier surfaces GoTrue's
-    validation error and stays on the identifier step.
-  - _OTP transition (mocked send)_ — a valid identifier advances to the OTP
-    step. The OTP request is stubbed with a 200 because the local stack has no
-    mail delivery (a real send returns 500), so this drives the UI transition
-    with no email/SMS side effects.
+  - _validation (client-side)_ — a malformed address, or a phone number (phone sign-in is hidden
+    for launch, PAD-137), is marked "missing information" and nothing is sent.
+  - _OTP transition (mocked send)_ — a valid email advances to the OTP step with the send stubbed.
+  - _sign-up (real send)_ — a new email's code is read from Mailpit, then name, password and terms
+    create the account (no phone or second identifier asked) and the session survives a reload.
+    Set `E2E_MAILPIT_URL` to your stack's Mailpit (default `http://127.0.0.1:55324`).
 
 ### Local Supabase requirement
 
@@ -60,8 +60,11 @@ BASE_URL=https://padeljam.app pnpm --filter @padel/e2e-web test:e2e
 `http://localhost:55321` (per `apps/web/.env.local`). Start it first:
 
 ```bash
-supabase start --workdir infra
+/Users/Shared/paperclip-ops/stack-slot start padeljam -- pnpm dlx supabase@2.117.0 --workdir infra start
 ```
+
+Exit 75 means no stack slot came free and nothing started: try later. After stopping the stack, run
+`stack-slot release padeljam`.
 
 A `beforeAll` health precheck fails fast with an actionable message if the
 stack isn't reachable.
