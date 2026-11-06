@@ -201,7 +201,7 @@ export interface TeamSlotPlayer {
   user_id: string | null;
   guest_name: string | null;
   status: string;
-  profiles: ParticipantProfileEmbed;
+  profiles: ProfileEmbed;
 }
 export interface TeamRow {
   id: string;
@@ -290,7 +290,7 @@ export const useEventMatches = (id: string) => {
                 id: string;
                 user_id: string | null;
                 guest_name: string | null;
-                profiles: ParticipantProfileEmbed;
+                profiles: ProfileEmbed;
               } | null;
             }[];
           }[]
