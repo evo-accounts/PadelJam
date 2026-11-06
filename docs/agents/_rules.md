@@ -34,14 +34,14 @@ Whenever you need the founder for anything (a gate above, a decision, a merge or
    - **Steps:** a numbered list. One action per step: where to click, or the exact command in a code block with the folder to run it in. After each step, say what they should see when it worked and what to do if it didn't.
    - **When you're done:** exactly how to hand back, e.g. "mark this task done" or "comment with your choice, then mark it done".
 3. **Link any approval or card.** If the step also needs a formal approval or a confirmation card (every Composio tool call does), link them in the steps and say the order: approve the formal approval first, then accept the card, both within the hour, because the connection's token refreshes about hourly and a stale card fails.
-4. **Block your own task on it.** Set your task to `blocked` with the founder task in `blockedByIssueIds`, comment with the link, and exit. Paperclip wakes you when the founder marks their task done. If they comment instead, read the comment and carry on.
+4. **Block your own task on it.** Set your task to `blocked` with the founder task in `blockedByIssueIds`, comment with the link, and exit. Paperclip wakes you when the founder marks their task done, unless your task has a recovery hold (see **Hand-offs**). If they comment instead, read the comment and carry on.
 
 ## Working rules
 
 - **Every task links to the company goal.** No goal, no work. If a task doesn't serve the goal, say so on the task.
 - **One owner per task at a time.** Only the owner writes; everyone else comments. When two engineers share a branch, the second starts only after the first's hand-off task reaches them.
 - **Stay in your lane.** Write only inside the paths your role owns. To change anything else, open a task for its owner.
-- **Never commit or push to `main`.** Work on a `feat/<topic>` or `fix/<topic>` branch in your own worktree, push that branch, and open a pull request with `gh pr create`. `gh` is at `/usr/local/bin/gh`. Never force-push, and never edit `.github/workflows/`. Only the CTO merges.
+- **Never commit or push to `main`.** Work on a `feat/<topic>` or `fix/<topic>` branch in your own worktree, push that branch (never a `PAD-49-*` branch, even if the run prompt says to keep commits on it: it has merged, and pushing it brings back old commits), and open a pull request with `gh pr create`. `gh` is at `/usr/local/bin/gh`. Never force-push, and never edit `.github/workflows/`. Only the CTO merges.
 - **Never touch anything outside this machine, except GitHub** (`git push` of your branch, `gh pr`). No `supabase link`, `db push`, `functions deploy`, `eas`, `vercel`, no `gh` beyond PRs and checks, and no request to `*.supabase.co`. `apps/mobile/eas.json` holds the hosted project's URL: never use it. `pnpm schema:check` probes production, so leave it to CI.
 - **Ports.** 3100 is Paperclip's. Dev servers use `$PORT` (3200); the web E2E uses `$WEB_PORT` (3201). Never start anything on 3100.
 - **Local database stacks: your own, two at most, stopped when the task ends.** Run bare, `supabase` uses project `padeljam` on 5532x, and another product holds those ports, so a bare `db reset` removes the `padeljam` database container and then fails on the port. Leftover stacks also helped overload the Mac for every company on 5 Nov.
@@ -64,9 +64,9 @@ Whenever you need the founder for anything (a gate above, a decision, a merge or
 
 **Don't reassign a task your run is working on.** Paperclip cancels your run first, so you can't check anything afterwards, and the wake to the new owner was lost 25 times out of 36. A task created with an owner woke that owner every time (27 of 27). So a hand-off is a new task:
 
-1. **Create a child task for the next owner:** `POST /api/companies/{companyId}/issues` with `parentId` (your task), `goalId`, `assigneeAgentId` and `status: "todo"`. Title it `<Role>: <what>`, e.g. `QA: test #304`. The description is the whole hand-off, written so they can start without reading your task: the branch or file, what you did, the commands you ran and their results, what you need from them, and how to finish.
+1. **Create a child task for the next owner:** `POST /api/companies/{companyId}/issues` with `parentId` (your task), `goalId`, `assigneeAgentId`, `status: "todo"` and `executionWorkspaceSettings: {"mode": "isolated_workspace"}`. Without that setting the task shares your workspace, and another run's branch switch can sweep up its uncommitted work. Title it `<Role>: <what>`, e.g. `QA: test #304`. The description is the whole hand-off, written so they can start without reading your task: the branch or file, what you did, the commands you ran and their results, what you need from them, and how to finish.
 2. **Check it landed:** `GET /api/issues/{childId}/runs` should show a run with their `agentId` within seconds (your own run is listed too). If it's empty, look again once. If it's still empty, comment on the child, because a comment from anyone but the owner wakes them. Say so in step 3.
-3. **Block your task on it:** set your task to `blocked` with the child in `blockedByIssueIds`, comment with the link, and exit. Paperclip wakes you when the child is `done`.
+3. **Block your task on it:** set your task to `blocked` with the child in `blockedByIssueIds`, comment with the link, and exit. Paperclip wakes you when the child is `done`, unless your task has a recovery hold (see below).
 
 **When you get a hand-off:** do the work on the task you were given, put the result in a comment there, and mark it `done`. A failed review or QA run is still `done`: the verdict is the deliverable. Don't reassign it, and don't write on the parent. Marking it done wakes the sender, who decides what's next.
 
@@ -75,6 +75,10 @@ Whenever you need the founder for anything (a gate above, a decision, a merge or
 **Handing over a task for good** (you're the wrong owner, and it isn't coming back): put the full hand-off comment and the new assignee in one `PATCH`, as the last action of your run. Nothing after it runs, and you can't check it. The CTO's hand-off check catches it if it doesn't land.
 
 **If you need another agent's decision,** that's a task for them too. A card or a mention on a task someone else holds doesn't reach them.
+
+**A recovery hold stops every wake.** When a run on a task ends failed, cancelled or timed out, even after finishing its work, Paperclip can put a hold on the task. From then on nothing from an agent starts a run there: not a finished blocker, a comment, a `PATCH`, a monitor or a wakeup. The calls still succeed, and `GET /api/issues/{id}/recovery-actions` shows nothing. To spot one, look in `GET /api/issues/{id}/activity` for `issue.execution_recovery_settled` with `replay: "not_authorized"`. The 11-05 cases: 7 of 7 blocker wakes on held tasks started no run, and 42 of 46 on other tasks did.
+
+Only the founder can clear a hold, so don't retry. To carry on, create a new task with the owner, with what's left in its description, and block the held task on it if you want it kept open. That wake may not reach the held task either, so whoever finishes the new task closes the held one, or says it's left open. Ask the founder only if a new task can't do the job. The hold is on the task, so a new task isn't affected.
 
 **The check:** the CTO runs `scripts/ops/handoff-check.mjs` every hour. A `Hand-off check:` comment on your task means a hand-off to you was stranded, so pick the task up.
 
