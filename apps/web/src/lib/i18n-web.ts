@@ -1286,6 +1286,7 @@ const webCommunity = {
   'pt-PT': {
     blocked: 'Não é possível convidar este jogador.',
     unknown_error: 'Algo correu mal. Tenta novamente.',
+    community_full: 'Esta comunidade está cheia.',
     title: 'Comunidades',
     mine: 'As suas comunidades',
     suggested: 'Sugeridas',
@@ -1430,6 +1431,7 @@ const webCommunity = {
   'pt-BR': {
     blocked: 'Não é possível convidar este jogador.',
     unknown_error: 'Algo deu errado. Tente novamente.',
+    community_full: 'Esta comunidade está cheia.',
     title: 'Comunidades',
     mine: 'Suas comunidades',
     suggested: 'Sugeridas',
@@ -1574,6 +1576,7 @@ const webCommunity = {
   en: {
     blocked: 'This player cannot be invited.',
     unknown_error: 'Something went wrong. Please try again.',
+    community_full: 'This community is full.',
     title: 'Communities',
     mine: 'Your communities',
     suggested: 'Suggested',

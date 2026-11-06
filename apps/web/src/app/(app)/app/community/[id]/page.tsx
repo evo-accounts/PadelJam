@@ -96,6 +96,11 @@ export default function CommunityDetailPage() {
 
   const needsAck = community.cancellation_rules_enabled && !isMember;
 
+  const onJoinError = (e: unknown) => {
+    const code = e instanceof Error ? e.message : 'unknown_error';
+    setErr(t(code, { defaultValue: t('unknown_error') }));
+  };
+
   let cta: React.ReactNode = null;
   if (isMember) {
     cta = (
@@ -108,7 +113,7 @@ export default function CommunityDetailPage() {
     );
   } else if (community.privacy === 'public') {
     cta = (
-      <Button disabled={needsAck && !ack} onClick={() => join.mutate(ack)}>
+      <Button disabled={needsAck && !ack} onClick={() => join.mutate(ack, { onError: onJoinError })}>
         {t('join')}
       </Button>
     );
@@ -116,7 +121,7 @@ export default function CommunityDetailPage() {
     cta = join.isSuccess ? (
       <span className="text-sm text-muted-foreground">{t('requested')}</span>
     ) : (
-      <Button disabled={needsAck && !ack} onClick={() => join.mutate(ack)}>
+      <Button disabled={needsAck && !ack} onClick={() => join.mutate(ack, { onError: onJoinError })}>
         {t('requestToJoin')}
       </Button>
     );
