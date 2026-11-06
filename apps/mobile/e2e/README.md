@@ -289,7 +289,7 @@ extension — notably PostGIS's `public.spatial_ref_sys`, which it used to trunc
 no SRID 4326 every geography op (distance, explore ranking, `set_my_location`,
 `create_event`) fails with "Cannot find SRID (4326)". A DB emptied by an older run is
 refilled on the next wipe from PostGIS's own `spatial_ref_sys.sql` in the db container. Email OTPs are read from Mailpit
-(`:55324` on `dev`, `:56324` on `ci`); the phone test number `+351912345678` verifies with `123456`.
+(`:55324` on `dev`, `:56324` on `ci`). Phone sign-in is hidden and the local SMS provider is off, so no suite signs in by phone.
 
 **The plan caps are live, and the seed sits inside them.** `plan_limits` used to be
 truncated by the wipe, which made `community_limit()` return null for every key and
