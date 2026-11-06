@@ -1,4 +1,4 @@
--- PAD-160 / migration 0151 guard: no policy on `public` or `anon` may call an RLS helper, and anon
+-- PAD-160 / migration 0159 guard: no policy on `public` or `anon` may call an RLS helper, and anon
 -- may not execute one. A later migration that adds a `to public` policy calling a helper would turn
 -- anon's empty read on that table into 42501 in production; this fails first.
 -- Run: psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/rls_helpers_closed.sql  (not run by test:db)

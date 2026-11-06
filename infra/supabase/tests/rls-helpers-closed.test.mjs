@@ -1,6 +1,6 @@
 // infra/supabase/tests/rls-helpers-closed.test.mjs
 //
-// Migration 0151 (PAD-160): the RLS helpers stop answering outsiders. Before it, anyone with the
+// Migration 0159 (PAD-160): the RLS helpers stop answering outsiders. Before it, anyone with the
 // publishable key could ask whether a user organises or can see a private event
 // (is_event_organizer / event_is_visible, any user id) and which community a private group sits in
 // (group_community_id). The fix moved the 43 policies that call the helpers to `authenticated`,
@@ -8,7 +8,7 @@
 //
 // The test that matters most is "anon reads don't error": a bare revoke without the policy move
 // turns anon's empty read into 42501, which is what 0094-0136 each kept the grants to avoid.
-import { BASE_URL, ANON, user, rpc, anonRpc, sel, insert, patch, req, expectError, assert, run } from './lib.mjs';
+import { BASE_URL, ANON, setAccountPlan, user, rpc, anonRpc, sel, insert, patch, req, expectError, assert, run } from './lib.mjs';
 
 const DENIED = 'permission denied for function';
 const hoursFromNow = (h) => new Date(Date.now() + h * 36e5).toISOString();
@@ -39,7 +39,7 @@ const eventPayload = (over = {}) => ({
 
 const A = await user('rh-a');
 const B = await user('rh-b'); // a stranger to everything of A's
-await rpc(A.jwt, 'set_account_plan', { p_plan: 'jammer_plus' });
+await setAccountPlan(A.id, 'jammer_plus');
 const ev = await rpc(A.jwt, 'create_event', { p_payload: eventPayload() });
 const cid = await rpc(A.jwt, 'create_community_with_personal_tenant', {
   p_name: `Helpers Club ${tag()}`, p_type: 'club', p_country: 'PT', p_privacy: 'public',
