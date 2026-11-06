@@ -16,7 +16,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { StreamChat } from 'npm:stream-chat';
 import { withCors } from '../_shared/cors.ts';
-import { cleanUpDeletedAccount } from '../_shared/accountCleanup.ts';
+import { cleanUpDeletedAccount, DELETED_USER_NAME, SELF_NAMING_ACTIONS } from '../_shared/accountCleanup.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -62,6 +62,32 @@ Deno.serve(withCors(async (req) => {
       async renameActor(uid, name) {
         const { error } = await admin.from('notifications').update({ actor_name: name }).eq('actor_id', uid);
         return error;
+      },
+    },
+    activity: {
+      // PostgREST replaces the whole detail column, so each row is rewritten with its other keys kept. Rows
+      // with no target_name (blocked pairs, 0140) are never selected, so they stay nameless. Repeats until
+      // the select is empty; an error stops it.
+      async renameSelfNamed(uid, name) {
+        for (;;) {
+          const { data, error } = await admin
+            .from('event_activity')
+            .select('id, detail')
+            .eq('actor_id', uid)
+            .in('action', SELF_NAMING_ACTIONS)
+            .not('detail->>target_name', 'is', null)
+            .neq('detail->>target_name', name)
+            .limit(500);
+          if (error) return error;
+          if (!data || data.length === 0) return null;
+          for (const row of data) {
+            const { error: upErr } = await admin
+              .from('event_activity')
+              .update({ detail: { ...(row.detail as Record<string, unknown>), target_name: name } })
+              .eq('id', row.id);
+            if (upErr) return upErr;
+          }
+        }
       },
     },
     stream: streamKey && streamSecret ? StreamChat.getInstance(streamKey, streamSecret) : null,

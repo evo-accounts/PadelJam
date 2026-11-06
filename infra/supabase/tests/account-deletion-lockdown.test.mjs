@@ -101,6 +101,13 @@ const watcher = await user('sda-watcher');
 await insert('follows', { follower_id: target.id, followee_id: watcher.id });
 const namingTarget = () => sel('notifications', `user_id=eq.${watcher.id}&actor_id=eq.${target.id}&select=actor_name`);
 assert((await namingTarget())[0]?.actor_name !== 'Deleted user', 'setup: the notification names the real account');
+// Activity rows the target wrote: one that names the target (an earlier 'joined') and one that names someone else.
+await insert('event_activity', [
+  { event_id: targetEvent, actor_id: target.id, action: 'joined', detail: { target_name: 'Real Target Name', status: 'confirmed' } },
+  { event_id: targetEvent, actor_id: target.id, action: 'invited', detail: { target_name: 'Some Other Person' } },
+]);
+const targetActivity = (action) =>
+  sel('event_activity', `event_id=eq.${targetEvent}&actor_id=eq.${target.id}&action=eq.${action}&select=detail`);
 await patch('profiles', `id=eq.${svc.id}`, { level: 3 }); // so the deletion has something to clear
 const svcEvent = await upcomingEventWith(host, svc);
 
@@ -165,6 +172,15 @@ await run('the user CAN delete their own account through the edge function; othe
     'the blocker still sees the block, as "Deleted user", and can remove it themselves');
   const left = await leftRows(targetEvent, target.id);
   assert(left.length === 1, `the organizer's Activity feed got one "left", got ${JSON.stringify(left)}`);
+  assert(left[0].detail.target_name === 'Deleted user' && left[0].detail.status === 'confirmed',
+    `the organizer's "left" row still names the deleted account or lost its status: ${JSON.stringify(left[0].detail)}`);
+  const joined = await targetActivity('joined');
+  assert(joined.length >= 1 && joined.every((r) => r.detail.target_name === 'Deleted user'),
+    `an earlier "joined" row still names the deleted account: ${JSON.stringify(joined)}`);
+  assert(joined.some((r) => r.detail.status === 'confirmed'), 'the other keys of detail are kept');
+  const invited = await targetActivity('invited');
+  assert(invited.length === 1 && invited[0].detail.target_name === 'Some Other Person',
+    `a row naming someone else was changed: ${JSON.stringify(invited)}`);
   const named = await namingTarget();
   assert(named.length === 1 && named[0].actor_name === 'Deleted user',
     `another user's notification still names the deleted account: ${JSON.stringify(named)}`);
@@ -190,6 +206,7 @@ const cid = await rpc(soleAdmin.jwt, 'create_community_with_personal_tenant', co
 await rpc(member.jwt, 'join_community', { p_community_id: cid, p_ack: true });
 
 await insert('follows', { follower_id: soleAdmin.id, followee_id: watcher.id });
+await insert('event_activity', { event_id: targetEvent, actor_id: soleAdmin.id, action: 'joined', detail: { target_name: 'Sole Admin Name' } });
 await run('the sole admin of a community with members cannot delete, and nothing is deleted or banned', async () => {
   await uploadAvatar(soleAdmin.id, 'keep.png');
   const { status, body } = await deleteAccount(soleAdmin.jwt);
@@ -202,6 +219,8 @@ await run('the sole admin of a community with members cannot delete, and nothing
   assert((await avatarFiles(soleAdmin.id)).includes('keep.png'), 'a refused deletion keeps the avatar file');
   const still = await sel('notifications', `user_id=eq.${watcher.id}&actor_id=eq.${soleAdmin.id}&select=actor_name`);
   assert(still.length === 1 && still[0].actor_name !== 'Deleted user', 'a refused deletion renames no notification');
+  const act = await sel('event_activity', `event_id=eq.${targetEvent}&actor_id=eq.${soleAdmin.id}&select=detail`);
+  assert(act.length === 1 && act[0].detail.target_name === 'Sole Admin Name', 'a refused deletion renames no activity row');
 });
 
 await run('a plain member of that community CAN delete through the edge function', async () => {

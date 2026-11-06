@@ -103,3 +103,22 @@ test('a notifications failure is logged without the error, and Stream still runs
   assert.equal(logs.length, 1);
   assert.ok(logs[0].includes('u1') && logs[0].includes('notification'));
 });
+
+test('activity rows naming the account are renamed to Deleted user', async () => {
+  const { storage } = fakeStorage([]);
+  const seen: unknown[] = [];
+  const activity = { async renameSelfNamed(uid: string, name: string) { seen.push([uid, name]); return null; } };
+  await cleanUpDeletedAccount('u1', { storage, stream: okStream().stream, activity }, () => {});
+  assert.deepEqual(seen, [['u1', 'Deleted user']]);
+});
+
+test('an activity failure is logged without the error, and later steps still run', async () => {
+  const { storage } = fakeStorage([]);
+  const { stream, calls } = okStream();
+  const activity = { async renameSelfNamed(): Promise<{ message: string }> { throw new Error('secret db detail'); } };
+  const logs: string[] = [];
+  await cleanUpDeletedAccount('u1', { storage, stream, activity }, (m) => logs.push(m));
+  assert.equal(calls.length, 2);
+  assert.equal(logs.length, 1);
+  assert.ok(logs[0].includes('u1') && logs[0].includes('activity'));
+});

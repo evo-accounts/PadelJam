@@ -53,7 +53,20 @@ export type NotificationsDb = {
   renameActor(uid: string, name: string): Promise<{ message: string } | null>;
 };
 
-export type CleanupClients = { storage: AvatarStorage; stream: StreamUsers | null; notifications?: NotificationsDb };
+// The organiser's Activity rows where the account is the actor AND the one named: 0140's three triggers write
+// target_name for joined, left, waitlist_joined, waitlist_claimed, invite_accepted and invite_declined. Other
+// actions with this actor (invited, partner_invite_*, confirmed, removed, marked_paid) name someone else.
+export const SELF_NAMING_ACTIONS = ['joined', 'left', 'waitlist_joined', 'waitlist_claimed', 'invite_accepted', 'invite_declined'];
+export type ActivityDb = {
+  renameSelfNamed(uid: string, name: string): Promise<{ message: string } | null>;
+};
+
+export type CleanupClients = {
+  storage: AvatarStorage;
+  stream: StreamUsers | null;
+  notifications?: NotificationsDb;
+  activity?: ActivityDb;
+};
 
 export async function cleanUpDeletedAccount(
   uid: string,
@@ -71,6 +84,14 @@ export async function cleanUpDeletedAccount(
       if (err) throw new Error(err.message);
     } catch (e) {
       log(`delete-account: notification actor_name for ${uid} failed after the deletion: ${(e as Error).message}`);
+    }
+  }
+  if (clients.activity) {
+    try {
+      const err = await clients.activity.renameSelfNamed(uid, DELETED_USER_NAME);
+      if (err) throw new Error(err.message);
+    } catch (e) {
+      log(`delete-account: activity target_name for ${uid} failed after the deletion: ${(e as Error).message}`);
     }
   }
   if (!clients.stream) {

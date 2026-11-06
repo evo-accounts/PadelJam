@@ -105,3 +105,17 @@ web says something the server doesn't yet do, so don't let that wait.
    `beforeBreadcrumb` and `beforeSendTransaction`. Sample rate unchanged.
 
 No migration, no change to `soft_delete_account` or to the delete screen's copy.
+
+## Addendum (PAD-298): the account's own Activity rows
+
+`event_activity` "left" rows (and the earlier `joined`, `waitlist_*`, `invite_*` ones) hold the player's name in
+`detail.target_name`, copied by 0140's triggers while the profile still had it. The feed shows "Deleted user"
+from the actor's profile, but the organiser can select the row. After the RPC succeeds, `delete-account` rewrites
+`target_name` to `DELETED_USER_NAME` for rows with `actor_id = uid` and `action in ('joined', 'left',
+'waitlist_joined', 'waitlist_claimed', 'invite_accepted', 'invite_declined')`: the actions whose row names the
+actor itself. Rows such as `invited`, `partner_invite_*`, `confirmed`, `removed` and `marked_paid` have this
+account as actor but name someone else, so they stay. The other keys of `detail` (`status`, `by`) are kept
+(PostgREST replaces the whole column, so each row is updated with the merged object, repeated until the select is
+empty; an error stops it). Rows with no `target_name` are never selected. A failure is logged with the user id and
+step, never thrown; a refused deletion touches nothing. No migration, no change to `soft_delete_account` or to the
+delete screen's copy.
