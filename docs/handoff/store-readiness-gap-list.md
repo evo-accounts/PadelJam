@@ -58,7 +58,7 @@ Target (roadmap): public launch on both stores in **January 2027**. Fallback: Te
 | A5 | **First upload must be done by hand** in the Play Console (an API submit can't create the first release). Closed testing for new personal developer accounts requires **12 testers for 14 continuous days** before production access. Confirm the account type. If it is a personal account created after 2023-11, this alone pushes a public Android launch out by two weeks or more. | Play policy as I know it; **verify against current Play docs** | Founder | S to start, 14 days elapsed | Launch. **Start first.** |
 | A6 | **Android push never tested.** No notification channel is created (`setNotificationChannelAsync` has no hit), so Android 8+ uses a default channel, and the sound and importance can't be tuned. `POST_NOTIFICATIONS` (Android 13+) comes from the `expo-notifications` plugin and the prompt flow is untested. | `grep` in `apps/mobile`: no channel code; `app/(onboarding)/notifications.tsx` | Eng | M | Launch |
 | A7 | **Google sign-in on Android** is untested. It uses a browser OAuth flow with a redirect of `Linking.createURL('auth/callback')`. In a store build that is `mobile://auth/callback`, which must be an allowed redirect in Supabase. No Android OAuth client is mentioned anywhere. Email is the other sign-in, and phone is hidden for launch (#340), so real SMS and the Brazil sender are not needed. | `lib/googleSignIn.ts:17`; `docs/superpowers/5i-social-signin-setup.md`; `docs/handoff/sms-production-setup.md` (no longer needed for launch) | Founder (Google Cloud), Eng | M | Launch. Email sign-in alone is a **Beta** minimum (hosted email codes still untested: PAD-272, open). |
-| A8 | **Apple sign-in is hidden on Android** by design (`Platform.OS === 'ios'`), which is fine. Android has Google and email. Confirm that matches the Play listing's "login required" notes. | `app/(auth)/sign-in.tsx:68,231` | none | none | OK |
+| A8 | **Apple sign-in is hidden on Android** by design (`Platform.OS === 'ios'`), which is fine. Android has Google and email. Confirm that matches the Play listing's "login required" notes. | `app/(auth)/sign-in.tsx:50,181` | none | none | OK |
 | A9 | **Icons from `expo-symbols`.** 76 `SymbolView` uses, and every one has an `android:` name (Material Symbols), none has a `fallback`. On Android these draw from the Material font. A wrong name shows nothing, and no check validates the Android names. Review every tab and sheet on the device. | `app/(tabs)/_layout.tsx:48`; `grep SymbolView` | Eng (device pass), QA | M | Launch |
 | A10 | **Keyboard handling.** About 15 screens use `KeyboardAvoidingView behavior={undefined}` on Android. With `edge-to-edge` (default in current Expo / Android 15) the input can sit behind the keyboard. `BottomSheet` and `ManageSheet` have Android-specific keyboard code. Check every form. | `grep Platform.OS` (list above); `components/ui/BottomSheet.tsx:62,95`; `components/event/manage/ManageSheet.tsx:102` | Eng | M | Launch |
 | A11 | **Date picker** takes the Android path (modal dialog) only here. | `components/ui/DateField.tsx:82-97` | Eng, QA | S | Launch |
@@ -126,22 +126,21 @@ Dates are working backwards from submission at ~2026-12-28 and the roadmap's "Bu
 **Start this week (long lead time, mostly the founder):**
 
 1. **A4 and A5: Play Console account and closed-testing clock.** Confirm account type. If a 12-tester, 14-day closed test is required, it has to begin by about **12-10**, and earlier is safer. Ask the founder to check Play Console now.
-2. **X2: Twilio and Brazil sender registration (deferred).** Weeks of lead time, but no longer a launch blocker: phone sign-in is hidden (#340), email is the way in.
-3. **I3, I4, A2, A3: Apple and Google credentials** (Apple Sign In, APNs, Firebase and FCM, Play service-account key). One sitting of console work for the founder, and the unblocker for every device test.
-4. **A1: first Android build** (`development` profile). It tells us in an hour whether Android compiles. Everything in the Android table rests on it.
+2. **I3, I4, A2, A3: Apple and Google credentials** (Apple Sign In, APNs, Firebase and FCM, Play service-account key). One sitting of console work for the founder, and the unblocker for every device test.
+3. **A1: first Android build** (`development` profile). It tells us in an hour whether Android compiles. Everything in the Android table rests on it.
 
 **11-13 → 11-30:**
 
-5. First Android device pass, using a checklist by area (A6, A7, A9–A12, A15–A19, A21). The CTO decides whether this is manual or an emulator job (A30).
-6. I5/A28: design and seed the reviewer account (Eng design, founder runs hosted seed, gate 2).
-7. I6, I12/A25, A26: the small code gaps that stores reject for (usage strings, report coverage and moderation path, web deletion page). Each is S or M.
-8. Decide the deep-link scope (I14, A20) so the work lands before the freeze or is deferred explicitly.
+4. First Android device pass, using a checklist by area (A6, A7, A9–A12, A15–A19, A21). The CTO decides whether this is manual or an emulator job (A30).
+5. I5/A28: design and seed the reviewer account (Eng design, founder runs hosted seed, gate 2).
+6. I6, I12/A25, A26: the small code gaps that stores reject for (usage strings, report coverage and moderation path, web deletion page). Each is S or M.
+7. Decide the deep-link scope (I14, A20) so the work lands before the freeze or is deferred explicitly.
 
 **12-01 → 12-24:**
 
-9. Listings in three locales for both stores (I9, A27, R&O drafts), screenshot shot list and capture (I10, X5), review notes (I16).
-10. Privacy label and data-safety form, after the founder settles [PAD-65](/PAD/issues/PAD-65) (I11, A24).
-11. Release candidate pass on both platforms, TestFlight and Play internal track upload.
+8. Listings in three locales for both stores (I9, A27, R&O drafts), screenshot shot list and capture (I10, X5), review notes (I16).
+9. Privacy label and data-safety form, after the founder settles [PAD-65](/PAD/issues/PAD-65) (I11, A24).
+10. Release candidate pass on both platforms, TestFlight and Play internal track upload.
 
 **~12-28 → 01-08:** freeze, founder submits (gate 3).
 
@@ -149,7 +148,7 @@ Dates are working backwards from submission at ~2026-12-28 and the roadmap's "Bu
 
 - **Cannot go to beta** until: A1, A3, A4, A23, I1, I2, I3, I15, X1, X3, and an email sign-in that works for testers (hosted email codes haven't been tested live yet: [PAD-272](/PAD/issues/PAD-272), the founder's, still open).
 - **Skippable for a TestFlight / Play closed-testing beta, required for public:** A2/A6 push, A7 Google sign-in on Android, I9–I12 and A24–A28 listings and labels, I14/A20 deep links, A26 deletion URL, X4 help articles, and the full device passes.
-- **Biggest schedule risk:** A5, because it is elapsed time we can't compress. Then X2. Then the unknown first Android build (A1).
+- **Biggest schedule risk:** A5, because it is elapsed time we can't compress. Then the unknown first Android build (A1).
 
 ## Open questions for the founder
 
