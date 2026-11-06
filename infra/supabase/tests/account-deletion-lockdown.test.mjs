@@ -11,7 +11,7 @@
 // checkout `supabase start` ran from (CI's db-tests job starts it from the branch). In a worktree,
 // serve this branch's copy yourself and point DELETE_ACCOUNT_URL at it — the docker line is in the
 // header of complete-account-consent.test.mjs.
-import { BASE_URL, user, rpc, anonRpc, req, sel, patch, expectError, assert, run } from './lib.mjs';
+import { BASE_URL, SERVICE, user, rpc, anonRpc, req, sel, patch, expectError, assert, run } from './lib.mjs';
 
 const FN_URL = process.env.DELETE_ACCOUNT_URL || `${BASE_URL}/functions/v1/delete-account`;
 const DENIED = 'permission denied for function soft_delete_account';
@@ -25,6 +25,23 @@ const deleteAccount = async (jwt) => {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
   });
   return { status: res.status, body: await res.json().catch(() => null) };
+};
+/** Avatar files live in a public bucket, one folder per user; uploads use a new name each time. */
+const uploadAvatar = async (uid, name) => {
+  const res = await fetch(`${BASE_URL}/storage/v1/object/avatars/${uid}/${name}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${SERVICE}`, apikey: SERVICE, 'Content-Type': 'image/png' },
+    body: new Uint8Array([137, 80, 78, 71]),
+  });
+  assert(res.ok, `avatar upload ${uid}/${name} failed: ${res.status}`);
+};
+const avatarFiles = async (uid) => {
+  const res = await fetch(`${BASE_URL}/storage/v1/object/list/avatars`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${SERVICE}`, apikey: SERVICE, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefix: uid, limit: 100, offset: 0 }),
+  });
+  return (await res.json()).map((f) => f.name);
 };
 const authUser = (id) => req(`/auth/v1/admin/users/${id}`);
 const isBanned = async (id) => {
@@ -126,8 +143,12 @@ await run('the user CAN delete their own account through the edge function; othe
   const rotated = await refresh(session.refresh_token);
   assert(rotated.access_token, 'a live account can refresh');
 
+  await uploadAvatar(target.id, '1-old.png');
+  await uploadAvatar(target.id, '2-new.png');
   const { status, body } = await deleteAccount(rotated.access_token);
   assert(status === 200 && body?.ok === true, `delete-account returned ${status}: ${JSON.stringify(body)}`);
+  // Stream keys are absent locally: the function must still answer ok, and the files are gone.
+  assert((await avatarFiles(target.id)).length === 0, 'every avatar file of the deleted account is removed');
 
   const p = await profile(target.id);
   assert(p.full_name === 'Deleted user' && p.deleted_at !== null, 'the profile is anonymized and marked deleted');
@@ -161,6 +182,7 @@ const cid = await rpc(soleAdmin.jwt, 'create_community_with_personal_tenant', co
 await rpc(member.jwt, 'join_community', { p_community_id: cid, p_ack: true });
 
 await run('the sole admin of a community with members cannot delete, and nothing is deleted or banned', async () => {
+  await uploadAvatar(soleAdmin.id, 'keep.png');
   const { status, body } = await deleteAccount(soleAdmin.jwt);
   assert(status === 400, `expected 400, got ${status}`);
   assert(String(body?.error).includes('last_admin_must_promote_first'), `the apps' mapped code, got ${JSON.stringify(body)}`);
@@ -168,6 +190,7 @@ await run('the sole admin of a community with members cannot delete, and nothing
   assert(!(await isBanned(soleAdmin.id)), 'the ban rolled back with the refused deletion');
   const rows = await sel('community_members', `community_id=eq.${cid}&user_id=eq.${soleAdmin.id}&select=role`);
   assert(rows.length === 1 && rows[0].role === 'admin', 'still the admin');
+  assert((await avatarFiles(soleAdmin.id)).includes('keep.png'), 'a refused deletion keeps the avatar file');
 });
 
 await run('a plain member of that community CAN delete through the edge function', async () => {

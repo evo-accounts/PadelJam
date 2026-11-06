@@ -73,10 +73,15 @@ export default function DeleteAccountPage() {
 
   const removed = [
     t('deleteErasedProfile'),
-    t('deleteErasedHistory'),
-    t('deleteErasedMessages'),
-    t('deleteErasedPayment'),
-    t('deleteErasedOther'),
+    t('deleteErasedConnections'),
+    t('deleteErasedUpcoming'),
+    t('deleteErasedReports'),
+  ];
+  const kept = [
+    t('deleteKeptContent'),
+    t('deleteKeptResults'),
+    t('deleteKeptCreated'),
+    t('deleteKeptSupport'),
   ];
 
   return (
@@ -97,6 +102,17 @@ export default function DeleteAccountPage() {
           <p className="text-sm font-medium">{t('deleteListTitle')}</p>
           <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
             {removed.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-2 pt-6">
+          <p className="text-sm font-medium">{t('deleteKeptTitle')}</p>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+            {kept.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
