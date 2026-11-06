@@ -18,7 +18,7 @@
 Every "must be true" line is written so the CTO or QA can check it from the code, a test or the founder's device pass. Lines tagged **[device]** can only be confirmed on hardware, so they go on the founder's device pass ([PAD-32](/PAD/issues/PAD-32)); I'm not asking QA for them.
 
 **Launch criteria that apply to every area** (not repeated below):
-- **L1.** Every user-facing string exists in pt-PT, pt-BR and en. `pnpm i18n:check` passes (mobile only: see T-I18N).
+- **L1.** Every user-facing string exists in pt-PT, pt-BR and en. `pnpm i18n:check` passes.
 - **L2.** Every write is checked on the server for entitlement and permission (the two-check rule). Hiding UI is never the check.
 - **L3.** `check` and the area's E2E suite are green on the release candidate.
 - **L4.** The area works on both iOS and Android **[device]**. No Android pass is on record at all (Release & Ops owns the Android gap list).
