@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     "@padel/i18n",
     "@padel/ui",
     "@padel/db",
+    "@padel/features",
     "@padel/utils",
   ],
   images: {

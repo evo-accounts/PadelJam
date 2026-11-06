@@ -72,27 +72,39 @@ describe('02 onboarding', () => {
     expect(p?.court_side).toBe('left');
   });
 
-  it('"Skip for now" stamps notifications_prompted_at and moves on', async () => {
+  const stamps = async () => {
+    const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=notifications_prompted_at,onboarded_at`);
+    return (rows as { notifications_prompted_at: string | null; onboarded_at: string | null }[])[0];
+  };
+
+  // Plans are hidden for the free launch (PAD-179): notifications is the last step and stamps both.
+  it('"Skip for now" stamps both timestamps and lands on Home', async () => {
     await tap({ label: 'Skip for now' });
-    await expectVisible({ text: /Jammer\+/ }, { timeout: 30_000 });
-    const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=notifications_prompted_at`);
-    expect((rows as { notifications_prompted_at: string | null }[])[0]?.notifications_prompted_at).toBeTruthy();
-    // Un-stamp and relaunch: onboarding resumes at the first unanswered step, which is notifications again.
-    await psql(`update profiles set notifications_prompted_at = null where email = '${PERSONAS.omar.email}'`, { su: true });
+    await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 30_000 });
+    const p = await stamps();
+    expect(p?.notifications_prompted_at).toBeTruthy();
+    expect(p?.onboarded_at).toBeTruthy();
+    // Un-stamp both and relaunch: onboarding resumes at notifications.
+    await psql(`update profiles set notifications_prompted_at = null, onboarded_at = null where email = '${PERSONAS.omar.email}'`, { su: true });
     await relaunch();
     await expectVisible({ text: /don.t miss a thing/i }, { timeout: 30_000 });
   });
 
-  it('notifications permission alert is answerable and flow proceeds', async () => {
+  it('notifications permission alert is answerable and lands on Home', async () => {
     await tap({ label: 'Allow push notifications', type: 'Button' });
     await tapAlertButton(/allow/i);
-    await expectVisible({ text: /Jammer\+/ }, { timeout: 30_000 });
+    await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 30_000 });
+    const p = await stamps();
+    expect(p?.notifications_prompted_at).toBeTruthy();
+    expect(p?.onboarded_at).toBeTruthy();
   });
 
-  it('paywall "continue free" marks the user onboarded and lands on tabs', async () => {
-    await tap({ label: 'Continue with Free' });
+  it('prompted but not onboarded (older build): notifications shows again and one tap finishes', async () => {
+    await psql(`update profiles set onboarded_at = null where email = '${PERSONAS.omar.email}'`, { su: true });
+    await relaunch();
+    await expectVisible({ text: /don.t miss a thing/i }, { timeout: 30_000 });
+    await tap({ label: 'Skip for now' });
     await expectVisible({ text: 'Home', type: 'Heading' }, { timeout: 30_000 });
-    const rows = await select(`profiles`, `email=eq.${PERSONAS.omar.email}&select=onboarded_at`);
-    expect((rows as { onboarded_at: string | null }[])[0]?.onboarded_at).toBeTruthy();
+    expect((await stamps())?.onboarded_at).toBeTruthy();
   });
 });

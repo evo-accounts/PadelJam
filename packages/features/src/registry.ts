@@ -90,3 +90,6 @@ export const MVP_FEATURES: ReadonlySet<string> = new Set(
   PLAN_MATRIX.flatMap((p) => p.features.filter((f) => f.mvp).map((f) => f.key)),
 );
 export const isMvpFeature = (key: string): boolean => MVP_FEATURES.has(key);
+
+/** Plan and upgrade UI, off for the free launch (D1 option A). Billing turns it back on. */
+export const PLANS_VISIBLE: boolean = false;

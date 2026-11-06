@@ -28,7 +28,6 @@ export type AuthStep = 'identifier' | 'otp' | 'createAccount' | 'verifySecondary
 
 export interface CompleteAccountInput {
   fullName: string;
-  secondaryIdentifier: string;
   password: string;
 }
 
@@ -66,8 +65,8 @@ export function useAuthFlow() {
   const [step, setStep] = useState<AuthStep>('identifier');
   const [identifier, setIdentifier] = useState('');
   const [kind, setKind] = useState<IdentifierKind>('email');
-  const [secondary, setSecondary] = useState('');
-  const [secondaryKind, setSecondaryKind] = useState<IdentifierKind>('phone');
+  const [secondary] = useState('');
+  const [secondaryKind] = useState<IdentifierKind>('phone');
   // The identifier as SENT — normalised, so a phone typed with spaces is the E.164 GoTrue expects.
   // `identifier` stays what the user typed (the OTP step shows it back to them); every call after
   // the first send reuses this, so a resend or the post-create sign-in cannot drift from it.
@@ -200,7 +199,7 @@ export function useAuthFlow() {
   );
 
   const completeAccount = useCallback(
-    async ({ fullName, secondaryIdentifier, password }: CompleteAccountInput) => {
+    async ({ fullName, password }: CompleteAccountInput) => {
       setBusy(true);
       setError(null);
       try {
@@ -212,29 +211,18 @@ export function useAuthFlow() {
           return;
         }
 
-        // CreateAccountStep validates the secondary before calling; this guard is for any other
-        // caller. Classified the same way as the primary, so a phone typed with spaces works here too.
-        const sec = classifyIdentifier(secondaryIdentifier);
-        if (!sec.ok) {
-          setError(invalidIdentifierMessage(sec.reason));
-          return;
-        }
-        const { kind: secKind, value: secondaryValue } = sec;
-        const secondaryBody =
-          secKind === 'phone' ? { phone: secondaryValue } : { email: secondaryValue };
-
         const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
         // The Edge Function sets the password AND creates the profiles row server-side from the
         // identifiers it persists on auth.users — never trust the client to write its own identity
-        // into the globally-readable profiles table. The secondary identifier goes along only for
-        // the fast already-taken pre-check; it is attached below via the VERIFIED change flow.
+        // into the globally-readable profiles table. No second identifier is sent: phone is hidden
+        // for launch (PAD-137), and the function treats it as optional.
         const resp = await fetch(`${baseUrl}/functions/v1/complete-account`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ ...secondaryBody, password, full_name: formatDisplayName(fullName) }),
+          body: JSON.stringify({ password, full_name: formatDisplayName(fullName) }),
         });
 
         if (!resp.ok) {
@@ -257,17 +245,8 @@ export function useAuthFlow() {
           return;
         }
 
-        // Verify the secondary identifier as the signed-in user: updateUser sends the OTP, the
-        // verifySecondary step collects it. Enter the step even when the send fails — the account
-        // already exists, so the user retries (resend) or skips instead of resubmitting the form.
-        setSecondary(secondaryValue);
-        setSecondaryKind(secKind);
-        if ((await startSecondaryChange(secondaryValue, secKind)) === 'applied') {
-          setStep('done');
-          router.push('/app');
-          return;
-        }
-        setStep('verifySecondary');
+        setStep('done');
+        router.push('/app');
       } catch {
         // The raw fetch above rejects (TypeError: Failed to fetch) on any network-level failure —
         // offline, dropped connection, CORS, server unreachable. Surface a retry-able error instead
@@ -277,7 +256,7 @@ export function useAuthFlow() {
         setBusy(false);
       }
     },
-    [target, kind, startSecondaryChange],
+    [target, kind, router],
   );
 
   const verifySecondary = useCallback(

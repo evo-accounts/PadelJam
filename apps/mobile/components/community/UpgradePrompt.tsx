@@ -11,10 +11,12 @@
  * user cannot manage the community passes `canManage={false}`: the sheet still
  * states the limit, but offers "OK" instead of a dead-end navigation.
  */
+import { PLANS_VISIBLE } from '@padel/features';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 
 import { BottomSheet, Button } from '../ui';
+import { showSeePlans } from './upgradePromptAction';
 
 type Props = {
   visible: boolean;
@@ -29,6 +31,8 @@ export function UpgradePrompt({ visible, onClose, communityId, message, canManag
   const { t } = useT('community');
   const router = useRouter();
 
+  const seePlans = showSeePlans(canManage, PLANS_VISIBLE);
+
   const onSeePlans = () => {
     onClose();
     router.push(`/community/${communityId}/manage?section=plan` as never);
@@ -37,8 +41,8 @@ export function UpgradePrompt({ visible, onClose, communityId, message, canManag
   return (
     <BottomSheet visible={visible} onClose={onClose} title={message} testID="upgrade-prompt-sheet">
       <Button
-        label={canManage ? t('seePlans') : t('ok')}
-        onPress={canManage ? onSeePlans : onClose}
+        label={seePlans ? t('seePlans') : t('ok')}
+        onPress={seePlans ? onSeePlans : onClose}
         fullWidth
         testID="upgrade-prompt-cta"
       />

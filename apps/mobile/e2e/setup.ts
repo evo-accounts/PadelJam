@@ -1,4 +1,6 @@
 import { afterEach, beforeAll, beforeEach } from 'vitest';
+import { relaunch } from './driver/app';
+import { recoverAfterFailure } from './driver/recovery';
 import { captureFailure, hasCapturedThisTest, setCurrentTestName } from './driver/expect';
 
 // Name the file BEFORE any hook runs. Without this, anything failing in a
@@ -21,4 +23,5 @@ afterEach(async (ctx) => {
   if (ctx.task.result?.state === 'fail' && !hasCapturedThisTest()) {
     await captureFailure(`test failed: ${ctx.task.result.errors?.map((e) => e.message).join('\n') ?? 'unknown'}`).catch(() => {});
   }
+  await recoverAfterFailure(ctx.task.result?.state === 'fail', ctx.task.name, () => relaunch());
 });

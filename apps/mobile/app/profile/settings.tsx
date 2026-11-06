@@ -21,6 +21,7 @@
  */
 import { useAccountPlan, useOwnedCommunities } from '@padel/api';
 import { signOut } from '@padel/auth';
+import { PLANS_VISIBLE } from '@padel/features';
 import { useT } from '@padel/i18n';
 import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
@@ -124,24 +125,26 @@ export default function SettingsScreen() {
           />
         </Group>
 
-        <Group title={t('subscription')}>
-          <ListRow
-            leading={icon('star.circle', 'workspace_premium')}
-            title={t('jammerPlusRow')}
-            trailing={planLabel ? <Text variant="body" tone="muted">{planLabel}</Text> : undefined}
-            trailingLabel={planLabel}
-            onPress={() => router.push('/profile/plan')}
-            testID="settings-jammer-row"
-          />
-          {communities.length > 0 ? (
+        {PLANS_VISIBLE ? (
+          <Group title={t('subscription')}>
             <ListRow
-              leading={icon('building.2', 'groups')}
-              title={t('communityPlansRow')}
-              onPress={onCommunityPlans}
-              testID="settings-community-plans-row"
+              leading={icon('star.circle', 'workspace_premium')}
+              title={t('jammerPlusRow')}
+              trailing={planLabel ? <Text variant="body" tone="muted">{planLabel}</Text> : undefined}
+              trailingLabel={planLabel}
+              onPress={() => router.push('/profile/plan')}
+              testID="settings-jammer-row"
             />
-          ) : null}
-        </Group>
+            {communities.length > 0 ? (
+              <ListRow
+                leading={icon('building.2', 'groups')}
+                title={t('communityPlansRow')}
+                onPress={onCommunityPlans}
+                testID="settings-community-plans-row"
+              />
+            ) : null}
+          </Group>
+        ) : null}
 
         <Group title={t('support')}>
           <ListRow

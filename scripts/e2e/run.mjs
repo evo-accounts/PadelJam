@@ -385,7 +385,7 @@ async function preflight() {
 
   const stackHint = STACK.name === 'ci'
     ? 'Start the CI stack first:\n  node scripts/e2e/ci-stack.mjs'
-    : `Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  pnpm dlx supabase@2.117.0 --workdir "${join(ROOT, 'infra')}" start`;
+    : `Start the local stack first:\n  export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token\n  /Users/Shared/paperclip-ops/stack-slot start padeljam -- pnpm dlx supabase@2.117.0 --workdir "${join(ROOT, 'infra')}" start`;
 
   // A stack that is "already running" can still be missing pieces: `supabase
   // start` reports a container that died as an informational

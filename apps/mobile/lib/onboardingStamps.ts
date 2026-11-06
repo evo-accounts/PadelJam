@@ -1,4 +1,5 @@
 import type { TypedClient } from '@padel/auth';
+import { PLANS_VISIBLE } from '@padel/features';
 
 /**
  * The two onboarding timestamps, stamped by the SERVER.
@@ -53,3 +54,14 @@ export async function stampWithRetry(
  */
 export const onStampFailure = (consecutiveFailures: number): 'stay' | 'continue' =>
   consecutiveFailures >= 2 ? 'continue' : 'stay';
+
+/**
+ * The notifications step's stamps. It stamps `notifications_prompted_at`; with plans hidden it is
+ * also the last step, so it stamps `onboarded_at` too. `true` only if every stamp landed. Both are
+ * first-time-only on the server (0120), so retrying after a partial failure is safe.
+ */
+export async function stampNotificationsStep(db: TypedClient, plansVisible: boolean = PLANS_VISIBLE): Promise<boolean> {
+  if (!(await stampWithRetry(db, markNotificationsPrompted))) return false;
+  if (plansVisible) return true;
+  return stampWithRetry(db, markOnboarded);
+}

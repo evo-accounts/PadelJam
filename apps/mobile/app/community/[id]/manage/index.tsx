@@ -14,8 +14,9 @@
  */
 import { useCommunityMembers } from '@padel/api';
 import { useSession } from '@padel/auth';
+import { PLANS_VISIBLE } from '@padel/features';
 import { useT } from '@padel/i18n';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -25,7 +26,14 @@ import { colors, space } from '../../../../theme';
 
 type Member = { user_id: string; role: string };
 
-export default function ManagePlanScreen() {
+/** Plans are hidden for the free launch: this screen only holds the plan section. */
+export default function ManagePlanRoute() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  if (!PLANS_VISIBLE) return <Redirect href={`/community/${id}` as never} />;
+  return <ManagePlanScreen />;
+}
+
+function ManagePlanScreen() {
   const { t } = useT('community');
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();

@@ -1,3 +1,4 @@
+import { PLANS_VISIBLE } from '@padel/features';
 import { useT } from '@padel/i18n';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
@@ -5,7 +6,7 @@ import { useRef, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
-import { markNotificationsPrompted, onStampFailure, stampWithRetry } from '@/lib/onboardingStamps';
+import { onStampFailure, stampNotificationsStep } from '@/lib/onboardingStamps';
 import { registerForPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { useBanner } from '../../components/ui';
@@ -45,10 +46,10 @@ export default function NotificationsStep() {
   const failures = useRef(0);
 
   // Records that the step was PUT to the user, for both Enable and Skip, so onboardingRoute() can
-  // resume past it. Stamped server-side (migration 0120) with one retry; a failure is surfaced
+  // resume past it (and, with plans hidden, that onboarding is done). Stamped server-side (migration 0120) with one retry; a failure is surfaced
   // rather than navigated past silently, but never strands anyone — see onStampFailure.
   const goNext = async () => {
-    if (await stampWithRetry(supabase, markNotificationsPrompted)) {
+    if (await stampNotificationsStep(supabase)) {
       failures.current = 0;
     } else {
       failures.current += 1;
@@ -58,7 +59,8 @@ export default function NotificationsStep() {
       }
       banner.show(t('onboardingSaveFailedContinue'));
     }
-    router.push('/(onboarding)/jammer-plus');
+    if (PLANS_VISIBLE) router.push('/(onboarding)/jammer-plus');
+    else router.replace('/(tabs)');
   };
 
   const onEnable = async () => {
