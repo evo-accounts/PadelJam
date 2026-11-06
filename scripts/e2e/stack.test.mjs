@@ -2,7 +2,7 @@
 // no stack is started.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { STACKS, resolveStack, urlMismatches, heldByForeignStack } from './stack.mjs';
+import { STACKS, STACK_SLOT, resolveStack, slotted, urlMismatches, heldByForeignStack } from './stack.mjs';
 
 test('defaults to dev: 55321, supabase_db_padeljam, empty cliEnv', () => {
   const prev = process.env.E2E_STACK;
@@ -87,4 +87,14 @@ test('resolveStack returns numeric api and db ports for dev and ci', () => {
   }
   assert.equal(resolveStack('ci').apiPort, 56321);
   assert.equal(resolveStack('ci').dbPort, 56322);
+});
+
+test('slotted: on the company Mac the start goes through stack-slot under the project name', () => {
+  assert.deepEqual(slotted('pad1', ['pnpm', 'start'], { slotsUsable: true }), [STACK_SLOT, 'start', 'pad1', '--', 'pnpm', 'start']);
+  assert.deepEqual(slotted('pad1', ['pnpm', 'start'], { slotsUsable: true, wait: 0 }), [STACK_SLOT, 'start', 'pad1', '--wait', '0', '--', 'pnpm', 'start']);
+});
+
+test('slotted: a GitHub job, or a user without access to the slots, starts directly', () => {
+  assert.deepEqual(slotted('padeljam_ci', ['pnpm', 'start'], { githubActions: true, slotsUsable: true }), ['pnpm', 'start']);
+  assert.deepEqual(slotted('padeljam', ['pnpm', 'start'], { slotsUsable: false }), ['pnpm', 'start']);
 });

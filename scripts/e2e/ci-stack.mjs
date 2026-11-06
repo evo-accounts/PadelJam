@@ -5,18 +5,22 @@
  *   node scripts/e2e/ci-stack.mjs [--stack ci|dev]     (default: ci)
  *
  * The workflow step runs exactly this, so changes here need no workflow edit. It never runs `stop`.
+ * Outside GitHub, on the company Mac, `start` queues for a slot through stack-slot. If none comes
+ * free this exits 75 having started nothing and written no .env: "not run", not a failure.
+ * STACK_SLOT_WAIT sets how many seconds to queue (stack-slot's default is an hour).
+ * After stopping a stack started that way, run `stack-slot release <project>`.
  * To remove the CI stack by hand, with the CI env set (never a bare `supabase stop`: it takes down
  * whichever stack the directory's config.toml names, i.e. the agents' one):
  *   pnpm dlx supabase@2.117.0 --workdir infra stop --project-id padeljam_ci --no-backup
  */
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { accessSync, constants, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { connect } from 'node:net';
 import { ensureDocker } from './docker.mjs';
-import { heldByForeignStack, resolveStack } from './stack.mjs';
+import { NO_SLOT_EXIT, STACK_SLOT, heldByForeignStack, resolveStack, slotted } from './stack.mjs';
 
 const SUPABASE_CLI_VERSION = '2.117.0'; // keep in step with infra/supabase/README.md and apps/mobile/e2e/README.md
 
@@ -40,11 +44,11 @@ const env = {
   ...stack.cliEnv,
 };
 
-const supabase = (...cmd) => execFileSync(
-  'pnpm',
-  ['dlx', `supabase@${SUPABASE_CLI_VERSION}`, '--workdir', join(ROOT, 'infra'), ...cmd],
-  { cwd: ROOT, env, encoding: 'utf8', stdio: ['ignore', cmd[0] === 'start' ? 'inherit' : 'pipe', 'inherit'] },
-);
+const supabaseCmd = (...cmd) => ['pnpm', 'dlx', `supabase@${SUPABASE_CLI_VERSION}`, '--workdir', join(ROOT, 'infra'), ...cmd];
+const supabase = (...cmd) => {
+  const [file, ...fileArgs] = supabaseCmd(...cmd);
+  return execFileSync(file, fileArgs, { cwd: ROOT, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+};
 
 console.log(`[ci-stack] stack: ${stack.name} (${stack.projectId}, ${stack.apiUrl})`);
 
@@ -85,7 +89,27 @@ if (stack.name !== 'dev') {
     }
   }
 }
-supabase('start');
+const slotsUsable = () => {
+  try {
+    accessSync(STACK_SLOT, constants.X_OK);
+    accessSync(join(dirname(STACK_SLOT), 'state'), constants.W_OK);
+    return true;
+  } catch { return false; }
+};
+const [startFile, ...startArgs] = slotted(env.SUPABASE_PROJECT_ID ?? stack.projectId, supabaseCmd('start'), {
+  githubActions: process.env.GITHUB_ACTIONS === 'true',
+  slotsUsable: slotsUsable(),
+  wait: process.env.STACK_SLOT_WAIT,
+});
+try {
+  execFileSync(startFile, startArgs, { cwd: ROOT, env, stdio: ['ignore', 'inherit', 'inherit'] });
+} catch (e) {
+  if (e.status === NO_SLOT_EXIT) {
+    console.error('[ci-stack] no stack slot came free: not run, not a failure. Nothing started, no .env written. Try again later.');
+    process.exit(NO_SLOT_EXIT);
+  }
+  throw e;
+}
 const status = supabase('status', '-o', 'env');
 
 const vars = {};

@@ -51,8 +51,11 @@ Docker must be running.
 WD=/path/to/repo/infra   # the folder that contains supabase/
 
 # Start / stop the local stack (export the dummy twilio token first; see Auth above)
-pnpm dlx supabase@2.117.0 --workdir "$WD" start
+# On the company Mac a start must go through the shared slots: two stacks at most, across all
+# companies. Exit 75 = no slot came free, nothing started. See docs/agents/_rules.md for agents.
+/Users/Shared/paperclip-ops/stack-slot start padeljam -- pnpm dlx supabase@2.117.0 --workdir "$WD" start
 pnpm dlx supabase@2.117.0 --workdir "$WD" stop
+/Users/Shared/paperclip-ops/stack-slot release padeljam   # after stopping
 pnpm dlx supabase@2.117.0 --workdir "$WD" status      # prints URLs + keys
 
 # Create a new migration
