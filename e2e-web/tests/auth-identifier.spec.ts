@@ -44,7 +44,7 @@ test.beforeAll(async () => {
   if (!healthy) {
     throw new Error(
       `Local Supabase auth is not reachable at ${SUPABASE_URL}. ` +
-        'Start the local stack with `supabase start` before running this test.',
+        'Start the local stack as e2e-web/README.md says before running this test.',
     );
   }
 });
