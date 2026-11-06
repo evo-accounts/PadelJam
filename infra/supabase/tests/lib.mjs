@@ -87,6 +87,23 @@ export async function user(tag, { gender = 'male', name } = {}) {
   return { id, jwt: await signIn(email, 'Padel1234#') };
 }
 
+/** Write a user's plan with the service key. set_account_plan is closed to clients (0151). */
+export async function setAccountPlan(userId, plan) {
+  if (plan === 'free') return del('subscriptions', `user_id=eq.${userId}`);
+  await req('/rest/v1/subscriptions?on_conflict=user_id', {
+    method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+    body: { user_id: userId, plan_id: plan, status: 'active', provider: 'manual' },
+  });
+}
+/** Same for a community. 'starter' is the default, so it deletes the row. */
+export async function setCommunityPlan(communityId, plan) {
+  if (plan === 'starter') return del('community_subscriptions', `community_id=eq.${communityId}`);
+  await req('/rest/v1/community_subscriptions?on_conflict=community_id', {
+    method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+    body: { community_id: communityId, plan_id: plan, status: 'active', provider: 'manual' },
+  });
+}
+
 /** Await `fn` and assert it throws with a message containing `code`. */
 export async function expectError(fn, code) {
   try { await fn(); } catch (e) {

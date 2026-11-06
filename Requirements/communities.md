@@ -117,6 +117,8 @@ Ten tables. profiles, groups and events are referenced as foreign keys and defin
 
 *Note: the Groups doc schema gains one column — groups.is_general BOOLEAN — to flag the auto-created general group. It is additive and migrates cleanly.*
 
+> **Amendment 2026-11-05 — launch decision D1, option A (founder, PAD-142).** A new community is still provisioned on Starter, but Starter is now 250 members, unlimited groups, unlimited recurring series and 3 co-organizers, and no screen offers an upgrade (the Plan section and "See plans" prompts are hidden). Where a limit is still hit, the message states it without an upgrade path. Tasks: PAD-178, PAD-179.
+
 ## Create Community
 
 <table>

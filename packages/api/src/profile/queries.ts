@@ -7,6 +7,26 @@ const PAGE_SIZE = 20;
 const nextOffset = (lastPage: unknown[], allPages: unknown[][]) =>
   lastPage.length < PAGE_SIZE ? undefined : allPages.length * PAGE_SIZE;
 
+/**
+ * The caller's own date of birth, gender and coordinates (PAD-133). Other people can no longer read
+ * these columns, and neither can you directly: they come from `get_my_private_profile`, which only
+ * ever answers for the signed-in user. Coordinates are plain doubles, rounded to ~1 km by
+ * `set_my_location`.
+ */
+export type MyPrivateProfile = {
+  date_of_birth: string | null;
+  gender: string | null;
+  lat: number | null;
+  lng: number | null;
+};
+
+export async function fetchMyPrivateProfile(db: ReturnType<typeof useDb>): Promise<MyPrivateProfile> {
+  const { data, error } = await db.rpc('get_my_private_profile');
+  if (error) throw error;
+  const row = data?.[0];
+  return { date_of_birth: row?.date_of_birth ?? null, gender: row?.gender ?? null, lat: row?.lat ?? null, lng: row?.lng ?? null };
+}
+
 export const useProfile = (targetId: string | undefined) => {
   const db = useDb();
   const uid = useSession().session?.user.id;
@@ -113,17 +133,19 @@ export const useMyProfile = () => {
       // own come from the auth user instead — profiles.email/phone were only ever server-side copies
       // of it. getSession() reads the stored session (no network), which the change-email and
       // change-phone OTP flows refresh.
-      const [{ data, error }, { data: auth }] = await Promise.all([
+      const [{ data, error }, { data: auth }, priv] = await Promise.all([
         db
           .from('profiles')
-          .select('id, full_name, avatar_url, description, date_of_birth, gender, dominant_hand, court_side, level, preferred_time, location_text')
+          .select('id, full_name, avatar_url, description, dominant_hand, court_side, level, preferred_time, location_text')
           .eq('id', uid!)
           .single(),
         db.auth.getSession(),
+        // date_of_birth and gender are not readable from the table (PAD-133).
+        fetchMyPrivateProfile(db),
       ]);
       if (error) throw error;
       const authUser = auth.session?.user;
-      return { ...data, email: ownEmail(authUser?.email), phone: ownPhone(authUser?.phone) };
+      return { ...data, date_of_birth: priv.date_of_birth, gender: priv.gender, email: ownEmail(authUser?.email), phone: ownPhone(authUser?.phone) };
     },
   });
 };

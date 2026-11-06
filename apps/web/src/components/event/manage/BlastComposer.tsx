@@ -22,6 +22,7 @@
 import { useState } from 'react';
 import { CheckCircle2, Lock, Megaphone, MoreHorizontal } from 'lucide-react';
 import { useT } from '@padel/i18n';
+import { PLANS_VISIBLE } from '@padel/features';
 import {
   BLAST_SEND_TO,
   useBlastTemplates,
@@ -376,18 +377,20 @@ export function BlastComposer({
   if (!custom) {
     return (
       <div className="flex flex-col gap-4">
-        <button
-          type="button"
-          onClick={onLocked}
-          className="flex items-center gap-3 rounded-lg border border-dashed p-4 text-left hover:bg-muted"
-          data-testid="blast-customize-locked"
-        >
-          <Lock className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-          <span className="flex flex-col">
-            <span className="text-sm font-medium">{t('blastCustomizeTitle')}</span>
-            <span className="text-xs text-muted-foreground">{t('blastCustomizeLockedBody')}</span>
-          </span>
-        </button>
+        {PLANS_VISIBLE ? (
+          <button
+            type="button"
+            onClick={onLocked}
+            className="flex items-center gap-3 rounded-lg border border-dashed p-4 text-left hover:bg-muted"
+            data-testid="blast-customize-locked"
+          >
+            <Lock className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="flex flex-col">
+              <span className="text-sm font-medium">{t('blastCustomizeTitle')}</span>
+              <span className="text-xs text-muted-foreground">{t('blastCustomizeLockedBody')}</span>
+            </span>
+          </button>
+        ) : null}
         <h2 className="text-lg font-semibold">{t('blastTabTemplates')}</h2>
         {list.length === 0 ? <p className="text-sm text-muted-foreground">{t('blastTemplatesEmpty')}</p> : grid}
       </div>

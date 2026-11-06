@@ -142,10 +142,6 @@ export default function AccountSettingsPage() {
           <span>{t('changeEmail')}</span>
           <span className="text-muted-foreground">{me.data.email ?? '—'}</span>
         </Link>
-        <Link href="/app/settings/phone" className={rowClass}>
-          <span>{t('changePhone')}</span>
-          <span className="text-muted-foreground">{me.data.phone ?? '—'}</span>
-        </Link>
       </div>
 
       <div className="space-y-2">
