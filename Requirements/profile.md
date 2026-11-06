@@ -402,6 +402,8 @@ Reached from the settings icon on the user’s own profile. The Settings hub gro
 </tbody>
 </table>
 
+> **Amendment 2026-11-05 — launch decision D1, option A (founder, PAD-142).** For the launch every plan and upgrade surface is **hidden** on mobile and web: Settings > Subscription (Jammer+ and Community Plans rows), the paywall and its prices, Manage Community's Plan section, "See plans" prompts and `RecurringCapPrompt`. The code stays for billing, which is after launch. No screen shows a price, a trial or a purchase button. The `starter` community limits are **250 members, unlimited groups, unlimited recurring series, 3 co-organizers** (the tier table below shows the target for billing). Paid plans cannot be self-granted: `set_community_plan` / `set_account_plan` are guarded on the server (PAD-158). Blasts are not plan-gated; their launch status is tracked in PAD-180. Tasks: PAD-178, PAD-179.
+
 ## Subscription
 
 Padel Jam has two independent subscription axes: a player-level subscription (Jammer+) and a community-level subscription (Community Plans). The Settings hub exposes both. Section 7.5 and 7.6 are the source of truth for the limits each tier confers; every other doc that gates a feature by plan references those rules from here.
