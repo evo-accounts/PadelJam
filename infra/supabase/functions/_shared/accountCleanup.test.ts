@@ -23,7 +23,7 @@ const fakeStorage = (names: string[], opts: { failList?: boolean } = {}) => {
 };
 const okStream = () => {
   const calls: unknown[] = [];
-  const stream: StreamUsers = { async partialUpdateUser(u) { calls.push(u); } };
+  const stream: StreamUsers = { async revokeUserToken(u) { calls.push({ revoke: u }); }, async partialUpdateUser(u) { calls.push(u); } };
   return { stream, calls };
 };
 
@@ -40,14 +40,15 @@ test('a storage failure still runs the Stream step and does not throw', async ()
   const { stream, calls } = okStream();
   const logs: string[] = [];
   await cleanUpDeletedAccount('u1', { storage, stream }, (m) => logs.push(m));
-  assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0], { id: 'u1', set: { name: 'Deleted user' }, unset: ['image'] });
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[0], { revoke: 'u1' });
+  assert.deepEqual(calls[1], { id: 'u1', set: { name: 'Deleted user' }, unset: ['image'] });
   assert.ok(logs.some((l) => l.includes('u1') && l.includes('avatar')));
 });
 
 test('a Stream failure is logged, not thrown', async () => {
   const { storage } = fakeStorage(['a.jpg']);
-  const stream: StreamUsers = { async partialUpdateUser() { throw new Error('stream down'); } };
+  const stream: StreamUsers = { async revokeUserToken() {}, async partialUpdateUser() { throw new Error('stream down'); } };
   const logs: string[] = [];
   await cleanUpDeletedAccount('u1', { storage, stream }, (m) => logs.push(m));
   assert.equal(logs.length, 1);
@@ -56,7 +57,7 @@ test('a Stream failure is logged, not thrown', async () => {
 
 test('an unknown Stream user counts as done', async () => {
   const { storage } = fakeStorage([]);
-  const stream: StreamUsers = { async partialUpdateUser() { throw Object.assign(new Error("user doesn't exist"), { code: 16 }); } };
+  const stream: StreamUsers = { async revokeUserToken() {}, async partialUpdateUser() { throw Object.assign(new Error("user doesn't exist"), { code: 16 }); } };
   const logs: string[] = [];
   await cleanUpDeletedAccount('u1', { storage, stream }, (m) => logs.push(m));
   assert.deepEqual(logs, []);
@@ -68,4 +69,37 @@ test('missing Stream keys are logged and storage still cleaned', async () => {
   await cleanUpDeletedAccount('u1', { storage, stream: null }, (m) => logs.push(m));
   assert.equal(removed.length, 1);
   assert.equal(logs.length, 1);
+});
+
+test('a failed token revoke is logged and the anonymise still runs', async () => {
+  const { storage } = fakeStorage([]);
+  const calls: unknown[] = [];
+  const stream: StreamUsers = {
+    async revokeUserToken() { throw new Error('revoke down'); },
+    async partialUpdateUser(u) { calls.push(u); },
+  };
+  const logs: string[] = [];
+  await cleanUpDeletedAccount('u1', { storage, stream }, (m) => logs.push(m));
+  assert.equal(calls.length, 1);
+  assert.equal(logs.length, 1);
+  assert.ok(logs[0].includes('u1') && logs[0].includes('revoke'));
+});
+
+test('notifications naming the account are renamed to Deleted user', async () => {
+  const { storage } = fakeStorage([]);
+  const seen: unknown[] = [];
+  const notifications = { async renameActor(uid: string, name: string) { seen.push([uid, name]); return null; } };
+  await cleanUpDeletedAccount('u1', { storage, stream: okStream().stream, notifications }, () => {});
+  assert.deepEqual(seen, [['u1', 'Deleted user']]);
+});
+
+test('a notifications failure is logged without the error, and Stream still runs', async () => {
+  const { storage } = fakeStorage([]);
+  const { stream, calls } = okStream();
+  const notifications = { async renameActor() { return { message: 'secret db detail' }; } };
+  const logs: string[] = [];
+  await cleanUpDeletedAccount('u1', { storage, stream, notifications }, (m) => logs.push(m));
+  assert.equal(calls.length, 2);
+  assert.equal(logs.length, 1);
+  assert.ok(logs[0].includes('u1') && logs[0].includes('notification'));
 });

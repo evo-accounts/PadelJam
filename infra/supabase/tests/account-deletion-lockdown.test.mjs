@@ -11,7 +11,7 @@
 // checkout `supabase start` ran from (CI's db-tests job starts it from the branch). In a worktree,
 // serve this branch's copy yourself and point DELETE_ACCOUNT_URL at it — the docker line is in the
 // header of complete-account-consent.test.mjs.
-import { BASE_URL, SERVICE, user, rpc, anonRpc, req, sel, patch, expectError, assert, run } from './lib.mjs';
+import { BASE_URL, SERVICE, insert, user, rpc, anonRpc, req, sel, patch, expectError, assert, run } from './lib.mjs';
 
 const FN_URL = process.env.DELETE_ACCOUNT_URL || `${BASE_URL}/functions/v1/delete-account`;
 const DENIED = 'permission denied for function soft_delete_account';
@@ -96,6 +96,11 @@ await rpc(blocker.jwt, 'block_user', { p_target: target.id });
 await rpc(blocker.jwt, 'block_user', { p_target: svc.id });
 await rpc(target.jwt, 'block_user', { p_target: blockee.id });
 const targetEvent = await upcomingEventWith(host, target);
+// Notifications other people hold that name an account: a follow notifies the followee with the follower's name.
+const watcher = await user('sda-watcher');
+await insert('follows', { follower_id: target.id, followee_id: watcher.id });
+const namingTarget = () => sel('notifications', `user_id=eq.${watcher.id}&actor_id=eq.${target.id}&select=actor_name`);
+assert((await namingTarget())[0]?.actor_name !== 'Deleted user', 'setup: the notification names the real account');
 await patch('profiles', `id=eq.${svc.id}`, { level: 3 }); // so the deletion has something to clear
 const svcEvent = await upcomingEventWith(host, svc);
 
@@ -160,6 +165,9 @@ await run('the user CAN delete their own account through the edge function; othe
     'the blocker still sees the block, as "Deleted user", and can remove it themselves');
   const left = await leftRows(targetEvent, target.id);
   assert(left.length === 1, `the organizer's Activity feed got one "left", got ${JSON.stringify(left)}`);
+  const named = await namingTarget();
+  assert(named.length === 1 && named[0].actor_name === 'Deleted user',
+    `another user's notification still names the deleted account: ${JSON.stringify(named)}`);
 
   // The matching "cannot": after deletion, neither the refresh token nor the old credentials work.
   // Which refusal GoTrue gives depends on its version (banned user vs a session its ban revoked), so
@@ -181,6 +189,7 @@ const member = await user('sda-member');
 const cid = await rpc(soleAdmin.jwt, 'create_community_with_personal_tenant', communityArgs('Deletion Club'));
 await rpc(member.jwt, 'join_community', { p_community_id: cid, p_ack: true });
 
+await insert('follows', { follower_id: soleAdmin.id, followee_id: watcher.id });
 await run('the sole admin of a community with members cannot delete, and nothing is deleted or banned', async () => {
   await uploadAvatar(soleAdmin.id, 'keep.png');
   const { status, body } = await deleteAccount(soleAdmin.jwt);
@@ -191,6 +200,8 @@ await run('the sole admin of a community with members cannot delete, and nothing
   const rows = await sel('community_members', `community_id=eq.${cid}&user_id=eq.${soleAdmin.id}&select=role`);
   assert(rows.length === 1 && rows[0].role === 'admin', 'still the admin');
   assert((await avatarFiles(soleAdmin.id)).includes('keep.png'), 'a refused deletion keeps the avatar file');
+  const still = await sel('notifications', `user_id=eq.${watcher.id}&actor_id=eq.${soleAdmin.id}&select=actor_name`);
+  assert(still.length === 1 && still[0].actor_name !== 'Deleted user', 'a refused deletion renames no notification');
 });
 
 await run('a plain member of that community CAN delete through the edge function', async () => {

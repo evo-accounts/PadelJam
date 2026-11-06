@@ -1,4 +1,5 @@
 import { createPublicEnv } from '@padel/config';
+import { scrubBreadcrumb, scrubTransaction } from '@padel/utils';
 
 /**
  * Minimal, DSN-guarded Sentry init for the mobile app.
@@ -23,6 +24,10 @@ export function initSentry(): void {
   // Lazy require so @sentry/react-native's native module is never loaded without a DSN —
   // this keeps the app bootable in Expo Go (which doesn't bundle Sentry's native code).
   const Sentry = require('@sentry/react-native') as typeof import('@sentry/react-native');
-  Sentry.init({ dsn: env.SENTRY_DSN, environment: env.APP_ENV, tracesSampleRate: 0.1 });
+  Sentry.init({ dsn: env.SENTRY_DSN, environment: env.APP_ENV, tracesSampleRate: 0.1,
+    // Whole query strings go: PostgREST filters (id=eq.<uuid>, user_id=, email=) and Stream's own queries.
+    beforeBreadcrumb: (b) => scrubBreadcrumb(b),
+    beforeSendTransaction: (e) => scrubTransaction(e),
+  });
   initialized = true;
 }

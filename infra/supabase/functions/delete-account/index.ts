@@ -52,12 +52,18 @@ Deno.serve(withCors(async (req) => {
   const { error: banErr } = await admin.auth.admin.updateUserById(user.id, { ban_duration: '876000h' });
   if (banErr) console.error(`delete-account: GoTrue ban for ${user.id} failed after the SQL ban: ${banErr.message}`);
 
-  // 3) Avatar files and the Stream identity, only now that the deletion went through (a refused one
+  // 3) Avatar files, notification actor names and the Stream identity, only now that the deletion went through (a refused one
   //    returned above and touched neither). cleanUpDeletedAccount logs failures and never throws.
   const streamKey = Deno.env.get('STREAM_API_KEY');
   const streamSecret = Deno.env.get('STREAM_API_SECRET');
   await cleanUpDeletedAccount(user.id, {
     storage: admin.storage.from('avatars'),
+    notifications: {
+      async renameActor(uid, name) {
+        const { error } = await admin.from('notifications').update({ actor_name: name }).eq('actor_id', uid);
+        return error;
+      },
+    },
     stream: streamKey && streamSecret ? StreamChat.getInstance(streamKey, streamSecret) : null,
   });
 

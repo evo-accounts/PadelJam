@@ -12,6 +12,7 @@ export type AvatarStorage = {
 };
 
 export type StreamUsers = {
+  revokeUserToken(userID: string, before?: Date | string | null): Promise<unknown>;
   partialUpdateUser(update: { id: string; set: Record<string, unknown>; unset: string[] }): Promise<unknown>;
 };
 
@@ -46,7 +47,13 @@ export async function anonymizeStreamUser(stream: StreamUsers, uid: string): Pro
   }
 }
 
-export type CleanupClients = { storage: AvatarStorage; stream: StreamUsers | null };
+// Other people's notifications keep the name copied into actor_name when they were made. Rewrite it to
+// the same placeholder the profile got; null would leave both apps' `actor_name ?? ''` with no subject.
+export type NotificationsDb = {
+  renameActor(uid: string, name: string): Promise<{ message: string } | null>;
+};
+
+export type CleanupClients = { storage: AvatarStorage; stream: StreamUsers | null; notifications?: NotificationsDb };
 
 export async function cleanUpDeletedAccount(
   uid: string,
@@ -58,9 +65,25 @@ export async function cleanUpDeletedAccount(
   } catch (e) {
     log(`delete-account: avatar removal for ${uid} failed after the deletion: ${(e as Error).message}`);
   }
+  if (clients.notifications) {
+    try {
+      const err = await clients.notifications.renameActor(uid, DELETED_USER_NAME);
+      if (err) throw new Error(err.message);
+    } catch (e) {
+      log(`delete-account: notification actor_name for ${uid} failed after the deletion: ${(e as Error).message}`);
+    }
+  }
   if (!clients.stream) {
     log(`delete-account: Stream step for ${uid} skipped, STREAM_API_KEY or STREAM_API_SECRET is not set`);
     return;
+  }
+  // Tokens from stream-token have no expiry, and the apps send name and image on connectUser, so a second
+  // signed-in device could write the real name back. Revoke first and as its own step, so a failure here
+  // does not stop the anonymise below.
+  try {
+    await clients.stream.revokeUserToken(uid);
+  } catch (e) {
+    if (!isUnknownStreamUser(e)) log(`delete-account: Stream token revoke for ${uid} failed after the deletion: ${(e as Error).message}`);
   }
   try {
     await anonymizeStreamUser(clients.stream, uid);

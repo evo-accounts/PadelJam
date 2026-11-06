@@ -87,3 +87,21 @@ rest of the app does.
 Merging doesn't deploy the function. **An edge function deploy is a founder step.** The shipped app works
 before the deploy, so the CTO merges, then sends the founder the deploy steps the same day. Until it's deployed,
 web says something the server doesn't yet do, so don't let that wait.
+
+## Addendum (PAD-291): three cleanup fixes
+
+1. **`notifications.actor_name`.** After the RPC succeeds, `delete-account` runs
+   `update notifications set actor_name = 'Deleted user' where actor_id = uid` with the service-role client
+   (`DELETED_USER_NAME`, not null: both apps render `actor_name ?? ''`). No migration. A failure is logged with
+   the user id and step, never returned. A refused deletion touches nothing. Tested in
+   `account-deletion-lockdown.test.mjs` and in the node tests.
+2. **Stream token revoke.** `stream-token` mints tokens with no expiry and the apps send `name` and `image` on
+   `connectUser`, so a second device could write the real name back. `revokeUserToken(uid)` runs as its own
+   logged step before `partialUpdateUser`, so a revoke failure doesn't stop the anonymise. Not testable against
+   real Stream here; it joins the founder's deploy check.
+3. **Sentry query strings.** `stripQuery`, `scrubBreadcrumb` and `scrubTransaction` in
+   `packages/utils/src/sentry-scrub.ts` drop the whole query string from fetch/xhr breadcrumbs and from span
+   `description`, `data.url`, `data['http.url']` and `data['http.query']`. Used by both apps' `Sentry.init` as
+   `beforeBreadcrumb` and `beforeSendTransaction`. Sample rate unchanged.
+
+No migration, no change to `soft_delete_account` or to the delete screen's copy.
