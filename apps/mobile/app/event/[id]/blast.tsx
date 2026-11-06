@@ -40,6 +40,7 @@ import {
   type SavedBlast,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
+import { PLANS_VISIBLE } from '@padel/features';
 import { useT } from '@padel/i18n';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
@@ -352,7 +353,7 @@ export default function BlastScreen() {
           />
         ) : null}
         {custom && tab === 'saved' ? savedList : templatesGrid}
-        {!custom ? lockedCard : null}
+        {!custom && PLANS_VISIBLE ? lockedCard : null}
         {sentList}
       </ScrollView>
 

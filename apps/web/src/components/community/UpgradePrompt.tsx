@@ -1,5 +1,6 @@
 'use client';
 import { useT } from '@padel/i18n';
+import { PLANS_VISIBLE } from '@padel/features';
 import { GroupConfirm } from '@/components/group/GroupConfirm';
 
 /**
@@ -28,8 +29,8 @@ export function UpgradePrompt({
     <GroupConfirm
       open={open}
       onClose={onClose}
-      title={title}
-      body={body ?? (canManage ? t('upgradeBodyAdmin') : t('upgradeBodyMember'))}
+      title={PLANS_VISIBLE ? title : t('upgradeLimitTitle')}
+      body={PLANS_VISIBLE ? (body ?? (canManage ? t('upgradeBodyAdmin') : t('upgradeBodyMember'))) : title}
       confirmLabel={t('upgradeOk')}
       onConfirm={onClose}
     />

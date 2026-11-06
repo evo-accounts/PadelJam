@@ -103,6 +103,8 @@ A group is a recurring circle of padel players — e.g. "the Tuesday 8pm crowd".
 
 - The final ranking algorithm — section 07 is a preliminary model.
 
+> **Amendment 2026-11-05 — launch decision D1, option A (founder, PAD-142).** GR-38 changes: Starter has **no group limit** at launch, so the group-limit upgrade prompt on create never appears. The plan's group limit stays in the model for billing. Task: PAD-178.
+
 ## Data model
 
 Five tables. communities, community_members, profiles and events are referenced as foreign keys and defined in their own documents. Full SQL is in section 09.

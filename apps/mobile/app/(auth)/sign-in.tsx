@@ -1,42 +1,37 @@
 /**
  * Login or Sign Up (UX-AUTH-02).
  *
- * PHONE IS THE DEFAULT, AND THE MODE DECIDES THE CHANNEL. The screen used to
- * show one box and guess: `detectKind` called anything that failed `isE164` an
- * email, so a number typed the way people actually type one — `912345678`, no
- * '+' — was sent to the EMAIL OTP endpoint and came back as an opaque failure.
- * That is the audit's "the phone flow does not work end to end". There is no
- * guessing left here: `mode` is what the user is looking at, and it is what is
- * passed to `startPhoneOtp` / `startEmailOtp` and stored on the auth flow.
- *
- * The third outline button is a MODE TOGGLE, not a sign-in method. It sits with
- * Google and Apple because that is where someone looks for "some other way in",
- * but all it does is swap the input.
+ * EMAIL ONLY AT LAUNCH (PAD-137). Phone sign-in is hidden: SMS has no provider
+ * behind it, so a phone code fails. The screen opens on the email field and
+ * there is no channel swap. The phone plumbing (`PhoneField`, `startPhoneOtp`,
+ * the `kind` branches on later screens) is kept; turning phone back on means
+ * reverting the PR that hid it. A `mode` route param from an older link is
+ * ignored.
  *
  * The Apple button stays the NATIVE `AppleAuthenticationButton` with
  * `buttonType: CONTINUE` — it renders "Continue with Apple" itself. A custom
  * pressable with our own label would match the other buttons and be an App
  * Store rejection (Human Interface Guidelines, Sign in with Apple).
  */
-import { safeAuthMessage, startEmailOtp, startPhoneOtp } from '@padel/auth';
+import { safeAuthMessage, startEmailOtp } from '@padel/auth';
 import { isEmailShape } from '@padel/utils';
 import { useT } from '@padel/i18n';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TermsLine } from '@/components/auth/TermsLine';
 import { runAppleSignIn } from '@/lib/appleSignIn';
-import { setAuthMethods, setAuthTarget, type IdentifierKind } from '@/lib/auth-flow';
+import { setAuthMethods, setAuthTarget } from '@/lib/auth-flow';
 import { lookupAuthMethods } from '@/lib/authMethodsLookup';
 import { runGoogleSignIn } from '@/lib/googleSignIn';
 import { resolvePostAuthRoute } from '@/lib/postAuthRoute';
 import { supabase } from '@/lib/supabase';
 import { useFieldErrors } from '@/lib/useFieldErrors';
 import { colors, radius, space } from '../../theme';
-import { Button, Field, PhoneField, Screen, Text, TopBar, useBanner } from '../../components/ui';
+import { Button, Field, Screen, Text, TopBar, useBanner } from '../../components/ui';
 
 
 export default function SignInScreen() {
@@ -45,20 +40,7 @@ export default function SignInScreen() {
   const banner = useBanner();
   const router = useRouter();
 
-  /**
-   * Phone by default (UX-AUTH-02). The param is how the OTP screen's "Try
-   * another way" hands the user over when they pick the account's OTHER
-   * channel: the lookup only ever reports that channel MASKED, so the code
-   * cannot be sent from there — this screen has to be the one that collects it,
-   * already switched to the right input. Anything other than 'email' falls back
-   * to phone rather than throwing on a hand-typed deep link.
-   */
-  const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
-  const [mode, setMode] = useState<IdentifierKind>(modeParam === 'email' ? 'email' : 'phone');
   const [email, setEmail] = useState('');
-  /** E.164, or '' while the number is incomplete — `PhoneField`'s contract. */
-  const [phone, setPhone] = useState('');
-  const [phoneValid, setPhoneValid] = useState(false);
   const [busy, setBusy] = useState(false);
   const { errors: fieldErrors, setErrors: setFieldErrors, clear: clearFieldError } =
     useFieldErrors<'identifier'>();
@@ -68,27 +50,13 @@ export default function SignInScreen() {
     if (Platform.OS === 'ios') AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
   }, []);
 
-  /**
-   * Swap the input. Clearing the value is the point: a phone number left in
-   * state while the email box is showing is a number the user can no longer see
-   * or correct, and Continue would send a code to it.
-   */
-  const toggleMode = () => {
-    setMode((m) => (m === 'phone' ? 'email' : 'phone'));
-    setEmail('');
-    setPhone('');
-    setPhoneValid(false);
-    clearFieldError('identifier');
-  };
-
   const onContinue = async () => {
     if (busy) return;
-    const value = mode === 'phone' ? phone : email.trim();
-    const invalid = mode === 'phone' ? !phoneValid || !value : !isEmailShape(value);
-    if (invalid) {
+    const value = email.trim();
+    if (!isEmailShape(value)) {
       // UX-GLOB-06: redden the field AND banner it. The field says which input
       // is wrong; the banner says it out loud, including to a screen reader.
-      const message = mode === 'phone' ? t('invalid_phone') : tc('missingInformation');
+      const message = tc('missingInformation');
       setFieldErrors({ identifier: message });
       banner.show(message);
       return;
@@ -112,17 +80,14 @@ export default function SignInScreen() {
        */
       const methods = await lookupAuthMethods(value).catch(() => null);
 
-      const { error: otpError } =
-        mode === 'phone'
-          ? await startPhoneOtp(supabase, value)
-          : await startEmailOtp(supabase, value);
+      const { error: otpError } = await startEmailOtp(supabase, value);
       if (otpError) {
         const { ns, key } = safeAuthMessage(otpError);
         banner.show(t(key, { ns }));
         return;
       }
 
-      setAuthTarget(value, mode, mode);
+      setAuthTarget(value, 'email', 'email');
       setAuthMethods(value, methods);
       router.push('/(auth)/otp');
     } finally {
@@ -174,35 +139,20 @@ export default function SignInScreen() {
             {t('title')}
           </Text>
 
-          {mode === 'phone' ? (
-            <PhoneField
-              label={t('phoneLabel')}
-              value={phone}
-              onChangeValue={(e164, meta) => {
-                setPhone(e164);
-                setPhoneValid(meta.valid);
-                clearFieldError('identifier');
-              }}
-              error={fieldErrors.identifier}
-              editable={!busy}
-              testID="sign-in-phone"
-            />
-          ) : (
-            <Field
-              label={t('emailLabel')}
-              value={email}
-              onChangeText={(v) => { setEmail(v); clearFieldError('identifier'); }}
-              error={fieldErrors.identifier}
-              placeholder={t('emailPlaceholder')}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              inputMode="email"
-              autoComplete="email"
-              editable={!busy}
-              testID="sign-in-email"
-            />
-          )}
+          <Field
+            label={t('emailLabel')}
+            value={email}
+            onChangeText={(v) => { setEmail(v); clearFieldError('identifier'); }}
+            error={fieldErrors.identifier}
+            placeholder={t('emailPlaceholder')}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            inputMode="email"
+            autoComplete="email"
+            editable={!busy}
+            testID="sign-in-email"
+          />
 
           <Button
             label={t('continue')}
@@ -246,16 +196,6 @@ export default function SignInScreen() {
               style={styles.method}
             />
           )}
-
-          <Button
-            label={mode === 'phone' ? t('continueWithEmail') : t('continueWithPhone')}
-            variant="secondary"
-            fullWidth
-            disabled={busy}
-            onPress={toggleMode}
-            style={styles.method}
-            testID="sign-in-toggle-mode"
-          />
 
           <TermsLine style={styles.terms} />
         </Screen>

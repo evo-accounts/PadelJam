@@ -1,21 +1,26 @@
 #!/usr/bin/env node
 /**
- * Brings the e2e Supabase stack up and writes the two .env files the run reads.
+ * Starts Docker (OrbStack) if it isn't answering, brings the e2e Supabase stack up and writes the two .env files the run reads.
  *
  *   node scripts/e2e/ci-stack.mjs [--stack ci|dev]     (default: ci)
  *
  * The workflow step runs exactly this, so changes here need no workflow edit. It never runs `stop`.
+ * Outside GitHub, on the company Mac, `start` queues for a slot through stack-slot. If none comes
+ * free this exits 75 having started nothing and written no .env: "not run", not a failure.
+ * STACK_SLOT_WAIT sets how many seconds to queue (stack-slot's default is an hour).
+ * After stopping a stack started that way, run `stack-slot release <project>`.
  * To remove the CI stack by hand, with the CI env set (never a bare `supabase stop`: it takes down
  * whichever stack the directory's config.toml names, i.e. the agents' one):
  *   pnpm dlx supabase@2.117.0 --workdir infra stop --project-id padeljam_ci --no-backup
  */
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { accessSync, constants, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { connect } from 'node:net';
-import { heldByForeignStack, resolveStack } from './stack.mjs';
+import { ensureDocker } from './docker.mjs';
+import { NO_SLOT_EXIT, STACK_SLOT, heldByForeignStack, resolveStack, slotted } from './stack.mjs';
 
 const SUPABASE_CLI_VERSION = '2.117.0'; // keep in step with infra/supabase/README.md and apps/mobile/e2e/README.md
 
@@ -39,13 +44,34 @@ const env = {
   ...stack.cliEnv,
 };
 
-const supabase = (...cmd) => execFileSync(
-  'pnpm',
-  ['dlx', `supabase@${SUPABASE_CLI_VERSION}`, '--workdir', join(ROOT, 'infra'), ...cmd],
-  { cwd: ROOT, env, encoding: 'utf8', stdio: ['ignore', cmd[0] === 'start' ? 'inherit' : 'pipe', 'inherit'] },
-);
+const supabaseCmd = (...cmd) => ['pnpm', 'dlx', `supabase@${SUPABASE_CLI_VERSION}`, '--workdir', join(ROOT, 'infra'), ...cmd];
+const supabase = (...cmd) => {
+  const [file, ...fileArgs] = supabaseCmd(...cmd);
+  return execFileSync(file, fileArgs, { cwd: ROOT, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+};
 
 console.log(`[ci-stack] stack: ${stack.name} (${stack.projectId}, ${stack.apiUrl})`);
+
+const dockerUp = () => {
+  try {
+    execFileSync('docker', ['info', '--format', '{{.ServerVersion}}'], { stdio: 'ignore', timeout: 10_000 });
+    return true;
+  } catch { return false; }
+};
+const startOrbStack = () => {
+  console.log('[ci-stack] Docker is not answering; starting OrbStack.');
+  try {
+    execFileSync('open', ['-g', '-a', 'OrbStack'], { stdio: 'ignore', timeout: 10_000 });
+  } catch (e) {
+    console.log(`[ci-stack] could not start OrbStack: ${e.message}`);
+  }
+};
+if (!(await ensureDocker({ isUp: dockerUp, start: startOrbStack, sleep: (ms) => new Promise((r) => setTimeout(r, ms)) }))) {
+  const msg = 'Docker did not answer within 2 minutes, even after starting OrbStack. Log in to the runner Mac as joaopaulos4, open OrbStack, check that `docker ps` works there, then re-run this job.';
+  console.error(`::error::${msg}`);
+  console.error(`[ci-stack] ERROR: ${msg}`);
+  process.exit(1);
+}
 
 const portOpen = (port) => new Promise((done) => {
   const sock = connect({ host: '127.0.0.1', port, timeout: 1000 });
@@ -63,7 +89,27 @@ if (stack.name !== 'dev') {
     }
   }
 }
-supabase('start');
+const slotsUsable = () => {
+  try {
+    accessSync(STACK_SLOT, constants.X_OK);
+    accessSync(join(dirname(STACK_SLOT), 'state'), constants.W_OK);
+    return true;
+  } catch { return false; }
+};
+const [startFile, ...startArgs] = slotted(env.SUPABASE_PROJECT_ID ?? stack.projectId, supabaseCmd('start'), {
+  githubActions: process.env.GITHUB_ACTIONS === 'true',
+  slotsUsable: slotsUsable(),
+  wait: process.env.STACK_SLOT_WAIT,
+});
+try {
+  execFileSync(startFile, startArgs, { cwd: ROOT, env, stdio: ['ignore', 'inherit', 'inherit'] });
+} catch (e) {
+  if (e.status === NO_SLOT_EXIT) {
+    console.error('[ci-stack] no stack slot came free: not run, not a failure. Nothing started, no .env written. Try again later.');
+    process.exit(NO_SLOT_EXIT);
+  }
+  throw e;
+}
 const status = supabase('status', '-o', 'env');
 
 const vars = {};

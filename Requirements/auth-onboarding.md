@@ -1,5 +1,8 @@
 # Authentication — Splash, Welcome, Sign In / Sign Up, Onboarding
 
+> **Launch decision (PAD-137, 2026-11-05):** phone sign-in is hidden for launch, with no Twilio spend. At launch the only identifier is email: sign-in takes an email, create-account asks for no second identifier, "Try another way" never offers SMS, and Account settings has no phone row. The phone design below is kept as written for when it returns; where a line says phone, it describes that design, not the launch build. Code is kept; re-enabling means reverting the hide PR.
+
+
 *Padel Jam — Version 1.2 • October 2026 • Welcome screen amended by the Welcome redesign (2026-10-04)*
 
 *Changelog — v1.2 (2026-10-04): Welcome becomes a three-slide pager with two buttons, Get started and Sign in, both leading to Sign In / Sign Up; see the block below. v1.1 (May 2026): onboarding simplified — single Jammer+ gate + push prompt.*
@@ -27,9 +30,9 @@ This document defines the unauthenticated entry into Padel Jam — the splash an
 
 - App boot order: Splash → Welcome (first install only) → Sign In / Sign Up → Onboarding (new accounts) → Jammer+ subscription gate → Home (push-notifications permission prompt fires on first arrival). Returning users skip Welcome.
 
-- Sign-in and sign-up share a single identifier-first screen — the user enters either an email or a phone number; the system sends a 6-digit OTP to the chosen channel.
+- Sign-in and sign-up share a single identifier-first screen — the user enters either an email or a phone number; the system sends a 6-digit OTP to the chosen channel. *Launch (PAD-137): email only.*
 
-- Every account links one email AND one phone. A user who started via phone is asked to add email + password to complete the account; a user who started via email is asked to add phone + password. This is what guarantees the link.
+- *Launch (PAD-137): every account links one email; phone is not asked for.* Design when phone returns: Every account links one email AND one phone. A user who started via phone is asked to add email + password to complete the account; a user who started via email is asked to add phone + password. This is what guarantees the link.
 
 - “Try another way” is the universal recovery affordance: switch the OTP channel, fall back to password, or use Apple / Google if those are linked to the same identifier.
 
@@ -201,7 +204,7 @@ The first frame on every app launch. The Padel Jam logo is centered on a brand b
 
 ## Sign In / Sign Up
 
-A unified, identifier-first flow modelled on Airbnb. The user enters either an email or a phone number; the system sends a 6-digit OTP and uses the same screens for both login (existing account) and sign-up (new account). The only divergence is at the end — a new user is asked to complete the account with the missing identifier, full name, and password; an existing user lands on Home.
+A unified, identifier-first flow modelled on Airbnb. The user enters either an email or a phone number; the system sends a 6-digit OTP and uses the same screens for both login (existing account) and sign-up (new account). The only divergence is at the end — a new user is asked to complete the account with the missing identifier, full name, and password; an existing user lands on Home. *Launch (PAD-137): email only; a new user completes the account with full name and password, and no second identifier.*
 
 <table>
 <colgroup>
@@ -218,7 +221,7 @@ A unified, identifier-first flow modelled on Airbnb. The user enters either an e
 </tr>
 <tr>
 <th><strong>Two variants</strong></th>
-<th>Phone variant (default) shows a country-code selector + mobile number input. Email variant shows a single email input. The bottom social row swaps the third button: phone variant offers “Continue with email”; email variant offers “Continue with phone”.</th>
+<th>Phone variant (default) shows a country-code selector + mobile number input. Email variant shows a single email input. The bottom social row swaps the third button: phone variant offers “Continue with email”; email variant offers “Continue with phone”.</th> *Launch (PAD-137): only the email variant exists; there is no channel swap.*
 </tr>
 <tr>
 <th><strong>Primary CTA</strong></th>
@@ -226,7 +229,7 @@ A unified, identifier-first flow modelled on Airbnb. The user enters either an e
 </tr>
 <tr>
 <th><strong>Social buttons</strong></th>
-<th>Below a divider: Continue with Google, Continue with Apple, and (third) the channel-swap entry (“Continue with email” or “Continue with phone”).</th>
+<th>Below a divider: Continue with Google, Continue with Apple, and (third) the channel-swap entry (“Continue with email” or “Continue with phone”).</th> *Launch (PAD-137): the third button is not shown.*
 </tr>
 <tr>
 <th><strong>On Continue</strong></th>
@@ -314,7 +317,7 @@ A unified, identifier-first flow modelled on Airbnb. The user enters either an e
 </tr>
 <tr>
 <th><strong>Channel swap</strong></th>
-<th>If the user started with phone and the account has an email linked, an option “Get a code via email: e**l@example.com” is shown (with the email masked). The reciprocal is shown when starting with email.</th>
+<th>If the user started with phone and the account has an email linked, an option “Get a code via email: e**l@example.com” is shown (with the email masked). The reciprocal is shown when starting with email.</th> *Launch (PAD-137): the SMS option is never offered.*
 </tr>
 <tr>
 <th><strong>Password</strong></th>
@@ -432,7 +435,7 @@ A unified, identifier-first flow modelled on Airbnb. The user enters either an e
 </tr>
 <tr>
 <th><strong>No existing account</strong></th>
-<th>No profiles row matches the returned email — the user is taken to Create your account (5.7) with the email + name pre-filled and disabled. The user still has to add the phone number and create a password.</th>
+<th>No profiles row matches the returned email — the user is taken to Create your account (5.7) with the email + name pre-filled and disabled. The user still has to add the phone number and create a password.</th> *Launch (PAD-137): no phone is asked for; the user only creates a password.*
 </tr>
 <tr>
 <th><strong>Conflict</strong></th>
@@ -462,11 +465,11 @@ A unified, identifier-first flow modelled on Airbnb. The user enters either an e
 </tr>
 <tr>
 <th><strong>Variant — came in via phone</strong></th>
-<th>Fields: Full name (required) → Mobile number (pre-filled, disabled — already verified) → Password (required). The user fills name + password; the phone is locked because it was verified by OTP.</th>
+<th>Fields: Full name (required) → Mobile number (pre-filled, disabled — already verified) → Password (required). The user fills name + password; the phone is locked because it was verified by OTP.</th> *Launch (PAD-137): not reachable, since phone sign-in is hidden.*
 </tr>
 <tr>
 <th><strong>Variant — came in via email</strong></th>
-<th>Fields: Full name (required) → Email (pre-filled, disabled — already verified) → Mobile number (required, with country code selector) → Password (required). Note the wireframe omits the locked mobile field; the implementation should treat it as locked when the user reached this screen via phone OTP.</th>
+<th>Fields: Full name (required) → Email (pre-filled, disabled — already verified) → Mobile number (required, with country code selector) → Password (required). Note the wireframe omits the locked mobile field; the implementation should treat it as locked when the user reached this screen via phone OTP.</th> *Launch (PAD-137): the mobile number field is not shown; the screen is Full name, Email (locked), Password.*
 </tr>
 <tr>
 <th><strong>Variant — came in via Google / Apple</strong></th>
@@ -482,16 +485,18 @@ A unified, identifier-first flow modelled on Airbnb. The user enters either an e
 </tr>
 <tr>
 <th><strong>Secondary identifier verification</strong></th>
-<th>The identifier added on this screen (email or phone, whichever was NOT the OTP channel) is stored but NOT verified at this moment. Verification happens lazily the first time the user tries to sign in via that channel — we send an OTP to it at that point.</th>
+<th>The identifier added on this screen (email or phone, whichever was NOT the OTP channel) is stored but NOT verified at this moment. Verification happens lazily the first time the user tries to sign in via that channel — we send an OTP to it at that point.</th> *Launch (PAD-137): no second identifier is captured.*
 </tr>
 <tr>
 <th><strong>On Continue</strong></th>
-<th>Creates the profiles row with all four fields (id, email, phone, full_name) populated and the password stored on auth.users via Supabase Auth. The user is then routed to Onboarding (section 06).</th>
+<th>Creates the profiles row with all four fields (id, email, phone, full_name) populated and the password stored on auth.users via Supabase Auth. The user is then routed to Onboarding (section 06).</th> *Launch (PAD-137): phone stays empty at launch (profiles.phone is nullable).*
 </tr>
 </thead>
 <tbody>
 </tbody>
 </table>
+
+> **Amendment 2026-11-05 — launch decision D1, option A (founder, PAD-142).** The Jammer+ subscription gate (6.5) is **hidden for launch**. Onboarding now ends at Court side, then Home (push prompt on first arrival). **AU-20 changes:** `profiles.onboarded_at` is set when the user completes or skips the last remaining step (Court side), not at the Jammer+ gate; every "Skip shortcuts to the Jammer+ gate" (AU-18) now reads "Skip shortcuts to Home". The gate's code stays for billing. Task: PAD-179.
 
 ## Onboarding
 
@@ -729,13 +734,13 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed AU (Auth & Onboarding).
 |----|----|----|----|
 | AU-01 | Splash screen is the first frame on every app launch; routes based on auth + onboarded state. | **Must** |  |
 | AU-02 | *(amended 2026-10-04)* Welcome screen is shown only on first install; a 3-slide horizontal pager (illustration, title, body) over a fixed sheet with the page dots and two CTAs, “Get started” and “Sign in”, both leading to Sign In / Sign Up. | **Must** | Local flag persisted across logout; either CTA sets it. |
-| AU-03 | Sign In / Sign Up is a single identifier-first screen accepting either an email or a phone number. | **Must** |  |
+| AU-03 | Sign In / Sign Up is a single identifier-first screen accepting either an email or a phone number. | **Must** |  | Launch (PAD-137): email only.
 | AU-04 | The system sends a 6-digit OTP via the chosen channel; the same screens are used for login and sign-up. | **Must** | Supabase Auth OTP. |
 | AU-05 | A new user (no profiles row) is routed to the Create your account screen after OTP verification. | **Must** |  |
-| AU-06 | Account completion captures the missing identifier (email or phone), full name, and password, and links them to the same auth.users row. | **Must** | NOT NULL on profiles.email and profiles.phone after completion. |
+| AU-06 | Account completion captures the missing identifier (email or phone), full name, and password, and links them to the same auth.users row. | **Must** | NOT NULL on profiles.email and profiles.phone after completion. Launch (PAD-137): captures full name and password only; profiles.phone is NOT required (nullable). The NOT NULL wording is the design for when phone returns. |
 | AU-07 | The secondary identifier captured at account completion is verified lazily — OTP is sent the first time the user signs in via that channel. | Should |  |
 | AU-08 | Continue with Google and Continue with Apple are available on the identifier-first screen and inside Try another way. | **Must** | Supabase Auth OAuth. |
-| AU-09 | Social sign-up routes through Create your account with email + name pre-filled and disabled; phone + password are still required. | **Must** |  |
+| AU-09 | Social sign-up routes through Create your account with email + name pre-filled and disabled; password is required. Launch (PAD-137): no phone is asked for. | **Must** |  |
 | AU-10 | Try another way exposes only the channels actually linked to the looked-up account, with masked identifiers. | **Must** |  |
 | AU-11 | Password sign-in is available as a fallback from Try another way, with a Forgot password link. | **Must** |  |
 | AU-12 | Password recovery sends a 6-digit code to the account email, accepts a new password (≥ 8 chars), and shows a success screen. | **Must** |  |
