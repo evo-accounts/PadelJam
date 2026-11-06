@@ -126,7 +126,7 @@ Dates are working backwards from submission at ~2026-12-28 and the roadmap's "Bu
 **Start this week (long lead time, mostly the founder):**
 
 1. **A4 and A5: Play Console account and closed-testing clock.** Confirm account type. If a 12-tester, 14-day closed test is required, it has to begin by about **12-10**, and earlier is safer. Ask the founder to check Play Console now.
-2. **X2: Twilio and Brazil sender registration.** Weeks of lead time, but no longer a launch blocker: phone sign-in is hidden (#340), email is the way in.
+2. **X2: Twilio and Brazil sender registration (deferred).** Weeks of lead time, but no longer a launch blocker: phone sign-in is hidden (#340), email is the way in.
 3. **I3, I4, A2, A3: Apple and Google credentials** (Apple Sign In, APNs, Firebase and FCM, Play service-account key). One sitting of console work for the founder, and the unblocker for every device test.
 4. **A1: first Android build** (`development` profile). It tells us in an hour whether Android compiles. Everything in the Android table rests on it.
 
