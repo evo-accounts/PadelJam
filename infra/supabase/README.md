@@ -33,9 +33,10 @@ Docker must be running.
 ## Auth (local)
 
 - Email OTP: fully functional. Sent emails are captured by Inbucket at http://127.0.0.1:55324.
-- Phone OTP: Twilio is enabled with **placeholder** creds + `[auth.sms.test_otp]`, so GoTrue returns
-  the test code (`123456`) for the listed numbers (`351912345678`, `5511987654321`) without sending
-  real SMS. Real Twilio creds are required for staging/prod.
+- Phone OTP: **off** (`[auth.sms] enable_signup = false`, PAD-137: phone sign-in is hidden for launch),
+  matching hosted. Phone OTP, resend, signup and phone password grants return `phone_provider_disabled`;
+  there is no `test_otp` map. Twilio keeps **placeholder** creds. Accounts created through the admin
+  API with a phone (the e2e personas) still work. To bring phone back, see `docs/handoff/sms-production-setup.md`.
 - Before starting, export the dummy Twilio token so the `env()` ref in `config.toml` resolves:
   `export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token` (value also in the root `.env`).
 - OAuth (Apple/Google) is **enabled** in `[auth.external.*]`, with the client IDs and secrets read
@@ -51,8 +52,11 @@ Docker must be running.
 WD=/path/to/repo/infra   # the folder that contains supabase/
 
 # Start / stop the local stack (export the dummy twilio token first; see Auth above)
-pnpm dlx supabase@2.117.0 --workdir "$WD" start
+# On the company Mac a start must go through the shared slots: two stacks at most, across all
+# companies. Exit 75 = no slot came free, nothing started. See docs/agents/_rules.md for agents.
+/Users/Shared/paperclip-ops/stack-slot start padeljam -- pnpm dlx supabase@2.117.0 --workdir "$WD" start
 pnpm dlx supabase@2.117.0 --workdir "$WD" stop
+/Users/Shared/paperclip-ops/stack-slot release padeljam   # after stopping
 pnpm dlx supabase@2.117.0 --workdir "$WD" status      # prints URLs + keys
 
 # Create a new migration

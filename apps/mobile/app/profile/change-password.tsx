@@ -52,7 +52,6 @@ export default function ChangePasswordScreen() {
   const confirm = useConfirm();
   const session = useSession().session;
   const email = session?.user.email;
-  const phone = session?.user.phone;
   const uid = session?.user.id;
   const authProviders = useAuthProviders();
   const [current, setCurrent] = useState('');
@@ -79,9 +78,7 @@ export default function ChangePasswordScreen() {
    */
   const recoveryTarget: { identifier: string; kind: IdentifierKind } | null = email
     ? { identifier: email, kind: 'email' }
-    : phone
-      ? { identifier: phone, kind: 'phone' }
-      : null;
+    : null; // phone is never a recovery target at launch (PAD-137): "Forgot password?" must not send an SMS
 
   /**
    * "Forgot password?" is the real recovery flow, not a shortcut around the current-password
