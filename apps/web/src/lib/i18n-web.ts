@@ -7,8 +7,8 @@ import type { i18n as I18n } from 'i18next';
  */
 const webAuth = {
   'pt-PT': {
-    identifierLabel: 'E-mail ou telemóvel',
-    identifierPlaceholder: 'nome@exemplo.com ou +351…',
+    identifierLabel: 'E-mail',
+    identifierPlaceholder: 'nome@exemplo.com',
     otpLabel: 'Código de 6 dígitos',
     otpPlaceholder: '••••••',
     otpHelp: 'Enviámos um código para {{identifier}}.',
@@ -41,8 +41,8 @@ const webAuth = {
     termsConsentSentence: 'Aceito os {{termsLink}} e a {{privacyLink}}',
   },
   'pt-BR': {
-    identifierLabel: 'E-mail ou celular',
-    identifierPlaceholder: 'nome@exemplo.com ou +55…',
+    identifierLabel: 'E-mail',
+    identifierPlaceholder: 'nome@exemplo.com',
     otpLabel: 'Código de 6 dígitos',
     otpPlaceholder: '••••••',
     otpHelp: 'Enviamos um código para {{identifier}}.',
@@ -75,8 +75,8 @@ const webAuth = {
     termsConsentSentence: 'Concordo com os {{termsLink}} e a {{privacyLink}}',
   },
   en: {
-    identifierLabel: 'Email or phone',
-    identifierPlaceholder: 'name@example.com or +1…',
+    identifierLabel: 'Email',
+    identifierPlaceholder: 'name@example.com',
     otpLabel: '6-digit code',
     otpPlaceholder: '••••••',
     otpHelp: 'We sent a code to {{identifier}}.',

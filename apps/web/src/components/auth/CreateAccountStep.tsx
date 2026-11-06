@@ -5,13 +5,12 @@ import type { SafeMessage } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { passwordValid } from '@padel/utils';
 import { PRIVACY_URL, TERMS_URL } from '@/lib/externalUrls';
-import { classifyIdentifier, invalidIdentifierMessage } from '@/lib/identifier';
 import type { useAuthFlow } from '@/lib/useAuthFlow';
 import { AuthError } from './AuthError';
 import { PasswordRules } from './PasswordRules';
 
 type Flow = ReturnType<typeof useAuthFlow>;
-type FieldKey = 'fullName' | 'secondary' | 'password';
+type FieldKey = 'fullName' | 'password';
 
 const MISSING: SafeMessage = { ns: 'common', key: 'missingInformation' };
 const PASSWORD_WEAK: SafeMessage = { ns: 'auth', key: 'password_weak' };
@@ -23,7 +22,7 @@ const linkClass = 'text-primary underline underline-offset-2';
  * Complete your account — the web twin of mobile's create-account (UX-AUTH-05), and it now behaves
  * like it:
  *
- * - CREATE ACCOUNT IS DISABLED until the three fields are filled AND the terms box is ticked. That
+ * - CREATE ACCOUNT IS DISABLED until the fields are filled AND the terms box is ticked. That
  *   is mobile's deliberate choice, pinned by 01-auth.e2e.ts, not the validate-on-tap rule the other
  *   forms follow. A disabled button is only acceptable while something says why, so each field
  *   explains itself when it loses focus.
@@ -34,35 +33,22 @@ const linkClass = 'text-primary underline underline-offset-2';
  *   mobile learned the hard way that a sentence USED AS the label makes a click on "Terms of Use"
  *   toggle the box instead of opening the terms (TermsLine.tsx).
  * - Strength is checked on submit, where it can mark the field; the live checklist shows the rules
- *   before that. And the secondary must be the kind the field asks for — an email typed into the
- *   phone field was previously sent along as an email.
+ *   before that.
+ * - NO SECOND IDENTIFIER. Phone is hidden for launch (PAD-137) and the primary is always an email,
+ *   so there is nothing left to ask for. The account is complete once name and password are set.
  */
 export function CreateAccountStep({ flow }: { flow: Flow }) {
   const { t } = useT('auth');
   const [fullName, setFullName] = useState('');
-  const [secondaryIdentifier, setSecondaryIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<FieldKey, SafeMessage>>>({});
-  const secondaryRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
-  // The primary identifier came in via email; the missing secondary is phone (and vice versa).
-  const secondaryIsPhone = flow.kind === 'email';
-  const expected = secondaryIsPhone ? 'phone' : 'email';
-  const secondaryLabel = secondaryIsPhone ? t('secondaryPhoneLabel') : t('secondaryEmailLabel');
-
-  const canSubmit = Boolean(fullName.trim()) && Boolean(secondaryIdentifier.trim()) && Boolean(password) && agreed;
+  const canSubmit = Boolean(fullName.trim()) && Boolean(password) && agreed;
 
   const mark = (key: FieldKey, message: SafeMessage) => setErrors((prev) => ({ ...prev, [key]: message }));
   const clear = (key: FieldKey) => setErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
-
-  /** Empty, or not the kind this field asks for. Mobile's two messages, by kind. */
-  const secondaryProblem = (): SafeMessage | null => {
-    if (!secondaryIdentifier.trim()) return MISSING;
-    const c = classifyIdentifier(secondaryIdentifier);
-    return c.ok && c.kind === expected ? null : invalidIdentifierMessage(expected);
-  };
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,14 +58,8 @@ export function CreateAccountStep({ flow }: { flow: Flow }) {
       passwordRef.current?.focus();
       return;
     }
-    const problem = secondaryProblem();
-    if (problem) {
-      setErrors({ secondary: problem });
-      secondaryRef.current?.focus();
-      return;
-    }
     setErrors({});
-    void flow.completeAccount({ fullName, secondaryIdentifier, password });
+    void flow.completeAccount({ fullName, password });
   };
 
   // The sentence carries its links as placeholders so a translator can move them; split it the way
@@ -120,27 +100,6 @@ export function CreateAccountStep({ flow }: { flow: Flow }) {
           aria-describedby={errors.fullName ? 'fullName-error' : undefined}
         />
         {fieldError('fullName')}
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span>{secondaryLabel}</span>
-        <input
-          ref={secondaryRef}
-          type={secondaryIsPhone ? 'tel' : 'email'}
-          autoComplete={secondaryIsPhone ? 'tel' : 'email'}
-          className={inputClass}
-          value={secondaryIdentifier}
-          onChange={(e) => {
-            setSecondaryIdentifier(e.target.value);
-            clear('secondary');
-          }}
-          onBlur={() => {
-            const problem = secondaryProblem();
-            if (problem) mark('secondary', problem);
-          }}
-          aria-invalid={errors.secondary ? true : undefined}
-          aria-describedby={errors.secondary ? 'secondary-error' : undefined}
-        />
-        {fieldError('secondary')}
       </label>
       <label className="flex flex-col gap-1 text-sm">
         <span>{t('passwordLabel')}</span>

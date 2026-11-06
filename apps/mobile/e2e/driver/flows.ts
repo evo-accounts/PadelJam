@@ -72,21 +72,13 @@ export async function loginAs(key: PersonaKey): Promise<void> {
 }
 
 /**
- * Sign-in opens in PHONE mode (UX-AUTH-02), so every email login has to flip the
- * input first. The toggle is the third outline button, labelled "Continue with
- * email"; tapping it swaps the phone row for an email `Field` and relabels
- * itself "Continue with phone".
- *
- * Waiting on the RELABELLED toggle rather than on `{ type: 'TextField' }` is the
- * robust check: phone mode has a TextField too, so a type-only selector matches
- * before the swap and the persona's email would be typed into the phone box.
- * No-op when the screen is already in email mode.
+ * Phone sign-in is hidden (PAD-137): sign-in opens on the email field and there
+ * is no channel to switch. Kept under its old name because every suite calls it;
+ * it now only waits for the email field, so a type-only selector cannot race the
+ * first render.
  */
 export async function switchToEmailMode(): Promise<void> {
-  if (query(await snapshot(), { text: /continue with phone/i })) return;
-  await tap({ text: /continue with email/i });
-  await expectVisible({ text: /continue with phone/i }, { timeout: 10_000 });
-  await expectVisible({ text: /name@example\.com/i, type: 'TextField' }, { timeout: 10_000 });
+  await expectVisible({ id: 'sign-in-email' }, { timeout: 10_000 });
 }
 
 /** Switch to a bottom tab (labels look like "Events, tab, 2 of 5"). */
