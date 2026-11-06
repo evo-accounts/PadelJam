@@ -46,3 +46,7 @@ A test that relies on the screen a failed test left behind now starts from Home 
 - A unit test or small extraction for the `afterEach` recovery: relaunch runs on failure, doesn't run on a pass, and a throw from it is swallowed.
 - The standard checks in `_rules.md`.
 - One `e2e` run on the PR, read for `idb companion` warnings and recovery lines. It has to be green to merge, like any other PR.
+
+## Amendment (PAD-331, 6 Nov)
+
+The 07:08Z run failed `04 > a waiter confirms a freed spot` at its first step: `ensureTabs` called `backGesture()`, which threw "did not change the screen" under load (~300), so `ensureTabs`'s relaunch fallback never ran. Change: `actions.ts` gains `tryBackGesture()`, a non-throwing swipe that reports whether the screen changed; `backGesture()` wraps it and still captures artifacts and throws, so suite 09's guard and every other caller stay strict. `ensureTabs` uses `tryBackGesture()`: on a swipe that changes nothing it logs `[e2e] ensureTabs: back gesture did not pop, relaunching` and goes to the existing relaunch path, which still throws if the tab bar doesn't appear. Tests: `ensureTabs.test.ts`, `backGesture.test.ts`. Still out of scope: vitest `retry`, more swipes or coordinates.

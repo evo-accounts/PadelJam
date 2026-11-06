@@ -124,11 +124,17 @@ export async function findFromHome(action: 'findEvent' | 'findGroup' | 'findComm
  * with an unrelated-looking timeout, which cost a long debugging detour.
  */
 export async function ensureTabs(maxPops = 4): Promise<void> {
-  const { backGesture } = await import('./actions');
+  const { tryBackGesture } = await import('./actions');
   const onTabs = async () => !!query(await snapshot(), { text: /, tab, \d of 5/ });
   for (let i = 0; i < maxPops; i++) {
     if (await onTabs()) return;
-    await backGesture();
+    const swipe = await tryBackGesture();
+    if (!swipe.changed) {
+      // A swipe that changes nothing (seen under heavy load) used to throw from here, so the
+      // relaunch below never ran. Navigation only: suite 09 still asserts the gesture itself.
+      console.warn('[e2e] ensureTabs: back gesture did not pop, relaunching');
+      break;
+    }
   }
   if (await onTabs()) return;
   // Pager screens eat the edge swipe; relaunch is the reliable escape.
