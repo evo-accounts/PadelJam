@@ -8,9 +8,9 @@
 // the service role keeps full access by design, so it would make every assertion here pass.
 import { user, rpc, req, sel, ANON, BASE_URL, assert, expectError, run } from './lib.mjs';
 
-/** The exact column list `useMyProfile` selects (packages/api/src/profile/queries.ts). */
+/** The exact column list `useMyProfile` selects (packages/api/src/profile/queries.ts); date of birth and gender come from get_my_private_profile since 0158. */
 const MY_PROFILE_COLUMNS =
-  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text,level';
+  'id,full_name,avatar_url,description,dominant_hand,court_side,preferred_time,location_text,level';
 
 const asUser = (u, qs) => req(`/rest/v1/profiles?${qs}`, { jwt: u.jwt });
 

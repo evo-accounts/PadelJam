@@ -11,9 +11,9 @@
 // service key: the service role keeps full access by design, so it would make every assertion pass.
 import { user, rpc, req, sel, patch, ANON, BASE_URL, assert, expectError, run } from './lib.mjs';
 
-/** The exact column list `useMyProfile` selects (packages/api/src/profile/queries.ts). */
+/** The exact column list `useMyProfile` selects (packages/api/src/profile/queries.ts); date of birth and gender come from get_my_private_profile since 0158. */
 const MY_PROFILE_COLUMNS =
-  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text,level';
+  'id,full_name,avatar_url,description,dominant_hand,court_side,preferred_time,location_text,level';
 
 const read = (u, qs) => req(`/rest/v1/profiles?${qs}`, { jwt: u.jwt });
 /** A PATCH the way supabase-js sends `.update(input).eq('id', …)`: return=minimal, so a 42501 can
@@ -153,8 +153,10 @@ await run('level: 1 to 4 and null on your own row; 0, 5 and a text are rejected;
 
 await run('location still goes through set_my_location', async () => {
   await rpc(alice.jwt, 'set_my_location', { p_lat: 38.72, p_lng: -9.14, p_text: 'Lisbon, PT' });
-  const [p] = await read(alice, `id=eq.${alice.id}&select=location_text,location_point`);
-  assert(p.location_text === 'Lisbon, PT' && p.location_point, 'point and label written by the RPC');
+  const [p] = await read(alice, `id=eq.${alice.id}&select=location_text`);
+  assert(p.location_text === 'Lisbon, PT', 'label written by the RPC');
+  const [mine] = await rpc(alice.jwt, 'get_my_private_profile');
+  assert(mine.lat != null && mine.lng != null, 'point written by the RPC');
 });
 
 await run('mark_onboarded / mark_notifications_prompted stamp the server clock, once', async () => {
