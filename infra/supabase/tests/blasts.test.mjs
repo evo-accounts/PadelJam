@@ -3,7 +3,7 @@
 // Migration 0124 (UX Audit — Manage Event, plan PR "0124 — blasts": D6, B10, UX-MEVT-18), through
 // PostgREST as the signed-in organizer. Fixtures no RPC sets (participant statuses, stale
 // invitations, opt-ins, a failed delivery) are written with the service role.
-import { user, rpc, sel, insert, expectError, assert, run, BASE_URL, ANON } from './lib.mjs';
+import { setAccountPlan, user, rpc, sel, insert, expectError, assert, run, BASE_URL, ANON } from './lib.mjs';
 
 const hoursFromNow = (h) => new Date(Date.now() + h * 36e5).toISOString();
 const tag = () => Math.random().toString(36).slice(2, 8);
@@ -77,7 +77,7 @@ await run('D6/B10: a free organizer on a group-less event sends templates only, 
 
 await run('D6: a Jammer+ organizer customises and saves on a group-less event (owner-scoped)', async () => {
   const org = await user('plus-org');
-  await rpc(org.jwt, 'set_account_plan', { p_plan: 'jammer_plus' });
+  await setAccountPlan(org.id, 'jammer_plus');
   const ev = await groupless(org);
   const ev2 = await groupless(org);
   assert((await rpc(org.jwt, 'can_customize_event_blast', { p_event_id: ev })) === true, 'jammer+: customisation');
@@ -102,14 +102,14 @@ await run('D6: a Jammer+ organizer customises and saves on a group-less event (o
 
   // Someone else can neither list, edit nor delete them.
   const other = await user('plus-other');
-  await rpc(other.jwt, 'set_account_plan', { p_plan: 'jammer_plus' });
+  await setAccountPlan(other.id, 'jammer_plus');
   await expectError(() => rpc(other.jwt, 'list_saved_blasts', { p_event_id: ev }), 'forbidden');
   await expectError(() => rpc(other.jwt, 'update_saved_blast', { p_saved_blast_id: id2, p_title: 'x', p_description: 'y' }), 'saved_blast_not_found');
   await expectError(() => rpc(other.jwt, 'delete_saved_blast', { p_saved_blast_id: id2 }), 'saved_blast_not_found');
   assert((await rpc(other.jwt, 'can_customize_event_blast', { p_event_id: ev })) === false, 'not the organizer: false');
 
   // Downgraded: no listing or editing, but the owner can still clean up.
-  await rpc(org.jwt, 'set_account_plan', { p_plan: 'free' });
+  await setAccountPlan(org.id, 'free');
   await expectError(() => rpc(org.jwt, 'update_saved_blast', { p_saved_blast_id: id2, p_title: 'x', p_description: 'y' }), 'blast_customization_required');
   await rpc(org.jwt, 'delete_saved_blast', { p_saved_blast_id: id2 });
   assert((await sel('saved_blasts', `id=eq.${id2}&select=id`)).length === 0, 'deleted');
@@ -117,7 +117,7 @@ await run('D6: a Jammer+ organizer customises and saves on a group-less event (o
 
 await run('B10: text limits, unknown template, bad channel and scope', async () => {
   const org = await user('lim-org');
-  await rpc(org.jwt, 'set_account_plan', { p_plan: 'jammer_plus' });
+  await setAccountPlan(org.id, 'jammer_plus');
   const ev = await groupless(org);
   await expectError(() => send(org, ev, { p_title: 'x'.repeat(81) }), 'blast_too_long');
   await expectError(() => send(org, ev, { p_description: 'x'.repeat(1001) }), 'blast_too_long');
@@ -165,7 +165,7 @@ await run('D6: a Starter community event is template-only; a Basic one customise
 // ---------------------------------------------------------------------------------------------
 await run('D6: send_to all / confirmed / invited / waiting_list, email opt-in, alias all_members', async () => {
   const org = await user('scope-org');
-  await rpc(org.jwt, 'set_account_plan', { p_plan: 'jammer_plus' });
+  await setAccountPlan(org.id, 'jammer_plus');
   const [conf, wait, invRow, invPending, stale, optedOut] = [
     await user('sc-conf'), await user('sc-wait'), await user('sc-invrow'), await user('sc-invpend'),
     await user('sc-stale'), await user('sc-out'),
@@ -217,7 +217,7 @@ await run('D6: send_to all / confirmed / invited / waiting_list, email opt-in, a
 // ---------------------------------------------------------------------------------------------
 await run("D6: WhatsApp is recorded as 'shared' with the rendered text; no email, not retryable", async () => {
   const org = await user('wa-org');
-  await rpc(org.jwt, 'set_account_plan', { p_plan: 'jammer_plus' });
+  await setAccountPlan(org.id, 'jammer_plus');
   const p = await user('wa-p');
   const ev = await groupless(org);
   await insert('event_participants', { event_id: ev, user_id: p.id, status: 'confirmed' });
