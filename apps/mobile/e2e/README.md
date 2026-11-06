@@ -11,7 +11,8 @@ The web app has its own separate end-to-end suite (Playwright) at
 ## Prerequisites
 
 - Docker running, local `dev` stack up (CI uses its own, see "Which stack" below):
-  `export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token && pnpm dlx supabase@2.117.0 --workdir infra start`
+  `export SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN=local_test_token && /Users/Shared/paperclip-ops/stack-slot start padeljam -- pnpm dlx supabase@2.117.0 --workdir infra start`
+  (the slot script waits for one of the Mac's two stack slots; exit 75 means no slot and nothing started, so try later. Release it after stopping: `stack-slot release padeljam`. Keep the edge runtime and Mailpit: the suite needs both, so don't use `-x edge-runtime`.)
   (pinned to the version in the workflow's `SUPABASE_CLI_VERSION`, see
   `infra/supabase/README.md` for why; anything ≤2.75 pairs an ES256-signing GoTrue with an
   edge-runtime that only verifies HS256, so every `verify_jwt` edge function 401s locally).
@@ -218,7 +219,10 @@ The stacks are defined in [`scripts/e2e/stack.mjs`](../../../scripts/e2e/stack.m
 | `dev` (default) | `padeljam` | 55321 | 55324 | `supabase_db_padeljam` |
 | `ci` | `padeljam_ci` | 56321 | 56324 | `supabase_db_padeljam_ci` |
 
-CI runs on the `ci` stack, brought up by `node scripts/e2e/ci-stack.mjs`. That script also
+CI runs on the `ci` stack, brought up by `node scripts/e2e/ci-stack.mjs`. In a GitHub job it starts
+the stack directly: the runner has its own OrbStack, which the shared stack slots don't count. Run
+by hand on the company Mac, it queues through `stack-slot` and exits 75 if no slot comes free, having
+started nothing. That script also
 writes the repo-root `.env` and `apps/mobile/.env` with the stack's URL and keys. Because it
 shares no ports with the dev stack, it can't collide with the agents' stack. The `5632x`
 block is reserved for this runner: don't use it for anything else. Don't run the `ci` stack by
@@ -252,6 +256,8 @@ To remove the CI stack:
 ```bash
 SUPABASE_PROJECT_ID=padeljam_ci pnpm dlx supabase@2.117.0 --workdir infra stop --project-id padeljam_ci --no-backup
 ```
+
+If you started it by hand through a slot, then run `/Users/Shared/paperclip-ops/stack-slot release padeljam_ci`.
 
 **Never run a bare `supabase stop`**: it targets `padeljam` and takes down the agents' stack.
 
