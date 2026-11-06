@@ -7,7 +7,7 @@ import { tap, typeText } from '../driver/actions';
 import { freshInstall, relaunch } from '../driver/app';
 import { CONFIG } from '../driver/config';
 import { expectVisible } from '../driver/expect';
-import { deepLink, loginAs, tapAlertButton } from '../driver/flows';
+import { loginAs, tapAlertButton } from '../driver/flows';
 import { overrideStatusBar, screenshot } from '../driver/sim';
 import { rest } from '../fixtures/db';
 import { PERSONAS } from '../fixtures/personas';
@@ -86,14 +86,8 @@ describe('02 onboarding screens', () => {
 
         await tap({ text: new RegExp(escape(t.notificationsEnable), 'i'), type: 'Button' });
         await tapAlertButton(/allow|permitir/i);
-        await expectVisible({ text: /Jammer\+/ }, { timeout: 30_000 });
-        await shot('plans');
-
-        // Leaving by the ✕ marks onboarding done; then the settings-mode paywall must look as before.
-        await tap({ label: t.jammerPlusFree });
+        // Notifications is the last step with plans hidden (PAD-179): Allow lands on Home.
         await expectVisible({ text: MOBILE_NAMESPACES.home[locale === 'en' ? 'en' : 'pt-BR'].title, type: 'Heading' }, { timeout: 30_000 });
-        await deepLink('mobile:///profile/plan', /Jammer\+/);
-        await shot('paywall-settings');
       });
     });
   }

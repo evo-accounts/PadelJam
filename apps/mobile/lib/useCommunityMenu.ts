@@ -29,6 +29,7 @@ import {
   useLeaveCommunity,
 } from '@padel/api';
 import { useSession } from '@padel/auth';
+import { PLANS_VISIBLE } from '@padel/features';
 import { useT } from '@padel/i18n';
 import { useRouter } from 'expo-router';
 
@@ -197,7 +198,7 @@ export function useCommunityMenu(
     { key: 'members', label: t('manageMembers') },
     { key: 'groups', label: t('manageGroups') },
     ...(target.privacy === 'request_to_join' ? [{ key: 'requests', label: t('manageRequests') }] : []),
-    { key: 'plan', label: t('managePlan') },
+    ...(PLANS_VISIBLE ? [{ key: 'plan', label: t('managePlan') }] : []),
     share,
     copy,
     {

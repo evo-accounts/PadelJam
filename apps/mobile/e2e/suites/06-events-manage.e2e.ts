@@ -453,9 +453,9 @@ describe('06 event manage (organizer)', () => {
     await scrollUntilVisible({ id: 'manage-blast' }, { maxSwipes: 10 });
     await tap({ id: 'manage-blast' });
     await expectVisible({ id: 'blast-template-0' }, { timeout: 20_000 });
-    // Without customisation: one Templates grid, no Your blasts tab, and the plan prompt below.
+    // Without customisation: one Templates grid, no Your blasts tab, and no plan prompt below (plans are hidden, PAD-179).
     expect(query(await snapshot(), { id: 'blast-tabs-saved' }), 'no Your blasts tab without a plan').toBeUndefined();
-    await scrollUntilVisible({ id: 'blast-customize-upgrade-cta' }, { maxSwipes: 6 });
+    await expectGone({ id: 'blast-customize-upgrade-cta' }, { timeout: 3_000 });
     await shot('13-blast-templates.png');
     await scrollUntilVisible({ id: 'blast-template-0' }, { maxSwipes: 6, direction: 'down' });
     await tap({ id: 'blast-template-0' });
