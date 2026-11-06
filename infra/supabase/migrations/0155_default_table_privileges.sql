@@ -142,59 +142,59 @@ begin
    where defaclrole = 'postgres'::regrole and defaclnamespace = 'public'::regnamespace and defaclobjtype = 'S';
 
   if exists (select 1 from aclexplode(coalesce(v_tables, '{}')) a where a.grantee in (v_anon, v_auth)) then
-    raise exception '0150: the public default ACL for tables still names anon or authenticated: %', v_tables;
+    raise exception '0155: the public default ACL for tables still names anon or authenticated: %', v_tables;
   end if;
   if exists (select 1 from aclexplode(coalesce(v_seqs, '{}')) a where a.grantee in (v_anon, v_auth)) then
-    raise exception '0150: the public default ACL for sequences still names anon or authenticated: %', v_seqs;
+    raise exception '0155: the public default ACL for sequences still names anon or authenticated: %', v_seqs;
   end if;
   if not exists (select 1 from aclexplode(coalesce(v_tables, '{}')) a where a.grantee = v_service) then
-    raise exception '0150: service_role lost its default privileges on new tables in public; edge functions using the service key would break';
+    raise exception '0155: service_role lost its default privileges on new tables in public; edge functions using the service key would break';
   end if;
   if not exists (select 1 from aclexplode(coalesce(v_seqs, '{}')) a where a.grantee = v_service) then
-    raise exception '0150: service_role lost its default privileges on new sequences in public';
+    raise exception '0155: service_role lost its default privileges on new sequences in public';
   end if;
 
   select string_agg(t->>'table', ', ') into v_bad
     from jsonb_array_elements(public._audit_public_table_grants()->'tables') t
    where (t->>'anon_writes')::boolean;
   if v_bad is not null then
-    raise exception '0150: anon can still write to: %', v_bad;
+    raise exception '0155: anon can still write to: %', v_bad;
   end if;
 
   -- The effective result, for objects created the way every migration creates them: as postgres.
   -- The probe rolls back through a caught exception, so nothing is dropped and nothing is left.
   if current_user <> 'postgres' then
-    raise notice '0150: running as %, not postgres; skipping the probe (the catalog checks above passed)', current_user;
+    raise notice '0155: running as %, not postgres; skipping the probe (the catalog checks above passed)', current_user;
     return;
   end if;
   begin
-    create table public._0150_default_acl_probe (id integer);
-    create sequence public._0150_default_acl_probe_seq;
-    v_tbl := 'public._0150_default_acl_probe'::regclass;
-    v_seq := 'public._0150_default_acl_probe_seq'::regclass;
+    create table public._0155_default_acl_probe (id integer);
+    create sequence public._0155_default_acl_probe_seq;
+    v_tbl := 'public._0155_default_acl_probe'::regclass;
+    v_seq := 'public._0155_default_acl_probe_seq'::regclass;
     if has_table_privilege('anon', v_tbl, 'select') or has_table_privilege('anon', v_tbl, 'insert') then
-      raise exception '0150: a new table in public is still open to anon';
+      raise exception '0155: a new table in public is still open to anon';
     end if;
     if has_table_privilege('authenticated', v_tbl, 'select') or has_table_privilege('authenticated', v_tbl, 'insert') then
-      raise exception '0150: a new table in public is still open to authenticated';
+      raise exception '0155: a new table in public is still open to authenticated';
     end if;
     if not has_table_privilege('service_role', v_tbl, 'select') then
-      raise exception '0150: service_role cannot read a new table in public';
+      raise exception '0155: service_role cannot read a new table in public';
     end if;
     if has_sequence_privilege('anon', v_seq, 'usage') or has_sequence_privilege('authenticated', v_seq, 'usage') then
-      raise exception '0150: a new sequence in public is still open to anon or authenticated';
+      raise exception '0155: a new sequence in public is still open to anon or authenticated';
     end if;
     if not has_sequence_privilege('service_role', v_seq, 'usage') then
-      raise exception '0150: service_role cannot use a new sequence in public';
+      raise exception '0155: service_role cannot use a new sequence in public';
     end if;
     -- The way forward still works: an explicit grant opens the table to exactly the role named.
-    grant select on public._0150_default_acl_probe to authenticated;
+    grant select on public._0155_default_acl_probe to authenticated;
     if not has_table_privilege('authenticated', v_tbl, 'select') or has_table_privilege('anon', v_tbl, 'select') then
-      raise exception '0150: an explicit grant to authenticated did not open the table to authenticated alone';
+      raise exception '0155: an explicit grant to authenticated did not open the table to authenticated alone';
     end if;
-    raise exception '0150_probe_ok';
+    raise exception '0155_probe_ok';
   exception when others then
-    if sqlerrm <> '0150_probe_ok' then
+    if sqlerrm <> '0155_probe_ok' then
       raise;
     end if;
   end;

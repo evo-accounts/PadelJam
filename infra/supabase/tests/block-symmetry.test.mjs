@@ -169,7 +169,7 @@ await run('follows: neither side of a block can follow the other with a direct i
   await directFollow(bob, eva.id);
   assert((await edge(bob.id, eva.id)) === 1, 'the blocked person follows a bystander');
 
-  // CANNOT: anon, as before — TO authenticated opened nothing. Since 0150 anon has no INSERT grant
+  // CANNOT: anon, as before — TO authenticated opened nothing. Since 0155 anon has no INSERT grant
   // either, so the refusal now comes from the grant ("permission denied for table") before RLS.
   const res = await fetch(`${BASE_URL}/rest/v1/follows`, {
     method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json', Prefer: 'return=minimal' },

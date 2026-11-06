@@ -1,5 +1,5 @@
 // infra/supabase/tests/default-table-privileges.test.mjs
-// Migration 0150: new tables and sequences in public are closed by default, and anon holds no write
+// Migration 0155: new tables and sequences in public are closed by default, and anon holds no write
 // grant on any table. This file is also the guard for every future migration: it reads the catalog
 // through _audit_public_table_grants (the suite has no database connection, only PostgREST).
 import { BASE_URL, ANON, user, rpc, anonRpc, req, expectError, assert, run } from './lib.mjs';
@@ -32,7 +32,7 @@ await run('catalog: every table in public has RLS on and no anon write grant', a
   assert(noRls.length === 0,
     `tables without row level security: ${noRls.join(', ')}. Add \`alter table <t> enable row level security;\` in the migration that creates them.`);
   assert(anonWrites.length === 0,
-    `tables where anon can insert, update or delete: ${anonWrites.join(', ')}. Since 0150 a new table has no grants; ` +
+    `tables where anon can insert, update or delete: ${anonWrites.join(', ')}. Since 0155 a new table has no grants; ` +
     'remove the `grant ... to anon` (or `grant all`) from the migration that creates them, or `revoke insert, update, delete ... from anon`.');
 });
 
