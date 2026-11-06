@@ -10,9 +10,8 @@
 // The half worth reading is the negative space — who does NOT appear.
 import { user, rpc, insert, assert, run } from './lib.mjs';
 
-/** Starter caps a community at ONE group, and create_community_with_personal_tenant already made
- *  the general one. Any test needing a second group buys its way past the cap, exactly as
- *  infra/supabase/tests/social_graph.sql does — the cap itself is tested in caps.sql. */
+/** Starter has no group cap since 0156, but this fixture still pays for Basic as it always did;
+ *  create_community_with_personal_tenant already made the general group. Basic's cap is tested in caps.sql. */
 const liftGroupCap = (cid) => insert('community_subscriptions', { community_id: cid, plan_id: 'basic' });
 
 const block   = (u, target) => rpc(u.jwt, 'block_user',   { p_target: target });

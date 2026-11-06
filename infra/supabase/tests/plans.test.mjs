@@ -1,10 +1,10 @@
 // infra/supabase/tests/plans.test.mjs
-import { user, rpc, sel, patch, expectError, assert, run } from './lib.mjs';
+import { user, rpc, sel, insert, patch, adminCreateUser, expectError, assert, run } from './lib.mjs';
 
 const plan = (jwt) => rpc(jwt, 'account_plan_of_caller');
 const cplan = (jwt, id) => rpc(jwt, 'community_plan', { c: id });
 
-/** The caller becomes the community's creator and its first (and, on Starter, only) admin. */
+/** The caller becomes the community's creator and its first admin. */
 async function ownCommunity(owner, name) {
   return rpc(owner.jwt, 'create_community_with_personal_tenant', {
     p_name: name, p_type: 'club', p_country: 'PT', p_privacy: 'public',
@@ -51,62 +51,57 @@ await run('any admin can set the plan, not only the community creator', async ()
   // Refused while they are a plain member...
   await expectError(() => rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' }), 'forbidden');
 
-  // ...and allowed once promoted. The target is BASIC, not Starter, and that changed with 0104:
-  // the downgrade guard now checks co_organizers, and Starter's limit is 0 — "one admin, no
-  // co-organizers", with the creator holding that slot. This community has two admins, so a
-  // Starter downgrade is now correctly refused (asserted below). Basic allows 1 co-organizer,
-  // which is exactly what a second admin is, so it still proves the point of this test: a
-  // PROMOTED admin, who did not create the community, can change the plan.
+  // ...and allowed once promoted: a PROMOTED admin, who did not create the community, can change
+  // the plan. Basic allows 1 co-organizer, which is exactly what a second admin is.
   await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
   await patch('community_members', `community_id=eq.${cid}&user_id=eq.${promoted.id}`, { role: 'admin' });
   await rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
   assert((await cplan(promoted.jwt, cid)) === 'basic', 'a promoted admin downgraded the plan');
 
-  // The other half of the same fact: Starter is out of reach while the second admin exists.
-  await expectError(
-    () => rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' }),
-    'plan_downgrade_over_limit',
-  );
-  // Demote, and Starter opens up again — the guard tracks the current shape, not a one-way latch.
-  await patch('community_members', `community_id=eq.${cid}&user_id=eq.${promoted.id}`, { role: 'member' });
-  await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
-  assert((await cplan(creator.jwt, cid)) === 'starter', 'Starter is reachable once the co-organizer goes');
+  // Starter allows 3 co-organizers since 0156, so a second admin no longer blocks it.
+  await rpc(promoted.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
+  assert((await cplan(creator.jwt, cid)) === 'starter', 'Starter accepts a community with a co-organizer');
 });
 
-await run('a downgrade is refused while the community exceeds Starter limits', async () => {
-  const owner = await user('own2');
-  const cid = await ownCommunity(owner, 'Big Club');
-  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
-  await rpc(owner.jwt, 'create_group', { p_community_id: cid, p_name: 'Second', p_description: null, p_is_private: false, p_thumbnail_path: null });
-  await expectError(() => rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' }), 'plan_downgrade_over_limit');
-  await rpc(owner.jwt, 'archive_group', { p_group_id: (await sel('groups', `community_id=eq.${cid}&is_general=eq.false&select=id`))[0].id });
-  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
-  assert((await cplan(owner.jwt, cid)) === 'starter', 'downgraded after archiving');
+// 0156 pins a consequence the founder accepted for launch: Starter (250 / unlimited / unlimited / 3)
+// is now LOOSER than Basic (50 / 3 / 5 / 1), so a Starter community that has used its room can be
+// refused a move to Basic. Groups are covered by the Community Pro -> Basic test below.
+await run('a Starter community with four groups is refused Basic', async () => {
+  const owner = await user('starterBig');
+  const cid = await ownCommunity(owner, 'Big Starter Club');
+  for (const name of ['S2', 'S3', 'S4']) {
+    await rpc(owner.jwt, 'create_group', { p_community_id: cid, p_name: name, p_description: null, p_is_private: false, p_thumbnail_path: null });
+  }
+  assert((await cplan(owner.jwt, cid)) === 'starter', 'still on starter');
+  await expectError(() => rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' }), 'plan_downgrade_over_limit');
 });
 
-// Starter's members_per_community seed value (0013) is 10 — small enough to hit directly:
-// 11 members (the owner plus 10 joiners) is one over the cap.
-await run('a downgrade is refused while the community exceeds the Starter member cap', async () => {
+// Basic's members_per_community is 50: 51 members (the owner plus 50 joiners) is one over. The
+// members are inserted as the service role; 50 sign-ups through the join RPC would be slow.
+await run('a downgrade is refused while the community exceeds the Basic member cap', async () => {
   const owner = await user('memcap');
   const cid = await ownCommunity(owner, 'Crowded Club');
   await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
-  const joiners = [];
-  for (let i = 0; i < 10; i++) {
-    const m = await user(`memcap${i}`);
-    await rpc(m.jwt, 'join_community', { p_community_id: cid, p_ack: true });
-    joiners.push(m);
+  const run = Date.now().toString(36);
+  const ids = [];
+  for (let b = 0; b < 5; b++) {
+    ids.push(...await Promise.all(Array.from({ length: 10 }, (_, k) => {
+      const n = b * 10 + k;
+      return adminCreateUser(`memcap${n}-${run}@rpctest.local`, '+3519' + String(Math.floor(Math.random() * 1e8)).padStart(8, '0'));
+    })));
   }
-  assert(
-    (await sel('community_members', `community_id=eq.${cid}&select=user_id`)).length === 11,
-    'owner plus 10 joiners',
-  );
+  await insert('profiles', ids.map((id, n) => ({
+    id, email: `memcap${n}-${run}@rpctest.local`, phone: `+3519${String(70000000 + n)}`, full_name: `Crowd ${n}`, locale: 'en',
+  })));
+  await insert('community_members', ids.map((id) => ({ community_id: cid, user_id: id, role: 'member' })));
+  assert((await sel('community_members', `community_id=eq.${cid}&select=user_id`)).length === 51, 'owner plus 50 members');
   await expectError(
-    () => rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' }),
+    () => rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' }),
     'plan_downgrade_over_limit',
   );
-  await rpc(owner.jwt, 'remove_member', { p_community_id: cid, p_user_id: joiners[0].id });
-  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
-  assert((await cplan(owner.jwt, cid)) === 'starter', 'downgraded once back at the 10-member cap');
+  await rpc(owner.jwt, 'remove_member', { p_community_id: cid, p_user_id: ids[0] });
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
+  assert((await cplan(owner.jwt, cid)) === 'basic', 'downgraded once back at the 50-member cap');
 });
 
 // ---------------------------------------------------------------------------
@@ -163,8 +158,9 @@ await run('a Community Pro -> Basic downgrade is refused while over Basic group 
   assert((await cplan(owner.jwt, cid)) === 'basic', 'accepted once back within Basic limits');
 });
 
-// An UPGRADE runs the same guard now. It must never refuse: the target's limits are looser than
-// whatever the community is already within.
+// An UPGRADE runs the same guard. Basic -> Community Pro must never refuse: Pro's limits are looser
+// than whatever a Basic community is already within. (Starter -> Basic is NOT an upgrade in limits
+// any more: see the four-groups test above.)
 await run('an upgrade is never refused by the limit guard', async () => {
   const owner = await user('upgradeGuard');
   const cid = await ownCommunity(owner, 'Upgrade Club');
@@ -201,23 +197,39 @@ await run('a downgrade is refused while the community has more co-organizers tha
   await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
   assert((await cplan(creator.jwt, cid)) === 'basic', 'one co-organizer fits Basic');
 
-  // Starter allows 0, so it is refused until the admin is demoted.
+  // Basic is tighter than Starter now, so a second co-organizer is refused on Basic until demoted.
+  const third = await user('coOrgGuard3');
+  await rpc(third.jwt, 'join_community', { p_community_id: cid, p_ack: true });
+  await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
+  await patch('community_members', `community_id=eq.${cid}&user_id=eq.${third.id}`, { role: 'admin' });
   await expectError(
-    () => rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' }),
+    () => rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' }),
     'plan_downgrade_over_limit',
   );
-  await patch('community_members', `community_id=eq.${cid}&user_id=eq.${second.id}`, { role: 'member' });
-  await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
-  assert((await cplan(creator.jwt, cid)) === 'starter', 'accepted once the co-organizer is gone');
+  await patch('community_members', `community_id=eq.${cid}&user_id=eq.${third.id}`, { role: 'member' });
+  await rpc(creator.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
+  assert((await cplan(creator.jwt, cid)) === 'basic', 'accepted once the extra co-organizer is gone');
 });
 
 await run('a sole-admin community is never blocked by the co-organizer guard', async () => {
   // The creator holds the first admin slot, so co-organizers is admins MINUS ONE. If that minus
-  // one were missing, every community would be one over on Starter and no downgrade would ever
-  // succeed — the failure mode this asserts against.
+  // one were missing, a lone creator would count as a co-organizer and every community would sit
+  // one over the limit; a lone creator must always pass.
   const owner = await user('soleAdmin');
   const cid = await ownCommunity(owner, 'Sole Admin Club');
   await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'community_pro' });
-  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'starter' });
-  assert((await cplan(owner.jwt, cid)) === 'starter', 'a lone creator downgrades to Starter');
+  await rpc(owner.jwt, 'set_community_plan', { p_community_id: cid, p_plan: 'basic' });
+  assert((await cplan(owner.jwt, cid)) === 'basic', 'a lone creator downgrades to Basic');
+});
+
+// Acceptance 4 for 0156: the paid plans' limits did not move.
+await run('Basic and Community Pro limits are unchanged by the Starter launch limits', async () => {
+  const rows = await sel('plan_limits', 'plan_id=in.(basic,community_pro)&select=plan_id,limit_key,value');
+  const have = Object.fromEntries(rows.map((r) => [`${r.plan_id}/${r.limit_key}`, r.value]));
+  const want = {
+    'basic/members_per_community': 50, 'basic/groups_per_community': 3, 'basic/recurring_events': 5, 'basic/co_organizers': 1,
+    'community_pro/members_per_community': 250, 'community_pro/groups_per_community': null,
+    'community_pro/recurring_events': null, 'community_pro/co_organizers': 3,
+  };
+  for (const [k, v] of Object.entries(want)) assert(k in have && have[k] === v, `${k} should be ${v}, got ${have[k]}`);
 });

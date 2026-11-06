@@ -1,15 +1,15 @@
 -- Join flows: public instant-join (+general group), rules-ack gate, request_to_join, private invite,
--- and the members_per_community cap (starter=10) hit on the 11th join.
+-- and the members_per_community cap (starter=250) hit on the 251st join.
 begin;
 -- Fixtures as postgres (auth.users + profiles must pre-exist; community_members.user_id FK -> profiles).
 insert into auth.users (id, instance_id, aud, role)
-  select ('a0000000-0000-0000-0000-0000000000'||lpad(g::text,2,'0'))::uuid,
+  select ('a0000000-0000-0000-0000-'||lpad(g::text,12,'0'))::uuid,
          '00000000-0000-0000-0000-000000000000','authenticated','authenticated'
-  from generate_series(1,9) g;                      -- 9 fillers
+  from generate_series(1,249) g;                    -- 249 fillers
 insert into profiles (id, email, phone, full_name)
-  select ('a0000000-0000-0000-0000-0000000000'||lpad(g::text,2,'0'))::uuid,
+  select ('a0000000-0000-0000-0000-'||lpad(g::text,12,'0'))::uuid,
          'fill'||g||'@x.com', '+35190090'||lpad(g::text,4,'0'), 'Fill'||g
-  from generate_series(1,9) g;
+  from generate_series(1,249) g;
 insert into auth.users (id, instance_id, aud, role) values
   ('a1000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated'),
   ('a1000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated'),
@@ -25,19 +25,19 @@ set local request.jwt.claims = '{"sub":"a1000000-0000-0000-0000-000000000001","r
 select create_community_with_personal_tenant('JoinCap','club','PT','public') as cid \gset
 reset role;
 
--- Fill to 10 members (owner is #1; add 9). Trigger fires on each; the 10th (count 9->10) is OK.
+-- Fill to 250 members (owner is #1; add 249). Trigger fires on each; the 250th (count 249->250) is OK.
 insert into community_members (community_id, user_id, role)
-  select :'cid', ('a0000000-0000-0000-0000-0000000000'||lpad(g::text,2,'0'))::uuid, 'member'
-  from generate_series(1,9) g;
+  select :'cid', ('a0000000-0000-0000-0000-'||lpad(g::text,12,'0'))::uuid, 'member'
+  from generate_series(1,249) g;
 
--- 11th join must hit the member cap.
+-- 251st join must hit the member cap.
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated"}';
 do $$ begin
   begin
     perform join_community((select id from communities where name='JoinCap' order by created_at desc limit 1), false);
-    raise exception using errcode='PT001', message='11th join should hit members cap';
-  exception when sqlstate 'P0001' then raise notice 'OK members cap: 11th join blocked (%)', sqlerrm;
+    raise exception using errcode='PT001', message='251st join should hit members cap';
+  exception when sqlstate 'P0001' then raise notice 'OK members cap: 251st join blocked (%)', sqlerrm;
   end;
 end $$;
 reset role;

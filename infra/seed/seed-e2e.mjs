@@ -94,11 +94,11 @@ async function signIn(email, password) {
 // whole E2E suite ran for months with no plan limit enforced at all. Assert the
 // tables up front so the next regression fails here instead of nowhere.
 const EXPECTED_LIMITS = {
-  'starter/groups_per_community': 1,
+  'starter/groups_per_community': null,
   'basic/groups_per_community': 3,
-  'starter/members_per_community': 10,
+  'starter/members_per_community': 250,
   'basic/members_per_community': 50,
-  'starter/co_organizers': 0,
+  'starter/co_organizers': 3,
   'basic/co_organizers': 1,
 };
 const WIPE_HINT =
@@ -321,9 +321,9 @@ async function main() {
   await insert('community_subscriptions', { community_id: commR, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual' });
 
   // C5: single-admin community on the default Starter plan (created by carla) —
-  // the last-admin guard (0098) and plan-cap fixtures. Starter allows ONE group
-  // per community and the general group created below fills it, so this
-  // community sits exactly AT the cap (see the groups section).
+  // the last-admin guard (0098) and Starter fixtures. Starter has no group cap
+  // since 0156 (250 members, 3 co-organizers), so the general group created below
+  // is just its one group. The group-cap probe uses Basic community R instead.
   const commS = await rpc(jwt('carla'), 'create_community_with_personal_tenant', {
     p_name: 'Carla Solo Club', p_type: 'friends', p_country: 'PT', p_privacy: 'public',
     p_description: 'Starter plan, one admin.', p_location: 'Faro, PT',
@@ -395,19 +395,23 @@ async function main() {
   // COMMUNITY but not in the group, and joao is a member of Review Club too.
   const g3 = await rpc(jwt('alex'), 'create_group', { p_community_id: commA, p_name: 'Secret Squad', p_description: 'Private group.', p_is_private: true, p_thumbnail_path: null });
   await rpc(jwt('alex'), 'invite_to_group', { p_group_id: g3, p_invitee_id: id('maria') }); // invited-private join path
-  // commS has NO subscription, so it is on Starter, whose groups_per_community
-  // is 1 — and its auto-created general group already occupies that one slot.
-  // "Starter cap reached" is therefore the state the community is ALREADY in;
-  // the "Only Group" the seed used to create on top of it was one OVER the cap,
-  // not at it. gS is that general group: the only group in the community, which
-  // is what the fixture always meant.
+  // commS has NO subscription, so it is on Starter. Starter's groups_per_community
+  // is unlimited since the launch limits (0156), so commS is no longer "at a cap";
+  // gS stays the general group, the only group in the community, which is what
+  // the fixture always meant.
   const generalS = await sel('groups', `community_id=eq.${commS}&is_general=eq.true&select=id`);
   if (generalS.length !== 1) {
     throw new Error(`commS should have exactly one general group, found ${generalS.length}`);
   }
   const gS = generalS[0].id;
-  console.log(`  groups: g1=${g1} g2=${g2} g3(private, in R)=${g3} gR=${gR} gS(general, at Starter cap)=${gS}`);
-  await assertGroupCapEnforced(commS, 'carla');
+  console.log(`  groups: g1=${g1} g2=${g2} g3(private, in R)=${g3} gR=${gR} gS(general, Starter)=${gS}`);
+  // The cap probe needs a community sitting exactly AT its cap. Starter has no
+  // group cap now, so use Basic's community R (general + Review League = 2 of 3):
+  // fill the last slot with a throwaway group, prove a further group is refused,
+  // then remove the filler so R keeps its free slot for the suites.
+  const fillerR = await rpc(jwt('tiago'), 'create_group', { p_community_id: commR, p_name: 'Cap Filler', p_description: null, p_is_private: false, p_thumbnail_path: null });
+  await assertGroupCapEnforced(commR, 'tiago');
+  await req(`/rest/v1/groups?id=eq.${fillerR}`, { method: 'DELETE' });
 
   // 6) Venue + courts -------------------------------------------------------
   const venue = await insert('venues', { name: 'Lisbon Padel Arena', address: 'Av. da Liberdade, Lisbon', community_id: commA, created_by: id('alex') });

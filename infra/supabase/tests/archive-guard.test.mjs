@@ -1,7 +1,7 @@
 // infra/supabase/tests/archive-guard.test.mjs
 import { user, rpc, sel, expectError, assert, run, insert } from './lib.mjs';
 
-/** Owner + community on the Basic plan (Starter allows one group, so a second group would be refused). */
+/** Owner + community on the Basic plan (Basic caps groups at 3, which keeps the group-cap fixtures realistic). */
 async function clubFor(tag) {
   const owner = await user(tag);
   const communityId = await rpc(owner.jwt, 'create_community_with_personal_tenant', {

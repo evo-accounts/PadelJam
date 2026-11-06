@@ -35,44 +35,50 @@ begin
   raise notice 'OK transfer_ownership is gone';
 end $$;
 
--- 4. The cap allows exactly one admin on Starter, whose co_organizers limit is 0. This is the
---    reading that makes the backfill and create_community_with_personal_tenant possible at all:
---    a co-organizer is an admin BEYOND THE FIRST.
-insert into auth.users (id, instance_id, aud, role, email) values
-  ('cb000001-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','rl1@x.com'),
-  ('cb000002-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000000','authenticated','authenticated','rl2@x.com') on conflict do nothing;
-insert into profiles (id, email, phone, full_name) values
-  ('cb000001-0000-0000-0000-000000000001','rl1@x.com','+351900500001','Rl1'),
-  ('cb000002-0000-0000-0000-000000000002','rl2@x.com','+351900500002','Rl2') on conflict do nothing;
+-- 4. A co-organizer is an admin BEYOND THE FIRST. Starter's co_organizers limit is 3 (0156), so the
+--    creator plus three co-organizers (four admins) fit and the fifth admin is refused. This is the
+--    reading that makes the backfill and create_community_with_personal_tenant possible at all.
+insert into auth.users (id, instance_id, aud, role, email)
+  select ('cb00000'||g||'-0000-0000-0000-00000000000'||g)::uuid,
+         '00000000-0000-0000-0000-000000000000','authenticated','authenticated','rl'||g||'@x.com'
+  from generate_series(1,5) g on conflict do nothing;
+insert into profiles (id, email, phone, full_name)
+  select ('cb00000'||g||'-0000-0000-0000-00000000000'||g)::uuid,
+         'rl'||g||'@x.com', '+35190050000'||g, 'Rl'||g
+  from generate_series(1,5) g on conflict do nothing;
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"cb000001-0000-0000-0000-000000000001","role":"authenticated"}';
 select create_community_with_personal_tenant('RolesC','friends','PT','public') as cid \gset
 reset role;
-set local role authenticated;
-set local request.jwt.claims = '{"sub":"cb000002-0000-0000-0000-000000000002","role":"authenticated"}';
-do $$ declare cid uuid := (select id from communities where name='RolesC' order by created_at desc limit 1);
-begin perform join_community(cid, false); end $$;
-reset role;
+insert into community_members (community_id, user_id, role)
+  select :'cid', ('cb00000'||g||'-0000-0000-0000-00000000000'||g)::uuid, 'member' from generate_series(2,5) g;
 
 do $$
-declare cid uuid := (select id from communities where name='RolesC' order by created_at desc limit 1);
+declare cid uuid := (select id from communities where name='RolesC' order by created_at desc limit 1); g int;
 begin
   if community_plan(cid) <> 'starter' then
     raise exception using errcode='PT001', message='fixture drift: RolesC should be on starter'; end if;
-  if coalesce((select value from plan_limits where plan_id='starter' and limit_key='co_organizers'), -1) <> 0 then
-    raise exception using errcode='PT001', message='fixture drift: starter co_organizers should be 0'; end if;
+  if coalesce((select value from plan_limits where plan_id='starter' and limit_key='co_organizers'), -1) <> 3 then
+    raise exception using errcode='PT001', message='fixture drift: starter co_organizers should be 3'; end if;
   if (select count(*) from community_members where community_id=cid and role='admin') <> 1 then
-    raise exception using errcode='PT001', message='a starter community must hold its one creator-admin'; end if;
-  raise notice 'OK starter holds one admin despite co_organizers = 0';
+    raise exception using errcode='PT001', message='a starter community must start with its one creator-admin'; end if;
+
+  for g in 2..4 loop
+    update community_members set role='admin'
+      where community_id=cid and user_id=('cb00000'||g||'-0000-0000-0000-00000000000'||g)::uuid;
+  end loop;
+  if (select count(*) from community_members where community_id=cid and role='admin') <> 4 then
+    raise exception using errcode='PT001', message='creator + 3 co-organizers should be 4 admins'; end if;
+  raise notice 'OK starter holds the creator-admin plus three co-organizers';
 
   begin
-    update community_members set role='admin' where community_id=cid and user_id='cb000002-0000-0000-0000-000000000002';
-    raise exception using errcode='PT001', message='the SECOND admin on starter should hit the cap';
+    update community_members set role='admin' where community_id=cid and user_id='cb000005-0000-0000-0000-000000000005';
+    raise exception using errcode='PT001', message='the FIFTH admin on starter should hit the cap';
   exception when sqlstate 'P0001' then
     if sqlerrm not like '%co_organizers%' then
       raise exception using errcode='PT001', message='wrong code for the cap: ' || sqlerrm; end if;
-    raise notice 'OK the second admin on starter is still capped (%)', sqlerrm;
+    raise notice 'OK the fourth co-organizer on starter is capped (%)', sqlerrm;
   end;
 end $$;
 rollback;

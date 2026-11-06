@@ -17,7 +17,7 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"cf000001-0000-0000-0000-000000000001","role":"authenticated"}';
 select create_community_with_personal_tenant('ToggleC','club','PT','public') as cid \gset
 reset role;
--- Pro plan so the group cap (starter = 1, already used by the general group) never masks a
+-- Pro plan so a plan cap never masks a
 -- permission refusal with a cap refusal.
 insert into community_subscriptions (community_id, plan_id)
   select id, 'community_pro' from communities where name='ToggleC' order by created_at desc limit 1

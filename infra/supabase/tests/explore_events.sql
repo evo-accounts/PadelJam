@@ -16,7 +16,7 @@ begin
   cid := create_community_with_personal_tenant('EeC','club','PT','public');
 
   perform set_config('role','postgres',true);
-  -- starter plan allows only 1 group; upgrade to basic (limit=3) so we can add a test group.
+  -- fixture pays for basic (groups limit 3); Starter has no group cap since 0156. Add a test group.
   insert into community_subscriptions (community_id, plan_id)
     values (cid,'basic') on conflict (community_id) do update set plan_id='basic';
   insert into groups (community_id, name, is_private) values (cid,'EeG',false) returning id into gid;

@@ -18,7 +18,7 @@ const club = (owner, name) =>
     p_cancellation_rules_enabled: false, p_cancellation_rules_text: null,
   });
 
-/** Starter allows one group, which the general group already occupies. */
+/** The general group is the community's first group (Starter has no group cap since 0156). */
 const upgradeToBasic = (communityId) =>
   insert('community_subscriptions', {
     community_id: communityId, dimension: 'community', plan_id: 'basic', status: 'active', provider: 'manual',

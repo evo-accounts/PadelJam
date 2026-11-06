@@ -301,9 +301,10 @@ refilled on the next wipe from PostGIS's own `spatial_ref_sys.sql` in the db con
 truncated by the wipe, which made `community_limit()` return null for every key and
 every cap read as unlimited — no plan limit was enforced in an E2E run at all. It is
 preserved now, so the fixtures have to fit: `groups_per_community` counts the
-auto-created general group, so a Basic community (A, R) holds it plus two more and a
-Starter community (P, S) holds only it. The seed asserts the reference data before it
-starts and proves the cap actually bites before it finishes; a suite that creates a
+auto-created general group, so a Basic community (C, R) holds it plus two more, while Starter
+(P, S) has no group cap since 0156 and A is on Community Pro. The seed asserts the
+reference data before it starts and proves the cap actually bites (on Basic community
+R, filled with a throwaway group) before it finishes; a suite that creates a
 group or promotes a second co-organizer in A or C will now hit a real cap.
 
 **Some states are unreachable through the RPCs alone.** Public group events

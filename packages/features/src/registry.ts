@@ -51,7 +51,7 @@ export const PLAN_MATRIX: readonly PlanDef[] = [
       { key: 'event_management', mvp: true }, { key: 'community_feed', mvp: true },
       { key: 'discoverability', mvp: true },
     ],
-    limits: { members_per_community: 10, groups_per_community: 1, recurring_events: 1, co_organizers: 0 },
+    limits: { members_per_community: 250, groups_per_community: null, recurring_events: null, co_organizers: 3 },
   },
   {
     id: 'basic', dimension: 'community', isDefault: false, mvp: true,
