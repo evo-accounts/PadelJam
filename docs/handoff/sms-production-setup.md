@@ -1,3 +1,9 @@
+> **Phone sign-in is hidden for launch (PAD-137).** The founder chose no Twilio spend. Locally,
+> `[auth.sms] enable_signup = false`, and on hosted the provider is off and the Twilio token is a
+> placeholder. Re-enabling phone means this document (real Twilio credentials, Messaging Service,
+> Brazil sender), restoring the real Twilio token, switching the provider back on, reverting the
+> hide PR (`feat/hide-phone-sign-in`), and restoring `[auth.sms.test_otp]` in `config.toml`.
+
 # Enabling real SMS for phone sign-in
 
 Phone sign-in works locally today only because GoTrue returns a fixed code for two

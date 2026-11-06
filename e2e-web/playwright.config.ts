@@ -53,7 +53,7 @@ export default defineConfig({
    * already running. `next dev` reads apps/web/.env.local, which points the
    * Supabase client at the local stack (http://localhost:55321). Tests that hit
    * the backend (e.g. auth-identifier.spec.ts) additionally need that stack up
-   * — start it with `supabase start`.
+   * — start it as e2e-web/README.md says, through the stack slots.
    */
   webServer: {
     command: `pnpm --filter web exec next dev --port ${WEB_PORT}`,

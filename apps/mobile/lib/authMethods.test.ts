@@ -19,14 +19,14 @@ describe('availableMethods', () => {
     expect(availableMethods(NONE, 'email')).toEqual([]);
   });
 
-  it('offers the phone and the password when email is the one in use', () => {
+  it('offers only the password when email is the one in use, even with a phone on file', () => {
     const m = methods({ hasEmail: true, hasPhone: true, hasPassword: true, phoneMasked: '+351•••••5678' });
-    expect(availableMethods(m, 'email')).toEqual(['sms', 'password']);
+    expect(availableMethods(m, 'email')).toEqual(['password']);
   });
 
   it('leaves out the password row when the account has no password', () => {
     const m = methods({ hasEmail: true, hasPhone: true, hasGoogle: true });
-    expect(availableMethods(m, 'sms')).toEqual(['email', 'google']);
+    expect(availableMethods(m, 'sms')).toEqual(['email', 'google']); // sms in use (old session): still never listed
   });
 
   it('always removes the method in use, even when it is the only one', () => {
@@ -34,7 +34,7 @@ describe('availableMethods', () => {
     expect(availableMethods(methods({ hasGoogle: true }), 'google')).toEqual([]);
   });
 
-  it('orders sms, email, password, google, apple whatever the flags say', () => {
+  it('orders email, password, google, apple whatever the flags say', () => {
     const all = methods({
       hasEmail: true,
       hasPhone: true,
@@ -43,8 +43,10 @@ describe('availableMethods', () => {
       hasPassword: true,
     });
     expect(availableMethods(all, 'sms')).toEqual(['email', 'password', 'google', 'apple']);
-    expect(availableMethods(all, 'apple')).toEqual(['sms', 'email', 'password', 'google']);
+    // sms is never offered at launch (PAD-137), whatever the account has.
+    expect(availableMethods(all, 'email')).not.toContain('sms');
+    expect(availableMethods(all, 'apple')).toEqual(['email', 'password', 'google']);
     // Order does not depend on which method is removed.
-    expect(availableMethods(all, 'password')).toEqual(['sms', 'email', 'google', 'apple']);
+    expect(availableMethods(all, 'password')).toEqual(['email', 'google', 'apple']);
   });
 });
