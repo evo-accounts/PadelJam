@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowDown, ArrowLeft, ArrowUp, MapPin, Plus, Trash2 } from 'lucide-react';
-import { useDeleteVenue, useSaveVenue, useVenue, useVenueCourts, type VenueCourt, type VenueDetail } from '@padel/api';
+import { IMAGE_ACCEPT, useDeleteVenue, useSaveVenue, useVenue, useVenueCourts, type VenueCourt, type VenueDetail } from '@padel/api';
 import { useT } from '@padel/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -233,7 +233,7 @@ function VenueFormBody({ venue, courts: initialCourts }: { venue: VenueDetail | 
               id="venue-image"
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept={IMAGE_ACCEPT}
               className="sr-only"
               onChange={(e) => pick(e.target.files?.[0] ?? null)}
             />

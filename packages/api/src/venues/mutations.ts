@@ -5,6 +5,13 @@ import { qk } from '../query-keys';
 /** Public bucket for registry venue images (migration 0114). Writes: super admins only. */
 export const VENUE_IMAGES_BUCKET = 'venue-images';
 
+/** The limits every image bucket enforces (migration 0163; venue-images since 0114). Both clients check
+ *  them before uploading so the user gets a clear message instead of a raw storage error. */
+export const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+/** For `<input accept>`: the same list, comma-joined. */
+export const IMAGE_ACCEPT = IMAGE_MIME_TYPES.join(',');
+
 /** Object path for a new venue image: flat `{uuid}.{ext}` (a new venue has no id yet). */
 export function venueImagePath(fileName: string, uuid: string): string {
   const dot = fileName.lastIndexOf('.');

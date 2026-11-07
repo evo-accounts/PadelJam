@@ -1,5 +1,6 @@
 'use client';
 import { useRef } from 'react';
+import { IMAGE_ACCEPT } from '@padel/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
@@ -72,7 +73,7 @@ export function ImagePickerRow({
           id={id}
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept={IMAGE_ACCEPT}
           className="sr-only"
           data-testid={testId ? `${testId}-input` : undefined}
           onChange={(e) => {

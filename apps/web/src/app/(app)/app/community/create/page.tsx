@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { useT } from '@padel/i18n';
-import { createCommunitySchema, useCreateCommunity, useCanCreateCommunity, type LocationPoint } from '@padel/api';
+import { IMAGE_ACCEPT, createCommunitySchema, useCreateCommunity, useCanCreateCommunity, type LocationPoint } from '@padel/api';
 import { PlacePicker } from '@/components/community/PlacePicker';
 import { uploadCommunityImage } from '@/lib/upload';
 import { supabase } from '@/lib/supabase/client';
@@ -202,7 +202,7 @@ export default function CreateCommunityPage() {
                 id="thumbnail"
                 type="file"
                 className="max-w-full"
-                accept="image/*"
+                accept={IMAGE_ACCEPT}
                 onChange={(e) => onThumbnailChange(e.target.files?.[0] ?? null)}
               />
               {thumbnailPreview ? (
@@ -217,7 +217,7 @@ export default function CreateCommunityPage() {
                 id="cover"
                 type="file"
                 className="max-w-full"
-                accept="image/*"
+                accept={IMAGE_ACCEPT}
                 onChange={(e) => onCoverChange(e.target.files?.[0] ?? null)}
               />
               {coverPreview ? (
