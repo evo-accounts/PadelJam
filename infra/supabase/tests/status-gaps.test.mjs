@@ -224,8 +224,8 @@ await run('an outsider, signed in or not, cannot learn who may invite into or ad
   assert((await rpc(prober.jwt, 'may_invite_to_group', { g: squad, u: vaultOwner.id })) === false, 'no invite answer about its admin');
   assert((await rpc(prober.jwt, 'may_invite_to_group', { g: P2gen, u: vaultMember.id })) === false, 'nor about a plain member');
   assert((await rpc(prober.jwt, 'is_group_admin', { g: squad, u: vaultOwner.id })) === false, 'no admin answer about its admin');
-  // is_group_admin stays executable by anon (RLS policies call it), so anon gets an answer — false.
-  assert((await anonRpc('is_group_admin', { g: squad, u: vaultOwner.id })) === false, 'anon gets false too');
+  // 0159: is_group_admin is closed to anon (its policies are `to authenticated` now).
+  await expectError(() => anonRpc('is_group_admin', { g: squad, u: vaultOwner.id }), DENIED);
   await expectError(() => anonRpc('may_invite_to_group', { g: squad, u: vaultOwner.id }), DENIED);
   // The rules themselves are internal.
   for (const fn of ['_may_invite_to_group', '_is_group_admin']) {

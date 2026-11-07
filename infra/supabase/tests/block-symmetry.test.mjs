@@ -169,13 +169,14 @@ await run('follows: neither side of a block can follow the other with a direct i
   await directFollow(bob, eva.id);
   assert((await edge(bob.id, eva.id)) === 1, 'the blocked person follows a bystander');
 
-  // CANNOT: anon, as before — TO authenticated opened nothing.
+  // CANNOT: anon, as before — TO authenticated opened nothing. Since 0155 anon has no INSERT grant
+  // either, so the refusal now comes from the grant ("permission denied for table") before RLS.
   const res = await fetch(`${BASE_URL}/rest/v1/follows`, {
     method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
     body: JSON.stringify({ follower_id: eva.id, followee_id: bob.id }),
   });
   const text = await res.text();
-  assert(!res.ok && text.includes(RLS), `anon cannot insert a follow (got ${res.status}: ${text.slice(0, 200)})`);
+  assert(!res.ok && (text.includes(RLS) || text.includes('permission denied for table')), `anon cannot insert a follow (got ${res.status}: ${text.slice(0, 200)})`);
   assert((await edge(eva.id, bob.id)) === 0, 'no edge from the anon attempt');
 
   // Unblocking lets them follow each other again.
