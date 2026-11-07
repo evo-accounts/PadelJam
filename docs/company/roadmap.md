@@ -2,7 +2,7 @@
 
 Goal: launch PadelJam, free, on the App Store and Google Play in Portugal and Brazil in **January 2027**. Every launched area works in pt-PT, pt-BR and en, and the privacy policy and terms have been reviewed. Jammer+, community plans and the club dashboard come after launch.
 
-_Owner: CEO. Last updated 2026-11-05, 10:30 UTC. The dates follow the rollout in `docs/superpowers/specs/2026-10-29-agent-team-design.md`, counted from the pilot's start on 2026-10-30._
+_Owner: CEO. Last updated 2026-11-06, 08:10 UTC. The dates follow `docs/business/launch-plan.md`, which holds the row-by-row plan._
 
 ## Rule for trade-offs
 
@@ -13,22 +13,26 @@ Cut scope before slipping the date. Anything that won't be launch-ready gets hid
 | Phase | Dates | Outcome | Owner |
 |---|---|---|---|
 | Pilot | 2026-10-30 → 11-04 | Done: 0146 and 0147 merged by the CTO, hosted SQL applied by the founder. Retro written (`docs/company/2026-11-04-pilot-retro.md`). Founder's decision: staged go ([PAD-33](/PAD/issues/PAD-33)). | CEO, CTO |
-| Team on | ~11-06 → 11-12 | In two steps (`docs/company/2026-11-04-team-on-plan.md`): PM, Release & Ops and Head of Business about 11-06, once the founder releases the hold ([PAD-56](/PAD/issues/PAD-56)); Designer, Legal and Growth about 11-12, if nothing got worse on the Mac. Launch plan with a January date (Head of Business). Launch-ready checklist per area (PM). Store-readiness gap list, Android especially (Release & Ops). | CEO |
-| Build and prepare | ~11-13 → 12-24 | Launch blockers fixed. iOS hardware pass from 11-04 ([PAD-32](/PAD/issues/PAD-32), founder); iOS and Android pass on the release candidate before freeze. Android store build. Listings in three locales. Privacy label. Legal drafts out for human review. | CTO, Head of Business |
+| Team on | 11-05 → ~11-12 | First group (Head of Business, PM, Release & Ops) started 11-05 14:45 UTC; their plan, checklist and gap list are on `main`. Second group (Designer, Growth) about 11-12, only if the check on 11-11 passes ([PAD-52](/PAD/issues/PAD-52)). Legal is now a separate company, not a hire. | CEO |
+| Build and prepare | now → 12-24 | Launch blockers fixed. iOS build 19 and device pass from 11-20 ([PAD-311](/PAD/issues/PAD-311), [PAD-32](/PAD/issues/PAD-32)); first Android build by 11-20 ([PAD-253](/PAD/issues/PAD-253)); release candidate 12-22. Listings in three locales. Privacy label. Interim policy live 12-03; legal drafts to human review 11-25, reviewed text 12-21. | CTO, Head of Business |
 | Freeze and submit | ~12-28 → 2027-01-08 | Fixes only. Help articles. The founder submits to both stores, leaving time for review. | CTO, founder |
 | Launch | January 2027 | Public in PT and BR, or the beta fallback above. | founder |
 
 ## Initiatives now
 
-1. **Start the first Team-on group** ([PAD-49](/PAD/issues/PAD-49)). The hand-off fix is live ([PAD-50](/PAD/issues/PAD-50)) and the hire requests are sent. The founder is holding [PAD-56](/PAD/issues/PAD-56) until the migrations workflow's manual run passes ([PAD-97](/PAD/issues/PAD-97)).
-2. **Make the mobile pipeline reliable** (CTO). The runner must stop being the bottleneck, and must keep Docker up by itself ([PAD-98](/PAD/issues/PAD-98)): 6 green of 13 finished `e2e` attempts since 11-04 10:22, after 3 of 9 before it. [PAD-51](/PAD/issues/PAD-51) reports the classified numbers on 11-11. The migrations workflow is on `main`, with its secrets moved out of pull request runs (#309), but that version hasn't had a test run, and applying on merge hasn't passed yet ([PAD-97](/PAD/issues/PAD-97)).
-3. **Onboarding redesign.** All four PRs are merged ([PAD-17](/PAD/issues/PAD-17) done), but none of it has run on a device, and no build has it. The Level privacy-policy line and store labels are with the founder ([PAD-65](/PAD/issues/PAD-65)), and must be settled before any build that collects Level ships ([PAD-64](/PAD/issues/PAD-64)).
-4. **Known launch risks from the last audit** (`docs/audit/2026-09-20-state-and-next-steps.md`):
-   - No device pass on record since #129. Asked for in [PAD-32](/PAD/issues/PAD-32) and not started yet, with findings to be triaged in [PAD-31](/PAD/issues/PAD-31). I now recommend running it on a new iOS build with the redesign, once [PAD-65](/PAD/issues/PAD-65) is settled.
-   - Invitations left over from before 0147 ([PAD-99](/PAD/issues/PAD-99), CTO).
-   - `seed:demo` doesn't complete, and nothing in CI runs it.
-   - The arm64 toolchain migration: insurance, not urgent.
-5. **Open items in the `docs/audit/2026-09-*-plan.md` UX plans.** The PM triages them into launch-ready or hidden in the team-on phase.
+1. **Make the mobile pipeline reliable** (CTO). This is what's holding finished work off `main`. `e2e` has 7 green of 31 finished runs since 11-04 10:22, and 1 of the last 18. The fix is on [PAD-228](/PAD/issues/PAD-228) and [PAD-230](/PAD/issues/PAD-230) (#335, not yet green). [PAD-51](/PAD/issues/PAD-51) reports the classified numbers on 11-11. Vercel's refusals are on and off, cause unconfirmed; the merge rule is with the founder ([PAD-268](/PAD/issues/PAD-268)). The migrations workflow's manual run passed ([PAD-97](/PAD/issues/PAD-97)); applying on merge hasn't had a real run. The runner keeping Docker up is merged (#311), with one drill left ([PAD-172](/PAD/issues/PAD-172)).
+2. **Close the security audit's findings** (CTO). The audit's fix PRs are open and none has merged ([PAD-154](/PAD/issues/PAD-154), [PAD-168](/PAD/issues/PAD-168)). Order and dates are on the tasks.
+3. **Set the free launch's shape** (CTO). Founder's decision on [PAD-142](/PAD/issues/PAD-142): option A, with free limits of 250 members, unlimited groups and series, 3 co-organizers, and plan surfaces hidden. #328 hides them and is ready apart from Vercel's red; the remaining plan changes follow once #328 is live. Phone sign-in is hidden with no Twilio spend ([PAD-137](/PAD/issues/PAD-137), #340, merge by 11-18). Blasts: one real test send by 11-12, or hide Send blast ([PAD-184](/PAD/issues/PAD-184), [PAD-180](/PAD/issues/PAD-180)). Still open for later: grandfathering at billing.
+4. **Get onboarding onto a device.** All four PRs are merged, and none of it has run on a device. The Level line is live ([PAD-126](/PAD/issues/PAD-126)). iOS build 19 is held until #328, #340 and the iPad answer are in, then one device pass ([PAD-312](/PAD/issues/PAD-312), [PAD-311](/PAD/issues/PAD-311), [PAD-32](/PAD/issues/PAD-32)). Plan date 11-20; the CEO checks on 11-16. The build steps are unmerged on #317.
+5. **Legal and hosted decisions** (CEO, founder). Legal's drafts are in, none publishable ([PAD-239](/PAD/issues/PAD-239)). The founder's plan decisions are on [PAD-240](/PAD/issues/PAD-240), first three by 11-13. Hosted database plan: decision 11-27, in place by 12-03, before testers (plan row 46, a gate 4 decision).
+6. **Known launch risks:**
+   - **The live privacy policy** is English-only, hasn't had a legal review, and omits some data and processors. The inventory is plan row 9a. The interim corrected policy is due live 12-03, and the reviewed text 12-21.
+   - **Brazil's ECA Digital** may apply, and we have no Brazilian counsel yet. Press reports say enforcement starts January 2027. Launching in Portugal first is a gate 8 option, brought to the founder only if there's no answer by 12-11.
+   - **No device pass on record since #129,** and no Android build has been confirmed.
+   - **The 11-11 second-group check** may hold the Designer and Growth hires.
+   - **Invitations left over from before 0147:** one read left ([PAD-99](/PAD/issues/PAD-99), [PAD-215](/PAD/issues/PAD-215)).
+   - **`seed:demo`** doesn't complete, and nothing in CI runs it.
+   - **The arm64 toolchain migration:** insurance, not urgent.
 
 ## Out of scope before launch
 
