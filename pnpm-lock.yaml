@@ -397,6 +397,9 @@ importers:
       '@padel/auth':
         specifier: workspace:*
         version: link:../auth
+      '@padel/config':
+        specifier: workspace:*
+        version: link:../config
       '@padel/db':
         specifier: workspace:*
         version: link:../db

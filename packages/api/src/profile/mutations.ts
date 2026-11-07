@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useSession } from '@padel/auth';
+import { LOCATION_TEXT_MAX } from '@padel/config';
 import { useDb, mapPgError } from '../client';
 import type { PlayerViewerState } from '../discovery/queries';
 import { qk } from '../query-keys';
@@ -218,6 +219,10 @@ export const useReport = () => {
   });
 };
 
+/** Cut a place label to the database's limit by code points, so an emoji is never split. */
+export const capLocationText = (text: string | null): string | null =>
+  text === null ? null : Array.from(text).slice(0, LOCATION_TEXT_MAX).join('');
+
 /**
  * Write the profile's location — coordinates and label together.
  *
@@ -235,7 +240,7 @@ export const useSetMyLocation = () => {
       const { error } = await db.rpc('set_my_location', {
         p_lat: place.lat,
         p_lng: place.lng,
-        p_text: place.text,
+        p_text: capLocationText(place.text),
       });
       if (error) throw error;
     },

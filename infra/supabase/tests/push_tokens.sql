@@ -71,6 +71,31 @@ begin
   end;
   raise notice 'OK invalid platform: blocked with invalid_platform';
 
+  -- (4b) PAD-163: token shape. Both Expo prefixes pass; the rest are invalid_token.
+  perform register_push_token('ExpoPushToken[bbb2]','ios');
+  perform register_push_token('ExponentPushToken[ccc3]','ios');
+  declare
+    bad text[] := array[null, 'ExponentPushToken', 'ExponentPushToken[]', 'ExponentPushToken[a b]',
+      'abc', 'ExponentPushToken[' || repeat('x', 283) || ']', repeat('x', 100000)];
+    t text;
+    m integer;
+  begin
+    select count(*) into m from push_tokens where user_id = u1;
+    foreach t in array bad loop
+      begin
+        perform register_push_token(t, 'ios');
+        raise exception using errcode='PT001', message='bad token accepted: '||left(coalesce(t,'null'),30);
+      exception when sqlstate 'P0001' then
+        if position('invalid_token' in sqlerrm) = 0 then
+          raise exception using errcode='PT001', message='wrong error: '||sqlerrm;
+        end if;
+      end;
+    end loop;
+    select count(*) into n from push_tokens where user_id = u1;
+    if n <> m then raise exception using errcode='PT001', message='refused token was stored'; end if;
+  end;
+  raise notice 'OK token shape';
+
   -- (5) RLS: as U2, cannot read U1's tokens.
   perform set_config('request.jwt.claims','{"sub":"a0000002-0000-0000-0000-000000000002","role":"authenticated"}',true);
   select count(*) into n from push_tokens;
