@@ -41,10 +41,10 @@ export const rpc = (jwt, name, args = {}) => req(`/rest/v1/rpc/${name}`, { metho
 /** Call an RPC as ANON (no session). The service key bypasses grants, so it can neither prove a
  *  function is closed to anon nor that a pre-auth one is open to it. */
 export const ANON = ENV.SUPABASE_ANON_KEY;
-export async function anonRpc(name, args = {}) {
+export async function anonRpc(name, args = {}, headers = {}) {
   if (!ANON) throw new Error('Missing SUPABASE_ANON_KEY');
   const res = await fetch(`${BASE_URL}/rest/v1/rpc/${name}`, {
-    method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify(args),
+    method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(args),
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`anon POST /rest/v1/rpc/${name} → ${res.status}: ${text.slice(0, 400)}`);
