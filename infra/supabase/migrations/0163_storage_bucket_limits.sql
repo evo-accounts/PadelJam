@@ -1,4 +1,4 @@
--- 0151_storage_bucket_limits.sql
+-- 0163_storage_bucket_limits.sql
 -- PAD-162: five buckets had no size or file-type limit, so a signed-in user could host an HTML
 -- or very large file in their own folder, and the four public buckets serve it to anyone.
 -- Give them the limits venue-images has had since 0114: 5 MiB, jpeg, png and webp.

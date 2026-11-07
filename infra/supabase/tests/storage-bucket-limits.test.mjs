@@ -1,5 +1,5 @@
 // infra/supabase/tests/storage-bucket-limits.test.mjs
-// Migration 0151 (PAD-162): every bucket has a size limit and an image-type allow-list.
+// Migration 0163 (PAD-162): every bucket has a size limit and an image-type allow-list.
 // Each upload uses a user who passes RLS, so a refusal can only come from the limit.
 import { BASE_URL, ANON, SERVICE, user, rpc, assert, run } from './lib.mjs';
 
