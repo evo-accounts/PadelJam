@@ -8,6 +8,7 @@
 //
 // The test that matters most is "anon reads don't error": a bare revoke without the policy move
 // turns anon's empty read into 42501, which is what 0094-0136 each kept the grants to avoid.
+import { readdirSync, readFileSync } from 'node:fs';
 import { BASE_URL, ANON, setAccountPlan, user, rpc, anonRpc, sel, insert, patch, req, expectError, assert, run } from './lib.mjs';
 
 const DENIED = 'permission denied for function';
@@ -93,8 +94,15 @@ await run('anon reads do not error: 200 and empty on every table whose policy mo
 });
 
 await run('every table PostgREST exposes: anon never gets "permission denied for function"', async () => {
-  const spec = await (await fetch(`${BASE_URL}/rest/v1/`, { headers: { apikey: ANON } })).json();
-  const tables = Object.keys(spec.paths ?? {}).filter((p) => p !== '/' && !p.startsWith('/rpc/')).map((p) => p.slice(1));
+  // Migration 0162 turns the OpenAPI document off, so the table list comes from the migrations.
+  // A name PostgREST does not expose (dropped, private schema) answers 404 and is skipped below.
+  const dir = new URL('../migrations/', import.meta.url);
+  const names = new Set();
+  for (const f of readdirSync(dir)) {
+    for (const m of readFileSync(new URL(f, dir), 'utf8').matchAll(/create table (?:if not exists )?(?:public\.)?"?([a-z_0-9]+)"?\s*\(/gi)) names.add(m[1]);
+  }
+  const tables = [];
+  for (const t of names) if ((await asAnon(`/rest/v1/${t}?select=*&limit=1`)).status !== 404) tables.push(t);
   assert(tables.length > 30, `found ${tables.length} tables`);
   for (const t of tables) {
     const r = await asAnon(`/rest/v1/${t}?select=*&limit=1`);
