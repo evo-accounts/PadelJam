@@ -280,10 +280,7 @@ export default function OtpScreen() {
     if (method === 'google') { void onGoogle(); return; }
     if (method === 'apple') { void onApple(); return; }
     clearAuthTarget();
-    router.replace({
-      pathname: '/(auth)/sign-in',
-      params: { mode: method === 'sms' ? 'phone' : 'email' },
-    } as never);
+    router.replace('/(auth)/sign-in' as never);
   };
 
   return (

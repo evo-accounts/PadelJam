@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { qk, useDb, useSetMyLocation, type LocationPoint } from '@padel/api';
+import { fetchMyPrivateProfile, qk, useDb, useSetMyLocation, type LocationPoint } from '@padel/api';
 import { useSession } from '@padel/auth';
 import { useT } from '@padel/i18n';
 import { PlacePicker } from '@/components/community/PlacePicker';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toaster';
-import { parseEwkbPoint, samePoint } from '@/lib/geo-point';
+import { samePoint } from '@/lib/geo-point';
 
 /**
  * The viewer's own place on web (UX-SET-02's location field): the label the profile shows and the
@@ -29,9 +29,8 @@ export function ProfileLocationCard({ initialLabel }: { initialLabel: string }) 
     queryKey: [...qk.profile(uid ?? ''), 'location-point'],
     enabled: !!uid,
     queryFn: async () => {
-      const { data, error } = await db.from('profiles').select('location_point').eq('id', uid!).maybeSingle();
-      if (error) throw error;
-      return parseEwkbPoint(data?.location_point);
+      const me = await fetchMyPrivateProfile(db);
+      return me.lat != null && me.lng != null ? { lat: me.lat, lng: me.lng } : null;
     },
   });
   const save = useSetMyLocation();

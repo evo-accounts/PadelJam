@@ -5,12 +5,14 @@ import { useDb } from '../client';
 import { qk } from '../query-keys';
 
 type ProfileEmbed = { id: string; full_name: string | null; avatar_url: string | null } | null;
-// The participant profile embed additionally selects gender (needed for the mixed-start
-// balance check); it is spliced in wherever PARTICIPANT_PROFILE_EMBED is used below.
+// useEventParticipants adds gender (needed for the mixed-start balance check) from the
+// event_participant_genders function, not from the table: other people's gender is not readable
+// there (PAD-133).
 type ParticipantProfileEmbed = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  /** Merged in from event_participant_genders; null off mixed events and for guests. */
   gender: string | null;
 } | null;
 
@@ -21,7 +23,7 @@ type ParticipantProfileEmbed = {
 // event_teams and match_players. Same pattern as the event_invitations and
 // partner_requests embeds below, which are qualified for the same reason.
 export const PARTICIPANT_PROFILE_EMBED =
-  'profiles!event_participants_user_id_fkey(id, full_name, avatar_url, gender)';
+  'profiles!event_participants_user_id_fkey(id, full_name, avatar_url)';
 
 export const useGroupEvents = (groupId: string) => {
   const db = useDb();
@@ -139,11 +141,19 @@ export const useEventParticipants = (id: string) => {
             invited_by: string | null;
             /** The other half of a waiting PAIR on a team event (0112); null otherwise. */
             pair_participant_id: string | null;
-            profiles: ParticipantProfileEmbed;
+            profiles: Omit<NonNullable<ParticipantProfileEmbed>, 'gender'> | null;
           }[]
         >();
       if (error) throw error;
-      return data;
+      // Gender is not readable from profiles (PAD-133); the server hands it out only for a mixed
+      // event the viewer can see, and leaves out anyone blocked with them.
+      const { data: genders, error: gerr } = await db.rpc('event_participant_genders', { p_event_id: id });
+      if (gerr) throw gerr;
+      const byUser = new Map((genders ?? []).map((g) => [g.user_id, g.gender]));
+      return data.map((p) => ({
+        ...p,
+        profiles: p.profiles ? { ...p.profiles, gender: byUser.get(p.profiles.id) ?? null } : null,
+      }));
     },
   });
 };

@@ -76,7 +76,6 @@ describe('11 community admin', () => {
       /manage members/i,
       /manage groups/i,
       /member requests/i,
-      /community plan/i,
       /share community/i,
       /archive community|^archive$/i,
       /^leave/i,
@@ -86,25 +85,8 @@ describe('11 community admin', () => {
     // Inviting is deliberately NOT here (UX-COMM-15): it lives on the Members
     // tab and inside Manage Members, so the menu does not offer a third way in.
     await expectGone({ text: /invite members/i }, { timeout: 3_000 });
-  });
-
-  it('the plan section shows the plan the community is on, not Starter', async () => {
-    // Cascais Social is seeded on Basic (seed-e2e.mjs) and alex administers it without having
-    // created it. Since migration 0098 there are two roles and set_community_plan accepts any
-    // admin, so the read-only "only the owner can change the plan" hint is gone and alex gets the
-    // upgrade action instead. The left card must still say Basic (with the Current badge), never
-    // Starter.
-    await openManage();
-    // The plan is the one piece of administration that stayed a screen; the hub
-    // around it became the menu, so it is now reached by its own row.
-    await openSection(/community plan/i);
-    await scrollUntilVisible({ text: /^plan$/i }, { maxSwipes: 8, direction: 'down' });
-    await expectVisible({ text: /^basic$/i }, { timeout: 15_000 });
-    await expectVisible({ text: /^current$/i }, { timeout: 15_000 });
-    await expectVisible({ text: /^community pro$/i }, { timeout: 15_000 });
-    await expectVisible({ text: /upgrade to community pro/i }, { timeout: 15_000 });
-    await expectGone({ text: /only the owner can change the plan/i }, { timeout: 3_000 });
-    await expectGone({ text: /^starter$/i }, { timeout: 3_000 });
+    // Plans are hidden for the free launch (PAD-179): the menu has no plan row.
+    await expectGone({ text: /community plan/i }, { timeout: 3_000 });
   });
 
   it('approving a join request admits the requester', async () => {
@@ -319,8 +301,8 @@ describe('11 community admin', () => {
   });
 
   /**
-   * UX-COMM-18. Runs LAST because it archives a group, and the plan test above
-   * reads group counts against the plan's limit.
+   * UX-COMM-18. Runs LAST because it archives a group, which would change the group
+   * counts any test after it reads.
    *
    * Archiving goes through the row's "⋯" rather than the swipe the audit
    * describes. Both reach the same sheet, and the button is addressable: a

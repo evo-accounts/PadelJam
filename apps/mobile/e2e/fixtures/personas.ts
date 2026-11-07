@@ -28,14 +28,3 @@ export const PERSONAS: Record<PersonaKey, Persona> = {
   dora:  { email: 'dora@padeljam.test',  phone: '+351910000011', name: 'Dora Descartável' },
   omar:  { email: 'omar@padeljam.test',  phone: '+351910000012', name: 'Omar Novato' },
 };
-
-/** GoTrue test-OTP number (config.toml [auth.sms.test_otp]) — code is always 123456. */
-export const TEST_PHONE = '+351912345678';
-/**
- * The same number as a Portuguese local would type it, which is now the only
- * thing the sign-in screen accepts: `PhoneField` owns the country and builds the
- * E.164 itself, so typing `+351…` into it would be read as national digits and
- * produce a different (invalid) number.
- */
-export const TEST_PHONE_NATIONAL = '912345678';
-export const TEST_PHONE_OTP = '123456';

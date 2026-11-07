@@ -57,10 +57,10 @@ const mobileAuth = {
     useSms: 'Receber um código por SMS {{identifier}}',
     useEmailCode: 'Receber um código por e-mail {{identifier}}',
     usePassword: 'Iniciar sessão com palavra-passe',
-    useDifferentId: 'Usar outro e-mail ou telemóvel',
+    useDifferentId: 'Usar outro e-mail',
     checkingMethods: 'A verificar as outras opções…',
     onlyWayInTitle: 'Esta é a única forma de entrar',
-    onlyWayInBody: 'Esta é a única forma de iniciar sessão nesta conta. Se não for a sua, recomece com outro e-mail ou telemóvel.',
+    onlyWayInBody: 'Esta é a única forma de iniciar sessão nesta conta. Se não for a sua, recomece com outro e-mail.',
     continueWithGoogle: 'Continuar com o Google',
     continueWithApple: 'Continuar com a Apple',
     continueWithEmail: 'Continuar com e-mail',
@@ -139,10 +139,10 @@ const mobileAuth = {
     useSms: 'Receber um código por SMS {{identifier}}',
     useEmailCode: 'Receber um código por e-mail {{identifier}}',
     usePassword: 'Entrar com senha',
-    useDifferentId: 'Usar outro e-mail ou celular',
+    useDifferentId: 'Usar outro e-mail',
     checkingMethods: 'Verificando as outras opções…',
     onlyWayInTitle: 'Esta é a única forma de entrar',
-    onlyWayInBody: 'Esta é a única forma de entrar nesta conta. Se não for a sua, recomece com outro e-mail ou celular.',
+    onlyWayInBody: 'Esta é a única forma de entrar nesta conta. Se não for a sua, recomece com outro e-mail.',
     continueWithGoogle: 'Continuar com o Google',
     continueWithApple: 'Continuar com a Apple',
     continueWithEmail: 'Continuar com e-mail',
@@ -221,10 +221,10 @@ const mobileAuth = {
     useSms: 'Get a code via SMS {{identifier}}',
     useEmailCode: 'Get a code by email {{identifier}}',
     usePassword: 'Sign in with password',
-    useDifferentId: 'Use a different email or phone',
+    useDifferentId: 'Use a different email',
     checkingMethods: 'Checking your other options…',
     onlyWayInTitle: 'This is the only way in',
-    onlyWayInBody: "This is the only way to sign in to this account. If it isn't yours, start again with a different email or phone.",
+    onlyWayInBody: "This is the only way to sign in to this account. If it isn't yours, start again with a different email.",
     continueWithGoogle: 'Continue with Google',
     continueWithApple: 'Continue with Apple',
     continueWithEmail: 'Continue with email',
@@ -791,11 +791,10 @@ const mobileCommunity = {
     qrDownloadFailed: 'Não foi possível guardar o código.',
     // --- UX-GLOB-10 Task 6: cap errors open the UpgradePrompt sheet ---
     seePlans: 'Ver planos',
-    upgradeGroupsCap: 'Esta comunidade atingiu o limite de grupos do plano Starter.',
-    upgradeMembersCap: 'Esta comunidade está cheia no plano Starter.',
-    upgradeCoOrganizersCap: 'Limite de coorganizadores atingido no plano Starter.',
-    upgradeRecurringCap: 'Os eventos recorrentes precisam do Community Pro.',
-    upgradeBlast: 'Os comunicados personalizados precisam do Community Pro.',
+    upgradeGroupsCap: 'Esta comunidade atingiu o limite de grupos.',
+    upgradeMembersCap: 'Esta comunidade está cheia.',
+    upgradeCoOrganizersCap: 'Limite de coorganizadores atingido.',
+    upgradeRecurringCap: 'Esta comunidade atingiu o limite de eventos recorrentes.',
   },
   'pt-BR': {
     resultCardTitle: 'Resultado do evento',
@@ -1098,11 +1097,10 @@ const mobileCommunity = {
     qrDownloadFailed: 'Não foi possível salvar o código.',
     // --- UX-GLOB-10 Task 6: cap errors open the UpgradePrompt sheet ---
     seePlans: 'Ver planos',
-    upgradeGroupsCap: 'Esta comunidade atingiu o limite de grupos do plano Starter.',
-    upgradeMembersCap: 'Esta comunidade está cheia no plano Starter.',
-    upgradeCoOrganizersCap: 'Limite de coorganizadores atingido no plano Starter.',
-    upgradeRecurringCap: 'Eventos recorrentes precisam do Community Pro.',
-    upgradeBlast: 'Comunicados personalizados precisam do Community Pro.',
+    upgradeGroupsCap: 'Esta comunidade atingiu o limite de grupos.',
+    upgradeMembersCap: 'Esta comunidade está cheia.',
+    upgradeCoOrganizersCap: 'Limite de coorganizadores atingido.',
+    upgradeRecurringCap: 'Esta comunidade atingiu o limite de eventos recorrentes.',
   },
   en: {
     resultCardTitle: 'Event result',
@@ -1401,11 +1399,10 @@ const mobileCommunity = {
     qrDownloadFailed: 'The code could not be saved.',
     // --- UX-GLOB-10 Task 6: cap errors open the UpgradePrompt sheet ---
     seePlans: 'See plans',
-    upgradeGroupsCap: 'This community has reached its group limit on the Starter plan.',
-    upgradeMembersCap: 'This community is full on the Starter plan.',
-    upgradeCoOrganizersCap: 'Co-organizer limit reached on the Starter plan.',
-    upgradeRecurringCap: 'Recurring events need Community Pro.',
-    upgradeBlast: 'Custom blasts need Community Pro.',
+    upgradeGroupsCap: 'This community has reached its group limit.',
+    upgradeMembersCap: 'This community is full.',
+    upgradeCoOrganizersCap: 'Co-organizer limit reached.',
+    upgradeRecurringCap: 'This community has reached its recurring event limit.',
   },
 } as const;
 
@@ -1601,7 +1598,7 @@ const mobileGroup = {
     invitesBlocked_one: 'Não é possível convidar este jogador.',
     invitesBlocked_other: 'Não é possível convidar estes {{count}} jogadores.',
     groups_per_community:
-      'Atingiste o limite de grupos do teu plano. Arquiva um grupo ou faz upgrade para adicionar mais.',
+      'Atingiste o limite de grupos. Arquiva um grupo para adicionar mais.',
     last_active_group: 'Não podes arquivar o último grupo ativo da comunidade — uma comunidade tem sempre pelo menos um grupo.',
     sole_admin_must_add_another: 'Adiciona outro administrador a este grupo antes de saíres.',
     group_private_join_forbidden:
@@ -1797,7 +1794,7 @@ const mobileGroup = {
     invitesBlocked_one: 'Não é possível convidar este jogador.',
     invitesBlocked_other: 'Não é possível convidar estes {{count}} jogadores.',
     groups_per_community:
-      'Você atingiu o limite de grupos do seu plano. Arquive um grupo ou faça upgrade para adicionar mais.',
+      'Você atingiu o limite de grupos. Arquive um grupo para adicionar mais.',
     last_active_group: 'Não é possível arquivar o último grupo ativo da comunidade — uma comunidade sempre tem pelo menos um grupo.',
     sole_admin_must_add_another: 'Adicione outro administrador a este grupo antes de sair.',
     group_private_join_forbidden:
@@ -1993,7 +1990,7 @@ const mobileGroup = {
     invitesBlocked_one: 'This player cannot be invited.',
     invitesBlocked_other: 'These {{count}} players cannot be invited.',
     groups_per_community:
-      "You've reached your plan's group limit. Archive a group or upgrade to add more.",
+      "You've reached the group limit. Archive a group to add more.",
     last_active_group: "You can't archive the community's last active group — a community always has at least one.",
     sole_admin_must_add_another: 'Add another admin to this group before you leave.',
     group_private_join_forbidden:
@@ -2862,7 +2859,7 @@ const mobileEvent = {
     invalid_channel: 'Esse canal de notificação não é suportado.',
     blast_incomplete: 'Adiciona um título e uma mensagem.',
     // 0124: blasts (custom text / Your blasts gate, limits, scope)
-    blast_customization_required: 'Personalizar e guardar comunicados requer um plano premium. Envia o modelo tal como está.',
+    blast_customization_required: 'Não é possível personalizar este comunicado. Envia o modelo tal como está.',
     blast_too_long: 'O título pode ter até 80 caracteres e a mensagem até 1000.',
     invalid_send_to: 'Escolhe a quem enviar o comunicado.',
     template_not_found: 'Este modelo já não está disponível.',
@@ -3732,7 +3729,7 @@ const mobileEvent = {
     invalid_channel: 'Esse canal de notificação não é compatível.',
     blast_incomplete: 'Adicione um título e uma mensagem.',
     // 0124: blasts (custom text / Your blasts gate, limits, scope)
-    blast_customization_required: 'Personalizar e salvar comunicados requer um plano premium. Envie o modelo como está.',
+    blast_customization_required: 'Não é possível personalizar este comunicado. Envie o modelo como está.',
     blast_too_long: 'O título pode ter até 80 caracteres e a mensagem até 1000.',
     invalid_send_to: 'Escolha para quem enviar o comunicado.',
     template_not_found: 'Este modelo não está mais disponível.',
@@ -4602,7 +4599,7 @@ const mobileEvent = {
     invalid_channel: 'That notification channel is not supported.',
     blast_incomplete: 'Add a title and message.',
     // 0124: blasts (custom text / Your blasts gate, limits, scope)
-    blast_customization_required: 'Customising and saving blasts needs a premium plan. Send the template as it is.',
+    blast_customization_required: "This blast can't be customised. Send the template as it is.",
     blast_too_long: 'Titles can be up to 80 characters and messages up to 1,000.',
     invalid_send_to: 'Choose who to send the blast to.',
     template_not_found: 'This template is no longer available.',

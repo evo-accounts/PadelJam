@@ -194,5 +194,5 @@ await run('an outsider counts a closed community\'s members without being able t
 
   // And it follows the archive, like everything else in this migration.
   await rpc(admin.jwt, 'archive_community', { p_community_id: cid, p_archive: true });
-  assert((await rpc(outsider.jwt, 'community_member_count', { c: cid })) === 0, 'an archived community counts zero');
+  assert((await rpc(outsider.jwt, 'community_member_count', { c: cid })) === null, 'an archived community counts null (was 0 before PAD-164)');
 });

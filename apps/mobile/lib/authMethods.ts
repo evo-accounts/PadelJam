@@ -14,7 +14,8 @@ export type AuthMethods = {
 
 /** Fixed presentation order. The sheet must not reorder itself between two lookups of the same
  *  account: a list whose rows move is a list users mis-tap. */
-const ORDER: AuthMethod[] = ['sms', 'email', 'password', 'google', 'apple'];
+// 'sms' is not offered at launch: phone sign-in is hidden (PAD-137).
+const ORDER: AuthMethod[] = ['email', 'password', 'google', 'apple'];
 
 const PRESENT: Record<AuthMethod, (m: AuthMethods) => boolean> = {
   sms: (m) => m.hasPhone,

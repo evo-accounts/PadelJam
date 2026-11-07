@@ -3,10 +3,14 @@ import { closeSync, existsSync, openSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CONFIG } from './config';
-import { describeFailure, run, runOk } from './proc';
+import { describeFailure, run } from './proc';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const COMPANION_START_MS = 30_000;
+/** 90 s: #332 needed 55 s under load. A 30 s hang plus this stays inside the 180 s testTimeout. */
+export const COMPANION_START_MS = 90_000;
+/** idb's stderr when the AX bridge has no translation for the device (see axWedge.ts). */
+const NO_TRANSLATION = /No translation object returned/i;
+export const NO_TRANSLATION_RETRY_MS = 3_000;
 
 /**
  * idb talks to a per-device `idb_companion` over a unix socket. The companion
@@ -55,15 +59,24 @@ export async function idb(args: string[], timeoutMs = 30_000, opts: { retryOnHan
   const argv = [...args, '--udid', CONFIG.udid];
   const first = await run(CONFIG.idbPath, argv, { timeoutMs });
   if (first.code === 0) return first.stdout;
-  const err = `${first.stderr}${first.stdout}`;
-  const unreachable = /Connection lost|Connection refused|No Companion Connected|Failed to connect to companion/i.test(err);
-  const hung = Boolean(opts.retryOnHang) && first.timedOut && !err.trim();
-  if (!unreachable && !hung) {
-    throw new Error(describeFailure(CONFIG.idbPath, argv, first));
+  let last = first;
+  const errOf = (r: typeof first) => `${r.stderr}${r.stdout}`;
+  const unreachable = /Connection lost|Connection refused|No Companion Connected|Failed to connect to companion/i.test(errOf(first));
+  const hung = Boolean(opts.retryOnHang) && first.timedOut && !errOf(first).trim();
+  if (unreachable || hung) {
+    console.warn(`[e2e] idb companion ${hung ? 'hung' : 'unreachable'} — restarting it`);
+    await restartCompanion();
+    last = await run(CONFIG.idbPath, argv, { timeoutMs });
+    if (last.code === 0) return last.stdout;
   }
-  console.warn(`[e2e] idb companion ${hung ? 'hung' : 'unreachable'} — restarting it`);
-  await restartCompanion();
-  return runOk(CONFIG.idbPath, argv, { timeoutMs });
+  // A read that may be repeated gets one more try on a transient "No translation object", also
+  // when it comes back from the retry after a restart. Bounded polling reads are left alone.
+  if (opts.retryOnHang && NO_TRANSLATION.test(errOf(last))) {
+    await sleep(NO_TRANSLATION_RETRY_MS);
+    last = await run(CONFIG.idbPath, argv, { timeoutMs });
+    if (last.code === 0) return last.stdout;
+  }
+  throw new Error(describeFailure(CONFIG.idbPath, argv, last));
 }
 
 export const idbTap = (x: number, y: number, durationSec?: number) =>

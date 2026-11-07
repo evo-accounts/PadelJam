@@ -15,12 +15,12 @@ const NONE: AuthMethods = {
 const methods = (over: Partial<AuthMethods>): AuthMethods => ({ ...NONE, ...over });
 
 describe('tryAnotherWayRows', () => {
-  it('names the SMS row with the masked number, typeset', () => {
+  it('never offers an SMS row, even when the account has a phone (PAD-137)', () => {
     const rows = tryAnotherWayRows(
       methods({ hasEmail: true, hasPhone: true, phoneMasked: '+351•••••5678' }),
       'email',
     );
-    expect(rows).toEqual([{ method: 'sms', labelKey: 'useSms', identifier: '(+351) ••••• 5678' }]);
+    expect(rows).toEqual([]);
   });
 
   it('names the email row with the masked address as the server sent it', () => {
@@ -41,13 +41,6 @@ describe('tryAnotherWayRows', () => {
       ['google', 'continueWithGoogle', ''],
       ['apple', 'continueWithApple', ''],
     ]);
-  });
-
-  it('shows the method without an identifier when the server could not mask it', () => {
-    // mask_phone returns null for a number it will not guess at; the row must
-    // still exist (the account HAS a phone) and must not print 'null'.
-    const rows = tryAnotherWayRows(methods({ hasPhone: true, hasEmail: true }), 'email');
-    expect(rows).toEqual([{ method: 'sms', labelKey: 'useSms', identifier: '' }]);
   });
 
   it('produces no rows for a null lookup, exactly as for an account with nothing else', () => {

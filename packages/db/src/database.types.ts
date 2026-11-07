@@ -2477,10 +2477,26 @@ export type Database = {
         Returns: boolean
       }
       community_is_public: { Args: { c: string }; Returns: boolean }
-      community_member_count: { Args: { c: string }; Returns: number }
+      community_member_count: { Args: { c: string }; Returns: number | null }
       community_limit: { Args: { c: string; key: string }; Returns: number }
       community_limit_for_plan: { Args: { p_plan: string; p_key: string }; Returns: number }
       community_plan: { Args: { c: string }; Returns: string }
+      can_read_community: { Args: { c: string }; Returns: boolean }
+      get_my_community_plan: { Args: { c: string }; Returns: string | null }
+      get_my_profile_state: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          description: string | null
+          dominant_hand: string | null
+          court_side: string | null
+          level: number | null
+          preferred_time: string | null
+          location_text: string | null
+          locale: string | null
+          onboarded_at: string | null
+          notifications_prompted_at: string | null
+        }[]
+      }
       set_account_plan: { Args: { p_plan: string }; Returns: string }
       set_community_plan: { Args: { p_community_id: string; p_plan: string }; Returns: string }
       create_community_with_personal_tenant: {
@@ -2790,6 +2806,22 @@ export type Database = {
       search_pattern: {
         Args: { p_q: string }
         Returns: string
+      }
+      get_my_private_profile: {
+        Args: never
+        Returns: {
+          date_of_birth: string | null
+          gender: string | null
+          lat: number | null
+          lng: number | null
+        }[]
+      }
+      event_participant_genders: {
+        Args: { p_event_id: string }
+        Returns: {
+          gender: string | null
+          user_id: string | null
+        }[]
       }
       my_auth_providers: {
         Args: never

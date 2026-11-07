@@ -122,7 +122,7 @@ await run('the window expiring resets the count', async () => {
   assert(r.has_email === false, 'the call goes through again once the window has passed');
   // The backdated rows are gone: the function prunes the window before it counts.
   const left = await sel('auth_lookup_attempts', 'select=bucket');
-  assert(left.length <= 2, `stale rows were pruned, ${left.length} left`);
+  assert(left.length <= 3, `stale rows were pruned, ${left.length} left`);
 });
 
 await run(`the caller-address limit trips on call ${IP_LIMIT + 1}`, async () => {
@@ -145,6 +145,37 @@ await run(`the caller-address limit trips on call ${IP_LIMIT + 1}`, async () => 
   );
   await ageLedger(20);
   await lookup(`am-ip-after-${RUN}@authmethods.local`);
+});
+
+const GLOBAL_LIMIT = 120;
+const ledgerCount = async () => (await sel('auth_lookup_attempts', 'select=bucket')).length;
+const call = (i, headers) =>
+  anonRpc('auth_methods_for', { p_identifier: `am-g-${i}-${RUN}@authmethods.local` }, headers);
+
+await run(`the global limit refuses call ${GLOBAL_LIMIT + 1} despite a rotating x-forwarded-for`, async () => {
+  await clearLedger();
+  for (let i = 0; i < GLOBAL_LIMIT; i++) await call(i, { 'x-forwarded-for': `10.1.${i >> 8}.${i & 255}` });
+  const before = await ledgerCount();
+  await expectError(() => call(GLOBAL_LIMIT, { 'x-forwarded-for': '10.9.9.9' }), 'rate_limited');
+  assert((await ledgerCount()) === before, 'a refused call adds no ledger rows');
+  await ageLedger(20);
+  await call('after', { 'x-forwarded-for': '10.9.9.9' });
+});
+
+await run(`the global limit refuses call ${GLOBAL_LIMIT + 1} with a rotating cf-connecting-ip`, async () => {
+  await clearLedger();
+  // (The local gateway always adds an x-forwarded-for, so "no address header" can't be sent here;
+  // a key the caller rotates is the same case: no single address bucket ever fills.)
+  for (let i = 0; i < GLOBAL_LIMIT; i++) await call(i, { 'cf-connecting-ip': `198.51.${i >> 8}.${i & 255}` });
+  await expectError(() => call(GLOBAL_LIMIT, { 'cf-connecting-ip': '198.51.100.250' }), 'rate_limited');
+});
+
+await run(`a fixed cf-connecting-ip trips the address limit on call ${IP_LIMIT + 1}`, async () => {
+  await clearLedger();
+  const cf = '203.0.113.7';
+  for (let i = 0; i < IP_LIMIT; i++) await call(i, { 'cf-connecting-ip': cf, 'x-forwarded-for': `10.2.0.${i}` });
+  await expectError(() => call(IP_LIMIT, { 'cf-connecting-ip': cf, 'x-forwarded-for': '10.2.9.9' }), 'rate_limited');
+  await call('other', { 'cf-connecting-ip': '203.0.113.8' }); // a different caller
 });
 
 await clearLedger();

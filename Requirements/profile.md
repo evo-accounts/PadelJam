@@ -402,6 +402,8 @@ Reached from the settings icon on the user’s own profile. The Settings hub gro
 </tbody>
 </table>
 
+> **Amendment 2026-11-05 — launch decision D1, option A (founder, PAD-142).** For the launch every plan and upgrade surface is **hidden** on mobile and web: Settings > Subscription (Jammer+ and Community Plans rows), the paywall and its prices, Manage Community's Plan section, "See plans" prompts and `RecurringCapPrompt`. The code stays for billing, which is after launch. No screen shows a price, a trial or a purchase button. The `starter` community limits are **250 members, unlimited groups, unlimited recurring series, 3 co-organizers** (the tier table below shows the target for billing). Paid plans cannot be self-granted: `set_community_plan` / `set_account_plan` are guarded on the server (PAD-158). Blasts are not plan-gated; their launch status is tracked in PAD-180. Tasks: PAD-178, PAD-179.
+
 ## Subscription
 
 Padel Jam has two independent subscription axes: a player-level subscription (Jammer+) and a community-level subscription (Community Plans). The Settings hub exposes both. Section 7.5 and 7.6 are the source of truth for the limits each tier confers; every other doc that gates a feature by plan references those rules from here.
@@ -676,7 +678,7 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed PR (Profile).
 | PR-09 | Message on a profile opens a direct chat with that player, from the kebab sheet and only when you follow them. | Should | **Amended 2026-09-22** — gated on following, to match New Chat, which lists only people you follow. |
 | PR-10 | Settings groups Account, Notifications, Subscription, Support, and Legal, with a destructive Log out action at the bottom. | **Must** |  |
 | PR-11 | Account settings edits avatar, name, description / bio, email, mobile, date of birth, location, gender; the destructive Delete account entry sits at the bottom. | **Must** |  |
-| PR-12 | Changing the email or mobile in Account settings sends an OTP to the new identifier; the change is committed only after OTP verification. | **Must** |  |
+| PR-12 | Changing the email or mobile in Account settings sends an OTP to the new identifier; the change is committed only after OTP verification. | **Must** | Launch (PAD-137): only the email change exists; the phone row is hidden in Account settings. |
 | PR-13 | Game preferences edits dominant hand (Left / Right), court side (Left / Right), and preferred time (Any / Morning / Afternoon / Night). | **Must** |  |
 | PR-14 | Notifications has three independent toggles — Push (default on), WhatsApp (default off), Email (default off). | **Must** |  |
 | PR-10 | Privacy contains two entries: Change password and Blocked Users. | **Must** |  |
@@ -719,7 +721,7 @@ Must = MVP. Should = V2. Could = V3. IDs are prefixed PR (Profile).
 | description | TEXT | Yes | Bio |
 | avatar_url | TEXT | Yes | Public `avatars` storage bucket, one folder per user |
 | email | TEXT | Yes | UNIQUE. OTP-verified on change |
-| phone | TEXT | Yes | UNIQUE. OTP-verified on change. A primary sign-in identifier |
+| phone | TEXT | Yes | UNIQUE. OTP-verified on change. A primary sign-in identifier. Launch (PAD-137): phone is not a sign-in identifier and can't be changed in the app |
 | date_of_birth | DATE | Yes |  |
 | location_text | TEXT | Yes | The human-readable label |
 | location_point | GEOGRAPHY(POINT) | Yes | PostGIS, SRID 4326, **(longitude, latitude)** order |
