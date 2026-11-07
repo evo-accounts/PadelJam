@@ -133,17 +133,19 @@ export const useMyProfile = () => {
       // own come from the auth user instead — profiles.email/phone were only ever server-side copies
       // of it. getSession() reads the stored session (no network), which the change-email and
       // change-phone OTP flows refresh.
-      const [{ data, error }, { data: auth }, priv] = await Promise.all([
-        db
-          .from('profiles')
-          .select('id, full_name, avatar_url, description, dominant_hand, court_side, level, preferred_time, location_text')
-          .eq('id', uid!)
-          .single(),
+      const [{ data: base, error }, { data: state, error: stateError }, { data: auth }, priv] = await Promise.all([
+        db.from('profiles').select('id, full_name, avatar_url').eq('id', uid!).single(),
+        // The other own-row fields come from get_my_profile_state (PAD-167): the table no longer
+        // answers them for anyone else's row.
+        db.rpc('get_my_profile_state').single(),
         db.auth.getSession(),
         // date_of_birth and gender are not readable from the table (PAD-133).
         fetchMyPrivateProfile(db),
       ]);
       if (error) throw error;
+      if (stateError) throw stateError;
+      const { description, dominant_hand, court_side, level, preferred_time, location_text } = state;
+      const data = { ...base, description, dominant_hand, court_side, level, preferred_time, location_text };
       const authUser = auth.session?.user;
       return { ...data, date_of_birth: priv.date_of_birth, gender: priv.gender, email: ownEmail(authUser?.email), phone: ownPhone(authUser?.phone) };
     },

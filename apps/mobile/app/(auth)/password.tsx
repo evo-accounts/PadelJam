@@ -106,9 +106,7 @@ export default function PasswordScreen() {
         return;
       }
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('onboarded_at, location_text, level, dominant_hand, court_side, notifications_prompted_at')
-        .eq('id', data.user.id)
+        .rpc('get_my_profile_state')
         .maybeSingle();
       const decision = decidePostVerifyRoute(profile, profileError);
       if (decision.kind === 'error') {
