@@ -2,7 +2,7 @@
 import { user, rpc, anonRpc, sel, expectError, assert, run, setAccountPlan, setCommunityPlan } from './lib.mjs';
 
 const plan = (jwt) => rpc(jwt, 'account_plan_of_caller');
-const cplan = (jwt, id) => rpc(jwt, 'community_plan', { c: id });
+const cplan = (jwt, id) => rpc(jwt, 'get_my_community_plan', { c: id });
 
 /** The caller becomes the community's creator and its first (and, on Starter, only) admin. */
 async function ownCommunity(owner, name) {

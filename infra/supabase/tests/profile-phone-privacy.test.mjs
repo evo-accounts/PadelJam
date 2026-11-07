@@ -8,9 +8,9 @@
 // the service role keeps full access by design, so it would make every assertion here pass.
 import { user, rpc, req, sel, ANON, BASE_URL, assert, expectError, run } from './lib.mjs';
 
-/** The exact column list `useMyProfile` selects (packages/api/src/profile/queries.ts). */
+/** The columns `useMyProfile` selects from the table; the rest come from get_my_profile_state since 0163. */
 const MY_PROFILE_COLUMNS =
-  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text,level';
+  'id,full_name,avatar_url';
 
 const asUser = (u, qs) => req(`/rest/v1/profiles?${qs}`, { jwt: u.jwt });
 
@@ -48,11 +48,10 @@ await run('your own phone comes from the auth user, not profiles', async () => {
   assert(`+${me.phone.replace(/^\+/, '')}` === stored.phone, 'and it is the same number profiles held');
 });
 
-await run('level is readable by a signed-in user, by name and through the own-profile list (0148)', async () => {
-  const rows = await asUser(bob, `id=eq.${alice.id}&select=id,level`);
-  assert(rows.length === 1 && rows[0].id === alice.id && 'level' in rows[0], 'level resolves on another user');
-  const [mine] = await asUser(alice, `id=eq.${alice.id}&select=${MY_PROFILE_COLUMNS}`);
-  assert(mine && 'level' in mine, "useMyProfile's column list includes level");
+await run('level is closed on the table (0163); your own comes from get_my_profile_state', async () => {
+  await expectError(() => asUser(bob, `id=eq.${alice.id}&select=id,level`), '42501');
+  const [mine] = await rpc(alice.jwt, 'get_my_profile_state');
+  assert(mine && 'level' in mine, 'get_my_profile_state includes level');
 });
 
 await run('named profile embeds still resolve; profiles(*) does not', async () => {
@@ -73,9 +72,8 @@ await run('named profile embeds still resolve; profiles(*) does not', async () =
 await run('anon: phone is closed, the schema probe still answers', async () => {
   // scripts/check-remote-schema.mjs selects named columns as anon; the read policy returns no rows,
   // but the request must not error.
-  const rows = await asAnon('select=onboarded_at,location_text&limit=1');
-  assert(Array.isArray(rows) && rows.length === 0, 'anon named-column read returns [] rather than 42501');
+  // Since 0163 the schema probe is get_my_profile_state, not a column read, so anon is refused here.
+  await expectError(() => asAnon('select=onboarded_at,location_text&limit=1'), '42501');
   await expectError(() => asAnon('select=phone&limit=1'), '42501');
-  const lv = await asAnon('select=level&limit=1');
-  assert(Array.isArray(lv) && lv.length === 0, 'anon level probe returns [] rather than 42501');
+  await expectError(() => asAnon('select=level&limit=1'), '42501');
 });

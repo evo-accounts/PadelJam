@@ -11,15 +11,16 @@
 // service key: the service role keeps full access by design, so it would make every assertion pass.
 import { user, rpc, req, sel, patch, ANON, BASE_URL, assert, expectError, run } from './lib.mjs';
 
-/** The exact column list `useMyProfile` selects (packages/api/src/profile/queries.ts). */
+/** The columns `useMyProfile` selects from the table; the rest come from get_my_profile_state since 0163. */
 const MY_PROFILE_COLUMNS =
-  'id,full_name,avatar_url,description,date_of_birth,gender,dominant_hand,court_side,preferred_time,location_text,level';
+  'id,full_name,avatar_url';
 
 const read = (u, qs) => req(`/rest/v1/profiles?${qs}`, { jwt: u.jwt });
 /** A PATCH the way supabase-js sends `.update(input).eq('id', …)`: return=minimal, so a 42501 can
  *  only come from the UPDATE privilege, never from reading the row back. */
 const write = (u, id, fields) =>
   req(`/rest/v1/profiles?id=eq.${id}`, { method: 'PATCH', jwt: u.jwt, body: fields, prefer: 'return=minimal' });
+const stored_ = async (id) => sel('profiles', `id=eq.${id}&select=location_text,location_point`); // service key
 const stored = async (id, cols) => (await sel('profiles', `id=eq.${id}&select=${cols}`))[0]; // service key
 
 async function anon(path, init = {}) {
@@ -57,13 +58,13 @@ await run('your own email comes from the auth user, not profiles', async () => {
 });
 
 await run('the public columns and named embeds still resolve', async () => {
-  const rows = await read(bob, `id=eq.${alice.id}&select=id,full_name,avatar_url,onboarded_at`);
+  const rows = await read(bob, `id=eq.${alice.id}&select=id,full_name,avatar_url`);
   assert(rows.length === 1 && rows[0].full_name, 'public profile columns still readable');
 });
 
 await run('anon: email is closed, the schema probe still answers', async () => {
-  const rows = await anon('/rest/v1/profiles?select=onboarded_at,location_text,dominant_hand,court_side,level,notifications_prompted_at&limit=1');
-  assert(Array.isArray(rows) && rows.length === 0, 'anon named-column read returns [] rather than 42501');
+  // Since 0163 the schema probe is get_my_profile_state, so anon is refused the stamp columns too.
+  await expectError(() => anon('/rest/v1/profiles?select=onboarded_at,location_text,dominant_hand,court_side,level,notifications_prompted_at&limit=1'), '42501');
   await expectError(() => anon('/rest/v1/profiles?select=email&limit=1'), '42501');
 });
 
@@ -146,14 +147,14 @@ await run('level: 1 to 4 and null on your own row; 0, 5 and a text are rejected;
   await write(bob, alice.id, { level: 4 });
   assert((await stored(alice.id, 'level')).level === 2, "another user's write to your level is refused by RLS");
 
-  // Any signed-in user reads it, same as hand and side; anon sees no rows but may name the column.
-  const seen = await read(bob, `id=eq.${alice.id}&select=level`);
-  assert(seen.length === 1 && seen[0].level === 2, 'another user reads level');
+  // Since 0163 nobody reads it from the table; your own comes from get_my_profile_state.
+  await expectError(() => read(bob, `id=eq.${alice.id}&select=level`), '42501');
+  assert((await rpc(alice.jwt, 'get_my_profile_state'))[0].level === 2, 'you read your own level');
 });
 
 await run('location still goes through set_my_location', async () => {
   await rpc(alice.jwt, 'set_my_location', { p_lat: 38.72, p_lng: -9.14, p_text: 'Lisbon, PT' });
-  const [p] = await read(alice, `id=eq.${alice.id}&select=location_text,location_point`);
+  const [p] = await stored_(alice.id);
   assert(p.location_text === 'Lisbon, PT' && p.location_point, 'point and label written by the RPC');
 });
 
