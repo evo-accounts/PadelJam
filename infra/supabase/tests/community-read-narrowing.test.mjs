@@ -1,6 +1,6 @@
 // infra/supabase/tests/community-read-narrowing.test.mjs
 //
-// Migration 0152/0153 (PAD-164): a private community is not discoverable, a community's plan is for
+// Migration 0161/0162 (PAD-164): a private community is not discoverable, a community's plan is for
 // its members, get_my_profile_state answers for the caller alone, and the OpenAPI document is off.
 // Through PostgREST with real JWTs, never as postgres.
 import { user, rpc, anonRpc, sel, insert, del, patch, req, ANON, BASE_URL, expectError, assert, run } from './lib.mjs';
@@ -125,4 +125,11 @@ await run('anon cannot fetch the OpenAPI document, and normal reads still work',
   const u = await user('cr-openapi');
   const own = await selAs(u.jwt, 'profiles', `id=eq.${u.id}&select=id,full_name`);
   assert(own.length === 1, 'a table read still works');
+});
+
+await run('anon reads communities as an empty list, not 42501 (policy is to authenticated)', async () => {
+  const res = await fetch(`${BASE_URL}/rest/v1/communities?select=id`, { headers: { apikey: ANON } });
+  assert(res.status === 200, `anon GET communities answered ${res.status}`);
+  const body = await res.json();
+  assert(Array.isArray(body) && body.length === 0, 'anon sees no communities');
 });

@@ -4,7 +4,7 @@
 -- Run: psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/rls_helpers_closed.sql  (not run by test:db)
 do $$
 declare
-  helper text := '\m(auth_tenant_ids|can_create_post|community_is_public|is_community_admin|is_community_member|is_group_admin|is_group_member|may_approve_requests|event_is_visible|is_event_organizer|group_community_id|is_community_admin_of_group)\M';
+  helper text := '\m(auth_tenant_ids|can_create_post|community_is_public|is_community_admin|is_community_member|is_group_admin|is_group_member|may_approve_requests|event_is_visible|is_event_organizer|group_community_id|is_community_admin_of_group|can_read_community)\M';
   r record;
   fn text;
 begin
@@ -17,7 +17,7 @@ begin
   foreach fn in array array['auth_tenant_ids()', 'can_create_post(uuid)', 'community_is_public(uuid)',
     'is_community_admin(uuid)', 'is_community_member(uuid)', 'is_group_admin(uuid, uuid)', 'is_group_member(uuid)',
     'may_approve_requests(uuid)', 'event_is_visible(uuid, uuid)', 'is_event_organizer(uuid, uuid)',
-    'group_community_id(uuid)', 'is_community_admin_of_group(uuid)'] loop
+    'group_community_id(uuid)', 'is_community_admin_of_group(uuid)', 'can_read_community(uuid)'] loop
     if has_function_privilege('anon', 'public.' || fn, 'execute') then
       raise exception using errcode = 'PT001', message = format('anon can execute %s', fn);
     end if;

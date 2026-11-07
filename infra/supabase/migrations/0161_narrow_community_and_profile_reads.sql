@@ -44,7 +44,7 @@ revoke execute on function can_read_community(uuid) from public, anon;
 grant execute on function can_read_community(uuid) to authenticated;
 
 drop policy if exists "communities: read" on communities;
-create policy "communities: read" on communities for select using (can_read_community(id));
+create policy "communities: read" on communities for select to authenticated using (can_read_community(id));
 
 create or replace function community_member_count(c uuid) returns integer
 language sql stable security definer set search_path = public as $$
@@ -91,19 +91,24 @@ begin
   foreach f in array array['can_read_community(uuid)', 'community_member_count(uuid)',
                            'get_my_community_plan(uuid)', 'get_my_profile_state()'] loop
     if has_function_privilege('anon', 'public.' || f, 'execute') then
-      raise exception '0152: anon can execute %', f;
+      raise exception '0161: anon can execute %', f;
     end if;
     if not has_function_privilege('authenticated', 'public.' || f, 'execute') then
-      raise exception '0152: authenticated cannot execute %', f;
+      raise exception '0161: authenticated cannot execute %', f;
     end if;
     if not exists (select 1 from pg_proc where oid = to_regprocedure('public.' || f) and prosecdef
                      and proconfig = array['search_path=public']) then
-      raise exception '0152: % is not SECURITY DEFINER with search_path public', f;
+      raise exception '0161: % is not SECURITY DEFINER with search_path public', f;
     end if;
   end loop;
   if (select pg_get_expr(polqual, polrelid) from pg_policy
        where polrelid = 'public.communities'::regclass and polname = 'communities: read')
      is distinct from 'can_read_community(id)' then
-    raise exception '0152: "communities: read" is not can_read_community(id)';
+    raise exception '0161: "communities: read" is not can_read_community(id)';
+  end if;
+  if (select polroles::oid[] from pg_policy
+       where polrelid = 'public.communities'::regclass and polname = 'communities: read')
+     is distinct from array[(select oid from pg_roles where rolname = 'authenticated')] then
+    raise exception '0161: "communities: read" is not to authenticated only';
   end if;
 end $$;
