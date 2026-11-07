@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { createPublicEnv } from '@padel/config';
+import { scrubBreadcrumb, scrubTransaction } from '@padel/utils';
 
 /**
  * Minimal, DSN-guarded Sentry init for the browser/client.
@@ -22,6 +23,10 @@ export function initSentry(): void {
     SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   });
   if (!env.SENTRY_DSN) return; // no-op locally / without a DSN
-  Sentry.init({ dsn: env.SENTRY_DSN, environment: env.APP_ENV, tracesSampleRate: 0.1 });
+  Sentry.init({ dsn: env.SENTRY_DSN, environment: env.APP_ENV, tracesSampleRate: 0.1,
+    // Whole query strings go: PostgREST filters (id=eq.<uuid>, user_id=, email=) and Stream's own queries.
+    beforeBreadcrumb: (b) => scrubBreadcrumb(b),
+    beforeSendTransaction: (e) => scrubTransaction(e),
+  });
   initialized = true;
 }

@@ -11,7 +11,7 @@
 // checkout `supabase start` ran from (CI's db-tests job starts it from the branch). In a worktree,
 // serve this branch's copy yourself and point DELETE_ACCOUNT_URL at it — the docker line is in the
 // header of complete-account-consent.test.mjs.
-import { BASE_URL, user, rpc, anonRpc, req, sel, patch, expectError, assert, run } from './lib.mjs';
+import { BASE_URL, SERVICE, insert, user, rpc, anonRpc, req, sel, patch, expectError, assert, run } from './lib.mjs';
 
 const FN_URL = process.env.DELETE_ACCOUNT_URL || `${BASE_URL}/functions/v1/delete-account`;
 const DENIED = 'permission denied for function soft_delete_account';
@@ -25,6 +25,23 @@ const deleteAccount = async (jwt) => {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
   });
   return { status: res.status, body: await res.json().catch(() => null) };
+};
+/** Avatar files live in a public bucket, one folder per user; uploads use a new name each time. */
+const uploadAvatar = async (uid, name) => {
+  const res = await fetch(`${BASE_URL}/storage/v1/object/avatars/${uid}/${name}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${SERVICE}`, apikey: SERVICE, 'Content-Type': 'image/png' },
+    body: new Uint8Array([137, 80, 78, 71]),
+  });
+  assert(res.ok, `avatar upload ${uid}/${name} failed: ${res.status}`);
+};
+const avatarFiles = async (uid) => {
+  const res = await fetch(`${BASE_URL}/storage/v1/object/list/avatars`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${SERVICE}`, apikey: SERVICE, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefix: uid, limit: 100, offset: 0 }),
+  });
+  return (await res.json()).map((f) => f.name);
 };
 const authUser = (id) => req(`/auth/v1/admin/users/${id}`);
 const isBanned = async (id) => {
@@ -79,6 +96,18 @@ await rpc(blocker.jwt, 'block_user', { p_target: target.id });
 await rpc(blocker.jwt, 'block_user', { p_target: svc.id });
 await rpc(target.jwt, 'block_user', { p_target: blockee.id });
 const targetEvent = await upcomingEventWith(host, target);
+// Notifications other people hold that name an account: a follow notifies the followee with the follower's name.
+const watcher = await user('sda-watcher');
+await insert('follows', { follower_id: target.id, followee_id: watcher.id });
+const namingTarget = () => sel('notifications', `user_id=eq.${watcher.id}&actor_id=eq.${target.id}&select=actor_name`);
+assert((await namingTarget())[0]?.actor_name !== 'Deleted user', 'setup: the notification names the real account');
+// Activity rows the target wrote: one that names the target (an earlier 'joined') and one that names someone else.
+await insert('event_activity', [
+  { event_id: targetEvent, actor_id: target.id, action: 'joined', detail: { target_name: 'Real Target Name', status: 'confirmed' } },
+  { event_id: targetEvent, actor_id: target.id, action: 'invited', detail: { target_name: 'Some Other Person' } },
+]);
+const targetActivity = (action) =>
+  sel('event_activity', `event_id=eq.${targetEvent}&actor_id=eq.${target.id}&action=eq.${action}&select=detail`);
 await patch('profiles', `id=eq.${svc.id}`, { level: 3 }); // so the deletion has something to clear
 const svcEvent = await upcomingEventWith(host, svc);
 
@@ -126,8 +155,12 @@ await run('the user CAN delete their own account through the edge function; othe
   const rotated = await refresh(session.refresh_token);
   assert(rotated.access_token, 'a live account can refresh');
 
+  await uploadAvatar(target.id, '1-old.png');
+  await uploadAvatar(target.id, '2-new.png');
   const { status, body } = await deleteAccount(rotated.access_token);
   assert(status === 200 && body?.ok === true, `delete-account returned ${status}: ${JSON.stringify(body)}`);
+  // Stream keys are absent locally: the function must still answer ok, and the files are gone.
+  assert((await avatarFiles(target.id)).length === 0, 'every avatar file of the deleted account is removed');
 
   const p = await profile(target.id);
   assert(p.full_name === 'Deleted user' && p.deleted_at !== null, 'the profile is anonymized and marked deleted');
@@ -139,6 +172,18 @@ await run('the user CAN delete their own account through the edge function; othe
     'the blocker still sees the block, as "Deleted user", and can remove it themselves');
   const left = await leftRows(targetEvent, target.id);
   assert(left.length === 1, `the organizer's Activity feed got one "left", got ${JSON.stringify(left)}`);
+  assert(left[0].detail.target_name === 'Deleted user' && left[0].detail.status === 'confirmed',
+    `the organizer's "left" row still names the deleted account or lost its status: ${JSON.stringify(left[0].detail)}`);
+  const joined = await targetActivity('joined');
+  assert(joined.length >= 1 && joined.every((r) => r.detail.target_name === 'Deleted user'),
+    `an earlier "joined" row still names the deleted account: ${JSON.stringify(joined)}`);
+  assert(joined.some((r) => r.detail.status === 'confirmed'), 'the other keys of detail are kept');
+  const invited = await targetActivity('invited');
+  assert(invited.length === 1 && invited[0].detail.target_name === 'Some Other Person',
+    `a row naming someone else was changed: ${JSON.stringify(invited)}`);
+  const named = await namingTarget();
+  assert(named.length === 1 && named[0].actor_name === 'Deleted user',
+    `another user's notification still names the deleted account: ${JSON.stringify(named)}`);
 
   // The matching "cannot": after deletion, neither the refresh token nor the old credentials work.
   // Which refusal GoTrue gives depends on its version (banned user vs a session its ban revoked), so
@@ -160,7 +205,10 @@ const member = await user('sda-member');
 const cid = await rpc(soleAdmin.jwt, 'create_community_with_personal_tenant', communityArgs('Deletion Club'));
 await rpc(member.jwt, 'join_community', { p_community_id: cid, p_ack: true });
 
+await insert('follows', { follower_id: soleAdmin.id, followee_id: watcher.id });
+await insert('event_activity', { event_id: targetEvent, actor_id: soleAdmin.id, action: 'joined', detail: { target_name: 'Sole Admin Name' } });
 await run('the sole admin of a community with members cannot delete, and nothing is deleted or banned', async () => {
+  await uploadAvatar(soleAdmin.id, 'keep.png');
   const { status, body } = await deleteAccount(soleAdmin.jwt);
   assert(status === 400, `expected 400, got ${status}`);
   assert(String(body?.error).includes('last_admin_must_promote_first'), `the apps' mapped code, got ${JSON.stringify(body)}`);
@@ -168,6 +216,11 @@ await run('the sole admin of a community with members cannot delete, and nothing
   assert(!(await isBanned(soleAdmin.id)), 'the ban rolled back with the refused deletion');
   const rows = await sel('community_members', `community_id=eq.${cid}&user_id=eq.${soleAdmin.id}&select=role`);
   assert(rows.length === 1 && rows[0].role === 'admin', 'still the admin');
+  assert((await avatarFiles(soleAdmin.id)).includes('keep.png'), 'a refused deletion keeps the avatar file');
+  const still = await sel('notifications', `user_id=eq.${watcher.id}&actor_id=eq.${soleAdmin.id}&select=actor_name`);
+  assert(still.length === 1 && still[0].actor_name !== 'Deleted user', 'a refused deletion renames no notification');
+  const act = await sel('event_activity', `event_id=eq.${targetEvent}&actor_id=eq.${soleAdmin.id}&select=detail`);
+  assert(act.length === 1 && act[0].detail.target_name === 'Sole Admin Name', 'a refused deletion renames no activity row');
 });
 
 await run('a plain member of that community CAN delete through the edge function', async () => {

@@ -22,3 +22,4 @@ export * from './eventPlayers';
 export * from './event-schedule';
 export * from './eventPartners';
 export * from './event-roster';
+export * from './sentry-scrub';
