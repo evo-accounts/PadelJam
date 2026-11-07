@@ -81,12 +81,20 @@ console.log(`[schema] profiles: ${columns.join(', ')}`);
 const browserFunctions = [...browserCalledFunctions(root).keys()];
 console.log(`[schema] browser-called functions: ${browserFunctions.join(', ')}`);
 
-/** 'ok' | 'fail' | 'skip' | 'unreachable' — 'unreachable' means don't bother with the rest. */
+/**
+ * 'ok' | 'fail' | 'skip' | 'unreachable' — 'unreachable' means don't bother with the rest.
+ *
+ * The auth path reads the caller's own profile through get_my_profile_state (PAD-167); the table's
+ * columns are no longer readable as anon, so probe the function instead, like my_auth_providers.
+ * It cannot run anonymously: a refusal (42501) means it exists. Only a missing function fails.
+ */
 async function checkColumns(t, label) {
   let res;
   try {
-    res = await fetch(`${t.url}/rest/v1/profiles?select=${columns.join(',')}&limit=1`, {
-      headers: { apikey: t.key },
+    res = await fetch(`${t.url}/rest/v1/rpc/get_my_profile_state`, {
+      method: 'POST',
+      headers: { apikey: t.key, 'Content-Type': 'application/json' },
+      body: '{}',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
@@ -96,17 +104,15 @@ async function checkColumns(t, label) {
     return 'unreachable';
   }
 
-  if (res.ok) {
-    console.log(`✓ ${label}: every column the auth path selects exists`);
-    return 'ok';
-  }
-
   const body = await res.json().catch(() => ({}));
-  // 42703 is undefined_column: the deployed database is behind the code.
-  if (body.code === '42703') {
-    console.log(`✗ ${label}: ${body.message}`);
-    console.log('    A migration in infra/supabase/migrations is not applied to this project.');
+  if (body.code === 'PGRST202' || body.code === '42883') {
+    console.log(`✗ ${label}: get_my_profile_state is missing (${body.message ?? res.status})`);
+    console.log('    Migration 0161 is not applied to this project — every sign-in would fail after login.');
     return 'fail';
+  }
+  if (res.ok || body.code === '42501') {
+    console.log(`✓ ${label}: get_my_profile_state exists`);
+    return 'ok';
   }
   console.log(`? ${label}: HTTP ${res.status} ${body.message ?? ''} — schema not verified`);
   return 'skip';

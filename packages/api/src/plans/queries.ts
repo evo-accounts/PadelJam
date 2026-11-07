@@ -22,7 +22,7 @@ export const useCommunityPlan = (communityId: string) => {
   return useQuery({
     queryKey: qk.communityPlan(communityId),
     queryFn: async () => {
-      const { data, error } = await db.rpc('community_plan', { c: communityId });
+      const { data, error } = await db.rpc('get_my_community_plan', { c: communityId });
       if (error) throw error;
       return data;
     },
