@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { capLocationText } from './mutations';
 
-describe('capLocationText (migration 0157: location_text is at most 200 characters)', () => {
+describe('capLocationText (migration 0160: location_text is at most 200 characters)', () => {
   it('keeps null and short text', () => {
     expect(capLocationText(null)).toBeNull();
     expect(capLocationText('Lisboa')).toBe('Lisboa');

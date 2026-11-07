@@ -219,6 +219,10 @@ export const useReport = () => {
   });
 };
 
+/** Cut a place label to the database's limit by code points, so an emoji is never split. */
+export const capLocationText = (text: string | null): string | null =>
+  text === null ? null : Array.from(text).slice(0, LOCATION_TEXT_MAX).join('');
+
 /**
  * Write the profile's location — coordinates and label together.
  *
@@ -227,10 +231,6 @@ export const useReport = () => {
  * point AND `location_text` as a pair, so neither can ride along in an ordinary `profiles` UPDATE.
  * Passing null coordinates clears the point.
  */
-/** Cut a place label to the database's limit by code points, so an emoji is never split. */
-export const capLocationText = (text: string | null): string | null =>
-  text === null ? null : Array.from(text).slice(0, LOCATION_TEXT_MAX).join('');
-
 export const useSetMyLocation = () => {
   const db = useDb();
   const qc = useQueryClient();
