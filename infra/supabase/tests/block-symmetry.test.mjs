@@ -345,8 +345,14 @@ await run("activity: the organizer's feed does not name a player blocked with th
     { event_id: ev, invitee_id: tom.id, invited_by: olga.id, status: 'pending' },
     { event_id: ev, invitee_id: sam.id, invited_by: olga.id, status: 'pending' },
   ]);
-  const [samInvitation] = await sel('event_invitations', `event_id=eq.${ev}&invitee_id=eq.${sam.id}&select=id`);
   for (const u of [rita, tom, sam]) await block(u, olga.id);
+  // 0149 clears those invitations on the block. Put them back with the service role, as rows left from before it:
+  // the 'invited' entries written above stay, and the organizer's own actions below still have something to act on.
+  await insert('event_invitations', [
+    { event_id: ev, invitee_id: tom.id, invited_by: olga.id, status: 'pending' },
+    { event_id: ev, invitee_id: sam.id, invited_by: olga.id, status: 'pending' },
+  ]);
+  const [samInvitation] = await sel('event_invitations', `event_id=eq.${ev}&invitee_id=eq.${sam.id}&select=id`);
 
   // The organizer's own roster actions (_participant_label, organizer_revoke_invitation)…
   await rpc(olga.jwt, 'mark_paid', { p_participant_id: pRita, p_paid: true });
