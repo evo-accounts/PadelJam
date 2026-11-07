@@ -1,6 +1,6 @@
 // infra/supabase/tests/profiles-read-narrowing.test.mjs
 //
-// Migration 0163 (PAD-167, PR C): a client reads only id, full_name and avatar_url from `profiles`;
+// Migration 0164 (PAD-167, PR C): a client reads only id, full_name and avatar_url from `profiles`;
 // everything else about your own row comes from get_my_profile_state / get_my_private_profile.
 // community_plan is not executable by authenticated, but join limits still work. Real JWTs only.
 import { user, rpc, anonRpc, sel, req, ANON, BASE_URL, expectError, assert, run } from './lib.mjs';

@@ -1,4 +1,4 @@
--- 0163_profiles_read_narrow_columns.sql
+-- 0164_profiles_read_narrow_columns.sql
 --
 -- PAD-167, PR C of 3: the revokes. `profiles: read` (0055) admits every signed-in caller to every
 -- unblocked profile row, and the column grant (0119, then 0148) still listed locale, onboarded_at,
@@ -28,7 +28,7 @@
 -- HOSTED: do NOT merge until a build containing #350 is live on iOS, Android and web. A released
 -- build's useMyProfile and sign-in routing select these columns and fail with 42501 the moment this
 -- lands. Probe:
---   select not has_column_privilege('authenticated', 'public.profiles', 'locale', 'SELECT') as has_0163;
+--   select not has_column_privilege('authenticated', 'public.profiles', 'locale', 'SELECT') as has_0164;
 
 revoke select on public.profiles from anon, authenticated;
 grant select (id, full_name, avatar_url) on public.profiles to anon, authenticated;
@@ -48,17 +48,17 @@ begin
     loop
       if col in ('id', 'full_name', 'avatar_url') then
         if not has_column_privilege(r, 'public.profiles', col, 'SELECT') then
-          raise exception '0163: % lost SELECT on profiles.%', r, col;
+          raise exception '0164: % lost SELECT on profiles.%', r, col;
         end if;
       elsif has_column_privilege(r, 'public.profiles', col, 'SELECT') then
-        raise exception '0163: % can still SELECT profiles.%', r, col;
+        raise exception '0164: % can still SELECT profiles.%', r, col;
       end if;
     end loop;
   end loop;
   if has_function_privilege('authenticated', 'public.community_plan(uuid)', 'execute') then
-    raise exception '0163: authenticated can still execute community_plan';
+    raise exception '0164: authenticated can still execute community_plan';
   end if;
   if not has_column_privilege('authenticated', 'public.profiles', 'full_name', 'UPDATE') then
-    raise exception '0163: authenticated lost UPDATE on profiles.full_name';
+    raise exception '0164: authenticated lost UPDATE on profiles.full_name';
   end if;
 end $$;
