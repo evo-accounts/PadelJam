@@ -19,12 +19,9 @@ function isSocialSession(session: {
   );
 }
 
-async function fetchProfile(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('onboarded_at, location_text, level, dominant_hand, court_side, notifications_prompted_at')
-    .eq('id', userId)
-    .maybeSingle();
+async function fetchProfile() {
+  // get_my_profile_state answers for auth.uid() only; no row means no profile yet.
+  const { data, error } = await supabase.rpc('get_my_profile_state').maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -41,14 +38,14 @@ export async function resolvePostAuthRoute(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) return '/(auth)/sign-in';
 
-  let profile = await fetchProfile(session.user.id);
+  let profile = await fetchProfile();
 
   if (!profile) {
     if (isSocialSession(session)) {
       // Provision may have failed before routing (network error). Retry once — it is idempotent.
       try {
         await provisionSocialProfile(session.access_token, undefined);
-        profile = await fetchProfile(session.user.id);
+        profile = await fetchProfile();
       } catch {
         // Provision failed again — fall through to create-account as last resort.
       }

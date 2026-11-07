@@ -47,11 +47,7 @@ export function Providers({ children }: { children: ReactNode }) {
           data: { session },
         } = await client.auth.getSession();
         if (session?.user) {
-          const { data } = await client
-            .from('profiles')
-            .select('locale')
-            .eq('id', session.user.id)
-            .maybeSingle();
+          const { data } = await client.rpc('get_my_profile_state').maybeSingle();
           candidate = data?.locale ?? undefined;
         }
       } catch {

@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock supabase
 const mockGetSession = vi.fn();
-const mockFrom = vi.fn();
+const mockRpc = vi.fn();
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     auth: { getSession: mockGetSession },
-    from: mockFrom,
+    rpc: mockRpc,
   },
 }));
 
@@ -26,9 +26,7 @@ const makeSession = (provider: string, token = 'tok') => ({
 });
 
 const makeProfileQuery = (profile: object | null) => ({
-  from: () => ({
-    select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: profile }) }) }),
-  }),
+  from: () => ({ maybeSingle: async () => ({ data: profile }) }),
 });
 
 beforeEach(() => { vi.resetAllMocks(); });
@@ -41,21 +39,21 @@ describe('resolvePostAuthRoute', () => {
 
   it('returns tabs when profile is onboarded', async () => {
     mockGetSession.mockResolvedValue(makeSession('email'));
-    mockFrom.mockReturnValue(makeProfileQuery({ onboarded_at: '2026-01-01', location_text: 'Lisbon', level: 2, dominant_hand: 'right', court_side: 'left' }).from());
+    mockRpc.mockReturnValue(makeProfileQuery({ onboarded_at: '2026-01-01', location_text: 'Lisbon', level: 2, dominant_hand: 'right', court_side: 'left' }).from());
     expect(await resolvePostAuthRoute()).toBe('/(tabs)');
   });
 
   it('location answered, level not → resumes at level; level answered → hand', async () => {
     mockGetSession.mockResolvedValue(makeSession('email'));
-    mockFrom.mockReturnValue(makeProfileQuery({ onboarded_at: null, location_text: 'Lisbon', level: null, dominant_hand: null, court_side: null }).from());
+    mockRpc.mockReturnValue(makeProfileQuery({ onboarded_at: null, location_text: 'Lisbon', level: null, dominant_hand: null, court_side: null }).from());
     expect(await resolvePostAuthRoute()).toBe('/(onboarding)/level');
-    mockFrom.mockReturnValue(makeProfileQuery({ onboarded_at: null, location_text: 'Lisbon', level: 3, dominant_hand: null, court_side: null }).from());
+    mockRpc.mockReturnValue(makeProfileQuery({ onboarded_at: null, location_text: 'Lisbon', level: 3, dominant_hand: null, court_side: null }).from());
     expect(await resolvePostAuthRoute()).toBe('/(onboarding)/hand');
   });
 
   it('OTP user with no profile → create-account (no provision called)', async () => {
     mockGetSession.mockResolvedValue(makeSession('email'));
-    mockFrom.mockReturnValue(makeProfileQuery(null).from());
+    mockRpc.mockReturnValue(makeProfileQuery(null).from());
     expect(await resolvePostAuthRoute()).toBe('/(auth)/create-account');
     expect(mockProvision).not.toHaveBeenCalled();
   });
@@ -64,18 +62,14 @@ describe('resolvePostAuthRoute', () => {
     mockGetSession.mockResolvedValue(makeSession('apple', 'tok'));
     mockProvision.mockResolvedValue(undefined);
     let calls = 0;
-    mockFrom.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: async () => {
-            calls++;
-            // First call: no profile. Second call (after provision): profile exists.
-            return calls === 1
-              ? { data: null }
-              : { data: { onboarded_at: null, location_text: null, level: null, dominant_hand: null, court_side: null } };
-          },
-        }),
-      }),
+    mockRpc.mockReturnValue({
+      maybeSingle: async () => {
+        calls++;
+        // First call: no profile. Second call (after provision): profile exists.
+        return calls === 1
+          ? { data: null }
+          : { data: { onboarded_at: null, location_text: null, level: null, dominant_hand: null, court_side: null } };
+      },
     });
     expect(await resolvePostAuthRoute()).toBe('/(onboarding)/location');
     expect(mockProvision).toHaveBeenCalledWith('tok', undefined);
@@ -84,7 +78,7 @@ describe('resolvePostAuthRoute', () => {
   it('social user provision fails → falls through to create-account', async () => {
     mockGetSession.mockResolvedValue(makeSession('google', 'tok'));
     mockProvision.mockRejectedValue(new Error('provision_failed'));
-    mockFrom.mockReturnValue(makeProfileQuery(null).from());
+    mockRpc.mockReturnValue(makeProfileQuery(null).from());
     expect(await resolvePostAuthRoute()).toBe('/(auth)/create-account');
   });
 
@@ -99,18 +93,14 @@ describe('resolvePostAuthRoute', () => {
     });
     mockProvision.mockResolvedValue(undefined);
     let calls = 0;
-    mockFrom.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: async () => {
-            calls++;
-            // First call: no profile. Second call (after provision): profile exists.
-            return calls === 1
-              ? { data: null }
-              : { data: { onboarded_at: null, location_text: null, level: null, dominant_hand: null, court_side: null } };
-          },
-        }),
-      }),
+    mockRpc.mockReturnValue({
+      maybeSingle: async () => {
+        calls++;
+        // First call: no profile. Second call (after provision): profile exists.
+        return calls === 1
+          ? { data: null }
+          : { data: { onboarded_at: null, location_text: null, level: null, dominant_hand: null, court_side: null } };
+      },
     });
     expect(await resolvePostAuthRoute()).toBe('/(onboarding)/location');
     expect(mockProvision).toHaveBeenCalledWith('tok', undefined);

@@ -73,7 +73,7 @@ export default function RootLayout() {
           data: { session },
         } = await supabase.auth.getSession();
         if (session?.user) {
-          const { data } = await supabase.from('profiles').select('locale').eq('id', session.user.id).maybeSingle();
+          const { data } = await supabase.rpc('get_my_profile_state').maybeSingle();
           candidate = data?.locale ?? undefined;
         }
       } catch {

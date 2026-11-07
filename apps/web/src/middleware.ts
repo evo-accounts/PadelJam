@@ -29,11 +29,8 @@ export async function middleware(req: NextRequest) {
   // auth flow's create-account case, and a failed read lets the request through rather than lock
   // anyone out.
   if (req.nextUrl.pathname.startsWith('/app')) {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('onboarded_at')
-      .eq('id', user.id)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('get_my_profile_state').maybeSingle();
+    const profile = data as { onboarded_at: string | null } | null;
     if (!error && profile && profile.onboarded_at === null) {
       const redirect = NextResponse.redirect(new URL('/onboarding', req.url));
       res.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie)); // keep a refreshed session
