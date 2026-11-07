@@ -41,10 +41,10 @@ export const rpc = (jwt, name, args = {}) => req(`/rest/v1/rpc/${name}`, { metho
 /** Call an RPC as ANON (no session). The service key bypasses grants, so it can neither prove a
  *  function is closed to anon nor that a pre-auth one is open to it. */
 export const ANON = ENV.SUPABASE_ANON_KEY;
-export async function anonRpc(name, args = {}) {
+export async function anonRpc(name, args = {}, headers = {}) {
   if (!ANON) throw new Error('Missing SUPABASE_ANON_KEY');
   const res = await fetch(`${BASE_URL}/rest/v1/rpc/${name}`, {
-    method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify(args),
+    method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(args),
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`anon POST /rest/v1/rpc/${name} → ${res.status}: ${text.slice(0, 400)}`);
@@ -85,6 +85,23 @@ export async function user(tag, { gender = 'male', name } = {}) {
     gender, dominant_hand: 'right', court_side: 'left', preferred_time: 'any', location_text: 'Lisbon, PT',
   });
   return { id, jwt: await signIn(email, 'Padel1234#') };
+}
+
+/** Write a user's plan with the service key. set_account_plan is closed to clients (0151). */
+export async function setAccountPlan(userId, plan) {
+  if (plan === 'free') return del('subscriptions', `user_id=eq.${userId}`);
+  await req('/rest/v1/subscriptions?on_conflict=user_id', {
+    method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+    body: { user_id: userId, plan_id: plan, status: 'active', provider: 'manual' },
+  });
+}
+/** Same for a community. 'starter' is the default, so it deletes the row. */
+export async function setCommunityPlan(communityId, plan) {
+  if (plan === 'starter') return del('community_subscriptions', `community_id=eq.${communityId}`);
+  await req('/rest/v1/community_subscriptions?on_conflict=community_id', {
+    method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+    body: { community_id: communityId, plan_id: plan, status: 'active', provider: 'manual' },
+  });
 }
 
 /** Await `fn` and assert it throws with a message containing `code`. */

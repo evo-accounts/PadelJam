@@ -2807,6 +2807,22 @@ export type Database = {
         Args: { p_q: string }
         Returns: string
       }
+      get_my_private_profile: {
+        Args: never
+        Returns: {
+          date_of_birth: string | null
+          gender: string | null
+          lat: number | null
+          lng: number | null
+        }[]
+      }
+      event_participant_genders: {
+        Args: { p_event_id: string }
+        Returns: {
+          gender: string | null
+          user_id: string | null
+        }[]
+      }
       my_auth_providers: {
         Args: never
         Returns: {

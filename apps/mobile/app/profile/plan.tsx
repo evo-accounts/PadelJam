@@ -1,11 +1,18 @@
-import { useRouter } from 'expo-router';
+import { PLANS_VISIBLE } from '@padel/features';
+import { Redirect, useRouter } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JammerPlusPaywall } from '../../components/profile/JammerPlusPaywall';
 import { colors } from '../../theme';
 
-export default function PlanScreen() {
+/** Plans are hidden for the free launch: a deep link lands back on Settings. */
+export default function PlanRoute() {
+  if (!PLANS_VISIBLE) return <Redirect href="/profile/settings" />;
+  return <PlanScreen />;
+}
+
+function PlanScreen() {
   const router = useRouter();
 
   return (

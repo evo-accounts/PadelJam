@@ -10,7 +10,7 @@
 // survive beside it — including the members of a non-public community, who were offered none of its
 // groups or events and could not read its toggles. Every call uses a real user's JWT: the discovery
 // functions are SECURITY DEFINER, so their predicates are the only fence.
-import { user, rpc, req, sel, insert, expectError, assert, run, BASE_URL, ANON } from './lib.mjs';
+import { setAccountPlan, user, rpc, req, sel, insert, expectError, assert, run, BASE_URL, ANON } from './lib.mjs';
 
 const letters = () => Array.from({ length: 6 }, () => 'bcdfghjklmnpqrstvwxz'[Math.floor(Math.random() * 20)]).join('');
 const TOK = `zq${letters()}`;
@@ -237,9 +237,9 @@ await run('the founder\'s Jammer+ lasts while they are in one of their communiti
   await rpc(founder.jwt, 'leave_community', { p_community_id: ids.U });
   assert((await plan(founder)) === 'free', 'Jammer+ ends once they are a member of none of them');
   // A Jammer+ of their own is untouched by any of this.
-  await rpc(founder.jwt, 'set_account_plan', { p_plan: 'jammer_plus' });
+  await setAccountPlan(founder.id, 'jammer_plus');
   assert((await plan(founder)) === 'jammer_plus', 'their own subscription still counts');
-  await rpc(founder.jwt, 'set_account_plan', { p_plan: 'free' });
+  await setAccountPlan(founder.id, 'free');
   assert((await plan(founder)) === 'free', 'and goes when they cancel it');
 });
 

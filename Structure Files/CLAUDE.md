@@ -49,10 +49,14 @@ launch **January 2027**.
    - **Entitlement check** — does this tenant's plan include this feature? (DB-backed)
    - **Permission check** — does this user's role, in this scope, allow this action? (CASL)
    Hiding UI is never sufficient. Enforce on the server (RLS + Edge Functions).
+   A policy that calls an RLS helper is `to authenticated`, and a helper never answers for a
+   user other than the caller (migration 0159; supersedes 0142's "grant to anon as well").
 
 3. **Entitlements live in the database, never in PostHog.** PostHog flags are only for
    rollout control (canaries, A/B tests, kill-switches). Plan gating is always DB-backed
-   and coupled to billing webhooks.
+   and coupled to billing webhooks. No client can write a plan: `subscriptions` and
+   `community_subscriptions` are written only with the service role. Billing isn't built
+   yet, so today no plan can be bought.
 
 4. **Chat is never imported directly.** All chat goes through `packages/chat`. A nightly
    job exports channels/messages to our own Postgres. This is migration insurance.
@@ -61,6 +65,12 @@ launch **January 2027**.
    it, it belongs in a package.
 
 6. **Mobile native dependencies must support Expo's New Architecture.** Verify before adding.
+
+7. **New database objects start closed.** A new table, sequence or function in `public` gives
+   `anon` and `authenticated` nothing (functions since 0142, tables and sequences since the
+   default-privileges migration, see `docs/superpowers/plans/2026-11-05-default-table-privileges.md`).
+   In the same migration, enable RLS on every new table, write its policies, and grant each role
+   only what it needs. `test:db` fails if a table has RLS off or gives `anon` a write.
 
 ## Repo layout
 
